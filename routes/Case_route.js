@@ -1009,9 +1009,519 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
 
 router.post("/List_Cases", listCases);
 
+
+/**
+ * @swagger
+ * /api/case/Case_Status:
+ *   post:
+ *     summary: C-1P44 Retrieve Latest Case Status by Case ID
+ *     description: |
+ *       Retrieve the latest status of a case by the provided `Case_ID`.
+ *       Includes details such as the status reason, created date, and expiration date.
+ *
+ *       | Version | Date        | Description                     | Changed By       |
+ *       |---------|-------------|---------------------------------|------------------|
+ *       | 01      | 2025-Jan-19 | Retrieve Latest Case Status     | Dinusha Anupama        |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: Case_ID
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1005
+ *         description: ID of the Case to retrieve the latest status for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Case_ID
+ *             properties:
+ *               Case_ID:
+ *                 type: integer
+ *                 description: The ID of the Case whose latest status is to be retrieved.
+ *                 example: 1005
+ *     responses:
+ *       200:
+ *         description: Latest case status retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Latest case status retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1005
+ *                     case_status:
+ *                       type: string
+ *                       example: Case_Close
+ *                     status_reason:
+ *                       type: string
+ *                       example: New case 2
+ *                     created_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-13T10:00:00.000Z"
+ *                     created_by:
+ *                       type: string
+ *                       example: System
+ *                     notified_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-11T10:00:00.000Z"
+ *                     expire_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-01T00:00:00.000Z"
+ *       400:
+ *         description: Validation error - Case_ID not provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case_ID is required.
+ *       404:
+ *         description: Case not found or no status available.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "No case status found for the given case."
+ *       500:
+ *         description: Database or internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve case status.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
+
 router.post("/Case_Status", Case_Status);
 
+
+/**
+ * @swagger
+ * /api/case/Case_List:
+ *   post:
+ *     summary: C-1P43 Retrieve List of Cases by Account Number
+ *     description: |
+ *       Retrieve a list of cases associated with a specific account number.
+ *       Includes detailed case information and status history.
+ *
+ *       | Version | Date        | Description                 | Changed By       |
+ *       |---------|-------------|-----------------------------|------------------|
+ *       | 01      | 2025-Jan-19 | Retrieve List of Cases      | Dinusha Anupama      |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: account_no
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 46236534
+ *         description: Account number to retrieve associated cases for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - account_no
+ *             properties:
+ *               account_no:
+ *                 type: integer
+ *                 description: The account number for which the cases are to be retrieved.
+ *                 example: 46236534
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: The unique identifier for the case.
+ *                         example: a67b89c1d234e567f8901234
+ *                       case_id:
+ *                         type: integer
+ *                         description: Unique ID of the case.
+ *                         example: 200
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the case was created.
+ *                         example: "2025-01-10T12:00:00.000Z"
+ *                       account_no:
+ *                         type: integer
+ *                         description: Associated account number.
+ *                         example: 46236534
+ *                       customer_ref:
+ *                         type: string
+ *                         description: Customer reference.
+ *                         example: CR004241061
+ *                       area:
+ *                         type: string
+ *                         description: Area associated with the case.
+ *                         example: Matara
+ *                       rtom:
+ *                         type: string
+ *                         description: RTOM region for the case.
+ *                         example: MA
+ *                       current_arrears_amount:
+ *                         type: number
+ *                         description: Current arrears amount for the case.
+ *                         example: 5500
+ *                       action_type:
+ *                         type: string
+ *                         description: Action type associated with the case.
+ *                         example: AT002
+ *                       monitor_months:
+ *                         type: integer
+ *                         description: Number of months under monitoring.
+ *                         example: 2
+ *                       commission:
+ *                         type: number
+ *                         nullable: true
+ *                         description: Commission details.
+ *                         example: null
+ *                       case_current_status:
+ *                         type: string
+ *                         description: Current status of the case.
+ *                         example: Open with Agent
+ *                       case_status:
+ *                         type: array
+ *                         description: History of status updates for the case.
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             status_reason:
+ *                               type: string
+ *                               description: Reason for the status.
+ *                               example: Legal team decision
+ *                             created_by:
+ *                               type: string
+ *                               description: User who created the status.
+ *                               example: Agent005
+ *                             notified_dtm:
+ *                               type: string
+ *                               format: date-time
+ *                               description: Notification timestamp for the status.
+ *                               example: "2024-11-05T00:00:00.000Z"
+ *       400:
+ *         description: Validation error - Account number not provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Account number is required.
+ *       404:
+ *         description: No cases found for the specified account number.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No cases found for account number 46236534.
+ *       500:
+ *         description: Database or internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
+
 router.post("/Case_List", Case_List);
+
+
+/**
+ * @swagger
+ * /api/case/Acivite_Case_Details:
+ *   post:
+ *     summary: C-1P42 Retrieve Active Case Details by Account Number
+ *     description: |
+ *       Retrieve a list of active cases associated with a specific account number.
+ *       Active cases are those where the latest status is not in the excluded statuses:
+ *       `Write_Off`, `Abandoned`, `Case_Close`, `Withdraw`.
+ *
+ *       | Version | Date        | Description                     | Changed By       |
+ *       |---------|-------------|---------------------------------|------------------|
+ *       | 01      | 2025-Jan-19 | Retrieve Active Case Details    | Dinusha Anupama        |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: account_no
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 54321
+ *         description: Account number to retrieve associated active cases for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - account_no
+ *             properties:
+ *               account_no:
+ *                 type: integer
+ *                 description: The account number for which active cases are to be retrieved.
+ *                 example: 54321
+ *     responses:
+ *       200:
+ *         description: Active cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: The unique identifier for the case.
+ *                         example: 6788b883bb5a2e0b24a12ea6
+ *                       case_id:
+ *                         type: integer
+ *                         description: Unique ID of the case.
+ *                         example: 1003
+ *                       incident_id:
+ *                         type: integer
+ *                         description: Incident ID associated with the case.
+ *                         example: 2
+ *                       account_no:
+ *                         type: integer
+ *                         description: Associated account number.
+ *                         example: 54321
+ *                       customer_ref:
+ *                         type: string
+ *                         description: Customer reference.
+ *                         example: CUST123
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the case was created.
+ *                         example: "2025-01-16T10:00:00.000Z"
+ *                       implemented_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the case was implemented.
+ *                         example: "2025-01-02T15:00:00.000Z"
+ *                       area:
+ *                         type: string
+ *                         description: Area associated with the case.
+ *                         example: Central
+ *                       rtom:
+ *                         type: string
+ *                         description: RTOM region for the case.
+ *                         example: Region A
+ *                       bss_arrears_amount:
+ *                         type: number
+ *                         description: BSS arrears amount.
+ *                         example: 1500.5
+ *                       current_arrears_amount:
+ *                         type: number
+ *                         description: Current arrears amount.
+ *                         example: 1200.75
+ *                       action_type:
+ *                         type: string
+ *                         description: Action type associated with the case.
+ *                         example: Recovery
+ *                       last_payment_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date of the last payment.
+ *                         example: "2024-12-31T00:00:00.000Z"
+ *                       monitor_months:
+ *                         type: integer
+ *                         description: Number of months under monitoring.
+ *                         example: 3
+ *                       last_bss_reading_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date of the last BSS reading.
+ *                         example: "2024-12-30T00:00:00.000Z"
+ *                       commission:
+ *                         type: number
+ *                         nullable: true
+ *                         description: Commission details.
+ *                         example: 10.5
+ *                       case_current_status:
+ *                         type: string
+ *                         description: Current status of the case.
+ *                         example: Discard Approved
+ *                       filtered_reason:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Reason for filtering the case.
+ *                         example: No agent available for assignment
+ *                       case_status:
+ *                         type: array
+ *                         description: History of status updates for the case.
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             case_status:
+ *                               type: string
+ *                               description: Current status of the case.
+ *                               example: Open
+ *                             status_reason:
+ *                               type: string
+ *                               description: Reason for the status.
+ *                               example: New case
+ *                             created_dtm:
+ *                               type: string
+ *                               format: date-time
+ *                               description: The date the status was created.
+ *                               example: "2025-01-01T10:00:00.000Z"
+ *                             created_by:
+ *                               type: string
+ *                               description: User who created the status.
+ *                               example: System
+ *                             notified_dtm:
+ *                               type: string
+ *                               format: date-time
+ *                               description: Notification timestamp for the status.
+ *                               example: "2025-01-01T10:15:00.000Z"
+ *                             expire_dtm:
+ *                               type: string
+ *                               format: date-time
+ *                               nullable: true
+ *                               description: Expiration timestamp for the status.
+ *                               example: "2025-07-01T00:00:00.000Z"
+ *       400:
+ *         description: Validation error - Account number not provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Account number is required.
+ *       404:
+ *         description: No active cases found for the specified account number.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active cases found for account number 54321.
+ *       500:
+ *         description: Database or internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve active cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
 
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
