@@ -1196,7 +1196,7 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
     }).length;
     return res.status(200).json({
       status: "success",
-      message: `Successfully retireved arrears band counts for rule - ${Rule} .`,
+      message: `Successfully retrieved arrears band counts for rule - ${Rule} .`,
       data:{
         "AB-5_10": band1,
         "AB-10_25": band2,
@@ -1370,5 +1370,69 @@ export const Acivite_Case_Details = async (req, res) => {
   }
 };
 
+export const get_count_by_drc_commision_rule = async (req, res) => {
+  const case_status = "Open no agent";
+    try {
+      const casesCount = await Case_details.aggregate([
+        {
+          $match: {
+            "case_current_status": case_status
+          }
+        },
+        {
+          $group: {
+            _id: "$drc_commision_rule",
+            case_count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            drc_commision_rule: "$_id",
+            case_count: 1,
+            _id: 0
+          }
+        }
+      ]);
+      const totalRules = casesCount.length;
+      return res.status(200).json({
+        status: "success",
+        message: "Cases count grouped by drc_commision_rule fetched successfully.",
+        metadata: {
+          total_rules: totalRules
+        },
+        data: casesCount
+      });
+    } catch (error) {
+        return res.status(500).json({
+          status: "error",
+          message: "Failed to fetch cases count. Please try again later.",
+          error: error.message
+        });
+    }
+};
+
+export const Case_Distribution_Among_Agents = async (req, res) => {
+
+  const {drc_commision_rule, current_arrears_band, drc_list} = req.body;
+
+  try {
+    if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC comision rule, current arrears band and DRC list feilds are required.",
+      });
+    }
+    if (drc_list.length <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC List should not be empty",
+      });
+    }
+    
+  } catch (error) {
+    
+  }
+    
+};
 
 

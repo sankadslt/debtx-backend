@@ -23,6 +23,7 @@ import { drcExtendValidityPeriod,
         openNoAgentCountArrearsBandByServiceType,
         listCases,
         Acivite_Case_Details,
+        get_count_by_drc_commision_rule,
  } from "../controllers/Case_controller.js";
 
 
@@ -563,17 +564,34 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *     tags:
  *      - Case Management
  *     parameters:
- *       - in: body
+ *       - in: query
  *         name: rule
  *         required: true
  *         schema:
- *           type: object
- *           properties:
- *             rule:
- *               type: string
- *               example: "PEO TV"
- *               description: The rule to filter cases by.
+ *           type: string
+ *           example: "PEO TV"
  *         description: Rule.
+ *       - in: query
+ *         name: Case_Status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Open No Agent"
+ *         description: The status of the case to filter by.
+ *       - in: query
+ *         name: From_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2025-01-11"
+ *         description:  From date to filter cases by.
+ *       - in: query
+ *         name: To_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2025-01-12"
+ *         description:  To date to filter cases by.
  *     requestBody:
  *       required: true
  *       content:
@@ -581,10 +599,22 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *           schema:
  *             type: object
  *             properties:
- *               rule:
+ *               Rule:
  *                 type: string
  *                 description: The rule to filter cases by.
  *                 example: "PEO TV"
+ *               Case_Status:
+ *                 type: string
+ *                 description: The rule to filter cases by.
+ *                 example: "Open No Agent"
+ *               From_Date:
+ *                 type: string
+ *                 description: From date to filter cases by.
+ *                 example: "2025-01-11"
+ *               To_Date:
+ *                 type: string
+ *                 description: To date to filter cases by.
+ *                 example: "2025-01-12"
  *     responses:
  *       200:
  *         description: Successfully retrieved Open No Agent case details.
@@ -905,17 +935,20 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *     tags:
  *      - Case Management
  *     parameters:
- *       - in: body
+ *       - in: query
  *         name: Rule
  *         required: true
  *         schema:
- *           type: object
- *           properties:
- *             Rule:
- *               type: string
- *               example: "PEO TV"
- *               description: The rule to filter cases by.
+ *           type: string
+ *           example: "PEO TV"
  *         description: Rule to filter cases.
+ *       - in: query
+ *         name: Case_Status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Open No Agent"
+ *         description: The status of the case to filter by.
  *     requestBody:
  *       required: true
  *       content:
@@ -923,10 +956,14 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *           schema:
  *             type: object
  *             properties:
- *               rule:
+ *               Rule:
  *                 type: string
  *                 description: The rule to filter cases by.
  *                 example: "PEO TV"
+ *               Case_Status:
+ *                 type: string
+ *                 description: Case Status to filter cases by
+ *                 example: "Open No Agent"
  *     responses:
  *       200:
  *         description: Successfully retrieved Open No Agent count by arrears bands.
@@ -944,19 +981,19 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *                 data:
  *                   type: object
  *                   properties:
- *                     "5000-10000":
+ *                     "AB-5_10":
  *                       type: integer
  *                       example: 10
- *                     "10000-25000":
+ *                     "AB-10_25":
  *                       type: integer
  *                       example: 5
- *                     "25000-50000":
+ *                     "AB-25_50":
  *                       type: integer
  *                       example: 3
- *                     "50000-100000":
+ *                     "AB-50_100":
  *                       type: integer
  *                       example: 1
- *                     ">100000":
+ *                     "AB-100-9999":
  *                       type: integer
  *                       example: 2
  *       400:
@@ -1007,6 +1044,147 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
 
 router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Case-related endpoints, allowing management and retrieval of case details.
+ *
+ * /api/case/List_Cases:
+ *   post:
+ *     summary: C-1G11 Retrieve Open No Agent Cases
+ *     description: |
+ *       Retrieves case details with the status "Open No Agent" for a specific date range where filtered reason is NULL. 
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Jan-19| Initial version|
+ *
+ *     tags:
+ *      - Case Management
+ *     parameters:
+ *       - in: query
+ *         name: From_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2025-01-11"
+ *         description:  From date to filter cases by.
+ *       - in: query
+ *         name: To_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2025-01-12"
+ *         description:  To date to filter cases by.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - From_Date
+ *               - To_Date
+ *             properties:
+ *               From_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: From date to filter cases by.
+ *                 example: "2025-01-11"
+ *               To_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: To date to filter cases by.
+ *                 example: "2025-01-12"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved Open No Agent case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved Open No Agent case details.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       case_id:
+ *                         type: integer
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                       account_no:
+ *                         type: integer
+ *                       customer_ref:
+ *                         type: string
+ *                       area:
+ *                         type: string
+ *                       rtom:
+ *                         type: string
+ *                       current_arrears_amount:
+ *                         type: integer
+ *                       action_type:
+ *                         type: string
+ *                       last_payment_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                       case_current_status:
+ *                         type: string
+ *       400:
+ *         description: Validation error due to missing or invalid fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve Open No Agent case details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "From_Date and To_Date are required fields."
+ *       500:
+ *         description: Internal server error or database error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve case details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred. Please try again later."
+ */
 router.post("/List_Cases", listCases);
 
 
@@ -1524,5 +1702,7 @@ router.post("/Case_List", Case_List);
  */
 
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
+
+router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
 
 export default router;
