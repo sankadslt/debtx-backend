@@ -8,7 +8,322 @@ List_Incidents
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/incident/Reject_Case:
+ *   post:
+ *     summary: INC-1P03 Reject an incident case
+ *     description: Updates the status of an incident to "Incident Reject" with a rejection reason, and also closes the corresponding user interaction in the system.
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Incident_Id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 102
+ *         description: The unique identifier of the incident to reject.
+ *       - in: query
+ *         name: Reject_Reason
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Duplicate entry"
+ *         description: The reason for rejecting the incident.
+ *       - in: query
+ *         name: Rejected_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "user123"
+ *         description: The username or ID of the person rejecting the incident.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Incident_Id:
+ *                 type: integer
+ *                 description: The unique identifier of the incident to reject.
+ *                 example: 102
+ *               Reject_Reason:
+ *                 type: string
+ *                 description: The reason for rejecting the incident.
+ *                 example: "Duplicate entry"
+ *               Rejected_By:
+ *                 type: string
+ *                 description: The username or ID of the person rejecting the incident.
+ *                 example: "user123"
+ *     responses:
+ *       200:
+ *         description: Incident rejected and status updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident rejected and status updated successfully."
+ *                 incident:
+ *                   type: object
+ *                   properties:
+ *                     Incident_Id:
+ *                       type: integer
+ *                       description: Unique identifier of the incident.
+ *                       example: 102
+ *                     Incident_Status:
+ *                       type: string
+ *                       description: Status of the incident.
+ *                       example: "Incident Reject"
+ *                     Rejected_Reason:
+ *                       type: string
+ *                       description: Reason for rejecting the incident.
+ *                       example: "Duplicate entry"
+ *                     Rejected_By:
+ *                       type: string
+ *                       description: The user who rejected the incident.
+ *                       example: "user123"
+ *                     Rejected_Dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date and time the incident was rejected.
+ *                       example: "2025-01-19T14:30:00Z"
+ *                 caseUserInteraction:
+ *                   type: object
+ *                   properties:
+ *                     Case_User_Interaction_id:
+ *                       type: integer
+ *                       description: ID of the case user interaction.
+ *                       example: 5
+ *                     User_Interaction_status:
+ *                       type: string
+ *                       description: Status of the user interaction.
+ *                       example: "close"
+ *                     User_Interaction_status_changed_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date and time the user interaction status was changed.
+ *                       example: "2025-01-19T14:35:00Z"
+ *       400:
+ *         description: Missing required fields or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident_Id, Reject_Reason, and Rejected_By are required fields."
+ *       404:
+ *         description: Incident or system case user interaction not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message."
+ */
 router.patch("/Reject_Case", Reject_Case);
+
+/**
+ * @swagger
+ * /api/incident/List_Incidents:
+ *   post:
+ *     summary: INC-1P02 List incidents and create a task
+ *     description: Retrieves a list of incidents based on the specified criteria and creates a task for further processing. Validates input fields and interacts with the database.
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Actions
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "collect arrears"
+ *         description: The action associated with the incidents.
+ *       - in: query
+ *         name: Incident_Status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Incident Open"
+ *         description: The status of the incidents.
+ *       - in: query
+ *         name: From_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-01"
+ *         description: The start date for filtering incidents (inclusive).
+ *       - in: query
+ *         name: To_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-31"
+ *         description: The end date for filtering incidents (inclusive).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Actions:
+ *                 type: string
+ *                 description: The action associated with the incident.
+ *                 example: "collect arrears"
+ *               Incident_Status:
+ *                 type: string
+ *                 description: The status of the incident.
+ *                 example: "Incident Open"
+ *               From_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: The start date for filtering incidents (inclusive).
+ *                 example: "2025-01-01"
+ *               To_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: The end date for filtering incidents (inclusive).
+ *                 example: "2025-01-31"
+ *     responses:
+ *       200:
+ *         description: Incidents retrieved and task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Incidents retrieved and task created successfully."
+ *                 incidents:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: integer
+ *                         description: Unique identifier for the incident.
+ *                         example: 102
+ *                       Actions:
+ *                         type: string
+ *                         description: The action performed for the incident.
+ *                         example: "collect arrears"
+ *                       Incident_Status:
+ *                         type: string
+ *                         description: The status of the incident.
+ *                         example: "Incident Open"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the incident was created.
+ *                         example: "2025-01-03T12:34:56.789Z"
+ *                 task:
+ *                   type: object
+ *                   properties:
+ *                     Task_Id:
+ *                       type: integer
+ *                       description: Unique identifier for the task.
+ *                       example: 201
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template task ID associated with the task.
+ *                       example: 12
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         Incident_Status:
+ *                           type: string
+ *                           description: Status of the incidents being processed.
+ *                           example: "Incident Open"
+ *                         StartDTM:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Start date of the incidents filter.
+ *                           example: "2025-01-01T00:00:00Z"
+ *                         EndDTM:
+ *                           type: string
+ *                           format: date-time
+ *                           description: End date of the incidents filter.
+ *                           example: "2025-01-31T23:59:59Z"
+ *                         Actions:
+ *                           type: string
+ *                           description: Action associated with the incidents.
+ *                           example: "collect arrears"
+ *                     Created_By:
+ *                       type: string
+ *                       description: Username or system that created the task.
+ *                       example: "user123"
+ *                     task_status:
+ *                       type: string
+ *                       description: Current status of the task.
+ *                       example: "pending"
+ *       400:
+ *         description: Invalid input or missing fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "All fields are required: Actions, Incident_Status, From_Date, To_Date."
+ *       404:
+ *         description: No incidents found matching the criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "No incidents found matching the criteria."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
 router.post("/List_Incidents", List_Incidents);
     
 /**
