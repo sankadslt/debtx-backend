@@ -738,104 +738,208 @@ export const Case_Current_Status = async (req, res) => {
 }
 
 
+// export const assignROToCase = async (req, res) => {
+//   try {
+//     const { case_id, ro_id } = req.body;
+
+//     // Validate input
+//     if (!case_id || !ro_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to assign Recovery Officer.",
+//         errors: {
+//           code: 400,
+//           description: "Case ID and RO ID are required.",
+//         },
+//       });
+//     }
+
+//     const assigned_by = "System";
+
+//     // Fetch the case details
+//     const caseData = await Case_details.findOne({ case_id });
+
+//     if (!caseData) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "Case ID not found in Database.",
+//       });
+//     }
+
+//     // Check if expire_dtm is null
+//     if (caseData.expire_dtm !== null) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Cannot assign Recovery Officer. Case has expired.",
+//         errors: {
+//           code: 400,
+//           description: "The expire_dtm field must be null.",
+//         },
+//       });
+//     }
+
+//     // Find the `drc` array and check the recovery_officers array
+//     const drc = caseData.drc.find((d) => d.drc_id); // Assume drc_id exists; adjust logic if necessary
+//     if (!drc) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "DRC not found for the given case.",
+//       });
+//     }
+
+//     // Get the recovery_officers array
+//     const recoveryOfficers = drc.recovery_officers || [];
+//     const lastOfficer = recoveryOfficers[recoveryOfficers.length - 1];
+
+//     // Check if remove_dtm is null in the last officer
+//     if (lastOfficer && lastOfficer.removed_dtm === null) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Cannot assign new Recovery Officer. Previous officer not removed.",
+//         errors: {
+//           code: 400,
+//           description: "The remove_dtm field for the last Recovery Officer must not be null.",
+//         },
+//       });
+//     }
+
+//     // Prepare the new recovery officer object
+//     const newOfficer = {
+//       ro_id: ro_id,
+//       assigned_dtm: new Date(), // Date format: day/month/year
+//       assigned_by: assigned_by,
+//       removed_dtm: null,
+//       case_removal_remark: null,
+//     };
+
+//     // Push the new recovery officer into the array
+//     const updateData = {
+//       $push: { "drc.$.recovery_officers": newOfficer },
+//     };
+
+//     // Update the database
+//     const updatedResult = await Case_details.updateOne(
+//       { case_id, "drc.drc_id": drc.drc_id }, // Match specific drc within case
+//       updateData
+//     );
+
+//     if (updatedResult.nModified === 0) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to assign Recovery Officer. Update operation unsuccessful.",
+//       });
+//     }
+
+//     // Send success response
+//     res.status(200).json({
+//       status: "success",
+//       message: "Recovery Officer assigned successfully.",
+//     });
+// } catch (error) {
+//     // Handle unexpected errors
+//     return res.status(500).json({
+//       status: "error",
+//       message: "An error occurred while assigning the Recovery Officer.",
+//       errors: {
+//         code: 500,
+//         description: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const assignROToCase = async (req, res) => {
   try {
-    const { case_id, ro_id } = req.body;
+    const { case_ids, ro_id } = req.body;
 
     // Validate input
-    if (!case_id || !ro_id) {
+    if (!Array.isArray(case_ids) || case_ids.length === 0 || !ro_id) {
       return res.status(400).json({
         status: "error",
         message: "Failed to assign Recovery Officer.",
         errors: {
           code: 400,
-          description: "Case ID and RO ID are required.",
+          description: "case_ids must be a non-empty array and ro_id is required.",
         },
       });
     }
 
     const assigned_by = "System";
 
-    // Fetch the case details
-    const caseData = await Case_details.findOne({ case_id });
+    // Fetch all cases with the provided case IDs
+    const cases = await Case_details.find({ case_id: { $in: case_ids } });
 
-    if (!caseData) {
+    if (cases.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Case ID not found in Database.",
+        message: "No cases found for the provided case IDs.",
       });
     }
 
-    // Check if expire_dtm is null
-    if (caseData.expire_dtm !== null) {
-      return res.status(400).json({
-        status: "error",
-        message: "Cannot assign Recovery Officer. Case has expired.",
-        errors: {
-          code: 400,
-          description: "The expire_dtm field must be null.",
+    const errors = [];
+    const updates = [];
+
+    for (const caseData of cases) {
+      const { case_id, drc } = caseData;
+
+      // Ensure there's at least one DRC and that `expire_dtm` is null
+      const activeDrc = drc.find((d) => d.expire_dtm === null);
+
+      if (!activeDrc) {
+        errors.push({
+          case_id,
+          message: "No active DRC with expire_dtm as null found.",
+        });
+        continue;
+      }
+
+      const recoveryOfficers = activeDrc.recovery_officers || [];
+      const lastOfficer = recoveryOfficers[recoveryOfficers.length - 1];
+
+      // Check if the last officer's remove_dtm is null
+      if (lastOfficer && lastOfficer.removed_dtm === null) {
+        // Update the last officer's removed_dtm
+        lastOfficer.removed_dtm = new Date();
+      }
+
+      // Prepare the new recovery officer object
+      const newOfficer = {
+        ro_id,
+        assigned_dtm: new Date(), // Current date and time
+        assigned_by,
+        removed_dtm: null,
+        case_removal_remark: null,
+      };
+
+      // Add the new officer to the array
+      recoveryOfficers.push(newOfficer);
+
+      // Update the case data
+      updates.push({
+        updateOne: {
+          filter: { case_id, "drc.drc_id": activeDrc.drc_id },
+          update: {
+            $set: { "drc.$.recovery_officers": recoveryOfficers },
+          },
         },
       });
     }
 
-    // Find the `drc` array and check the recovery_officers array
-    const drc = caseData.drc.find((d) => d.drc_id); // Assume drc_id exists; adjust logic if necessary
-    if (!drc) {
-      return res.status(404).json({
-        status: "error",
-        message: "DRC not found for the given case.",
-      });
+    // Apply updates using bulkWrite
+    if (updates.length > 0) {
+      await Case_details.bulkWrite(updates);
     }
 
-    // Get the recovery_officers array
-    const recoveryOfficers = drc.recovery_officers || [];
-    const lastOfficer = recoveryOfficers[recoveryOfficers.length - 1];
-
-    // Check if remove_dtm is null in the last officer
-    if (lastOfficer && lastOfficer.removed_dtm === null) {
-      return res.status(400).json({
-        status: "error",
-        message: "Cannot assign new Recovery Officer. Previous officer not removed.",
-        errors: {
-          code: 400,
-          description: "The remove_dtm field for the last Recovery Officer must not be null.",
-        },
-      });
-    }
-
-    // Prepare the new recovery officer object
-    const newOfficer = {
-      ro_id: ro_id,
-      assigned_dtm: new Date(), // Date format: day/month/year
-      assigned_by: assigned_by,
-      removed_dtm: null,
-      case_removal_remark: null,
-    };
-
-    // Push the new recovery officer into the array
-    const updateData = {
-      $push: { "drc.$.recovery_officers": newOfficer },
-    };
-
-    // Update the database
-    const updatedResult = await Case_details.updateOne(
-      { case_id, "drc.drc_id": drc.drc_id }, // Match specific drc within case
-      updateData
-    );
-
-    if (updatedResult.nModified === 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "Failed to assign Recovery Officer. Update operation unsuccessful.",
-      });
-    }
-
-    // Send success response
+    // Response with success and error details
     res.status(200).json({
       status: "success",
-      message: "Recovery Officer assigned successfully.",
+      message: "Recovery Officers assigned successfully.",
+      details: {
+        updated_cases: updates.length,
+        failed_cases: errors,
+      },
     });
-} catch (error) {
+  } catch (error) {
     // Handle unexpected errors
     return res.status(500).json({
       status: "error",
@@ -847,7 +951,6 @@ export const assignROToCase = async (req, res) => {
     });
   }
 };
-
 
 export const Case_Status = async (req, res) => {
   const { Case_ID } = req.body;
