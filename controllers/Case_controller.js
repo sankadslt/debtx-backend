@@ -1411,4 +1411,28 @@ export const get_count_by_drc_commision_rule = async (req, res) => {
     }
 };
 
+export const Case_Distribution_Among_Agents = async (req, res) => {
+
+  const {drc_commision_rule, current_arrears_band, drc_list} = req.body;
+
+  try {
+    if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC comision rule, current arrears band and DRC list feilds are required.",
+      });
+    }
+    if (drc_list.length <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC List should not be empty",
+      });
+    }
+    
+  } catch (error) {
+    
+  }
+    
+};
+
 
