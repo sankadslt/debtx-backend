@@ -1093,7 +1093,7 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
     }).length;
     return res.status(200).json({
       status: "success",
-      message: `Successfully retireved arrears band counts for rule - ${Rule} .`,
+      message: `Successfully retrieved arrears band counts for rule - ${Rule} .`,
       data:{
         "AB-5_10": band1,
         "AB-10_25": band2,
