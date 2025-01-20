@@ -582,14 +582,14 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *         required: true
  *         schema:
  *           type: string
- *           example: "2025-01-11"
+ *           example: "2025-01-01"
  *         description:  From date to filter cases by.
  *       - in: query
  *         name: To_Date
  *         required: true
  *         schema:
  *           type: string
- *           example: "2025-01-12"
+ *           example: "2025-01-31"
  *         description:  To date to filter cases by.
  *     requestBody:
  *       required: true
@@ -609,11 +609,11 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               From_Date:
  *                 type: string
  *                 description: From date to filter cases by.
- *                 example: "2025-01-11"
+ *                 example: "2025-01-01"
  *               To_Date:
  *                 type: string
  *                 description: To date to filter cases by.
- *                 example: "2025-01-12"
+ *                 example: "2025-01-31"
  *     responses:
  *       200:
  *         description: Successfully retrieved Open No Agent case details.
@@ -1067,14 +1067,14 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
  *         required: true
  *         schema:
  *           type: string
- *           example: "2025-01-11"
+ *           example: "2025-01-01"
  *         description:  From date to filter cases by.
  *       - in: query
  *         name: To_Date
  *         required: true
  *         schema:
  *           type: string
- *           example: "2025-01-12"
+ *           example: "2025-01-31"
  *         description:  To date to filter cases by.
  *     requestBody:
  *       required: true
@@ -1090,12 +1090,12 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
  *                 type: string
  *                 format: date
  *                 description: From date to filter cases by.
- *                 example: "2025-01-11"
+ *                 example: "2025-01-01"
  *               To_Date:
  *                 type: string
  *                 format: date
  *                 description: To date to filter cases by.
- *                 example: "2025-01-12"
+ *                 example: "2025-01-31"
  *     responses:
  *       200:
  *         description: Successfully retrieved Open No Agent case details.
