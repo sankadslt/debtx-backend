@@ -450,38 +450,53 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  * @swagger
  * /api/case/Case_Abandant:
  *   patch:
- *     summary: Mark a case as abandoned and log the transaction.
+ *     summary: Mark a case as abandoned with a specific action and user.
  *     tags:
  *       - Case Management
  *     parameters:
- *       - in: body
- *         name: body
+ *       - in: query
+ *         name: case_id
  *         required: true
- *         description: The details required to mark a case as abandoned.
  *         schema:
- *           type: object
- *           required:
- *             - case_id
- *             - Action
- *             - Done_By
- *           properties:
- *             case_id:
- *               type: number
- *               example: 12345
- *               description: Unique identifier of the case to be marked as abandoned.
- *             Action:
- *               type: string
- *               enum:
- *                 - Abandaned
- *               example: "Abandaned"
- *               description: Action to be performed. Only "Abandaned" is allowed.
- *             Done_By:
- *               type: string
- *               example: "admin123"
- *               description: The ID of the user marking the case as abandoned.
+ *           type: number
+ *           example: 12345
+ *         description: The unique identifier of the case to be marked as abandoned.
+ *       - in: query
+ *         name: Action
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Abandaned"
+ *         description: The action to perform. Must be "Abandaned."
+ *       - in: query
+ *         name: Done_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "AdminUser"
+ *         description: The user or system performing the action.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 example: 12345
+ *                 description: The unique identifier of the case.
+ *               Action:
+ *                 type: string
+ *                 example: "Abandaned"
+ *                 description: The action to perform. Must be "Abandaned."
+ *               Done_By:
+ *                 type: string
+ *                 example: "AdminUser"
+ *                 description: The user or system performing the action.
  *     responses:
  *       200:
- *         description: Case successfully marked as abandoned.
+ *         description: Case marked as abandoned successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -512,7 +527,7 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                             example: "Case marked as Abandaned"
  *                           done_by:
  *                             type: string
- *                             example: "admin123"
+ *                             example: "AdminUser"
  *                           done_on:
  *                             type: string
  *                             format: date-time
@@ -534,13 +549,87 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                           format: date-time
  *                           example: "2024-01-15T10:00:00Z"
  *       400:
- *         description: Invalid input, such as missing required fields or incorrect action.
+ *         description: Invalid input, such as missing required fields or invalid action.
  *       404:
- *         description: Case not found or already abandoned.
+ *         description: Case not found with the provided case_id.
  *       500:
- *         description: Internal server error. Failed to mark the case as abandoned.
+ *         description: Internal server error. Failed to abandon the case.
  */
 router.patch("/Case_Abandant", Case_Abandant);
+/**
+ * @swagger
+ * /api/case/Approve_Case_abandant:
+ *   patch:
+ *     summary: Approve a discarded case marked as "Abandaned".
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 12345
+ *         description: The unique identifier of the case to approve.
+ *       - in: query
+ *         name: Approved_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "admin_user"
+ *         description: The username or ID of the person approving the case.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 example: 12345
+ *                 description: The unique identifier of the case to approve.
+ *               Approved_By:
+ *                 type: string
+ *                 example: "admin_user"
+ *                 description: The username or ID of the person approving the case.
+ *     responses:
+ *       200:
+ *         description: Case marked as "Abandaned Approved" successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case Abandaned approved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: number
+ *                       example: 12345
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Abandaned Approved"
+ *                     approved_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     approved_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T14:30:00Z"
+ *       400:
+ *         description: Bad request. Missing or invalid required fields.
+ *       404:
+ *         description: Case not found with the provided case_id.
+ *       500:
+ *         description: Internal server error. Failed to approve the case discard.
+ */
 router.patch("/Approve_Case_abandant", Approve_Case_abandant);
 /**
  * @swagger

@@ -698,6 +698,12 @@ export const Open_No_Agent_Cases_ALL = async (req, res) => {
               approved_on: moment().toDate(),
               remark: "Case abandaned approved successfully.",
             },
+            abnormal_stop: {
+              remark: `Case marked as Abandaned Approved`,
+              done_by: Approved_By,
+              done_on: moment().toDate(),
+              action: 'Abandaned Approved',
+            },
           },
         },
         { new: true, runValidators: true } // Return the updated document and apply validation
@@ -725,78 +731,79 @@ export const Open_No_Agent_Cases_ALL = async (req, res) => {
     }
   };
 
-export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
-  const { from_date, to_date } = req.body;
-
-  try {
-    // Validate date inputs
-    if (!from_date || !to_date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Both from_date and to_date are required.",
-      });
-    }
-
-    const fromDate = new Date(from_date);
-    const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
-
-    if (isNaN(fromDate) || isNaN(toDate)) {
-      return res.status(400).json({
-        status: "error",
-        message: "Invalid date format. Use a valid ISO date format.",
-      });
-    }
-
-    if (fromDate > toDate) {
-      return res.status(400).json({
-        status: "error",
-        message: "from_date cannot be later than to_date.",
-      });
-    }
-
-    // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
-    // Also filter by created_dtm within the provided date range
-    const cases = await Case_details.find({
-      case_current_status: "Open No Agent",
-      filtered_reason: { $exists: true, $ne: null, $ne: " " },
-      created_dtm: { $gte: fromDate, $lte: toDate },
-    })
-      .select({
-        case_id: 1,
-        account_no: 1,
-        customer_ref: 1,
-        arrears_amount: 1,
-        area: 1,
-        rtom: 1,
-        filtered_reason: 1,
-        created_dtm: 1,
+  export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
+    const { from_date, to_date } = req.body;
+  
+    try {
+      // Validate date inputs
+      if (!from_date || !to_date) {
+        return res.status(400).json({
+          status: "error",
+          message: "Both from_date and to_date are required.",
+        });
+      }
+  
+      const fromDate = new Date(from_date);
+      const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
+  
+      if (isNaN(fromDate) || isNaN(toDate)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format. Use a valid ISO date format.",
+        });
+      }
+  
+      if (fromDate > toDate) {
+        return res.status(400).json({
+          status: "error",
+          message: "from_date cannot be later than to_date.",
+        });
+      }
+  
+      // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
+      // Also filter by created_dtm within the provided date range
+      const cases = await Case_details.find({
+        case_current_status: "Open No Agent",
+        //filtered_reason: { $exists: true, $ne: null, $ne: "" },
+        filtered_reason: { $type: "string", $ne: "" },
+        created_dtm: { $gte: fromDate, $lte: toDate },
       })
-      .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
-
-    // If no cases match the criteria
-    if (!cases || cases.length === 0) {
-      return res.status(404).json({
+        .select({
+          case_id: 1,
+          account_no: 1,
+          customer_ref: 1,
+          arrears_amount: 1,
+          area: 1,
+          rtom: 1,
+          filtered_reason: 1,
+          created_dtm: 1,
+        })
+        .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
+  
+      // If no cases match the criteria
+      if (!cases || cases.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "No cases found matching the criteria.",
+        });
+      }
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Filtered cases retrieved successfully.",
+        data: cases,
+      });
+    } catch (error) {
+      console.error("Error fetching filtered cases:", error.message);
+      return res.status(500).json({
         status: "error",
-        message: "No cases found matching the criteria.",
+        message: "Failed to retrieve cases.",
+        errors: {
+          exception: error.message,
+        },
       });
     }
-
-    return res.status(200).json({
-      status: "success",
-      message: "Filtered cases retrieved successfully.",
-      data: cases,
-    });
-  } catch (error) {
-    console.error("Error fetching filtered cases:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to retrieve cases.",
-      errors: {
-        exception: error.message,
-      },
-    });
-  }
-};
+  };
 export const Case_Current_Status = async (req, res) => {
   const { Case_ID } = req.body;
 
