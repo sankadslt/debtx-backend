@@ -1130,7 +1130,7 @@ export const openNoAgentCasesAllByServiceTypeRulebase = async (req, res) => {
    
     const noAgent = await Case_details.find({
       case_current_status:"Open No Agent", 
-      drc_selection_rule: Rule, 
+      drc_commision_rule: Rule, 
       created_dtm: {
         $gte: fromDate,
         $lte: toDate,
@@ -1178,7 +1178,7 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
   }
 
   try {
-    const details = await Case_details.find({case_current_status:"Open No Agent", drc_selection_rule: Rule})
+    const details = await Case_details.find({case_current_status:"Open No Agent", drc_commision_rule: Rule})
     const band1 = details.filter((caseData) => {
       return caseData.current_arrears_amount<=10000 && caseData.current_arrears_amount >5000;
     }).length;
