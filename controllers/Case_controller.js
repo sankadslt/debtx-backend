@@ -14,7 +14,9 @@ import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
+import SystemTransaction from "../models/System_transaction.js";
 import moment from "moment";
+import mongoose from "mongoose";
 
 export const drcExtendValidityPeriod = async (req, res) => {
   const { Case_Id, DRC_Id, No_Of_Month, Extended_By } = req.body;
@@ -545,151 +547,263 @@ export const Open_No_Agent_Cases_ALL = async (req, res) => {
     }
   };
   
-export const Case_Discard = async (req, res) => {
-  const { case_id, Discard_Reason, Discarded_By } = req.body;
-
-  try {
-    // Validate required fields
-    if (!case_id || !Discard_Reason || !Discarded_By) {
-      return res.status(400).json({
-        status: "error",
-        message: "case_id, Discard_Reason, and Discarded_By are required.",
-      });
-    }
-
-    // Fetch the case to check if it's already discarded
-    const caseRecord = await Case_details.findOne({ case_id });
-
-    if (!caseRecord) {
-      return res.status(404).json({
-        status: "error",
-        message: `Case with ID ${case_id} not found.`,
-      });
-    }
-
-    if (caseRecord.case_current_status === "Discard") {
-      return res.status(400).json({
-        status: "error",
-        message: `Case with ID ${case_id} is already discarded.`,
-      });
-    }
-
-    // Update the case details
-    const updatedCase = await Case_details.findOneAndUpdate(
-      { case_id }, // Query to match the case
-      {
-        $set: {
-          Discard_Reason: Discard_Reason,
-          Discarded_By: Discarded_By,
-          Discarded_dtm: moment().toDate(),
-          case_current_status: "Discard",
+  export const Case_Abandant = async (req, res) => {
+    const { case_id, Action, Done_By } = req.body;
+  
+    try {
+      // Validate required fields
+      if (!case_id || !Action || !Done_By) {
+        return res.status(400).json({
+          status: "error",
+          message: "case_id, Action, and Done_By are required.",
+        });
+      }
+  
+      // Validate Action
+      if (Action !== "Abandaned") {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid action. Only 'Abandaned' is allowed.`,
+        });
+      }
+  
+      // Fetch the case to ensure it exists
+      const caseRecord = await Case_details.findOne({ case_id });
+  
+      if (!caseRecord) {
+        return res.status(404).json({
+          status: "error",
+          message: `Case with ID ${case_id} not found.`,
+        });
+      }
+  
+      // Check if the case is already abandoned
+      if (caseRecord.case_current_status === "Abandaned") {
+        return res.status(400).json({
+          status: "error",
+          message: `Case with ID ${case_id} is already abandoned.`,
+        });
+      }
+  
+      // Update the case details
+      const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id },
+        {
+          $set: {
+            case_current_status: "Abandaned",
+          },
+          $push: {
+            abnormal_stop: {
+              remark: `Case marked as ${Action}`,
+              done_by: Done_By,
+              done_on: moment().toDate(),
+              action: Action,
+            },
+          },
         },
-        // $push: {
-        //   case_status: {
-        //     drc_name: "N/A", // Placeholder or actual DRC name if applicable
-        //     status: "Discard",
-        //     status_dtm: moment().toDate(),
-        //   },
-        // },
-      },
-      { new: true, runValidators: true } // Return the updated document and run validators
-    );
+        { new: true, runValidators: true }
+      );
 
-    return res.status(200).json({
-      status: "success",
-      message: "Case discarded successfully.",
-      data: {
-        case_id: updatedCase.case_id,
-        Discard_Reason: updatedCase.Discard_Reason,
-        Discarded_By: updatedCase.Discarded_By,
-        Discarded_dtm: updatedCase.Discarded_dtm,
-        case_current_status: updatedCase.case_current_status,
-      },
-    });
-  } catch (error) {
-    console.error("Error during case discard:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to discard case.",
-      errors: {
-        exception: error.message,
-      },
-    });
-  }
-};
-
-export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
-  const { from_date, to_date } = req.body;
-
-  try {
-    // Validate date inputs
-    if (!from_date || !to_date) {
-      return res.status(400).json({
+      const mongoConnection = await mongoose.connection;
+      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+        { _id: "transaction_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
+      const Transaction_Id = counterResult.seq;
+  
+      // Log the transaction in SystemTransaction
+      const transactionData = {
+        Transaction_Id,
+        transaction_type_id: 5,
+        parameters: {
+          case_id,
+          action: Action,
+          done_by: Done_By,
+          done_on: moment().toDate(),
+        },
+        created_dtm: moment().toDate(),
+      };
+  
+      const newTransaction = new SystemTransaction(transactionData);
+      await newTransaction.save();
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Case abandoned successfully.",
+        data: {
+          case_id: updatedCase.case_id,
+          case_current_status: updatedCase.case_current_status,
+          abnormal_stop: updatedCase.abnormal_stop,
+          transaction: {
+            Transaction_Id,
+            transaction_type_id: transactionData.transaction_type_id,
+            created_dtm: transactionData.created_dtm,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error during case abandonment:", error.message);
+      return res.status(500).json({
         status: "error",
-        message: "Both from_date and to_date are required.",
+        message: "Failed to abandon case.",
+        errors: {
+          exception: error.message,
+        },
       });
     }
+  };
 
-    const fromDate = new Date(from_date);
-    const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
 
-    if (isNaN(fromDate) || isNaN(toDate)) {
-      return res.status(400).json({
+  export const Approve_Case_abandant = async (req, res) => {
+    const { case_id, Approved_By } = req.body;
+  
+    try {
+      // Validate required fields
+      if (!case_id || !Approved_By) {
+        return res.status(400).json({
+          status: "error",
+          message: "case_id and Approved_By are required.",
+        });
+      }
+  
+      // Fetch the case to ensure it exists and is discarded
+      const caseRecord = await Case_details.findOne({ case_id });
+  
+      if (!caseRecord) {
+        return res.status(404).json({
+          status: "error",
+          message: `Case with ID ${case_id} not found.`,
+        });
+      }
+  
+      if (caseRecord.case_current_status !== "Abandaned") {
+        return res.status(400).json({
+          status: "error",
+          message: `Case with ID ${case_id} is not in 'Abandaned' status.`,
+        });
+      }
+  
+      // Update the case details to reflect approval
+      const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id },
+        {
+          $set: {
+            case_current_status: "Abandaned Approved",
+          },
+          $push: {
+            approve: {
+              approved_process: "Case Abandaned Approval",
+              approved_by: Approved_By,
+              approved_on: moment().toDate(),
+              remark: "Case abandaned approved successfully.",
+            },
+            abnormal_stop: {
+              remark: `Case marked as Abandaned Approved`,
+              done_by: Approved_By,
+              done_on: moment().toDate(),
+              action: 'Abandaned Approved',
+            },
+          },
+        },
+        { new: true, runValidators: true } // Return the updated document and apply validation
+      );
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Case Abandaned approved successfully.",
+        data: {
+          case_id: updatedCase.case_id,
+          case_current_status: updatedCase.case_current_status,
+          approved_by: Approved_By,
+          approved_on: moment().toDate(),
+        },
+      });
+    } catch (error) {
+      console.error("Error during case discard approval:", error.message);
+      return res.status(500).json({
         status: "error",
-        message: "Invalid date format. Use a valid ISO date format.",
+        message: "Failed to approve case discard.",
+        errors: {
+          exception: error.message,
+        },
       });
     }
+  };
 
-    if (fromDate > toDate) {
-      return res.status(400).json({
-        status: "error",
-        message: "from_date cannot be later than to_date.",
-      });
-    }
-
-    // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
-    // Also filter by created_dtm within the provided date range
-    const cases = await Case_details.find({
-      case_current_status: "Open No Agent",
-      filtered_reason: { $exists: true, $ne: null, $ne: "" },
-      created_dtm: { $gte: fromDate, $lte: toDate },
-    })
-      .select({
-        case_id: 1,
-        account_no: 1,
-        customer_ref: 1,
-        arrears_amount: 1,
-        area: 1,
-        rtom: 1,
-        filtered_reason: 1,
-        created_dtm: 1,
+  export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
+    const { from_date, to_date } = req.body;
+  
+    try {
+      // Validate date inputs
+      if (!from_date || !to_date) {
+        return res.status(400).json({
+          status: "error",
+          message: "Both from_date and to_date are required.",
+        });
+      }
+  
+      const fromDate = new Date(from_date);
+      const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
+  
+      if (isNaN(fromDate) || isNaN(toDate)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format. Use a valid ISO date format.",
+        });
+      }
+  
+      if (fromDate > toDate) {
+        return res.status(400).json({
+          status: "error",
+          message: "from_date cannot be later than to_date.",
+        });
+      }
+  
+      // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
+      // Also filter by created_dtm within the provided date range
+      const cases = await Case_details.find({
+        case_current_status: "Open No Agent",
+        //filtered_reason: { $exists: true, $ne: null, $ne: "" },
+        filtered_reason: { $type: "string", $ne: "" },
+        created_dtm: { $gte: fromDate, $lte: toDate },
       })
-      .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
-
-    // If no cases match the criteria
-    if (!cases || cases.length === 0) {
-      return res.status(404).json({
+        .select({
+          case_id: 1,
+          account_no: 1,
+          customer_ref: 1,
+          arrears_amount: 1,
+          area: 1,
+          rtom: 1,
+          filtered_reason: 1,
+          created_dtm: 1,
+        })
+        .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
+  
+      // If no cases match the criteria
+      if (!cases || cases.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "No cases found matching the criteria.",
+        });
+      }
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Filtered cases retrieved successfully.",
+        data: cases,
+      });
+    } catch (error) {
+      console.error("Error fetching filtered cases:", error.message);
+      return res.status(500).json({
         status: "error",
-        message: "No cases found matching the criteria.",
+        message: "Failed to retrieve cases.",
+        errors: {
+          exception: error.message,
+        },
       });
     }
-
-    return res.status(200).json({
-      status: "success",
-      message: "Filtered cases retrieved successfully.",
-      data: cases,
-    });
-  } catch (error) {
-    console.error("Error fetching filtered cases:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to retrieve cases.",
-      errors: {
-        exception: error.message,
-      },
-    });
-  }
-};
+  };
 export const Case_Current_Status = async (req, res) => {
   const { Case_ID } = req.body;
 
@@ -732,10 +846,10 @@ export const Case_Current_Status = async (req, res) => {
       message: "Failed to retrieve case status.",
       errors: {
         exception: error.message,
-        },
+      },
     });
-  }    
-}
+  }
+};
 
 
 // export const assignROToCase = async (req, res) => {

@@ -13,7 +13,7 @@
  
 import { Router } from "express";
 import { drcExtendValidityPeriod,
-        listHandlingCasesByDRC, Case_Discard, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
+        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
         Open_No_Agent_Cases_ALL,
         Open_No_Agent_Cases_Direct_LD,
         assignROToCase,
@@ -449,9 +449,9 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
 
 /**
  * @swagger
- * /api/case/Case_Discard:
+ * /api/case/Case_Abandant:
  *   patch:
- *     summary: Discard a case and update its details.
+ *     summary: Mark a case as abandoned with a specific action and user.
  *     tags:
  *       - Case Management
  *     parameters:
@@ -461,21 +461,21 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *         schema:
  *           type: number
  *           example: 12345
- *         description: The unique identifier of the case to be discarded.
+ *         description: The unique identifier of the case to be marked as abandoned.
  *       - in: query
- *         name: Discard_Reason
+ *         name: Action
  *         required: true
  *         schema:
  *           type: string
- *           example: "Incorrect"
- *         description: The reason for discarding the case.
+ *           example: "Abandaned"
+ *         description: The action to perform. Must be "Abandaned."
  *       - in: query
- *         name: Discarded_By
+ *         name: Done_By
  *         required: true
  *         schema:
  *           type: string
- *           example: "admin_user"
- *         description: The username or ID of the person discarding the case.
+ *           example: "AdminUser"
+ *         description: The user or system performing the action.
  *     requestBody:
  *       required: true
  *       content:
@@ -486,18 +486,18 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *               case_id:
  *                 type: number
  *                 example: 12345
- *                 description: The unique identifier of the case to be discarded.
- *               Discard_Reason:
+ *                 description: The unique identifier of the case.
+ *               Action:
  *                 type: string
- *                 example: "Incorrect"
- *                 description: The reason for discarding the case.
- *               Discarded_By:
+ *                 example: "Abandaned"
+ *                 description: The action to perform. Must be "Abandaned."
+ *               Done_By:
  *                 type: string
- *                 example: "admin_user"
- *                 description: The username or ID of the person discarding the case.
+ *                 example: "AdminUser"
+ *                 description: The user or system performing the action.
  *     responses:
  *       200:
- *         description: Case discarded successfully.
+ *         description: Case marked as abandoned successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -508,36 +508,279 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Case discarded successfully.
+ *                   example: Case abandoned successfully.
  *                 data:
  *                   type: object
  *                   properties:
  *                     case_id:
  *                       type: number
  *                       example: 12345
- *                     Discard_Reason:
- *                       type: string
- *                       example: "Incorrect"
- *                     Discarded_By:
- *                       type: string
- *                       example: "admin_user"
- *                     Discarded_dtm:
- *                       type: string
- *                       example: "2024-12-31T12:00:00Z"
  *                     case_current_status:
  *                       type: string
- *                       example: "Discard"
+ *                       example: "Abandaned"
+ *                     abnormal_stop:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           remark:
+ *                             type: string
+ *                             example: "Case marked as Abandaned"
+ *                           done_by:
+ *                             type: string
+ *                             example: "AdminUser"
+ *                           done_on:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2024-01-15T10:00:00Z"
+ *                           action:
+ *                             type: string
+ *                             example: "Abandaned"
+ *                     transaction:
+ *                       type: object
+ *                       properties:
+ *                         Transaction_Id:
+ *                           type: integer
+ *                           example: 1001
+ *                         transaction_type_id:
+ *                           type: integer
+ *                           example: 5
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2024-01-15T10:00:00Z"
  *       400:
- *         description: Bad request. Missing required fields.
+ *         description: Invalid input, such as missing required fields or invalid action.
  *       404:
  *         description: Case not found with the provided case_id.
  *       500:
- *         description: Internal server error. Failed to discard the case.
+ *         description: Internal server error. Failed to abandon the case.
  */
-router.patch("/Case_Discard", Case_Discard);
-
+router.patch("/Case_Abandant", Case_Abandant);
+/**
+ * @swagger
+ * /api/case/Approve_Case_abandant:
+ *   patch:
+ *     summary: Approve a discarded case marked as "Abandaned".
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 12345
+ *         description: The unique identifier of the case to approve.
+ *       - in: query
+ *         name: Approved_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "admin_user"
+ *         description: The username or ID of the person approving the case.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 example: 12345
+ *                 description: The unique identifier of the case to approve.
+ *               Approved_By:
+ *                 type: string
+ *                 example: "admin_user"
+ *                 description: The username or ID of the person approving the case.
+ *     responses:
+ *       200:
+ *         description: Case marked as "Abandaned Approved" successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case Abandaned approved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: number
+ *                       example: 12345
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Abandaned Approved"
+ *                     approved_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     approved_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T14:30:00Z"
+ *       400:
+ *         description: Bad request. Missing or invalid required fields.
+ *       404:
+ *         description: Case not found with the provided case_id.
+ *       500:
+ *         description: Internal server error. Failed to approve the case discard.
+ */
+router.patch("/Approve_Case_abandant", Approve_Case_abandant);
+/**
+ * @swagger
+ * /api/case/Open_No_Agent_Cases_F1_Filter:
+ *   post:
+ *     summary: Retrieve cases with the status "Open No Agent" and filtered_reason "Not Null" filtered by date range.
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: query
+ *         name: from_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: The start date of the date range in ISO format (yyyy-mm-dd).
+ *       - in: query
+ *         name: to_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-31"
+ *         description: The end date of the date range in ISO format (yyyy-mm-dd).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *                 description: The start date of the date range in ISO format.
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-31"
+ *                 description: The end date of the date range in ISO format.
+ *     responses:
+ *       200:
+ *         description: Filtered cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Filtered cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: string
+ *                         example: "12345"
+ *                       account_no:
+ *                         type: string
+ *                         example: "1234567890"
+ *                       customer_ref:
+ *                         type: string
+ *                         example: "Customer123"
+ *                       arrears_amount:
+ *                         type: number
+ *                         example: 5000.75
+ *                       area:
+ *                         type: string
+ *                         example: "North Region"
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM123"
+ *                       filtered_reason:
+ *                         type: string
+ *                         example: "High arrears amount"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:00:00Z"
+ *       400:
+ *         description: Invalid input, such as missing required fields or incorrect date format.
+ *       404:
+ *         description: No cases found matching the criteria.
+ *       500:
+ *         description: Internal server error. Failed to retrieve cases.
+ */
 router.post("/Open_No_Agent_Cases_F1_Filter", Open_No_Agent_Cases_F1_Filter);
-
+/**
+ * @swagger
+ * /api/case/Case_Current_Status:
+ *   post:
+ *     summary: Retrieve the current status of a specific case.
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: query
+ *         name: Case_ID
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 12345
+ *         description: The unique identifier of the case to retrieve the current status for.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Case_ID:
+ *                 type: number
+ *                 example: 12345
+ *                 description: The unique identifier of the case.
+ *     responses:
+ *       200:
+ *         description: Current status of the case retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case current status retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: number
+ *                       example: 12345
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Open"
+ *       400:
+ *         description: Bad request. Missing required fields.
+ *       404:
+ *         description: Case not found with the provided Case_ID.
+ *       500:
+ *         description: Internal server error. Failed to retrieve case status.
+ */
 router.post("/Case_Current_Status", Case_Current_Status);
 
 // router.post("/List_All_DRC_Owned_By_Case", listAllDRCOwnedByCase);
