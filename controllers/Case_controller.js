@@ -1574,7 +1574,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active cases found with the provided DRC ID.",
       });
     }
-
     // Step 2: Extract unique `drc_name` values from the matched cases
     const drcNames = [
       ...new Set(
@@ -1590,7 +1589,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active DRC names found for the provided DRC ID.",
       });
     }
-
     // Step 3: Find recovery officers matching the `drc_name` and `rtom_area` conditions
     const recoveryOfficers = await RecoveryOfficer.find({
       $and: [
@@ -1607,7 +1605,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active Recovery Officers found for the specified conditions.",
       });
     }
-
     // Step 4: Format the result
     const response = recoveryOfficers.map((officer) => ({
       ro_id: officer.ro_id,
@@ -1625,8 +1622,16 @@ export const listAllActiveRosByDRCID = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to retrieve active ROs.",
-
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
       
+
+
+
 // export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res) => {
 //   const { case_status, drc_commision_rule } = req.body;
 
