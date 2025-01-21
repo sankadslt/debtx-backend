@@ -9,6 +9,186 @@ List_Incidents
 const router = Router();
 
 router.patch("/Reject_Case", Reject_Case);
+/**
+ * @swagger
+ * /api/incident/List_Incidents:
+ *   post:
+ *     summary: INC-1P02 List incidents and create a task
+ *     description: Retrieves a list of incidents based on the specified criteria and creates a task for further processing. Validates input fields and interacts with the database.
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Actions
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "collect arrears"
+ *         description: The action associated with the incidents.
+ *       - in: query
+ *         name: Incident_Status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Incident Open"
+ *         description: The status of the incidents.
+ *       - in: query
+ *         name: From_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-01"
+ *         description: The start date for filtering incidents (inclusive).
+ *       - in: query
+ *         name: To_Date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-31"
+ *         description: The end date for filtering incidents (inclusive).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Actions:
+ *                 type: string
+ *                 description: The action associated with the incident.
+ *                 example: "collect arrears"
+ *               Incident_Status:
+ *                 type: string
+ *                 description: The status of the incident.
+ *                 example: "Incident Open"
+ *               From_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: The start date for filtering incidents (inclusive).
+ *                 example: "2025-01-01"
+ *               To_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: The end date for filtering incidents (inclusive).
+ *                 example: "2025-01-31"
+ *     responses:
+ *       200:
+ *         description: Incidents retrieved and task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Incidents retrieved and task created successfully."
+ *                 incidents:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: integer
+ *                         description: Unique identifier for the incident.
+ *                         example: 102
+ *                       Actions:
+ *                         type: string
+ *                         description: The action performed for the incident.
+ *                         example: "collect arrears"
+ *                       Incident_Status:
+ *                         type: string
+ *                         description: The status of the incident.
+ *                         example: "Incident Open"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the incident was created.
+ *                         example: "2025-01-03T12:34:56.789Z"
+ *                 task:
+ *                   type: object
+ *                   properties:
+ *                     Task_Id:
+ *                       type: integer
+ *                       description: Unique identifier for the task.
+ *                       example: 201
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template task ID associated with the task.
+ *                       example: 12
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         Incident_Status:
+ *                           type: string
+ *                           description: Status of the incidents being processed.
+ *                           example: "Incident Open"
+ *                         StartDTM:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Start date of the incidents filter.
+ *                           example: "2025-01-01T00:00:00Z"
+ *                         EndDTM:
+ *                           type: string
+ *                           format: date-time
+ *                           description: End date of the incidents filter.
+ *                           example: "2025-01-31T23:59:59Z"
+ *                         Actions:
+ *                           type: string
+ *                           description: Action associated with the incidents.
+ *                           example: "collect arrears"
+ *                     Created_By:
+ *                       type: string
+ *                       description: Username or system that created the task.
+ *                       example: "user123"
+ *                     task_status:
+ *                       type: string
+ *                       description: Current status of the task.
+ *                       example: "pending"
+ *       400:
+ *         description: Invalid input or missing fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "All fields are required: Actions, Incident_Status, From_Date, To_Date."
+ *       404:
+ *         description: No incidents found matching the criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "No incidents found matching the criteria."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
 router.post("/List_Incidents", List_Incidents);
     
 /**
@@ -50,6 +230,14 @@ router.post("/List_Incidents", List_Incidents);
  *           type: string
  *           example: "user123"
  *         description: The username or ID of the person creating the incident.
+ *       - in: query
+ *         name: Source_Type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ["Pilot Suspended", "Product Terminate", "Special"]
+ *           example: "Pilot Suspended"
+ *         description: The Source_Type for the incident.
  *     requestBody:
  *       required: true
  *       content:
@@ -74,6 +262,11 @@ router.post("/List_Incidents", List_Incidents);
  *                 type: string
  *                 description: The username or ID of the person creating the incident.
  *                 example: "user123"
+ *               Source_Type:
+ *                 type: string
+ *                 description: The Source_Type for the incident.
+ *                 enum: ["Pilot Suspended", "Product Terminate", "Special"]
+ *                 example: "Pilot Suspended"
  *     responses:
  *       201:
  *         description: Incident created successfully.
@@ -111,6 +304,10 @@ router.post("/List_Incidents", List_Incidents);
  *                       type: string
  *                       description: The username or ID of the person creating the incident.
  *                       example: "user123"
+ *                     Source_Type:
+ *                       type: string
+ *                       description: The Source_Type for the incident.
+ *                       example: "Pilot Suspended"
  *                     Created_Dtm:
  *                       type: string
  *                       format: date-time
