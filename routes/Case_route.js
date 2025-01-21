@@ -17,6 +17,7 @@ import { drcExtendValidityPeriod,
         Open_No_Agent_Cases_ALL,
         Open_No_Agent_Cases_Direct_LD,
         assignROToCase,
+        listAllActiveRosByDRCID,
         Case_Status,
         Case_List,
         openNoAgentCasesAllByServiceTypeRulebase,
@@ -787,6 +788,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
 
 router.patch("/Assign_RO_To_Case", assignROToCase);
 
+router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
 /**
  * @swagger
