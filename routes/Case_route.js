@@ -17,7 +17,7 @@ import { drcExtendValidityPeriod,
         Open_No_Agent_Cases_ALL,
         Open_No_Agent_Cases_Direct_LD,
         assignROToCase,
-        listAllActiveRosByDRCID,
+        // listAllActiveRosByDRCID,
         Case_Status,
         Case_List,
         openNoAgentCasesAllByServiceTypeRulebase,
@@ -447,8 +447,6 @@ router.post("/Open_No_Agent_Cases_Direct_LD", Open_No_Agent_Cases_Direct_LD);
  */
 router.patch("/Drc_Extend_Validity_Period", drcExtendValidityPeriod);
 
-router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
-
 /**
  * @swagger
  * /api/case/Case_Abandant:
@@ -559,6 +557,7 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *         description: Internal server error. Failed to abandon the case.
  */
 router.patch("/Case_Abandant", Case_Abandant);
+
 /**
  * @swagger
  * /api/case/Approve_Case_abandant:
@@ -634,6 +633,7 @@ router.patch("/Case_Abandant", Case_Abandant);
  *         description: Internal server error. Failed to approve the case discard.
  */
 router.patch("/Approve_Case_abandant", Approve_Case_abandant);
+
 /**
  * @swagger
  * /api/case/Open_No_Agent_Cases_F1_Filter:
@@ -727,6 +727,7 @@ router.patch("/Approve_Case_abandant", Approve_Case_abandant);
  *         description: Internal server error. Failed to retrieve cases.
  */
 router.post("/Open_No_Agent_Cases_F1_Filter", Open_No_Agent_Cases_F1_Filter);
+
 /**
  * @swagger
  * /api/case/Case_Current_Status:
@@ -789,7 +790,9 @@ router.post("/Case_Current_Status", Case_Current_Status);
 
 router.patch("/Assign_RO_To_Case", assignROToCase);
 
-router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
+router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
+
+// router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
 /**
  * @swagger
@@ -1159,7 +1162,6 @@ router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-
 router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByServiceTypeRulebase);
 
 /**
@@ -1287,7 +1289,6 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-
 router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType);
 
 /**
@@ -1433,7 +1434,6 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
  */
 router.post("/List_Cases", listCases);
 
-
 /**
  * @swagger
  * /api/case/Case_Status:
@@ -1556,7 +1556,6 @@ router.post("/List_Cases", listCases);
  *                       type: string
  *                       example: Detailed error message.
  */
-
 router.post("/Case_Status", Case_Status);
 
 
@@ -1729,9 +1728,7 @@ router.post("/Case_Status", Case_Status);
  *                       type: string
  *                       example: Detailed error message.
  */
-
 router.post("/Case_List", Case_List);
-
 
 /**
  * @swagger
@@ -1946,7 +1943,6 @@ router.post("/Case_List", Case_List);
  *                       type: string
  *                       example: Detailed error message.
  */
-
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
