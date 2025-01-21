@@ -8,7 +8,143 @@ List_Incidents
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/incident/Reject_Case:
+ *   post:
+ *     summary: INC-1P03 Reject an incident case
+ *     description: Updates the status of an incident to "Incident Reject" with a rejection reason, and also closes the corresponding user interaction in the system.
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Incident_Id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 102
+ *         description: The unique identifier of the incident to reject.
+ *       - in: query
+ *         name: Reject_Reason
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Duplicate entry"
+ *         description: The reason for rejecting the incident.
+ *       - in: query
+ *         name: Rejected_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "user123"
+ *         description: The username or ID of the person rejecting the incident.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Incident_Id:
+ *                 type: integer
+ *                 description: The unique identifier of the incident to reject.
+ *                 example: 102
+ *               Reject_Reason:
+ *                 type: string
+ *                 description: The reason for rejecting the incident.
+ *                 example: "Duplicate entry"
+ *               Rejected_By:
+ *                 type: string
+ *                 description: The username or ID of the person rejecting the incident.
+ *                 example: "user123"
+ *     responses:
+ *       200:
+ *         description: Incident rejected and status updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident rejected and status updated successfully."
+ *                 incident:
+ *                   type: object
+ *                   properties:
+ *                     Incident_Id:
+ *                       type: integer
+ *                       description: Unique identifier of the incident.
+ *                       example: 102
+ *                     Incident_Status:
+ *                       type: string
+ *                       description: Status of the incident.
+ *                       example: "Incident Reject"
+ *                     Rejected_Reason:
+ *                       type: string
+ *                       description: Reason for rejecting the incident.
+ *                       example: "Duplicate entry"
+ *                     Rejected_By:
+ *                       type: string
+ *                       description: The user who rejected the incident.
+ *                       example: "user123"
+ *                     Rejected_Dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date and time the incident was rejected.
+ *                       example: "2025-01-19T14:30:00Z"
+ *                 caseUserInteraction:
+ *                   type: object
+ *                   properties:
+ *                     Case_User_Interaction_id:
+ *                       type: integer
+ *                       description: ID of the case user interaction.
+ *                       example: 5
+ *                     User_Interaction_status:
+ *                       type: string
+ *                       description: Status of the user interaction.
+ *                       example: "close"
+ *                     User_Interaction_status_changed_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date and time the user interaction status was changed.
+ *                       example: "2025-01-19T14:35:00Z"
+ *       400:
+ *         description: Missing required fields or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident_Id, Reject_Reason, and Rejected_By are required fields."
+ *       404:
+ *         description: Incident or system case user interaction not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message."
+ */
 router.patch("/Reject_Case", Reject_Case);
+
+
 /**
  * @swagger
  * /api/incident/List_Incidents:

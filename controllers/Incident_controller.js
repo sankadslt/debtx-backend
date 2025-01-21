@@ -617,16 +617,17 @@ export const List_Incidents = async (req, res) => {
   try {
     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
 
- 
+    
     if (!Actions || !Incident_Status || !From_Date || !To_Date) {
-      return res.status(400).json({ message: 'All fields are required: Actions, Incident_Status, From_Date, To_Date' });
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required: Actions, Incident_Status, From_Date, To_Date.",
+      });
     }
-
 
     const startDate = new Date(From_Date);
     const endDate = new Date(To_Date);
 
-   
     const incidents = await Incident_log.find({
       Actions,
       Incident_Status,
@@ -637,20 +638,27 @@ export const List_Incidents = async (req, res) => {
     });
 
     if (incidents.length === 0) {
-      return res.status(404).json({ message: 'No incidents found matching the criteria.' });
+      return res.status(404).json({
+        status: "error",
+        message: "No incidents found matching the criteria.",
+      });
     }
 
-    
+   
     const mongo = await db.connectMongoDB();
+
+    
     const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
       { _id: "task_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
 
-    
-    if (!TaskCounter || !TaskCounter.seq) {
-      return res.status(500).json({ message: 'Failed to generate Task_Id from counters collection.' });
+    if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to generate Task_Id from counters collection.",
+      });
     }
 
     const Task_Id = TaskCounter.seq;
@@ -665,21 +673,33 @@ export const List_Incidents = async (req, res) => {
         EndDTM: endDate.toISOString(),
         Actions,
       },
-      Created_By: req.user?.username || 'system', 
-      task_status: 'pending',
+      Created_By: req.user?.username || "system",
+      Execute_By: "SYS", 
+      task_status: "pending",
+      created_dtm: new Date(),
+      end_dtm: null,
+      status_changed_dtm: null,
+      status_description: "",
     };
 
     const newTask = new Task(taskData);
     await newTask.save();
 
-   
+    
     return res.status(200).json({
-      message: 'Incidents retrieved successfully.',
+      status: "success",
+      message: "Incidents retrieved and task created successfully.",
       incidents,
       task: newTask,
     });
   } catch (error) {
-    console.error('Error in listIncidents:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    console.error("Error in List_Incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
   }
 };

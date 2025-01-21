@@ -276,7 +276,7 @@ export const updateRTOMDetails = async (req, res) => {
       $push: {
         updated_rtom: {
           action: reason,
-          updated_date: moment().format("DD/MM/YYYY"), // Format date as day/month/year
+          updated_date: new Date(),
           updated_by: updated_by,
         },
       },
@@ -623,22 +623,77 @@ export const getActiveRTOMDetails = async (req, res) => {
 };
 
 
-// Function to remove the specific RTOM (Inactive) from the Active RTOM list
-export const suspend_RTOM = async (req, res) =>{
-  const { rtom_id, rtom_end_date, reason} = req.body;
+// Function to remove the specific RTOM (terminate) from the Active RTOM list
+// export const suspend_RTOM = async (req, res) =>{
+//   const { rtom_id, rtom_end_date, reason} = req.body;
 
-  const rtom_status = "Inactive";
+//   const rtom_status = "Terminate";
+//   const updated_by = "System"; // Set default updated_by to "System" if not provided
+//   // const rtom_end_date = moment().toISOString(); // Use current date if not provided
+
+//   if (!rtom_id || !reason || !rtom_end_date || !rtom_status) {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "All field are required",
+//     });
+//   };
+
+//   try{
+//     const filter = { rtom_id: rtom_id };
+//     const update = {
+//       $set: {
+//         rtom_status: rtom_status,
+//         rtom_end_date: rtom_end_date,
+//       },
+//       $push: {
+//         updated_rtom: {
+//           action: reason,
+//           updated_date: rtom_end_date, // Format date as day/month/year
+//           updated_by: updated_by,
+//         },
+//       },
+//     };
+//     const updatedResult = await Rtom.updateOne(filter, update);
+    
+//     if (updatedResult.matchedCount === 0) {
+//       console.log("RTOM not found in Database:", updatedResult);
+//       return res.status(400).json({
+//             status: "error",
+//             message: "RRTOM not found in Database",
+//       });
+//     }
+//     return res.status(200).json({
+//       status: "success",
+//       message: "The RTOM has been suspended..",
+//       data: updatedResult,
+//     });
+//   }catch (mongoError) {
+//       console.error("Error updating MongoDB:", mongoError.message);
+//   }
+// };
+
+export const suspend_RTOM = async (req, res) => {
+  const { rtom_id, rtom_end_date, reason } = req.body;
+  const rtom_status = "Terminate";
   const updated_by = "System"; // Set default updated_by to "System" if not provided
-  // const rtom_end_date = moment().toISOString(); // Use current date if not provided
 
   if (!rtom_id || !reason || !rtom_end_date || !rtom_status) {
     return res.status(400).json({
       status: "error",
-      message: "All field are required",
+      message: "All fields are required",
     });
-  };
+  }
 
-  try{
+  try {
+    // Check if RTOM already terminated
+    const existingRtom = await Rtom.findOne({ rtom_id });
+    if (existingRtom && existingRtom.rtom_status === "Terminate") {
+      return res.status(400).json({
+        status: "error",
+        message: "RTOM has already been terminated and cannot be reactivated.",
+      });
+    }
+
     const filter = { rtom_id: rtom_id };
     const update = {
       $set: {
@@ -653,21 +708,27 @@ export const suspend_RTOM = async (req, res) =>{
         },
       },
     };
+
     const updatedResult = await Rtom.updateOne(filter, update);
-    
+
     if (updatedResult.matchedCount === 0) {
       console.log("RTOM not found in Database:", updatedResult);
       return res.status(400).json({
-            status: "error",
-            message: "RRTOM not found in Database",
+        status: "error",
+        message: "RTOM not found in Database",
       });
     }
+
     return res.status(200).json({
       status: "success",
-      message: "The RTOM has been suspended..",
+      message: "The RTOM has been suspended.",
       data: updatedResult,
     });
-  }catch (mongoError) {
-      console.error("Error updating MongoDB:", mongoError.message);
+  } catch (mongoError) {
+    console.error("Error updating MongoDB:", mongoError.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
   }
 };

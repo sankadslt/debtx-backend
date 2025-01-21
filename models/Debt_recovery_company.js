@@ -64,7 +64,7 @@ const drcSchema = new Schema(
       type: String,
       required: true,
     },
-    drc_end_dat: {
+    drc_end_date: {
       type: Date,
       default: null,
     },
