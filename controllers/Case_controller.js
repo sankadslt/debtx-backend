@@ -1603,7 +1603,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active cases found with the provided DRC ID.",
       });
     }
-
     // Step 2: Extract unique `drc_name` values from the matched cases
     const drcNames = [
       ...new Set(
@@ -1619,7 +1618,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active DRC names found for the provided DRC ID.",
       });
     }
-
     // Step 3: Find recovery officers matching the `drc_name` and `rtom_area` conditions
     const recoveryOfficers = await RecoveryOfficer.find({
       $and: [
@@ -1636,7 +1634,6 @@ export const listAllActiveRosByDRCID = async (req, res) => {
         message: "No active Recovery Officers found for the specified conditions.",
       });
     }
-
     // Step 4: Format the result
     const response = recoveryOfficers.map((officer) => ({
       ro_id: officer.ro_id,
@@ -1660,3 +1657,101 @@ export const listAllActiveRosByDRCID = async (req, res) => {
     });
   }
 };
+      
+
+
+export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res) => {
+  const { case_status, drc_commision_rule } = req.body;
+
+  try {
+    // Validate input
+    if (!case_status || !drc_commision_rule) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both case_status and drc_commision_rule are required.",
+      });
+    }
+
+    // Fetch all cases that match the provided criteria
+    const cases = await Case_details.find({
+      "case_status.case_status": case_status, // Match the provided case_status in the case_status array
+      drc_commision_rule, // Match the provided drc_commision_rule
+    });
+
+    // Check if any cases were found
+    if (!cases || cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No cases found for the provided criteria.",
+      });
+    }
+
+    // Filter cases where the latest case_status matches the provided case_status
+    const filteredCases = cases.filter((caseData) => {
+      const { case_status: statuses } = caseData;
+
+      // Find the latest status by created_dtm
+      const latestStatus = statuses.reduce((latest, current) =>
+        new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
+      );
+
+      // Check if the latest status matches the case_status in the request
+      return latestStatus.case_status === case_status;
+    });
+
+    // Count total filtered cases
+    const totalCases = filteredCases.length;
+
+    // Prepare arrears bands as an array with structured fields and subfields
+    const arrearsBandCounts = [
+      { band: "5000-10000", count: 0, details: { description: "Arrears between 5,000 and 10,000" } },
+      { band: "10000-25000", count: 0, details: { description: "Arrears between 10,000 and 25,000" } },
+      { band: "25000-50000", count: 0, details: { description: "Arrears between 25,000 and 50,000" } },
+      { band: "50000-100000", count: 0, details: { description: "Arrears between 50,000 and 100,000" } },
+      { band: ">100000", count: 0, details: { description: "Arrears greater than 100,000" } },
+    ];
+
+    // Update counts in the arrearsBandCounts array based on arrears_band
+    filteredCases.forEach((caseData) => {
+      const { arrears_band } = caseData;
+
+      if (arrears_band === "AB5-10") {
+        arrearsBandCounts[0].count++;
+      } else if (arrears_band === "AB10-25") {
+        arrearsBandCounts[1].count++;
+      } else if (arrears_band === "AB25-50") {
+        arrearsBandCounts[2].count++;
+      } else if (arrears_band === "AB50-100") {
+        arrearsBandCounts[3].count++;
+      } else if (arrears_band === "AB100-<") {
+        arrearsBandCounts[4].count++;
+      }
+    });
+
+    // Respond with the structured results
+    return res.status(200).json({
+      status: "success",
+      message: "Counts retrieved successfully.",
+      data: {
+        Total: totalCases,
+        Arrears_Bands: arrearsBandCounts,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving counts:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve counts.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
+
+
+
+
+
