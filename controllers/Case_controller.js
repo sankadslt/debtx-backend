@@ -12,6 +12,7 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
+import RecoveryOfficer from "../models/Recovery_officer.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
 import moment from "moment";
@@ -393,8 +394,6 @@ export const listAllDRCOwnedByCase = async (req, res) => {
         });
     }
 }
-
-export const ListActiveRoOwnedByDRC = async (req, res) => {};
 
 export const Open_No_Agent_Cases_Direct_LD = async (req, res) => {
   try {
@@ -1436,3 +1435,85 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 };
 
 
+export const listAllActiveRosByDRCID = async (req, res) => {
+  try {
+    const { drc_id, rtom_area } = req.body;
+
+    // Validate input
+    if (!drc_id || !rtom_area) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required.",
+      });
+    }
+
+    // Step 1: Find cases in the `case_details` collection matching the conditions
+    const cases = await Case_details.find({
+      "drc.drc_id": drc_id,
+      "drc.drc_status": "Active",
+      "drc.removed_dtm": null,
+    });
+
+    if (cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active cases found with the provided DRC ID.",
+      });
+    }
+
+    // Step 2: Extract unique `drc_name` values from the matched cases
+    const drcNames = [
+      ...new Set(
+        cases.flatMap((c) =>
+          c.drc.filter((d) => d.drc_id === drc_id).map((d) => d.drc_name)
+        )
+      ),
+    ];
+
+    if (drcNames.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active DRC names found for the provided DRC ID.",
+      });
+    }
+
+    // Step 3: Find recovery officers matching the `drc_name` and `rtom_area` conditions
+    const recoveryOfficers = await RecoveryOfficer.find({
+      $and: [
+        { drc_name: { $in: drcNames } }, // Match drc_name in recovery officer
+        { "rtoms_for_ro.name": rtom_area }, // Match rtom_area in rtoms_for_ro
+      ],
+      status: "Active", // Only Active RTOMs
+      ro_end_dtm: null, // Ensure recovery officer has no end date
+    });
+
+    if (recoveryOfficers.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active Recovery Officers found for the specified conditions.",
+      });
+    }
+
+    // Step 4: Format the result
+    const response = recoveryOfficers.map((officer) => ({
+      ro_id: officer.ro_id,
+      ro_name: officer.ro_name,
+    }));
+
+    // Step 4: Return the list of recovery officers
+    return res.status(200).json({
+      status: "success",
+      message: "Active Recovery Officers retrieved successfully.",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error retrieving active ROs:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve active ROs.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
