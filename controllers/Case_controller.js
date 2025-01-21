@@ -266,14 +266,14 @@ export const listHandlingCasesByDRC = async (req, res) => {
   const { drc_id } = req.body;
 
   try {
-    // Validate DRC ID
+    // Validate input
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
         message: "Failed to retrieve DRC details.",
         errors: {
           code: 400,
-          description: "DRC with the given ID not found.",
+          description: "DRC ID is required.",
         },
       });
     }
@@ -300,7 +300,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
         {
           $and: [
             // Only include cases with an open status and no removal date
-            { "drc.status": { $in: [null, "Open"] } },
+            { "drc.drc_status": "Active" },
             { "drc.removed_dtm": null },
           ],
         },
@@ -326,14 +326,43 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    // Return success response
+    // Format the results
+    const results = await Promise.all(
+      cases.map(async (caseData) => {
+        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastRecoveryOfficer = lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1];
+
+        // Get the recovery officer's name if a valid recovery officer exists
+        let ro_name = null;
+        if (lastRecoveryOfficer && lastRecoveryOfficer.ro_id) {
+          const officer = await RecoveryOfficer.findOne({ ro_id: lastRecoveryOfficer.ro_id });
+          if (officer) ro_name = officer.ro_name;
+        }
+
+        // Get the last remark if available
+        const lastRemark = caseData.remark[caseData.remark.length - 1] || {};
+
+        return {
+          case_id: caseData.case_id,
+          created_dtm: caseData.created_dtm,
+          current_arreas_amount: caseData.current_arrears_amount,
+          remark: lastRemark.remark || null,
+          area: caseData.area,
+          expire_dtm: lastDrc.expire_dtm,
+          ro_name,
+        };
+      })
+    );
+
+    // Return the formatted response
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
-      data: cases,
+      data: results,
     });
   } catch (error) {
     // Handle errors
+    console.error("Error retrieving cases:", error.message);
     return res.status(500).json({
       status: "error",
       message: "An error occurred while retrieving cases.",
