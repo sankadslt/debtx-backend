@@ -144,6 +144,7 @@ const router = Router();
  */
 router.patch("/Reject_Case", Reject_Case);
 
+
 /**
  * @swagger
  * /api/incident/List_Incidents:
@@ -365,6 +366,14 @@ router.post("/List_Incidents", List_Incidents);
  *           type: string
  *           example: "user123"
  *         description: The username or ID of the person creating the incident.
+ *       - in: query
+ *         name: Source_Type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ["Pilot Suspended", "Product Terminate", "Special"]
+ *           example: "Pilot Suspended"
+ *         description: The Source_Type for the incident.
  *     requestBody:
  *       required: true
  *       content:
@@ -389,6 +398,11 @@ router.post("/List_Incidents", List_Incidents);
  *                 type: string
  *                 description: The username or ID of the person creating the incident.
  *                 example: "user123"
+ *               Source_Type:
+ *                 type: string
+ *                 description: The Source_Type for the incident.
+ *                 enum: ["Pilot Suspended", "Product Terminate", "Special"]
+ *                 example: "Pilot Suspended"
  *     responses:
  *       201:
  *         description: Incident created successfully.
@@ -426,6 +440,10 @@ router.post("/List_Incidents", List_Incidents);
  *                       type: string
  *                       description: The username or ID of the person creating the incident.
  *                       example: "user123"
+ *                     Source_Type:
+ *                       type: string
+ *                       description: The Source_Type for the incident.
+ *                       example: "Pilot Suspended"
  *                     Created_Dtm:
  *                       type: string
  *                       format: date-time
