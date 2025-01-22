@@ -193,6 +193,15 @@ export const Create_Incident = async (req, res) => {
         message: "Account number must be 10 characters or fewer.",
       });
     }
+    // Check if the account number already exists for an incident
+    const existingIncident = await Incident_log.findOne({ Account_Num });
+    if (existingIncident) {
+      return res.status(400).json({
+        status: "error",
+        code: "DUPLICATE_ACCOUNT", // Unique error code
+        message: `An incident already exists for account number: ${Account_Num}.`,
+      });
+    }
 
     const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
     if (!validActions.includes(DRC_Action)) {
