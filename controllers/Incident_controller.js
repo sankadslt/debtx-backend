@@ -619,7 +619,7 @@ export const List_Incidents = async (req, res) => {
 
     let query = {};
 
-    // If From_Date and To_Date are provided, include them in the query
+    
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
@@ -634,7 +634,7 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-    // Include optional parameters if provided
+    
     if (Actions) {
       query.Actions = Actions;
     }
@@ -642,7 +642,7 @@ export const List_Incidents = async (req, res) => {
       query.Incident_Status = Incident_Status;
     }
 
-    // Fetch all incidents if no filters are applied
+   
     const incidents = await Incident_log.find(query);
 
     if (incidents.length === 0) {
@@ -652,7 +652,7 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-    // Connect to MongoDB and generate a Task_Id
+ 
     const mongo = await db.connectMongoDB();
 
     const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
@@ -670,7 +670,7 @@ export const List_Incidents = async (req, res) => {
 
     const Task_Id = TaskCounter.seq;
 
-    // Prepare and save task data
+   
     const taskData = {
       Task_Id,
       Template_Task_Id: 12,
@@ -692,7 +692,7 @@ export const List_Incidents = async (req, res) => {
     const newTask = new Task(taskData);
     await newTask.save();
 
-    // Respond with incidents and task details
+   
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved and task created successfully.",
