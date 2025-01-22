@@ -617,25 +617,33 @@ export const List_Incidents = async (req, res) => {
   try {
     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
 
-    
-    if (!Actions || !Incident_Status || !From_Date || !To_Date) {
+    let query = {};
+
+    // If From_Date and To_Date are provided, include them in the query
+    if (From_Date && To_Date) {
+      const startDate = new Date(From_Date);
+      const endDate = new Date(To_Date);
+      query.Created_Dtm = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    } else if (From_Date || To_Date) {
       return res.status(400).json({
         status: "error",
-        message: "All fields are required: Actions, Incident_Status, From_Date, To_Date.",
+        message: "Both From_Date and To_Date must be provided together.",
       });
     }
 
-    const startDate = new Date(From_Date);
-    const endDate = new Date(To_Date);
+    // Include optional parameters if provided
+    if (Actions) {
+      query.Actions = Actions;
+    }
+    if (Incident_Status) {
+      query.Incident_Status = Incident_Status;
+    }
 
-    const incidents = await Incident_log.find({
-      Actions,
-      Incident_Status,
-      Created_Dtm: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    });
+    // Fetch all incidents if no filters are applied
+    const incidents = await Incident_log.find(query);
 
     if (incidents.length === 0) {
       return res.status(404).json({
@@ -644,10 +652,9 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-   
+    // Connect to MongoDB and generate a Task_Id
     const mongo = await db.connectMongoDB();
 
-    
     const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
       { _id: "task_id" },
       { $inc: { seq: 1 } },
@@ -663,18 +670,18 @@ export const List_Incidents = async (req, res) => {
 
     const Task_Id = TaskCounter.seq;
 
-    
+    // Prepare and save task data
     const taskData = {
       Task_Id,
-      Template_Task_Id: 12, 
+      Template_Task_Id: 12,
       parameters: {
         Incident_Status,
-        StartDTM: startDate.toISOString(),
-        EndDTM: endDate.toISOString(),
+        StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
+        EndDTM: To_Date ? new Date(To_Date).toISOString() : null,
         Actions,
       },
       Created_By: req.user?.username || "system",
-      Execute_By: "SYS", 
+      Execute_By: "SYS",
       task_status: "pending",
       created_dtm: new Date(),
       end_dtm: null,
@@ -685,7 +692,7 @@ export const List_Incidents = async (req, res) => {
     const newTask = new Task(taskData);
     await newTask.save();
 
-    
+    // Respond with incidents and task details
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved and task created successfully.",
