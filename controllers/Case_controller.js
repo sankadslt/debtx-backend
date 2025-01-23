@@ -1362,7 +1362,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 };
 
 export const listHandlingCasesByDRC = async (req, res) => {
-  const { drc_id } = req.body;
+  const { drc_id, rtom, ro_name, arrears_band, from_date, to_date } = req.body;
 
   try {
     // Validate input
@@ -1377,8 +1377,8 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    // Query to find cases that satisfy the conditions
-    const cases = await Case_details.find({
+    // Build the query based on the filters
+    const query = {
       $and: [
         { "drc.drc_id": drc_id }, // Ensure the DRC ID matches
         {
@@ -1398,20 +1398,54 @@ export const listHandlingCasesByDRC = async (req, res) => {
         },
         {
           $and: [
-            // Only include cases with an open status and no removal date
-            { "drc.drc_status": "Active" },
-            { "drc.removed_dtm": null },
+            { "drc.drc_status": "Active" }, // Ensure DRC status is "Active"
+            { "drc.removed_dtm": null }, // Ensure DRC removed_dtm is null
           ],
         },
         {
           $or: [
-            // Either no recovery officers or at least one with no removal date
-            { "drc.recovery_officers": { $size: 0 } },
-            { "drc.recovery_officers": { $elemMatch: { removed_dtm: null } } },
+            { "drc.recovery_officers": { $size: 0 } }, // Recovery officers array is empty
+            { "drc.recovery_officers": { $elemMatch: { removed_dtm: null } } }, // Or last officer's removed_dtm is null
           ],
         },
       ],
-    });
+    };
+
+    // Add optional filters
+    if (rtom) {
+      query.area = rtom;
+    }
+
+    if (ro_name) {
+      const recoveryOfficer = await RecoveryOfficer.findOne({ ro_name });
+      if (recoveryOfficer) {
+        query["drc.recovery_officers.ro_id"] = recoveryOfficer.ro_id;
+      } else {
+        return res.status(404).json({
+          status: "error",
+          message: "Recovery Officer not found.",
+          errors: {
+            code: 404,
+            description: `No Recovery Officer found with the name: ${ro_name}.`,
+          },
+        });
+      }
+    }
+
+    if (arrears_band) {
+      query.arrears_band = arrears_band;
+    }
+
+    if (from_date) {
+      query["drc.created_dtm"] = { $gte: new Date(from_date) };
+    }
+
+    if (to_date) {
+      query["drc.expire_dtm"] = { $lte: new Date(to_date) };
+    }
+
+    // Query the case_details collection
+    const cases = await Case_details.find(query);
 
     // Handle case where no matching cases are found
     if (cases.length === 0) {
@@ -1472,6 +1506,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     });
   }
 };
+
 
 
 // export const listAllActiveRosByDRCID = async (req, res) => {
@@ -1555,6 +1590,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
 // };
       
 
+// Assign Recovery Officer to Cases
 export const assignROToCase = async (req, res) => {
   try {
     const { case_ids, ro_id } = req.body;
@@ -1573,6 +1609,25 @@ export const assignROToCase = async (req, res) => {
 
     const assigned_by = "System";
 
+    // Fetch the recovery officer details
+    const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
+    if (!recoveryOfficer) {
+      return res.status(404).json({
+        status: "error",
+        message: "Recovery Officer not found.",
+        errors: {
+          code: 404,
+          description: `No Recovery Officer found with ro_id: ${ro_id}.`,
+        },
+      });
+    }
+
+    // Extract the RTOM areas the recovery officer is assigned to
+    const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
+
+    const errors = [];
+    const updates = [];
+
     // Fetch all cases with the provided case IDs
     const cases = await Case_details.find({ case_id: { $in: case_ids } });
 
@@ -1583,15 +1638,20 @@ export const assignROToCase = async (req, res) => {
       });
     }
 
-    const errors = [];
-    const updates = [];
-
     for (const caseData of cases) {
-      const { case_id, drc } = caseData;
+      const { case_id, drc, area } = caseData;
+
+      // Check if the case area matches one of the recovery officer's assigned areas
+      if (!assignedAreas.includes(area)) {
+        errors.push({
+          case_id,
+          message: `The area "${area}" does not match any RTOM area assigned to Recovery Officer with ro_id: ${ro_id}.`,
+        });
+        continue;
+      }
 
       // Ensure there's at least one DRC and that `expire_dtm` is null
       const activeDrc = drc.find((d) => d.expire_dtm === null);
-
       if (!activeDrc) {
         errors.push({
           case_id,
@@ -1658,6 +1718,7 @@ export const assignROToCase = async (req, res) => {
     });
   }
 };
+
 
 
 export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res) => {
