@@ -24,7 +24,7 @@ import {
     getActiveRTOMDetails,
     suspend_RTOM,
 } from '../controllers/RTOM_controller.js';
-
+ 
 const router = Router();
 
 /**
@@ -316,7 +316,6 @@ router.get('/RTOM_Details', getRTOMDetails);
 // Route to retrieve RTOM details by ID
 router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
 
-
 /**
  * @swagger
  * tags:
@@ -325,44 +324,16 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  * 
  * /api/RTOM/Register_RTOM:
  *   post:
- *     summary: RTOM-1P01 Register a new RTOM.
+ *     summary: Register a new RTOM.
  *     description: |
- *       This endpoint allows you to register a new RTOM.
+ *       This endpoint allows you to register a new RTOM by providing the necessary details such as area name, abbreviation, contact number, and fax number. 
+ *       Optionally, you can include the `created_dtm` field in the format `DD/MM/YYYY`. If not provided, the current date will be used.
  *       
- *       | Version | Date       | Description | Changed By       |
- *       |---------|------------|-------------|------------------|
- *       | 01      | 2024-Dec-16| Register a new RTOM | Sasindu Srinayaka |
+ *       | Version | Date       | Description              | Changed By        |
+ *       |---------|------------|--------------------------|-------------------|
+ *       | 01      | 2024-Dec-16| Register a new RTOM      | Sasindu Srinayaka |
  *     tags:
- *       - [RTOM]
- *     parameters:
- *       - in: query
- *         name: area_name
- *         required: true
- *         schema:
- *           type: string
- *           example: Matara
- *           description: Name of the RTOM area.
- *       - in: query
- *         name: rtom_abbreviation
- *         required: true
- *         schema:
- *           type: string
- *           example: MH
- *           description: Abbreviation of the RTOM.
- *       - in: query
- *         name: rtom_contact_number
- *         required: true
- *         schema:
- *           type: integer
- *           example: 0712345678
- *         description: Contact number of the RTOM.
- *       - in: query
- *         name: rtom_fax_number
- *         required: true
- *         schema:
- *           type: integer
- *           example: 0712345678
- *         description: Fax number of the RTOM.
+ *       - RTOM
  *     requestBody:
  *       required: true
  *       content:
@@ -381,14 +352,23 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  *               rtom_contact_number:
  *                 type: integer
  *                 description: The contact number for the RTOM.
- *                 example: 0712345678
+ *                 example: 712345678
  *               rtom_fax_number:
  *                 type: integer
  *                 description: The fax number for the RTOM.
- *                 example: 0712345678
- *
+ *                 example: 712345679
+ *               created_dtm:
+ *                 type: string
+ *                 format: date
+ *                 description: The creation date of the RTOM in `DD/MM/YYYY` format. Defaults to the current date if not provided.
+ *                 example: 16/12/2024
+ *             required:
+ *               - area_name
+ *               - rtom_abbreviation
+ *               - rtom_contact_number
+ *               - rtom_fax_number
  *     responses:
- *       200:
+ *       201:
  *         description: RTOM registered successfully.
  *         content:
  *           application/json:
@@ -406,20 +386,32 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  *                   properties:
  *                     rtom_id:
  *                       type: integer
- *                       example: 01
+ *                       example: 1
  *                     rtom_abbreviation:
  *                       type: string
  *                       example: MH
  *                     area_name:
  *                       type: string
  *                       example: Matara
+ *                     rtom_contact_number:
+ *                       type: integer
+ *                       example: 712345678
+ *                     rtom_fax_number:
+ *                       type: integer
+ *                       example: 712345679
  *                     rtom_status:
  *                       type: string
  *                       enum: [Active, Inactive]
  *                       example: Active
- *
+ *                     created_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2024-12-16T00:00:00.000Z
+ *                     created_by:
+ *                       type: string
+ *                       example: System
  *       400:
- *         description: Failed to register RTOM due to missing fields.
+ *         description: Validation error - Missing or invalid required fields.
  *         content:
  *           application/json:
  *             schema:
@@ -433,13 +425,10 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  *                   example: Failed to register RTOM due to missing fields.
  *                 errors:
  *                   type: object
-*                   properties:
-*                     field_name:
-*                       type: string
-*                       example: All fields are required.
- *
- *
- *
+ *                   properties:
+ *                     field_name:
+ *                       type: string
+ *                       example: All fields are required.
  *       500:
  *         description: Internal server error occurred during registration.
  *         content:
@@ -455,16 +444,13 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  *                   example: Failed to register RTOM.
  *                 errors:
  *                   type: object
-*                   properties:
-*                     exception:
-*                       type: string
-*                       example: "Internal server error occurred while registering RTOM."
-*
-*
-*/
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Internal server error occurred while registering RTOM.
+ */
 // Route to register a new RTOM
 router.post("/Register_RTOM", registerRTOM);
-
 
 // /**
 //  * @swagger
@@ -590,15 +576,16 @@ router.post("/Register_RTOM", registerRTOM);
  * 
  * /api/RTOM/Change_RTOM_Details:
  *   patch:
- *     summary: RTOM-1A02 Update the details of an RTOM.
+ *     summary: Update the details of an RTOM
  *     description: |
  *       Updates the abbreviation, area name, contact number, and fax number of an RTOM.
+ *       Changes are logged with the reason and updated_by fields.
  *       
- *       | Version | Date       | Description              | Changed By       |
- *       |---------|------------|--------------------------|-----------------|
- *       | 01      | 2024-Dec-21| Updated the RTOM details.  | Sasindu Srinayaka |
+ *       | Version | Date       | Description              | Changed By        |
+ *       |---------|------------|--------------------------|-------------------|
+ *       | 01      | 2024-Dec-21| Updated the RTOM details. | Sasindu Srinayaka |
  *     tags:
- *       - [RTOM]
+ *       - RTOM
  * 
  *     requestBody:
  *       required: true
@@ -609,20 +596,30 @@ router.post("/Register_RTOM", registerRTOM);
  *             properties:
  *               rtom_id:
  *                 type: integer
- *                 example: 01
+ *                 example: 1
  *                 description: Unique identifier of the RTOM.
+ *               rtom_status:
+ *                 type: string
+ *                 example: Active
+ *                 description: Status of the RTOM.
  *               rtom_contact_number:
  *                 type: integer
- *                 example: 0712345678
+ *                 example: 712345678
  *                 description: Contact number of the RTOM.
  *               rtom_fax_number:
  *                 type: integer
- *                 example: 0712345678
+ *                 example: 712345679
  *                 description: Fax number of the RTOM.
+ *               reason:
+ *                 type: string
+ *                 example: Updated contact details
+ *                 description: Reason for the update.
  *             required:
  *               - rtom_id
+ *               - rtom_status
  *               - rtom_contact_number
  *               - rtom_fax_number
+ *               - reason
  * 
  *     responses:
  *       200:
@@ -640,7 +637,7 @@ router.post("/Register_RTOM", registerRTOM);
  *                   example: RTOM details updated successfully.
  * 
  *       400:
- *         description: Validation Error - missing required parameters.
+ *         description: Validation Error - missing or invalid parameters.
  *         content:
  *           application/json:
  *             schema:
@@ -660,10 +657,10 @@ router.post("/Register_RTOM", registerRTOM);
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: RTOM ID, Contact Number and Fax Number are required.
+ *                       example: Missing required fields.
  * 
  *       404:
- *         description: RTOM ID not found in Database.
+ *         description: RTOM ID not found in the database.
  *         content:
  *           application/json:
  *             schema:
@@ -674,7 +671,7 @@ router.post("/Register_RTOM", registerRTOM);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: RTOM ID not found in Database.
+ *                   example: RTOM ID not found in the database.
  * 
  *       500:
  *         description: Internal server error occurred while updating RTOM details.
@@ -689,19 +686,10 @@ router.post("/Register_RTOM", registerRTOM);
  *                 message:
  *                   type: string
  *                   example: Failed to update RTOM details.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 500
- *                     description:
- *                       type: string
- *                       example: Internal server error occurred while updating RTOM details.
  */
+
 // Route to update the details of an RTOM
 router.patch("/Change_RTOM_Details", updateRTOMDetails);
-
 
 /**
  * @swagger
@@ -711,15 +699,16 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  * 
  * /api/RTOM/List_All_DRC_Ownned_By_RTOM:
  *   post:
- *     summary: RTOM-2P01 Get all active DRCs by RTOM ID.
+ *     summary: Get all active DRCs associated with an RTOM.
  *     description: |
- *       Retrieve a list of active DRCs associated with a specific RTOM.
+ *       Retrieves a list of active Debt Recovery Companies (DRCs) associated with the given RTOM ID. 
+ *       The system maps RTOM areas to Recovery Officers and their associated DRCs to produce the list.
  *       
- *       | Version | Date       | Description              | Changed By       |
- *       |---------|------------|--------------------------|-----------------|
- *       | 01      | 2024-Dec-23| List all the DRC Ownned by RTOM  | Sasindu Srinayaka |
+ *       | Version | Date       | Description                   | Changed By         |
+ *       |---------|------------|-------------------------------|--------------------|
+ *       | 01      | 2024-Dec-23| List all DRCs owned by RTOM   | Sasindu Srinayaka  |
  *     tags:
- *       - [RTOM]
+ *       - RTOM
  *     requestBody:
  *       required: true
  *       content:
@@ -729,7 +718,8 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  *             properties:
  *               rtom_id:
  *                 type: integer
- *                 example: 1
+ *                 description: Unique identifier for the RTOM.
+ *                 example: 2
  *     responses:
  *       200:
  *         description: Active DRCs retrieved successfully.
@@ -745,19 +735,18 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  *                   type: string
  *                   example: Active DRCs retrieved successfully.
  *                 data:
- *                   type: object
- *                   properties:
- *                     drc:
- *                       type: object
- *                       properties:
- *                         drc_id:
- *                           type: integer
- *                           example: 1
- *                         drc_name:
- *                           type: string
- *                           example: CMS
- *       404:
- *         description: No Active DRCs found for the specified RTOM.
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 1
+ *                       drc_name:
+ *                         type: string
+ *                         example: CMS
+ *       400:
+ *         description: Validation error - Missing or invalid RTOM ID.
  *         content:
  *           application/json:
  *             schema:
@@ -768,7 +757,29 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No RTOM record found for the ID
+ *                   example: RTOM ID is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Please provide a valid RTOM ID.
+ *       404:
+ *         description: No matching RTOM or associated DRCs found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No RTOM record found for the ID 1.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -777,9 +788,9 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No Active DRCs found for the specified RTOM.
+ *                       example: No active DRCs found for the specified RTOM.
  *       500:
- *         description: Internal server error occurred while fetching Active DRC details.
+ *         description: Internal server error occurred while fetching DRC details.
  *         content:
  *           application/json:
  *             schema:
@@ -801,8 +812,8 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  *                       type: string
  *                       example: Internal server error occurred while fetching Active DRC details.
  */
+// Route to list all active DRCs owned by a specific RTOM
 router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
-
 
 /**
  * @swagger
@@ -812,22 +823,16 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  * 
  * /api/RTOM/List_All_RO_Ownned_By_RTOM:
  *   post:
- *     summary: RTOM-2P02 Retrieve All Recovery Officers by specific RTOM ID.
+ *     summary: Retrieve all Recovery Officers by RTOM ID.
  *     description: |
- *       List all Recovery Officers associated with a given RTOM.
+ *       Retrieves a list of Recovery Officers (ROs) associated with a specific RTOM based on its ID. 
+ *       The endpoint identifies the RTOM area name and matches it with Recovery Officers responsible for that area.
  *       
- *       | Version | Date       | Description              | Changed By       |
- *       |---------|------------|--------------------------|------------------|
- *       | 01      | 2024-Dec-24| List All ROs Ownned by RTOM  | Sasindu Srinayaka |
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2024-Dec-24| List all ROs owned by RTOM      | Sasindu Srinayaka  |
  *     tags:
- *       - [RTOM]
- *     parameters:
- *       - in: path
- *         name: rtom_id
- *         required: true
- *         schema:
- *           type: integer
- *         example: 1
+ *       - RTOM
  *     requestBody:
  *       required: true
  *       content:
@@ -837,7 +842,8 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  *             properties:
  *               rtom_id:
  *                 type: integer
- *                 example: 1
+ *                 description: Unique identifier for the RTOM.
+ *                 example: 2
  *     responses:
  *       200:
  *         description: Recovery Officers retrieved successfully.
@@ -853,19 +859,18 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  *                   type: string
  *                   example: Recovery Officers retrieved successfully.
  *                 data:
- *                   type: object
- *                   properties:
- *                     rtom:
- *                       type: object
- *                       properties:
- *                         ro_id:
- *                           type: integer
- *                           example: 1
- *                         ro_name:
- *                           type: string
- *                           example: Sasindu Srinayaka
- *       404:
- *         description: No RTOM found for the provided ID or Area Name.
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ro_id:
+ *                         type: integer
+ *                         example: 1
+ *                       ro_name:
+ *                         type: string
+ *                         example: Sasindu Srinayaka
+ *       400:
+ *         description: Validation error - Missing or invalid RTOM ID.
  *         content:
  *           application/json:
  *             schema:
@@ -876,7 +881,29 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No Recovery Officers found for the area or rtom_id.
+ *                   example: RTOM ID is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Please provide a valid RTOM ID in the request body.
+ *       404:
+ *         description: No Recovery Officers found for the provided RTOM or area name.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No Recovery Officers found for the area or RTOM ID.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -885,7 +912,7 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No Recovery Officers found for the area or rtom_id.
+ *                       example: No Recovery Officers found for the area or RTOM ID.
  *       500:
  *         description: Internal server error occurred while fetching RO details.
  *         content:
@@ -907,11 +934,10 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: Internal server error occurred while fetching RTOM details.
+ *                       example: Internal server error occurred while fetching RO details.
  */
 // Route to retrieve all Recovery Officers by RTOM ID
 router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
-
 
 /**
  * @swagger
@@ -921,22 +947,16 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  * 
  * /api/RTOM/List_All_RTOM_Ownned_By_DRC:
  *   post:
- *     summary: RTOM-2P03 Retrieve RTOMs by DRC ID.
+ *     summary: Retrieve RTOMs by DRC ID.
  *     description: |
- *       List all RTOMs associated with a given DRC.
+ *       This endpoint retrieves all RTOMs associated with a given Debt Recovery Company (DRC) based on its ID. 
+ *       It identifies the DRC name and maps it to Recovery Officers (ROs) to determine the RTOMs they manage.
  *       
- *       | Version | Date       | Description | Changed By       |
- *       |---------|------------|-------------|------------------|
- *       | 01      | 2024-Dec-25| List All RTOMs Ownned by DRC | Sasindu Srinayaka |
+ *       | Version | Date       | Description                 | Changed By         |
+ *       |---------|------------|-----------------------------|--------------------|
+ *       | 01      | 2024-Dec-25| List all RTOMs owned by DRC | Sasindu Srinayaka  |
  *     tags:
- *       - [RTOM]
- *     parameters:
- *       - in: path
- *         name: drc_id
- *         required: true
- *         schema:
- *           type: integer
- *           example: 1
+ *       - RTOM
  *     requestBody:
  *       required: true
  *       content:
@@ -946,6 +966,7 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  *             properties:
  *               drc_id:
  *                 type: integer
+ *                 description: The unique identifier for the DRC.
  *                 example: 1
  *     responses:
  *       200:
@@ -962,19 +983,20 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  *                   type: string
  *                   example: RTOMs retrieved successfully.
  *                 data:
- *                   type: object
- *                   properties:
- *                     rtom:
- *                       type: object
- *                       properties:
- *                         rtom_id:
- *                           type: integer
- *                           example: 1
- *                         area_name:
- *                           type: string
- *                           example: Matara
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rtom_id:
+ *                         type: integer
+ *                         description: Unique identifier for the RTOM.
+ *                         example: 1
+ *                       area_name:
+ *                         type: string
+ *                         description: The name of the area managed by the RTOM.
+ *                         example: Matara
  *       404:
- *         description: No RTOMs found.
+ *         description: No RTOMs found for the given DRC ID.
  *         content:
  *           application/json:
  *             schema:
@@ -985,7 +1007,7 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Failed to retrieve RTOM details.
+ *                   example: No RTOMs found for this DRC ID.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -994,7 +1016,7 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: RTOM with the given ID not found.
+ *                       example: No RTOM data matches the provided DRC ID.
  *       500:
  *         description: Internal server error occurred while fetching RTOM details.
  *         content:
@@ -1021,8 +1043,186 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
 // Route to retrieve all RTOMs by DRC ID
 router.post('/List_All_RTOM_Ownned_By_DRC', getAllRTOMsByDRCID);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: RTOM
+ *     description: RTOM-related endpoints, allowing management and registration of RTOMs.
+ * 
+ * /api/RTOM/List_All_Active_RTOMs:
+ *   get:
+ *     summary: Retrieve all active RTOMs.
+ *     description: |
+ *       This endpoint retrieves a list of all active RTOMs from the database. 
+ *       Active RTOMs are identified by their `rtom_status` field set to "Active".
+ *       
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2024-Dec-25| List all active RTOMs           | Sasindu Srinayaka  |
+ *     tags:
+ *       - RTOM
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved active RTOMs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Count of active RTOM(s) retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rtom_id:
+ *                         type: integer
+ *                         description: Unique identifier of the RTOM.
+ *                         example: 1
+ *                       area_name:
+ *                         type: string
+ *                         description: Name of the RTOM's area.
+ *                         example: Matara
+ *                       rtom_status:
+ *                         type: string
+ *                         description: Status of the RTOM.
+ *                         example: Active
+ *                       rtom_contact_number:
+ *                         type: integer
+ *                         description: Contact number of the RTOM.
+ *                         example: 712345678
+ *                       rtom_fax_number:
+ *                         type: integer
+ *                         description: Fax number of the RTOM.
+ *                         example: 712345679
+ *       404:
+ *         description: No active RTOMs found in the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active RTOM(s) found.
+ *       500:
+ *         description: Internal server error occurred while fetching RTOM details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active RTOM count.
+ *                 error:
+ *                   type: string
+ *                   example: Detailed error message for debugging purposes.
+ */
+// Route to retrieve all active RTOMs
 router.get('/List_All_Active_RTOMs', getActiveRTOMDetails);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: RTOM
+ *     description: RTOM-related endpoints, allowing management, suspension, and registration of RTOMs.
+ * 
+ * /api/RTOM/Suspend_RTOM:
+ *   patch:
+ *     summary: Suspend an RTOM by marking it as inactive.
+ *     description: |
+ *       This endpoint allows suspending an RTOM by setting its status to "Inactive" and updating the end date with a reason for suspension. 
+ *       The changes are logged in the `updated_rtom` array for historical tracking.
+ *       
+ *       | Version | Date       | Description                | Changed By         |
+ *       |---------|------------|----------------------------|--------------------|
+ *       | 01      | 2024-Dec-26| Suspend an RTOM            | Sasindu Srinayaka  |
+ *     tags:
+ *       - RTOM
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rtom_id:
+ *                 type: integer
+ *                 description: Unique identifier of the RTOM to suspend.
+ *                 example: 1
+ *               rtom_end_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for the RTOM in `YYYY-MM-DD` format.
+ *                 example: 2024-12-26
+ *               reason:
+ *                 type: string
+ *                 description: Reason for suspending the RTOM.
+ *                 example: "End of operations in the region."
+ *     responses:
+ *       200:
+ *         description: RTOM successfully suspended.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: The RTOM has been suspended.
+ *                 data:
+ *                   type: object
+ *                   description: Contains details about the MongoDB update result.
+ *                   example:
+ *                     acknowledged: true
+ *                     modifiedCount: 1
+ *                     matchedCount: 1
+ *       400:
+ *         description: Validation error - Missing required fields or RTOM not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: RTOM not found in Database.
+ *       500:
+ *         description: Internal server error occurred while suspending the RTOM.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while suspending the RTOM.
+ *                 error:
+ *                   type: string
+ *                   example: Detailed error message for debugging purposes.
+ */
+// Route to suspend an RTOM
 router.patch("/Suspend_RTOM", suspend_RTOM);
 
 export default router;

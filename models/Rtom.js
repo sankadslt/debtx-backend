@@ -44,7 +44,7 @@ const rtomSchema = new Schema({
     },
     rtom_status: {
         type: String,
-        enum: ['Active', 'Inactive', 'Pending'],
+        enum: ['Active', 'Inactive', 'Terminate'],
         required: true
     },
     rtom_contact_number:{
