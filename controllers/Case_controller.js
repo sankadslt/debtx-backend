@@ -19,6 +19,33 @@ import SystemTransaction from "../models/System_transaction.js";
 import moment from "moment";
 import mongoose from "mongoose";
 
+export const getAllArrearsBands = async (req, res) => {
+  try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+    const counterResult = await mongoConnection
+      .collection("Arrears_bands")
+      .findOne({});
+    return res.status(200).json({
+      status: "success",
+      message: "Data retrieved successfully.",
+      data: counterResult,
+    });
+  } catch (error) {
+    // Capture the error object in the catch block
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving Arrears bands.",
+      errors: {
+        code: 500,
+        description: error.message, // Now correctly references the error object
+      },
+    });
+  }
+};
+
 export const drcExtendValidityPeriod = async (req, res) => {
   const { Case_Id, DRC_Id, No_Of_Month, Extended_By } = req.body;
 
