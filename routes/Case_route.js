@@ -25,7 +25,9 @@ import { drcExtendValidityPeriod,
         listCases,
         Acivite_Case_Details,
         get_count_by_drc_commision_rule,
-        get_count_by_drc_commision_rule_and_arrears_band,
+        getAllArrearsBands,
+        count_cases_rulebase_and_arrears_band,
+        Case_Distribution_Among_Agents,
  } from "../controllers/Case_controller.js";
 
 
@@ -1945,8 +1947,12 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
+router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule); 
 
-router.post("/get_count_by_drc_commision_rule_and_arrears_band",get_count_by_drc_commision_rule_and_arrears_band);
+router.get("/getAllArrearsBands",getAllArrearsBands); 
+
+router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_arrears_band);
+
+router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
 export default router;

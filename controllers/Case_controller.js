@@ -19,6 +19,33 @@ import SystemTransaction from "../models/System_transaction.js";
 import moment from "moment";
 import mongoose from "mongoose";
 
+export const getAllArrearsBands = async (req, res) => {
+  try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+    const counterResult = await mongoConnection
+      .collection("Arrears_bands")
+      .findOne({});
+    return res.status(200).json({
+      status: "success",
+      message: "Data retrieved successfully.",
+      data: counterResult,
+    });
+  } catch (error) {
+    // Capture the error object in the catch block
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving Arrears bands.",
+      errors: {
+        code: 500,
+        description: error.message, // Now correctly references the error object
+      },
+    });
+  }
+};
+
 export const drcExtendValidityPeriod = async (req, res) => {
   const { Case_Id, DRC_Id, No_Of_Month, Extended_By } = req.body;
 
@@ -1340,25 +1367,104 @@ export const get_count_by_drc_commision_rule = async (req, res) => {
 export const Case_Distribution_Among_Agents = async (req, res) => {
 
   const {drc_commision_rule, current_arrears_band, drc_list} = req.body;
+  
+  if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+    return res.status(400).json({
+      status: "error",
+      message: "DRC comision rule, current arrears band and DRC list feilds are required.",
+    });
+  };
+
+  if (drc_list.length <= 0) {
+    return res.status(400).json({
+      status: "error",
+      message: "DRC List should not be empty",
+    });
+  };
+  // validate the DRC list and counts
+  const validateDRCList = (drcList) => {
+    if (!Array.isArray(drcList)) {
+      throw new Error("DRC List must be an array.");
+    }
+  
+    return drcList.map((item, index) => {
+      if (
+        typeof item.DRC !== "string" ||
+        typeof item.Count !== "number"
+      ) {
+        throw new Error(`Invalid structure at index ${index} in DRC List.`);
+      }
+  
+      return {
+        DRC: item.DRC,
+        Count: item.Count,
+      };
+    });
+  };
 
   try {
-    if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+    const validatedDRCList = validateDRCList(drc_list);
+
+    const mongo = await db.connectMongoDB();    
+    const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
+      { _id: "task_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    if (!TaskCounter || !TaskCounter.seq) {
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to generate Task_Id from counters collection.",
+      });
+    };
+    const Task_Id = TaskCounter.seq;
+
+    // Validation to check for existing documents with task_status = "Discard"
+    const existingTask = await mongo.collection("tasks").findOne({
+      task_status: "Complete",
+      "parameters.drc_commision_rule": { $exists: true },
+      "parameters.current_arrears_band": { $exists: true },
+    });
+
+    if (existingTask) {
       return res.status(400).json({
         status: "error",
-        message: "DRC comision rule, current arrears band and DRC list feilds are required.",
+        message: "A document with 'task_status = Discard' cannot contain both 'drc_commision_rule' and 'current_arrears_band'.",
       });
     }
-    if (drc_list.length <= 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "DRC List should not be empty",
-      });
-    }
-    
+
+    const taskData = {
+      Task_Id,
+      Template_Task_Id: 3, 
+      parameters: {
+        drc_commision_rule,
+        current_arrears_band,
+        distributed_Amounts:validatedDRCList
+      },
+      Created_By: req.user?.username || "system",
+      Execute_By: "SYS", 
+      task_status: "open", 
+      created_dtm: new Date(),
+      end_dtm: null,
+      status_changed_dtm: null,
+      status_description: "",
+    };
+
+    const newTask = new Task(taskData);
+    await newTask.save();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: { Task_Id },
+    });
   } catch (error) {
-    
+    console.error(error);
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while creating the task.. ${error.message}",
+    });
   }
-    
 };
 
 export const listHandlingCasesByDRC = async (req, res) => {
@@ -1721,21 +1827,25 @@ export const assignROToCase = async (req, res) => {
 
 
 
-export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res) => {
-  const { case_status, drc_commision_rule } = req.body;
+
+export const count_cases_rulebase_and_arrears_band = async (req, res) => {
+  const { drc_commision_rule } = req.body;
 
   try {
     // Validate input
-    if (!case_status || !drc_commision_rule) {
+    if (!drc_commision_rule) {
       return res.status(400).json({
         status: "error",
-        message: "Both case_status and drc_commision_rule are required.",
+        message: "drc_commision_rule is required.",
       });
     }
 
-    // Fetch all cases that match the provided criteria
+    // Hardcoded case_status
+    const case_status = "Open No Agent";
+
+    // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
     const cases = await Case_details.find({
-      "case_status.case_status": case_status, // Match the provided case_status in the case_status array
+      "case_status.case_status": case_status, // Hardcoded case_status
       drc_commision_rule, // Match the provided drc_commision_rule
     });
 
@@ -1747,7 +1857,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
       });
     }
 
-    // Filter cases where the latest case_status matches the provided case_status
+    // Filter cases where the latest case_status matches the hardcoded case_status
     const filteredCases = cases.filter((caseData) => {
       const { case_status: statuses } = caseData;
 
@@ -1756,7 +1866,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
       );
 
-      // Check if the latest status matches the case_status in the request
+      // Check if the latest status matches the hardcoded case_status
       return latestStatus.case_status === case_status;
     });
 
@@ -1776,15 +1886,15 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
     filteredCases.forEach((caseData) => {
       const { arrears_band } = caseData;
 
-      if (arrears_band === "AB5-10") {
+      if (arrears_band === "AB-5_10") {
         arrearsBandCounts[0].count++;
-      } else if (arrears_band === "AB10-25") {
+      } else if (arrears_band === "AB-10_25") {
         arrearsBandCounts[1].count++;
-      } else if (arrears_band === "AB25-50") {
+      } else if (arrears_band === "AB-25_50") {
         arrearsBandCounts[2].count++;
-      } else if (arrears_band === "AB50-100") {
+      } else if (arrears_band === "AB-50_100") {
         arrearsBandCounts[3].count++;
-      } else if (arrears_band === "AB100-<") {
+      } else if (arrears_band === "AB-100<") {
         arrearsBandCounts[4].count++;
       }
     });
@@ -1809,6 +1919,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
     });
   }
 };
+
 
 
 
