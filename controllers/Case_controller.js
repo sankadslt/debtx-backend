@@ -1686,15 +1686,15 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
     filteredCases.forEach((caseData) => {
       const { arrears_band } = caseData;
 
-      if (arrears_band === "AB5-10") {
+      if (arrears_band === "AB-5_10") {
         arrearsBandCounts[0].count++;
-      } else if (arrears_band === "AB10-25") {
+      } else if (arrears_band === "AB-10_25") {
         arrearsBandCounts[1].count++;
-      } else if (arrears_band === "AB25-50") {
+      } else if (arrears_band === "AB-25_50") {
         arrearsBandCounts[2].count++;
-      } else if (arrears_band === "AB50-100") {
+      } else if (arrears_band === "AB-50_100") {
         arrearsBandCounts[3].count++;
-      } else if (arrears_band === "AB100-<") {
+      } else if (arrears_band === "AB-100<") {
         arrearsBandCounts[4].count++;
       }
     });
