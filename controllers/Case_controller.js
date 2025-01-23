@@ -1766,21 +1766,26 @@ export const assignROToCase = async (req, res) => {
 };
 
 
-export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res) => {
-  const { case_status, drc_commision_rule } = req.body;
+
+
+export const count_cases_rulebase_and_arrears_band = async (req, res) => {
+  const { drc_commision_rule } = req.body;
 
   try {
     // Validate input
-    if (!case_status || !drc_commision_rule) {
+    if (!drc_commision_rule) {
       return res.status(400).json({
         status: "error",
-        message: "Both case_status and drc_commision_rule are required.",
+        message: "drc_commision_rule is required.",
       });
     }
 
-    // Fetch all cases that match the provided criteria
+    // Hardcoded case_status
+    const case_status = "Open No Agent";
+
+    // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
     const cases = await Case_details.find({
-      "case_status.case_status": case_status, // Match the provided case_status in the case_status array
+      "case_status.case_status": case_status, // Hardcoded case_status
       drc_commision_rule, // Match the provided drc_commision_rule
     });
 
@@ -1792,7 +1797,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
       });
     }
 
-    // Filter cases where the latest case_status matches the provided case_status
+    // Filter cases where the latest case_status matches the hardcoded case_status
     const filteredCases = cases.filter((caseData) => {
       const { case_status: statuses } = caseData;
 
@@ -1801,7 +1806,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
       );
 
-      // Check if the latest status matches the case_status in the request
+      // Check if the latest status matches the hardcoded case_status
       return latestStatus.case_status === case_status;
     });
 
@@ -1854,6 +1859,7 @@ export const get_count_by_drc_commision_rule_and_arrears_band = async (req, res)
     });
   }
 };
+
 
 
 
