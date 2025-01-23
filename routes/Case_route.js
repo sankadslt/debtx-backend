@@ -24,6 +24,7 @@ import { drcExtendValidityPeriod,
         listCases,
         Acivite_Case_Details,
         get_count_by_drc_commision_rule,
+        Case_Distribution_Among_Agents,
  } from "../controllers/Case_controller.js";
 
 
@@ -1704,5 +1705,7 @@ router.post("/Case_List", Case_List);
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
+
+router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
 export default router;
