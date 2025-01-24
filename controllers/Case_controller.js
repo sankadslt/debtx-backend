@@ -1828,6 +1828,99 @@ export const assignROToCase = async (req, res) => {
 
 
 
+// export const count_cases_rulebase_and_arrears_band = async (req, res) => {
+//   const { drc_commision_rule } = req.body;
+
+//   try {
+//     // Validate input
+//     if (!drc_commision_rule) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "drc_commision_rule is required.",
+//       });
+//     }
+
+//     // Hardcoded case_status
+//     const case_status = "Open No Agent";
+
+//     // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
+//     const cases = await Case_details.find({
+//       "case_status.case_status": case_status, // Hardcoded case_status
+//       drc_commision_rule, // Match the provided drc_commision_rule
+//     });
+
+//     // Check if any cases were found
+//     if (!cases || cases.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No cases found for the provided criteria.",
+//       });
+//     }
+
+//     // Filter cases where the latest case_status matches the hardcoded case_status
+//     const filteredCases = cases.filter((caseData) => {
+//       const { case_status: statuses } = caseData;
+
+//       // Find the latest status by created_dtm
+//       const latestStatus = statuses.reduce((latest, current) =>
+//         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
+//       );
+
+//       // Check if the latest status matches the hardcoded case_status
+//       return latestStatus.case_status === case_status;
+//     });
+
+//     // Count total filtered cases
+//     const totalCases = filteredCases.length;
+
+//     // Prepare arrears bands as an array with structured fields and subfields
+//     const arrearsBandCounts = [
+//       { band: "5000-10000", count: 0, details: { description: "Arrears between 5,000 and 10,000" } },
+//       { band: "10000-25000", count: 0, details: { description: "Arrears between 10,000 and 25,000" } },
+//       { band: "25000-50000", count: 0, details: { description: "Arrears between 25,000 and 50,000" } },
+//       { band: "50000-100000", count: 0, details: { description: "Arrears between 50,000 and 100,000" } },
+//       { band: ">100000", count: 0, details: { description: "Arrears greater than 100,000" } },
+//     ];
+
+//     // Update counts in the arrearsBandCounts array based on arrears_band
+//     filteredCases.forEach((caseData) => {
+//       const { arrears_band } = caseData;
+
+//       if (arrears_band === "AB-5_10") {
+//         arrearsBandCounts[0].count++;
+//       } else if (arrears_band === "AB-10_25") {
+//         arrearsBandCounts[1].count++;
+//       } else if (arrears_band === "AB-25_50") {
+//         arrearsBandCounts[2].count++;
+//       } else if (arrears_band === "AB-50_100") {
+//         arrearsBandCounts[3].count++;
+//       } else if (arrears_band === "AB-100<") {
+//         arrearsBandCounts[4].count++;
+//       }
+//     });
+
+//     // Respond with the structured results
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Counts retrieved successfully.",
+//       data: {
+//         Total: totalCases,
+//         Arrears_Bands: arrearsBandCounts,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error retrieving counts:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve counts.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
+
 export const count_cases_rulebase_and_arrears_band = async (req, res) => {
   const { drc_commision_rule } = req.body;
 
@@ -1842,6 +1935,27 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 
     // Hardcoded case_status
     const case_status = "Open No Agent";
+
+    // Connect to MongoDB and fetch arrears bands dynamically
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+
+    const arrearsBandsData = await mongoConnection
+      .collection("Arrears_bands")
+      .findOne({});
+    if (!arrearsBandsData) {
+      return res.status(404).json({
+        status: "error",
+        message: "No arrears bands found.",
+      });
+    }
+
+    // Convert arrears bands data into an array
+    const arrearsBands = Object.entries(arrearsBandsData)
+      .filter(([key]) => key !== "_id") // Exclude the MongoDB _id field
+      .map(([key, value]) => ({ key, range: value, count: 0 }));
 
     // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
     const cases = await Case_details.find({
@@ -1873,31 +1987,26 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
     // Count total filtered cases
     const totalCases = filteredCases.length;
 
-    // Prepare arrears bands as an array with structured fields and subfields
-    const arrearsBandCounts = [
-      { band: "5000-10000", count: 0, details: { description: "Arrears between 5,000 and 10,000" } },
-      { band: "10000-25000", count: 0, details: { description: "Arrears between 10,000 and 25,000" } },
-      { band: "25000-50000", count: 0, details: { description: "Arrears between 25,000 and 50,000" } },
-      { band: "50000-100000", count: 0, details: { description: "Arrears between 50,000 and 100,000" } },
-      { band: ">100000", count: 0, details: { description: "Arrears greater than 100,000" } },
-    ];
-
-    // Update counts in the arrearsBandCounts array based on arrears_band
+    // Update counts dynamically based on arrears bands
     filteredCases.forEach((caseData) => {
       const { arrears_band } = caseData;
 
-      if (arrears_band === "AB-5_10") {
-        arrearsBandCounts[0].count++;
-      } else if (arrears_band === "AB-10_25") {
-        arrearsBandCounts[1].count++;
-      } else if (arrears_band === "AB-25_50") {
-        arrearsBandCounts[2].count++;
-      } else if (arrears_band === "AB-50_100") {
-        arrearsBandCounts[3].count++;
-      } else if (arrears_band === "AB-100<") {
-        arrearsBandCounts[4].count++;
+      // Find the arrears band and increment its count
+      const band = arrearsBands.find((band) => band.key === arrears_band);
+      if (band) {
+        band.count++;
       }
     });
+
+    // Format the response to include arrears bands dynamically
+    const formattedBands = arrearsBands.map((band) => ({
+      band: band.range,
+      // [`count_${band.range.replace(/-/g, "_")}`]: band.count,
+      count: band.count,
+      details: {
+        description: `Cases in the range of ${band.range}`,
+      },
+    }));
 
     // Respond with the structured results
     return res.status(200).json({
@@ -1905,7 +2014,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       message: "Counts retrieved successfully.",
       data: {
         Total: totalCases,
-        Arrears_Bands: arrearsBandCounts,
+        Arrears_Bands: formattedBands,
       },
     });
   } catch (error) {
@@ -1919,6 +2028,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
     });
   }
 };
+
 
 
 
