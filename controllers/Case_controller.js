@@ -1922,6 +1922,30 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 
 
 
+export const List_Incident_CPE_Collect_Incidents = async (req, res) => {
+  try {
+    const { filters = {} } = req.body;
+
+    const incidents = await Case_details.find({
+      ' case_current_status. case_current_status': 'Open_CPE_Collect',
+      ...filters,
+    });
+
+    if (!incidents || incidents.length === 0) {
+      return res.status(404).json({ message: 'No incidents found with status Open_CPE_Collect.' });
+    }
+
+    res.status(200).json({
+      message: 'Incidents fetched successfully.',
+      incidents,
+    });
+  } catch (error) {
+    console.error('Error fetching incidents:', error);
+    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
+};
+
+
 
 
 

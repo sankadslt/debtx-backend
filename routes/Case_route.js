@@ -28,6 +28,7 @@ import { drcExtendValidityPeriod,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
         Case_Distribution_Among_Agents,
+        List_Incident_CPE_Collect_Incidents
  } from "../controllers/Case_controller.js";
 
 
@@ -1954,5 +1955,7 @@ router.get("/getAllArrearsBands",getAllArrearsBands);
 router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_arrears_band);
 
 router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
+
+router.post("/List_Incident_CPE_Collect_Incidents",List_Incident_CPE_Collect_Incidents);
 
 export default router;

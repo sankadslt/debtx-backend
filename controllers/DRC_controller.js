@@ -655,7 +655,7 @@ export const endDRC = async (req, res) => {
 
 
 
-export const RemarkDetailsByDRCId = async (req, res) => {
+export const DRCRemarkDetailsById = async (req, res) => {
   try {
     const { drc_id } = req.body;
 

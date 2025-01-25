@@ -747,7 +747,7 @@ export const Remove_Service_From_DRC = async (req, res) => {
 //   }
 // };
 
-export const manageDRC = async (req, res) => {
+export const Change_DRC_Details_with_Services = async (req, res) => {
   const { drc_id, drc_status, services_to_add, services_to_update, teli_no, remark } = req.body;
 
   const changedBy = req.user ? req.user.username : "Admin";
