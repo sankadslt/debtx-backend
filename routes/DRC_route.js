@@ -41,7 +41,7 @@ import {
   getDRCDetailsById,
   getActiveDRCDetails,
   endDRC,
-  RemarkDetailsByDRCId
+  DRCRemarkDetailsById 
 } from "../controllers/DRC_controller.js";
 
 const router = Router();
@@ -52,7 +52,7 @@ const router = Router();
  *   - name: DRC
  *     description: Debt Recovery Company-related endpoints, allowing management and access of DRC details.
  *
- * /api/DRC/Remark_Details_By_DRC_Id:
+ * /api/DRC/DRC_Remark_Details_By_ID:
  *   post:
  *     summary: Retrieve remarks of a specific DRC by DRC_ID
  *     description: |
@@ -150,7 +150,7 @@ const router = Router();
  *                   type: string
  *                   example: Failed to fetch remark details. Please try again later.
  */
-router.post("/Remark_Details_By_DRC_Id", RemarkDetailsByDRCId);
+router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
 
 /**
  * @swagger

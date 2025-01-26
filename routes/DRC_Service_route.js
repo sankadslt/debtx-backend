@@ -12,7 +12,7 @@ import { Router } from "express";
 import {
 
     getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
-   ,manageDRC 
+   ,Change_DRC_Details_with_Services
 
 } from "../controllers/DRC_Service_controller.js";
 
@@ -24,7 +24,7 @@ const router = Router();
  *   - name: Debt Recovery Company-Services
  *     description: Endpoints to manage DRCs and their associated services.
  *
- * /api/DRC_service/manageDRC:
+ * /api/DRC_service/Change_DRC_Details_with_Services:
  *   post:
  *     summary: Update DRC details and manage associated services
  *     description: |
@@ -184,7 +184,7 @@ const router = Router();
  *                     type: string
  *                     example: "Unexpected database error"
  */
-router.post("/manageDRC", manageDRC);
+router.post("/Change_DRC_Details_with_Services", Change_DRC_Details_with_Services);
 
 router.get("/drc-details-by-date", getDRCDetailsByDate);
 router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
