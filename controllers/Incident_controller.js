@@ -719,3 +719,114 @@ export const List_Incidents = async (req, res) => {
     });
   }
 };
+
+export const total_F1_filtered_Incidents = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Reject Pending",
+      $and: [
+        { Filtered_Reason: { $ne: null } },
+        { Filtered_Reason: { $ne: "" } }
+      ]
+    })).length
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of F1 filtered incidents.`,
+      data: {F1_filtered_incident_total: details}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the F1 filtered incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const total_distribution_ready_incidents = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Distribution Ready"
+    })).length
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of F1 filtered incidents.`,
+      data: {Distribution_ready_total: details}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the F1 filtered incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const incidents_CPE_Collect_group_by_arrears_band = async (req, res) => {
+  
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Open CPE Collect"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved CPE collect incident counts by arrears bands.`,
+      data: {CPE_collect_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve CPE collect incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const incidents_Direct_LOD_group_by_arrears_band = async (req, res) => {
+
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Direct LOD"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved Direct LOD incident counts by arrears bands.`,
+      data: {Direct_LOD_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve Direct LOD incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
