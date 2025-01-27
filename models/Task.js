@@ -77,6 +77,10 @@ const taskSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  task_type: {
+    type: String,
+    required: true,
+  },
   parameters: {
     type: Map,
     of: String, // The value type for the map
