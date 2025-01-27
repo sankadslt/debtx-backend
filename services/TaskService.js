@@ -2,7 +2,8 @@ import Task from "../models/Task.js";
 import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 
-export const createTaskFunction = async ({ Template_Task_Id, Created_By, task_status = 'open', ...dynamicParams }) => {
+//Create Task Function
+export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
     try {
       // Validate required parameters
       if (!Template_Task_Id || !Created_By) {
@@ -34,6 +35,7 @@ export const createTaskFunction = async ({ Template_Task_Id, Created_By, task_st
       const taskData = {
         Task_Id,
         Template_Task_Id,
+        task_type,
         parameters: dynamicParams, // Accept dynamic parameters
         Created_By,
         Execute_By: "SYS",
@@ -55,6 +57,7 @@ export const createTaskFunction = async ({ Template_Task_Id, Created_By, task_st
         data: {
           Task_Id,
           Template_Task_Id,
+          task_type,
           parameters: dynamicParams,
           Created_By,
         },
@@ -72,9 +75,10 @@ export const createTaskFunction = async ({ Template_Task_Id, Created_By, task_st
     }
   };
 
+  //Create Task API
 export const createTask = async (req, res) => {
     try {
-      const { Template_Task_Id, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
+      const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
       console.log("Request body:", req.body);
   
       if (!Template_Task_Id || !Created_By) {
@@ -103,6 +107,7 @@ export const createTask = async (req, res) => {
       const taskData = {
         Task_Id,
         Template_Task_Id,
+        task_type,
         parameters: dynamicParams, // Accept dynamic parameters
         Created_By,
         Execute_By: "SYS",
@@ -120,7 +125,8 @@ export const createTask = async (req, res) => {
       return res.status(201).json({ 
         message: "Task created successfully", 
         Task_Id, 
-        Template_Task_Id, 
+        Template_Task_Id,
+        task_type,
         dynamicParams, // Accept dynamic parameters
         Created_By 
       });
