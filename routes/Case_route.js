@@ -1952,6 +1952,131 @@ router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
 
 router.get("/getAllArrearsBands",getAllArrearsBands); 
 
+/**
+ * @swagger
+ * /api/case/count_cases_rulebase_and_arrears_band:
+ *   post:
+ *     summary: C-1P59 Count Cases by Rulebase and Arrears Band
+ *     description: |
+ *       Retrieve counts of cases grouped by arrears bands and filtered by the provided `drc_commision_rule`.
+ *       This endpoint also ensures only cases with the latest status as `Open No Agent` are considered.
+ *
+ *       | Version | Date        | Description                    | Changed By       |
+ *       |---------|-------------|--------------------------------|------------------|
+ *       | 01      | 2025-Jan-24 | Count Cases by Rulebase        | Dinusha Anupama        |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: drc_commision_rule
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: PEO TV
+ *         description: Commission rule to filter cases.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_commision_rule
+ *             properties:
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule used to filter cases.
+ *                 example: PEO TV
+ *     responses:
+ *       200:
+ *         description: Counts retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Counts retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Total:
+ *                       type: integer
+ *                       description: Total number of cases matching the criteria.
+ *                       example: 2
+ *                     Arrears_Bands:
+ *                       type: array
+ *                       description: List of arrears bands with counts of matching cases.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           band:
+ *                             type: string
+ *                             description: Range of the arrears band.
+ *                             example: 5000-10000
+ *                           count:
+ *                             type: integer
+ *                             description: Count of cases in this arrears band.
+ *                             example: 1
+ *                           details:
+ *                             type: object
+ *                             description: Additional information about the arrears band.
+ *                             properties:
+ *                               description:
+ *                                 type: string
+ *                                 description: Description of the arrears band range.
+ *                                 example: Cases in the range of 5000-10000
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drc_commision_rule is required.
+ *       404:
+ *         description: No cases or arrears bands found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No cases found for the provided criteria.
+ *       500:
+ *         description: Database or internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve counts.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
+
 router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_arrears_band);
 
 router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);

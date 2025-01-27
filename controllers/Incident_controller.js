@@ -7,11 +7,12 @@ import FileUploadLog from "../models/file_upload_log.js";
 import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
-import System_Case_User_Interaction from "../models/User_Interaction.js";
+import { createTaskFunction } from "../services/TaskService.js";
+import System_Case_User_Interaction from '../models/User_Interaction.js'; 
 import Incident from "../models/Incident.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import logger from "../utils/logger.js";
+// import logger from "../utils/logger.js";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -160,23 +161,35 @@ const __dirname = dirname(__filename);
 // };
 // Helper function to log elapsed time
 // Helper function to log elapsed time
-const logElapsedTime = (action, startTime, endTime = Date.now()) => {
-  const start = new Date(startTime).toISOString();
-  const end = new Date(endTime).toISOString();
-  const elapsed = endTime - startTime;
+// const logElapsedTime = (action, startTime, endTime = Date.now()) => {
+//   const start = new Date(startTime).toISOString();
+//   const end = new Date(endTime).toISOString();
+//   const elapsed = endTime - startTime;
 
-  logger.info({
-    message: `${action}: ${start} - ${end}`,
-    elapsed: `${elapsed}ms`,
-  });
+//   logger.info({
+//     message: `${action}: ${start} - ${end}`,
+//     elapsed: `${elapsed}ms`,
+//   });
+// };
+
+// Validation function for Create_Task parameters
+const validateCreateTaskParameters = (params) => {
+  const { Incident_Id, Account_Num } = params;
+
+  if (!Incident_Id || !Account_Num) {
+    throw new Error("Incident_Id and Account_Num are required parameters for Create_Task.");
+  }
+
+  if (typeof Account_Num !== "string") {
+    throw new Error("Account_Num must be strings.");
+  }
+
+  return true;
 };
 
 // Create_Incident Controller
 export const Create_Incident = async (req, res) => {
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } =
-    req.body;
-
-  const apiStartTime = Date.now(); // Start time for the entire API call
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } = req.body;
 
   try {
     // Validate required fields
@@ -194,12 +207,12 @@ export const Create_Incident = async (req, res) => {
         message: "Account number must be 10 characters or fewer.",
       });
     }
-    // Check if the account number already exists for an incident
+
     const existingIncident = await Incident_log.findOne({ Account_Num });
     if (existingIncident) {
       return res.status(400).json({
         status: "error",
-        code: "DUPLICATE_ACCOUNT", // Unique error code
+        code: "DUPLICATE_ACCOUNT",
         message: `An incident already exists for account number: ${Account_Num}.`,
       });
     }
@@ -242,19 +255,14 @@ export const Create_Incident = async (req, res) => {
     }
 
     const mongoConnection = await mongoose.connection;
-    const counterStartTime = Date.now(); // Start timer for counter operation
-    const counterResult = await mongoConnection
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "incident_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-    logElapsedTime("Time for generating Incident_Id", counterStartTime);
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "incident_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
 
     const Incident_Id = counterResult.seq;
 
-    const incidentStartTime = Date.now(); // Start timer for incident creation
     const newIncident = new Incident_log({
       Incident_Id,
       Account_Num,
@@ -267,69 +275,45 @@ export const Create_Incident = async (req, res) => {
     });
 
     await newIncident.save();
-    logElapsedTime("Time for saving Incident_log", incidentStartTime);
 
     try {
-      const externalApiStartTime = Date.now();
-      await Request_Incident_External_information({
-        Account_Num,
-        Monitor_Months: monitorMonths,
-      });
-      logElapsedTime("Time for external API call", externalApiStartTime);
+      await Request_Incident_External_information({ Account_Num, Monitor_Months: monitorMonths });
     } catch (apiError) {
       console.error("Error calling external API:", apiError.message);
+      await Incident_log.findByIdAndDelete(newIncident._id); // Rollback saved incident
       return res.status(500).json({
         status: "error",
         message: "Failed to request external incident information.",
       });
     }
 
-    const taskStartTime = Date.now();
-    const mongo = await db.connectMongoDB();
-    const TaskCounter = await mongo
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "task_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-    const Task_Id = TaskCounter.seq;
+    try {
+      const taskData = {
+        Template_Task_Id: 9,
+        task_type: "Extract data from data lake",
+        Created_By,
+        Incident_Id,
+        Account_Num,
+        task_status: "open",
+      };
 
-    const taskData = {
-      Task_Id,
-      Template_Task_Id: 9,
-      parameters: {
-        Incident_Id: Incident_Id.toString(),
-        Account_Num: Account_Num,
-      },
-      Created_By,
-      Execute_By: "SYS",
-      Sys_Alert_ID: null,
-      Interaction_ID_Success: null,
-      Interaction_ID_Error: null,
-      Task_Id_Error: null,
-      created_dtm: new Date(),
-      end_dtm: null,
-      task_status: "open",
-      status_changed_dtm: null,
-      status_description: "",
-    };
-
-    await Task.create(taskData);
-    logElapsedTime("Time for creating task", taskStartTime);
-
-    const apiEndTime = Date.now(); // End time for the entire API call
-    const apiElapsed = apiEndTime - apiStartTime;
-    logger.info({
-      message: `Total API execution time: ${new Date(
-        apiStartTime
-      ).toISOString()} - ${new Date(apiEndTime).toISOString()}`,
-      elapsed: `${apiElapsed}ms`,
-    });
+      validateCreateTaskParameters(taskData);
+      await createTaskFunction(taskData);
+    } catch (taskError) {
+      console.error("Error creating task:", taskError.message);
+      await Incident_log.findByIdAndDelete(newIncident._id); // Rollback saved incident
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to create task.",
+        errors: {
+          exception: taskError.message,
+        },
+      });
+    }
 
     return res.status(201).json({
       status: "success",
-      message: "Incident created successfully.",
+      message: "Incident and task created successfully.",
       data: {
         Incident_Id,
         Account_Num,
@@ -342,10 +326,6 @@ export const Create_Incident = async (req, res) => {
     });
   } catch (error) {
     console.error("Unexpected error during incident creation:", error);
-    logger.error({
-      message: "Unexpected error during incident creation",
-      error: error.message,
-    });
     return res.status(500).json({
       status: "error",
       message: "Failed to create incident.",
@@ -355,6 +335,12 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
 
 // export const Reject_Case = async (req, res) => {
 //   const { Incident_Id, Rejected_Reason, Rejected_By} = req.body;
