@@ -1492,16 +1492,16 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     const mongo = await db.connectMongoDB();
 
     // Validation for existing tasks with `task_status` and specific parameters
-    const existingTask = await mongo.collection("tasks").findOne({
-      task_status: "Complete",
-      "parameters.drc_commision_rule": { $exists: true },
-      "parameters.current_arrears_band": { $exists: true },
+    const existingTask = await mongo.collection("System_tasks").findOne({
+      task_status: { $ne: "Complete" },
+      "parameters.drc_commision_rule": drc_commision_rule,
+      "parameters.current_arrears_band": current_arrears_band,
     });
-
+    // console.log(existingTask);
     if (existingTask) {
       return res.status(400).json({
         status: "error",
-        message: "A document with 'task_status = Complete' cannot contain both 'drc_commision_rule' and 'current_arrears_band'.",
+        message: "Already has tasks with this commision rule and arrears band ",
       });
     }
 
