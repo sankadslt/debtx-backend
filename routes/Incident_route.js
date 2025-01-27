@@ -2,8 +2,12 @@ import { Router } from "express";
 import {
 Reject_Case,
 Create_Incident, Upload_DRS_File,
-List_Incidents
-
+List_Incidents,
+List_All_Incident_Case_Pending,
+List_Incidents_CPE_Collect,
+List_F1_filted_Incidents,
+List_incidents_Direct_LOD,
+List_distribution_ready_incidents,
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
@@ -479,12 +483,6 @@ router.post("/List_Incidents", List_Incidents);
 router.post("/Create_Incident", Create_Incident);
 
 
-
-
-
-
-
-
 /**
  * @swagger
  * /api/incident/Upload_DRS_File:
@@ -588,6 +586,334 @@ router.post("/Create_Incident", Create_Incident);
 router.post("/Upload_DRS_File", Upload_DRS_File);
 
 
+/**
+ * @swagger
+ * /api/incident/List_All_Incident_Case_Pending:
+ *   post:
+ *     summary: INC-1P02 List all pending incidents
+ *     description: Retrieves all incidents with a status indicating they are pending, such as "Open CPE Collect" or "Direct LOD."
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: pendingStatuses
+ *         required: false
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["Open CPE Collect", "Direct LOD", "Reject Pending", "Open No Agent"]
+ *         description: The statuses to filter pending incidents.
+ *     responses:
+ *       200:
+ *         description: Pending incidents retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Pending incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC12345"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "1234567890"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Open CPE Collect"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-03T12:34:56.789Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
+router.post("/List_All_Incident_Case_Pending",List_All_Incident_Case_Pending);
+
+
+/**
+ * @swagger
+ * /api/incident/List_Incidents_CPE_Collect:
+ *   post:
+ *     summary: INC-1P03 List incidents with "Open CPE Collect" status
+ *     description: Retrieves all incidents where the status is "Open CPE Collect."
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: cpeCollectStatuses
+ *         required: false
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["Open CPE Collect"]
+ *         description: The statuses to filter incidents for CPE collection.
+ *     responses:
+ *       200:
+ *         description: Incidents with "Open CPE Collect" status retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "CPE Collect incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC54321"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "9876543210"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Open CPE Collect"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-04T15:45:30.123Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
+router.post("/List_Incidents_CPE_Collect",List_Incidents_CPE_Collect);
+
+
+/**
+ * @swagger
+ * /api/incident/List_incidents_Direct_LOD:
+ *   post:
+ *     summary: INC-1P04 List incidents with "Direct LOD" status
+ *     description: Retrieves all incidents where the status is "Direct LOD."
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: directLODStatuses
+ *         required: false
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["Direct LOD"]
+ *         description: The statuses to filter Direct LOD incidents.
+ *     responses:
+ *       200:
+ *         description: Incidents with "Direct LOD" status retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Direct LOD incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC98765"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "1234567800"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Direct LOD"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-05T16:00:45.987Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
+router.post("/List_incidents_Direct_LOD",List_incidents_Direct_LOD);
+
+/**
+ * @swagger
+ * /api/incidents/List_F1_filted_Incidents:
+ *   post:
+ *     summary: INC-2P01 List "Reject Pending" incidents
+ *     description: Retrieves a list of incidents with the status "Reject Pending".
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Incident_Status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Reject Pending"
+ *         description: The status of incidents to filter by (default is "Reject Pending").
+ *     responses:
+ *       200:
+ *         description: List of "Reject Pending" incidents retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Pending incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC12345"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "AC987654321"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Reject Pending"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-01T12:00:00Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
+router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
+
+
+/**
+ * @swagger
+ * /api/incidents/List_distribution_ready_incidents:
+ *   post:
+ *     summary: INC-2P02 List "Open No Agent" incidents
+ *     description: Retrieves a list of incidents with the status "Open No Agent".
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: Incident_Status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Open No Agent"
+ *         description: The status of incidents to filter by (default is "Open No Agent").
+ *     responses:
+ *       200:
+ *         description: List of "Open No Agent" incidents retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Pending incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC54321"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "AC123456789"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Open No Agent"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-02T08:00:00Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
+router.post("/List_distribution_ready_incidents",List_distribution_ready_incidents);
 
 
 export default router;

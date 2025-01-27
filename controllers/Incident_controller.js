@@ -7,7 +7,7 @@ import FileUploadLog from "../models/file_upload_log.js";
 import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
-import System_Case_User_Interaction from '../models/User_Interaction.js'; 
+import System_Case_User_Interaction from "../models/User_Interaction.js";
 import Incident from "../models/Incident.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -16,7 +16,6 @@ import logger from "../utils/logger.js";
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 
 // export const Create_Incident = async (req, res) => {
 //   const { Account_Num, DRC_Action, Monitor_Months, Created_By } = req.body;
@@ -174,7 +173,8 @@ const logElapsedTime = (action, startTime, endTime = Date.now()) => {
 
 // Create_Incident Controller
 export const Create_Incident = async (req, res) => {
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } = req.body;
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } =
+    req.body;
 
   const apiStartTime = Date.now(); // Start time for the entire API call
 
@@ -183,7 +183,8 @@ export const Create_Incident = async (req, res) => {
     if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
       return res.status(400).json({
         status: "error",
-        message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+        message:
+          "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
       });
     }
 
@@ -203,19 +204,31 @@ export const Create_Incident = async (req, res) => {
       });
     }
 
-    const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
+    const validActions = [
+      "collect arrears",
+      "collect arrears and CPE",
+      "collect CPE",
+    ];
     if (!validActions.includes(DRC_Action)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid action. Allowed values are: ${validActions.join(", ")}.`,
+        message: `Invalid action. Allowed values are: ${validActions.join(
+          ", "
+        )}.`,
       });
     }
 
-    const validSourceTypes = ["Pilot Suspended", "Product Terminate", "Special"];
+    const validSourceTypes = [
+      "Pilot Suspended",
+      "Product Terminate",
+      "Special",
+    ];
     if (!validSourceTypes.includes(Source_Type)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid Source_Type. Allowed values are: ${validSourceTypes.join(", ")}.`,
+        message: `Invalid Source_Type. Allowed values are: ${validSourceTypes.join(
+          ", "
+        )}.`,
       });
     }
 
@@ -230,11 +243,13 @@ export const Create_Incident = async (req, res) => {
 
     const mongoConnection = await mongoose.connection;
     const counterStartTime = Date.now(); // Start timer for counter operation
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "incident_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "incident_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
     logElapsedTime("Time for generating Incident_Id", counterStartTime);
 
     const Incident_Id = counterResult.seq;
@@ -243,7 +258,7 @@ export const Create_Incident = async (req, res) => {
     const newIncident = new Incident_log({
       Incident_Id,
       Account_Num,
-      Incident_Status: "Incident Open", 
+      Incident_Status: "Incident Open",
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
@@ -256,7 +271,10 @@ export const Create_Incident = async (req, res) => {
 
     try {
       const externalApiStartTime = Date.now();
-      await Request_Incident_External_information({ Account_Num, Monitor_Months: monitorMonths });
+      await Request_Incident_External_information({
+        Account_Num,
+        Monitor_Months: monitorMonths,
+      });
       logElapsedTime("Time for external API call", externalApiStartTime);
     } catch (apiError) {
       console.error("Error calling external API:", apiError.message);
@@ -268,11 +286,13 @@ export const Create_Incident = async (req, res) => {
 
     const taskStartTime = Date.now();
     const mongo = await db.connectMongoDB();
-    const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const TaskCounter = await mongo
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "task_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
     const Task_Id = TaskCounter.seq;
 
     const taskData = {
@@ -301,7 +321,9 @@ export const Create_Incident = async (req, res) => {
     const apiEndTime = Date.now(); // End time for the entire API call
     const apiElapsed = apiEndTime - apiStartTime;
     logger.info({
-      message: `Total API execution time: ${new Date(apiStartTime).toISOString()} - ${new Date(apiEndTime).toISOString()}`,
+      message: `Total API execution time: ${new Date(
+        apiStartTime
+      ).toISOString()} - ${new Date(apiEndTime).toISOString()}`,
       elapsed: `${apiElapsed}ms`,
     });
 
@@ -333,10 +355,6 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
-
-
-
-
 
 // export const Reject_Case = async (req, res) => {
 //   const { Incident_Id, Rejected_Reason, Rejected_By} = req.body;
@@ -435,61 +453,60 @@ export const Reject_Case = async (req, res) => {
   try {
     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
 
-    
     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
       return res.status(400).json({
-        message: 'Incident_Id, Reject_Reason, and Rejected_By are required fields.',
+        message:
+          "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
       });
     }
 
-    
     const incidentUpdateResult = await Incident.findOneAndUpdate(
       { Incident_Id },
       {
         $set: {
-          Incident_Status: 'Incident Reject',
+          Incident_Status: "Incident Reject",
           Rejected_Reason: Reject_Reason,
           Rejected_By,
           Rejected_Dtm: new Date(),
         },
       },
-      { new: true } 
+      { new: true }
     );
 
     if (!incidentUpdateResult) {
-      return res.status(404).json({ message: 'Incident not found.' });
+      return res.status(404).json({ message: "Incident not found." });
     }
 
-    
-    const caseUserInteractionUpdateResult = await System_Case_User_Interaction.findOneAndUpdate(
-      { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-      {
-        $set: {
-          User_Interaction_status: 'close',
-          User_Interaction_status_changed_dtm: new Date(),
+    const caseUserInteractionUpdateResult =
+      await System_Case_User_Interaction.findOneAndUpdate(
+        { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
+        {
+          $set: {
+            User_Interaction_status: "close",
+            User_Interaction_status_changed_dtm: new Date(),
+          },
         },
-      },
-      { new: true } 
-    );
+        { new: true }
+      );
 
     if (!caseUserInteractionUpdateResult) {
-      return res.status(404).json({ message: 'System Case User Interaction not found.' });
+      return res
+        .status(404)
+        .json({ message: "System Case User Interaction not found." });
     }
 
-    
     res.status(200).json({
-      message: 'Incident rejected and status updated successfully.',
+      message: "Incident rejected and status updated successfully.",
       incident: incidentUpdateResult,
       caseUserInteraction: caseUserInteractionUpdateResult,
     });
   } catch (error) {
-    console.error('Error rejecting the case:', error);
-    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    console.error("Error rejecting the case:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
-
-
-
 
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
@@ -516,17 +533,21 @@ export const Upload_DRS_File = async (req, res) => {
     if (!validFileTypes.includes(File_Type)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(", ")}.`,
+        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(
+          ", "
+        )}.`,
       });
     }
 
     // Generate a unique File_Id
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "file_upload_seq" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "file_upload_seq" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const file_upload_seq = counterResult.seq;
 
@@ -563,11 +584,13 @@ export const Upload_DRS_File = async (req, res) => {
     await newFileLog.save();
 
     // Create Task: "Extract Incident from File" (Template_Task_Id: 1)
-    const taskCounter = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const taskCounter = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "task_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const Task_Id = taskCounter.seq;
 
@@ -628,7 +651,6 @@ export const List_Incidents = async (req, res) => {
 
     let query = {};
 
-    
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
@@ -643,7 +665,6 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-    
     if (Actions) {
       query.Actions = Actions;
     }
@@ -651,7 +672,6 @@ export const List_Incidents = async (req, res) => {
       query.Incident_Status = Incident_Status;
     }
 
-   
     const incidents = await Incident_log.find(query);
 
     if (incidents.length === 0) {
@@ -661,14 +681,15 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
- 
     const mongo = await db.connectMongoDB();
 
-    const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const TaskCounter = await mongo
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "task_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
       return res.status(500).json({
@@ -679,7 +700,6 @@ export const List_Incidents = async (req, res) => {
 
     const Task_Id = TaskCounter.seq;
 
-   
     const taskData = {
       Task_Id,
       Template_Task_Id: 12,
@@ -701,7 +721,6 @@ export const List_Incidents = async (req, res) => {
     const newTask = new Task(taskData);
     await newTask.save();
 
-   
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved and task created successfully.",
@@ -716,6 +735,121 @@ export const List_Incidents = async (req, res) => {
       errors: {
         exception: error.message,
       },
+    });
+  }
+};
+
+export const List_All_Incident_Case_Pending = async (req, res) => {
+  try {
+    const pendingStatuses = [
+      "Open CPE Collect",
+      "Direct LOD",
+      "Reject Pending",
+      "Open No Agent",
+    ];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: pendingStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_Incidents_CPE_Collect = async (req, res) => {
+  try {
+    const cpeCollectStatuses = ["Open CPE Collect"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: cpeCollectStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "CPE Collecrt incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_incidents_Direct_LOD = async (req, res) => {
+  try {
+    const directLODStatuses = ["Direct LOD"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: directLODStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_F1_filted_Incidents = async (req, res) => {
+  try {
+    const rejectpendingStatuses = ["Reject Pending"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: rejectpendingStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_distribution_ready_incidents = async (req, res) => {
+  try {
+    const openNoAgentStatuses = ["Open No Agent"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: openNoAgentStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
     });
   }
 };
