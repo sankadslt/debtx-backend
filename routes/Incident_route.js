@@ -3,11 +3,19 @@ import {
 Reject_Case,
 Create_Incident, Upload_DRS_File,
 List_Incidents,
+
+total_F1_filtered_Incidents,
+total_distribution_ready_incidents,
+incidents_CPE_Collect_group_by_arrears_band,
+incidents_Direct_LOD_group_by_arrears_band
+
+
 List_All_Incident_Case_Pending,
 List_Incidents_CPE_Collect,
 List_F1_filted_Incidents,
 List_incidents_Direct_LOD,
 List_distribution_ready_incidents,
+
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
@@ -585,6 +593,264 @@ router.post("/Create_Incident", Create_Incident);
  */
 router.post("/Upload_DRS_File", Upload_DRS_File);
 
+/**
+ * @swagger
+ * /api/incident/total_F1_filtered_Incidents:
+ *   post:
+ *     summary: C-1P53 Retrieve the total number of F1 filtered incidents.
+ *     description: |
+ *       Retrieve the total count of F1 filtered incidents.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the total count of F1 filtered incidents.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved the total of F1 filtered incidents.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     F1_filtered_incident_total:
+ *                       type: integer
+ *                       example: 25
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching F1 filtered incident count.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve the F1 filtered incident count.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/total_F1_filtered_Incidents", total_F1_filtered_Incidents);
+
+/**
+ * @swagger
+ * /api/incident/total_distribution_ready_incidents:
+ *   post:
+ *     summary: C-1P54 Retrieve the total number of distribution-ready incidents.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Distribution Ready".
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the total count of distribution-ready incidents.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved the total of distribution-ready incidents.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Distribution_ready_total:
+ *                       type: integer
+ *                       example: 25
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching the distribution-ready incident count.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve the distribution-ready incident count.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/total_distribution_ready_incidents", total_distribution_ready_incidents);
+
+/**
+ * @swagger
+ * /api/incident/incidents_CPE_Collect_group_by_arrears_band:
+ *   post:
+ *     summary: C-1P55 Retrieve CPE collect incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Open CPE Collect", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved CPE collect incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved CPE collect incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     CPE_collect_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 15
+ *                         AB-10_20: 7
+ *                         AB-20_30: 3
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching CPE collect incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve CPE collect incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/incidents_CPE_Collect_group_by_arrears_band", incidents_CPE_Collect_group_by_arrears_band);
+
+/**
+ * @swagger
+ * /api/incident/incidents_Direct_LOD_group_by_arrears_band:
+ *   post:
+ *     summary: C-1P56 Retrieve Direct LOD incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Direct LOD", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved Direct LOD incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved Direct LOD incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Direct_LOD_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 10
+ *                         AB-10_20: 5
+ *                         AB-20_30: 8
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching Direct LOD incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve Direct LOD incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+
+router.post("/incidents_Direct_LOD_group_by_arrears_band", incidents_Direct_LOD_group_by_arrears_band);
 
 /**
  * @swagger
@@ -914,6 +1180,7 @@ router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
  *                   example: "An unexpected error occurred."
  */
 router.post("/List_distribution_ready_incidents",List_distribution_ready_incidents);
+
 
 
 export default router;

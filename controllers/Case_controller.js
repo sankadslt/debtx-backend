@@ -1132,32 +1132,18 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
 
   try {
     const details = await Case_details.find({case_current_status:"Open No Agent", drc_commision_rule: Rule})
-    const band1 = details.filter((caseData) => {
-      return caseData.current_arrears_amount<=10000 && caseData.current_arrears_amount >5000;
-    }).length;
-    const band2 = details.filter((caseData) => {
-      return caseData.current_arrears_amount<=25000 && caseData.current_arrears_amount >10000;
-    }).length;
-    const band3 = details.filter((caseData) => {
-      return caseData.current_arrears_amount<=50000 && caseData.current_arrears_amount >25000;
-    }).length;
-    const band4 = details.filter((caseData) => {
-      return caseData.current_arrears_amount<=100000 && caseData.current_arrears_amount >50000;
-    }).length;
-    const band5 = details.filter((caseData) => {
-      return caseData.current_arrears_amount<100000 ;
-    }).length;
+    
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.arrears_band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+    
     return res.status(200).json({
       status: "success",
-      message: `Successfully retrieved arrears band counts for rule - ${Rule} .`,
-      data:{
-        "AB-5_10": band1,
-        "AB-10_25": band2,
-        "AB-25_50": band3,
-        "AB-50_100": band4,
-        "AB-100-9999": band5,
-      }
-    });
+      message: `Successfully retrieved arrears band counts for rule - ${Rule}.`,
+      data: arrearsBandCounts
+    })
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -1168,8 +1154,6 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
       },
     });
   }
-
-
 }
 
 export const listCases = async (req, res) =>{
