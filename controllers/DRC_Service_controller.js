@@ -136,11 +136,11 @@ export const getDRCDetailsByTimePeriod = async (req, res) => {
 
 
 export const registerDRCWithServices = async (req, res) => {
-  const { DRC_Name, DRC_Business_Registration_Number, Contact_Number, Services } = req.body;
+  const { DRC_Name, DRC_Business_Registration_Number, Contact_Number, DRC_Email,Services } = req.body;
 
   try {
     // Validate required fields
-    if (!DRC_Name || !DRC_Business_Registration_Number || !Contact_Number) {
+    if (!DRC_Name || !DRC_Business_Registration_Number || !Contact_Number || !DRC_Email) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
@@ -150,18 +150,21 @@ export const registerDRCWithServices = async (req, res) => {
       });
     }
 
-    // Normalize the business registration number to lowercase for case-insensitive comparison
+    // Normalize the business registration number and email to lowercase for case-insensitive comparison
     const normalizedBusinessRegNumber = DRC_Business_Registration_Number.trim().toLowerCase();
-
+    const normalizedEmail = DRC_Email.trim().toLowerCase();
     // Check if `drc_business_registration_number` is unique (case-insensitive)
     const existingDRC = await DRC.findOne({
-      drc_business_registration_number: normalizedBusinessRegNumber,
+      $or: [
+        { drc_business_registration_number: normalizedBusinessRegNumber },
+        { drc_email: normalizedEmail },
+      ],
     });
 
     if (existingDRC) {
       return res.status(400).json({
         status: "error",
-        message: "DRC Business Registration Number already exists.",
+        message: "DRC Business Registration Number or Email already exists.",
       });
     }
 
@@ -185,6 +188,7 @@ export const registerDRCWithServices = async (req, res) => {
       drc_id,
       drc_business_registration_number: normalizedBusinessRegNumber, // Save normalized value
       drc_name: DRC_Name,
+      drc_email: normalizedEmail, // Save normalized email
       drc_status: drcStatus,
       teli_no: Contact_Number,
       drc_end_dat: null, // Default to no end date
@@ -215,6 +219,7 @@ export const registerDRCWithServices = async (req, res) => {
       data: {
         drc_id,
         drc_name: DRC_Name,
+        drc_email: normalizedEmail,
         contact_no: Contact_Number,
         drc_business_registration_number: DRC_Business_Registration_Number,
       },

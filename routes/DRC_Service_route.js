@@ -224,6 +224,13 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *           example: "0123456789"
  *         description: Telephone number of the DRC.
  *       - in: query
+ *         name: DRC_Email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "sampledrc@gmail.com"
+ *         description: Email of the Debt Recovery Company.
+ *       - in: query
  *         name: Services
  *         required: false
  *         schema:
@@ -251,6 +258,10 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *                 type: string
  *                 description: Contact number of the Debt Recovery Company.
  *                 example: "0123456789"
+ *               DRC_Email:
+ *                 type: string
+ *                 description: Email of the Debt Recovery Company.
+ *                 example: "sampledrc@gmail.com"
  *               Services:
  *                 type: array
  *                 description: Array of service IDs to associate with the DRC.
@@ -283,6 +294,9 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *                     contact_no:
  *                       type: string
  *                       example: "0123456789"
+ *                     DRC_Email:
+ *                       type: string
+ *                       example: "sampledrc@gmail.com"
  *                     drc_business_registration_number:
  *                       type: string
  *                       example: BR12345678

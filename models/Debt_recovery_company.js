@@ -55,6 +55,11 @@ const drcSchema = new Schema(
       type: String,
       required: true,
     },
+    drc_email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     drc_status: {
       type: String,
       enum: ["Active", "Inactive", "Pending","Ended"],
