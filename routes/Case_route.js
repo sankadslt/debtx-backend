@@ -2098,7 +2098,7 @@ router.post(
  *
  *       | Version | Date        | Description                          | Changed By         |
  *       |---------|-------------|--------------------------------------|--------------------|
- *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Ravindu             |
+ *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Ravindu            |
  *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Sanjaya Perera     |
  *
  *     tags: [Case Management]
@@ -2153,7 +2153,7 @@ router.post(
  *                   type: object
  *                   description: Details of the created task.
  *       400:
- *         description: Validation error - Missing required parameters or invalid input.
+ *         description: Validation error - Missing required parameters or invalid input, or task conflict.
  *         content:
  *           application/json:
  *             schema:
@@ -2164,20 +2164,9 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: DRC commission rule, current arrears band, and DRC list fields are required.
- *       400:
- *         description: Task conflict error - Task already exists with similar parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Already has tasks with this commission rule and arrears band.
+ *                   example: >
+ *                     DRC commission rule, current arrears band, and DRC list fields are required,
+ *                     or already has tasks with this commission rule and arrears band.
  *       500:
  *         description: Internal server error - Failed to create the task.
  *         content:
@@ -2190,7 +2179,7 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: An error occurred while creating the task: {error_message}.
+ *                   example: "An error occurred while creating the task: {error_message}"
  */
 
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
