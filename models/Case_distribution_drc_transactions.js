@@ -68,7 +68,7 @@ const caseDistributionSchema = new Schema(
 
     array_of_distribution: [
       {
-        drc_abbreviation: { type: String, required: true },
+        drc_name: { type: String, required: true },
         rtom: { type: String, required: true },
         case_count: { type: Number, required: true },
         sum_of_arrears: { type: Number, required: true }
