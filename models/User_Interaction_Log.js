@@ -28,7 +28,7 @@ const interactionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    User_Interaction_Status: {
+    User_Transaction_Status: {
         type: String,
         enum: ['Open', 'Error', 'Complete'], 
         default: 'open',
