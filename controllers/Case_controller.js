@@ -1621,22 +1621,30 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    // Format the results
-    const formattedCases = cases.map((caseData) => {
-      const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
-      const lastRecoveryOfficer =
-        lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+    
+    // Use Promise.all to handle asynchronous operations
+    const formattedCases = await Promise.all(
+      cases.map(async (caseData) => {
+        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastRecoveryOfficer =
+          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+        
+        // Fetch matching recovery officer asynchronously
+        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+          ro_id: lastRecoveryOfficer.ro_id,
+        });
 
-      return {
-        case_id: caseData.case_id,
-        created_dtm: lastDrc.created_dtm,
-        current_arreas_amount: caseData.current_arrears_amount,
-        area: caseData.area,
-        remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
-        expire_dtm: lastDrc.expire_dtm,
-        ro_name: lastRecoveryOfficer.ro_id || null,
-      };
-    });
+        return {
+          case_id: caseData.case_id,
+          created_dtm: lastDrc.created_dtm,
+          current_arreas_amount: caseData.current_arrears_amount,
+          area: caseData.area,
+          remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
+          expire_dtm: lastDrc.expire_dtm,
+          ro_name: matchingRecoveryOfficer?.ro_name || null, // Use the fetched recovery officer name
+        };
+      })
+    );
 
     // Return success response
     return res.status(200).json({
