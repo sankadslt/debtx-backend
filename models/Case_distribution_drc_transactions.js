@@ -7,7 +7,8 @@ const caseDistributionSchema = new Schema({
   created_dtm: { type: Date, required: true },
   created_by: { type: String, required: true },
   action_type: { type: String, required: true },
-  drc_selection_rule: { type: String, required: true },
+  drc_commision_rule: { type: String, required: true },
+  
   array_of_distribution: [
     {
       drc_abbreviation: { type: String, required: true },
