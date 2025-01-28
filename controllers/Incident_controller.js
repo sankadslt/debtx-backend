@@ -188,25 +188,20 @@ const validateCreateTaskParameters = (params) => {
   return true;
 };
 
-// Create_Incident Controller
 export const Create_Incident = async (req, res) => {
   const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } = req.body;
 
-  try {
-    // Validate required fields
-    if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
-      return res.status(400).json({
-        status: "error",
-        message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
-      });
-    }
+  // Validate required fields
+  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
+    return res.status(400).json({
+      status: "error",
+      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+    });
+  }
 
-    if (Account_Num.length > 10) {
-      return res.status(400).json({
-        status: "error",
-        message: "Account number must be 10 characters or fewer.",
-      });
-    }
+  const session = await mongoose.startSession(); // Start a session for transaction
+  try {
+    session.startTransaction(); // Start the transaction
 
     const existingIncident = await Incident_log.findOne({ Account_Num });
     if (existingIncident) {
@@ -235,18 +230,11 @@ export const Create_Incident = async (req, res) => {
 
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
-    if (monitorMonths < 1 || monitorMonths > 3) {
-      return res.status(400).json({
-        status: "error",
-        message: "Monitor_Months must be between 1 and 3.",
-      });
-    }
-
     const mongoConnection = await mongoose.connection;
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "incident_id" },
       { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
+      { returnDocument: "after", session, upsert: true }
     );
 
     const Incident_Id = counterResult.seq;
@@ -262,13 +250,13 @@ export const Create_Incident = async (req, res) => {
       Created_Dtm: moment().toDate(),
     });
 
-    await newIncident.save();
+    await newIncident.save({ session });
 
     try {
       await Request_Incident_External_information({ Account_Num, Monitor_Months: monitorMonths });
     } catch (apiError) {
       console.error("Error calling external API:", apiError.message);
-      await Incident_log.findByIdAndDelete(newIncident._id); // Rollback saved incident
+      await session.abortTransaction(); // Rollback transaction
       return res.status(500).json({
         status: "error",
         message: "Failed to request external incident information.",
@@ -286,10 +274,10 @@ export const Create_Incident = async (req, res) => {
       };
 
       validateCreateTaskParameters(taskData);
-      await createTaskFunction(taskData);
+      await createTaskFunction(taskData, session);
     } catch (taskError) {
       console.error("Error creating task:", taskError.message);
-      await Incident_log.findByIdAndDelete(newIncident._id); // Rollback saved incident
+      await session.abortTransaction(); // Rollback transaction
       return res.status(500).json({
         status: "error",
         message: "Failed to create task.",
@@ -298,6 +286,9 @@ export const Create_Incident = async (req, res) => {
         },
       });
     }
+
+    await session.commitTransaction(); // Commit transaction
+    session.endSession(); // End session
 
     return res.status(201).json({
       status: "success",
@@ -314,6 +305,8 @@ export const Create_Incident = async (req, res) => {
     });
   } catch (error) {
     console.error("Unexpected error during incident creation:", error);
+    await session.abortTransaction(); // Rollback transaction on error
+    session.endSession(); // End session
     return res.status(500).json({
       status: "error",
       message: "Failed to create incident.",
@@ -323,6 +316,7 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
+
 
 
 
