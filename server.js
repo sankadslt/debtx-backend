@@ -28,6 +28,7 @@ import sequenceRouter from "./routes/Sequence_route.js";
 import incidentRouter from "./routes/Incident_route.js";
 import caseRouter from "./routes/Case_route.js"
 import authRouter from "./routes/Auth.js";
+import taskRouter from "./routes/Task_route.js";
 
 // Load environment variables
 config();
@@ -53,6 +54,7 @@ app.use("/api/recovery_officer", RORoutes);
 app.use("/api/incident", incidentRouter);
 app.use("/api/case", caseRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/task", taskRouter);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

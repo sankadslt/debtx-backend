@@ -7,16 +7,16 @@ import FileUploadLog from "../models/file_upload_log.js";
 import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
+import { createTaskFunction } from "../services/TaskService.js";
 import System_Case_User_Interaction from '../models/User_Interaction.js'; 
 import Incident from "../models/Incident.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import logger from "../utils/logger.js";
+// import logger from "../utils/logger.js";
 
 // Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 
 // export const Create_Incident = async (req, res) => {
 //   const { Account_Num, DRC_Action, Monitor_Months, Created_By } = req.body;
@@ -161,89 +161,99 @@ const __dirname = dirname(__filename);
 // };
 // Helper function to log elapsed time
 // Helper function to log elapsed time
-const logElapsedTime = (action, startTime, endTime = Date.now()) => {
-  const start = new Date(startTime).toISOString();
-  const end = new Date(endTime).toISOString();
-  const elapsed = endTime - startTime;
+// const logElapsedTime = (action, startTime, endTime = Date.now()) => {
+//   const start = new Date(startTime).toISOString();
+//   const end = new Date(endTime).toISOString();
+//   const elapsed = endTime - startTime;
 
-  logger.info({
-    message: `${action}: ${start} - ${end}`,
-    elapsed: `${elapsed}ms`,
-  });
+//   logger.info({
+//     message: `${action}: ${start} - ${end}`,
+//     elapsed: `${elapsed}ms`,
+//   });
+// };
+
+// Validation function for Create_Task parameters
+const validateCreateTaskParameters = (params) => {
+  const { Incident_Id, Account_Num } = params;
+
+  if (!Incident_Id || !Account_Num) {
+    throw new Error("Incident_Id and Account_Num are required parameters for Create_Task.");
+  }
+
+  if (typeof Account_Num !== "string") {
+    throw new Error("Account_Num must be strings.");
+  }
+
+  return true;
 };
 
-// Create_Incident Controller
 export const Create_Incident = async (req, res) => {
   const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } = req.body;
 
-  const apiStartTime = Date.now(); // Start time for the entire API call
+  // Validate required fields
+  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
+    return res.status(400).json({
+      status: "error",
+      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+    });
+  }
 
+  const session = await mongoose.startSession(); // Start a session for transaction
   try {
-    // Validate required fields
-    if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
-      return res.status(400).json({
-        status: "error",
-        message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
-      });
-    }
+    session.startTransaction(); // Start the transaction
 
-    if (Account_Num.length > 10) {
-      return res.status(400).json({
-        status: "error",
-        message: "Account number must be 10 characters or fewer.",
-      });
-    }
-    // Check if the account number already exists for an incident
     const existingIncident = await Incident_log.findOne({ Account_Num });
     if (existingIncident) {
       return res.status(400).json({
         status: "error",
-        code: "DUPLICATE_ACCOUNT", // Unique error code
+        code: "DUPLICATE_ACCOUNT",
         message: `An incident already exists for account number: ${Account_Num}.`,
       });
     }
 
-    const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
+    const validActions = [
+      "collect arrears",
+      "collect arrears and CPE",
+      "collect CPE",
+    ];
     if (!validActions.includes(DRC_Action)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid action. Allowed values are: ${validActions.join(", ")}.`,
+        message: `Invalid action. Allowed values are: ${validActions.join(
+          ", "
+        )}.`,
       });
     }
 
-    const validSourceTypes = ["Pilot Suspended", "Product Terminate", "Special"];
+    const validSourceTypes = [
+      "Pilot Suspended",
+      "Product Terminate",
+      "Special",
+    ];
     if (!validSourceTypes.includes(Source_Type)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid Source_Type. Allowed values are: ${validSourceTypes.join(", ")}.`,
+        message: `Invalid Source_Type. Allowed values are: ${validSourceTypes.join(
+          ", "
+        )}.`,
       });
     }
 
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
-    if (monitorMonths < 1 || monitorMonths > 3) {
-      return res.status(400).json({
-        status: "error",
-        message: "Monitor_Months must be between 1 and 3.",
-      });
-    }
-
     const mongoConnection = await mongoose.connection;
-    const counterStartTime = Date.now(); // Start timer for counter operation
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "incident_id" },
       { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
+      { returnDocument: "after", session, upsert: true }
     );
-    logElapsedTime("Time for generating Incident_Id", counterStartTime);
 
     const Incident_Id = counterResult.seq;
 
-    const incidentStartTime = Date.now(); // Start timer for incident creation
     const newIncident = new Incident_log({
       Incident_Id,
       Account_Num,
-      Incident_Status: "Incident Open", 
+      Incident_Status: "Incident Open",
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
@@ -251,63 +261,49 @@ export const Create_Incident = async (req, res) => {
       Created_Dtm: moment().toDate(),
     });
 
-    await newIncident.save();
-    logElapsedTime("Time for saving Incident_log", incidentStartTime);
+    await newIncident.save({ session });
 
     try {
-      const externalApiStartTime = Date.now();
       await Request_Incident_External_information({ Account_Num, Monitor_Months: monitorMonths });
-      logElapsedTime("Time for external API call", externalApiStartTime);
     } catch (apiError) {
       console.error("Error calling external API:", apiError.message);
+      await session.abortTransaction(); // Rollback transaction
       return res.status(500).json({
         status: "error",
         message: "Failed to request external incident information.",
       });
     }
 
-    const taskStartTime = Date.now();
-    const mongo = await db.connectMongoDB();
-    const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
-    const Task_Id = TaskCounter.seq;
+    try {
+      const taskData = {
+        Template_Task_Id: 9,
+        task_type: "Extract data from data lake",
+        Created_By,
+        Incident_Id,
+        Account_Num,
+        task_status: "open",
+      };
 
-    const taskData = {
-      Task_Id,
-      Template_Task_Id: 9,
-      parameters: {
-        Incident_Id: Incident_Id.toString(),
-        Account_Num: Account_Num,
-      },
-      Created_By,
-      Execute_By: "SYS",
-      Sys_Alert_ID: null,
-      Interaction_ID_Success: null,
-      Interaction_ID_Error: null,
-      Task_Id_Error: null,
-      created_dtm: new Date(),
-      end_dtm: null,
-      task_status: "open",
-      status_changed_dtm: null,
-      status_description: "",
-    };
+      validateCreateTaskParameters(taskData);
+      await createTaskFunction(taskData, session);
+    } catch (taskError) {
+      console.error("Error creating task:", taskError.message);
+      await session.abortTransaction(); // Rollback transaction
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to create task.",
+        errors: {
+          exception: taskError.message,
+        },
+      });
+    }
 
-    await Task.create(taskData);
-    logElapsedTime("Time for creating task", taskStartTime);
-
-    const apiEndTime = Date.now(); // End time for the entire API call
-    const apiElapsed = apiEndTime - apiStartTime;
-    logger.info({
-      message: `Total API execution time: ${new Date(apiStartTime).toISOString()} - ${new Date(apiEndTime).toISOString()}`,
-      elapsed: `${apiElapsed}ms`,
-    });
+    await session.commitTransaction(); // Commit transaction
+    session.endSession(); // End session
 
     return res.status(201).json({
       status: "success",
-      message: "Incident created successfully.",
+      message: "Incident and task created successfully.",
       data: {
         Incident_Id,
         Account_Num,
@@ -320,10 +316,8 @@ export const Create_Incident = async (req, res) => {
     });
   } catch (error) {
     console.error("Unexpected error during incident creation:", error);
-    logger.error({
-      message: "Unexpected error during incident creation",
-      error: error.message,
-    });
+    await session.abortTransaction(); // Rollback transaction on error
+    session.endSession(); // End session
     return res.status(500).json({
       status: "error",
       message: "Failed to create incident.",
@@ -333,6 +327,9 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
+
+
+
 
 
 
@@ -435,61 +432,60 @@ export const Reject_Case = async (req, res) => {
   try {
     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
 
-    
     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
       return res.status(400).json({
-        message: 'Incident_Id, Reject_Reason, and Rejected_By are required fields.',
+        message:
+          "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
       });
     }
 
-    
     const incidentUpdateResult = await Incident.findOneAndUpdate(
       { Incident_Id },
       {
         $set: {
-          Incident_Status: 'Incident Reject',
+          Incident_Status: "Incident Reject",
           Rejected_Reason: Reject_Reason,
           Rejected_By,
           Rejected_Dtm: new Date(),
         },
       },
-      { new: true } 
+      { new: true }
     );
 
     if (!incidentUpdateResult) {
-      return res.status(404).json({ message: 'Incident not found.' });
+      return res.status(404).json({ message: "Incident not found." });
     }
 
-    
-    const caseUserInteractionUpdateResult = await System_Case_User_Interaction.findOneAndUpdate(
-      { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-      {
-        $set: {
-          User_Interaction_status: 'close',
-          User_Interaction_status_changed_dtm: new Date(),
+    const caseUserInteractionUpdateResult =
+      await System_Case_User_Interaction.findOneAndUpdate(
+        { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
+        {
+          $set: {
+            User_Interaction_status: "close",
+            User_Interaction_status_changed_dtm: new Date(),
+          },
         },
-      },
-      { new: true } 
-    );
+        { new: true }
+      );
 
     if (!caseUserInteractionUpdateResult) {
-      return res.status(404).json({ message: 'System Case User Interaction not found.' });
+      return res
+        .status(404)
+        .json({ message: "System Case User Interaction not found." });
     }
 
-    
     res.status(200).json({
-      message: 'Incident rejected and status updated successfully.',
+      message: "Incident rejected and status updated successfully.",
       incident: incidentUpdateResult,
       caseUserInteraction: caseUserInteractionUpdateResult,
     });
   } catch (error) {
-    console.error('Error rejecting the case:', error);
-    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    console.error("Error rejecting the case:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
-
-
-
 
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
@@ -516,17 +512,21 @@ export const Upload_DRS_File = async (req, res) => {
     if (!validFileTypes.includes(File_Type)) {
       return res.status(400).json({
         status: "error",
-        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(", ")}.`,
+        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(
+          ", "
+        )}.`,
       });
     }
 
     // Generate a unique File_Id
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "file_upload_seq" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "file_upload_seq" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const file_upload_seq = counterResult.seq;
 
@@ -563,11 +563,13 @@ export const Upload_DRS_File = async (req, res) => {
     await newFileLog.save();
 
     // Create Task: "Extract Incident from File" (Template_Task_Id: 1)
-    const taskCounter = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const taskCounter = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "task_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const Task_Id = taskCounter.seq;
 
@@ -628,7 +630,6 @@ export const List_Incidents = async (req, res) => {
 
     let query = {};
 
-    
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
@@ -643,7 +644,6 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-    
     if (Actions) {
       query.Actions = Actions;
     }
@@ -651,7 +651,6 @@ export const List_Incidents = async (req, res) => {
       query.Incident_Status = Incident_Status;
     }
 
-   
     const incidents = await Incident_log.find(query);
 
     if (incidents.length === 0) {
@@ -661,14 +660,15 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
- 
     const mongo = await db.connectMongoDB();
 
-    const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-      { _id: "task_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const TaskCounter = await mongo
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "task_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
       return res.status(500).json({
@@ -679,7 +679,6 @@ export const List_Incidents = async (req, res) => {
 
     const Task_Id = TaskCounter.seq;
 
-   
     const taskData = {
       Task_Id,
       Template_Task_Id: 12,
@@ -701,7 +700,6 @@ export const List_Incidents = async (req, res) => {
     const newTask = new Task(taskData);
     await newTask.save();
 
-   
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved and task created successfully.",
@@ -719,3 +717,231 @@ export const List_Incidents = async (req, res) => {
     });
   }
 };
+
+
+export const total_F1_filtered_Incidents = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Reject Pending",
+      $and: [
+        { Filtered_Reason: { $ne: null } },
+        { Filtered_Reason: { $ne: "" } }
+      ]
+    })).length
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of F1 filtered incidents.`,
+      data: {F1_filtered_incident_total: details}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the F1 filtered incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const total_distribution_ready_incidents = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Distribution Ready"
+    })).length
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of F1 filtered incidents.`,
+      data: {Distribution_ready_total: details}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the F1 filtered incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const incidents_CPE_Collect_group_by_arrears_band = async (req, res) => {
+  
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Open CPE Collect"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved CPE collect incident counts by arrears bands.`,
+      data: {CPE_collect_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve CPE collect incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const incidents_Direct_LOD_group_by_arrears_band = async (req, res) => {
+
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Direct LOD"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved Direct LOD incident counts by arrears bands.`,
+      data: {Direct_LOD_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve Direct LOD incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+
+export const List_All_Incident_Case_Pending = async (req, res) => {
+  try {
+    const pendingStatuses = [
+      "Open CPE Collect",
+      "Direct LOD",
+      "Reject Pending",
+      "Open No Agent",
+    ];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: pendingStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_Incidents_CPE_Collect = async (req, res) => {
+  try {
+    const cpeCollectStatuses = ["Open CPE Collect"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: cpeCollectStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "CPE Collecrt incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_incidents_Direct_LOD = async (req, res) => {
+  try {
+    const directLODStatuses = ["Direct LOD"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: directLODStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_F1_filted_Incidents = async (req, res) => {
+  try {
+    const rejectpendingStatuses = ["Reject Pending"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: rejectpendingStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const List_distribution_ready_incidents = async (req, res) => {
+  try {
+    const openNoAgentStatuses = ["Open No Agent"];
+
+    const incidents = await Incident.find({
+      Incident_Status: { $in: openNoAgentStatuses },
+    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+
+    return res.status(200).json({
+      status: "success",
+      message: "Pending incidents retrieved successfully.",
+      data: incidents,
+    });
+  } catch (error) {
+    console.error("Error fetching pending incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+

@@ -12,7 +12,7 @@ import { Router } from "express";
 import {
 
     getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
-   ,manageDRC 
+   ,Change_DRC_Details_with_Services
 
 } from "../controllers/DRC_Service_controller.js";
 
@@ -22,17 +22,17 @@ const router = Router();
  * @swagger
  * tags:
  *   - name: Debt Recovery Company-Services
- *     description: Endpoints to manage DRCs and their associated services.
+ *     description: Services-related endpoints, allowing management and updates of services for a DRC.
  *
- * /api/DRC_service/manageDRC:
+ * /api/DRC_service/Change_DRC_Details_with_Services:
  *   post:
- *     summary: Update DRC details and manage associated services
+ *     summary: DRC-1P02 Update DRC Details
  *     description: |
- *       Manage a Debt Recovery Company (DRC) by updating its details, adding new services, or updating the status of existing services.
+ *       Update details of an existing DRC, including services and remarks.
  *       
- *       | Version | Date       | Description       |
- *       |---------|------------|-------------------|
- *       | 01      | 2025-Jan-03| Initial creation  |
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2024-Dec-07| Initial creation |
  *       
  *     tags:
  *       - Debt Recovery Company-Services
@@ -41,23 +41,30 @@ const router = Router();
  *         name: drc_id
  *         required: true
  *         schema:
- *           type: integer
- *           example: 1
- *         description: The unique ID of the Debt Recovery Company to update.
+ *           type: string
+ *           example: "DRC12345"
+ *         description: Unique identifier of the Debt Recovery Company.
  *       - in: query
  *         name: drc_status
  *         required: false
  *         schema:
  *           type: string
  *           example: "Active"
- *         description: The new status for the DRC (Active, Inactive, Pending).
+ *         description: Updated status of the DRC.
  *       - in: query
  *         name: teli_no
  *         required: false
  *         schema:
  *           type: string
- *           example: "+1-800-555-1234"
- *         description: The updated telephone number for the DRC.
+ *           example: "0123456789"
+ *         description: Updated telephone number of the DRC.
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Updated status to Active"
+ *         description: Remarks related to the update.
  *     requestBody:
  *       required: true
  *       content:
@@ -66,40 +73,41 @@ const router = Router();
  *             type: object
  *             properties:
  *               drc_id:
- *                 type: integer
- *                 description: The unique ID of the Debt Recovery Company.
- *                 example: 1
+ *                 type: string
+ *                 description: Unique identifier of the Debt Recovery Company.
+ *                 example: "DRC12345"
  *               drc_status:
  *                 type: string
- *                 description: New status of the DRC (Active, Inactive, Pending).
+ *                 description: Updated status of the DRC.
  *                 example: "Active"
  *               teli_no:
  *                 type: string
- *                 description: Updated telephone number for the DRC.
- *                 example: "+1-800-555-1234"
+ *                 description: Updated telephone number of the DRC.
+ *                 example: "0123456789"
+ *               remark:
+ *                 type: string
+ *                 description: Remark about the changes.
+ *                 example: "Status updated to Active"
  *               services_to_add:
  *                 type: array
- *                 description: Array of new services to add to the DRC.
+ *                 description: Array of new services to add.
  *                 items:
  *                   type: object
  *                   properties:
  *                     service_id:
- *                       type: integer
- *                       description: The unique ID of the service to add.
- *                       example: 56
+ *                       type: string
+ *                       example: "Service001"
  *               services_to_update:
  *                 type: array
- *                 description: Array of existing services to update their statuses.
+ *                 description: Array of services to update.
  *                 items:
  *                   type: object
  *                   properties:
  *                     service_id:
- *                       type: integer
- *                       description: The unique ID of the service to update.
- *                       example: 24
+ *                       type: string
+ *                       example: "Service001"
  *                     drc_service_status:
  *                       type: string
- *                       description: The new status of the service (Active, Inactive).
  *                       example: "Inactive"
  *     responses:
  *       200:
@@ -119,34 +127,28 @@ const router = Router();
  *                   type: object
  *                   properties:
  *                     drc_id:
- *                       type: integer
- *                       example: 1
+ *                       type: string
+ *                       example: "DRC12345"
  *                     drc_status:
  *                       type: string
- *                       example: Active
+ *                       example: "Active"
  *                     teli_no:
  *                       type: string
- *                       example: "+1-800-555-1234"
+ *                       example: "0123456789"
  *                     services_of_drc:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
  *                           service_id:
- *                             type: integer
- *                             example: 56
+ *                             type: string
+ *                             example: "Service001"
  *                           service_type:
  *                             type: string
- *                             example: Consulting
+ *                             example: "Debt Collection"
  *                           drc_service_status:
  *                             type: string
- *                             example: Active
- *                           status_change_dtm:
- *                             type: string
- *                             example: "2025-01-03T10:00:00.000Z"
- *                           status_changed_by:
- *                             type: string
- *                             example: Admin
+ *                             example: "Active"
  *       400:
  *         description: Missing or invalid input data.
  *         content:
@@ -159,12 +161,7 @@ const router = Router();
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: DRC ID is required.
- *                 errors:
- *                   type: object
- *                   additionalProperties:
- *                     type: string
- *                     example: "Validation error for service_id"
+ *                   example: Invalid input data provided.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -178,16 +175,14 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: Failed to update DRC.
- *                 errors:
- *                   type: object
- *                   additionalProperties:
- *                     type: string
- *                     example: "Unexpected database error"
  */
-router.post("/manageDRC", manageDRC);
+router.post("/Change_DRC_Details_with_Services", Change_DRC_Details_with_Services);
+
+router.post("/Change_DRC_Details_with_Services", Change_DRC_Details_with_Services);
 
 router.get("/drc-details-by-date", getDRCDetailsByDate);
 router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
+
 /**
  * @swagger
  * tags:
@@ -229,6 +224,13 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *           example: "0123456789"
  *         description: Telephone number of the DRC.
  *       - in: query
+ *         name: DRC_Email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "sampledrc@gmail.com"
+ *         description: Email of the Debt Recovery Company.
+ *       - in: query
  *         name: Services
  *         required: false
  *         schema:
@@ -256,6 +258,10 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *                 type: string
  *                 description: Contact number of the Debt Recovery Company.
  *                 example: "0123456789"
+ *               DRC_Email:
+ *                 type: string
+ *                 description: Email of the Debt Recovery Company.
+ *                 example: "sampledrc@gmail.com"
  *               Services:
  *                 type: array
  *                 description: Array of service IDs to associate with the DRC.
@@ -288,6 +294,9 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *                     contact_no:
  *                       type: string
  *                       example: "0123456789"
+ *                     DRC_Email:
+ *                       type: string
+ *                       example: "sampledrc@gmail.com"
  *                     drc_business_registration_number:
  *                       type: string
  *                       example: BR12345678
