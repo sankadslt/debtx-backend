@@ -11,28 +11,26 @@
 */
 
 import { Router } from "express";
-import {
-  drcExtendValidityPeriod,
-  listHandlingCasesByDRC,
-  Case_Abandant,
-  Approve_Case_abandant,
-  Open_No_Agent_Cases_F1_Filter,
-  Case_Current_Status,
-  Open_No_Agent_Cases_ALL,
-  Open_No_Agent_Cases_Direct_LD,
-  assignROToCase,
-  // listAllActiveRosByDRCID,
-  Case_Status,
-  Case_List,
-  openNoAgentCasesAllByServiceTypeRulebase,
-  openNoAgentCountArrearsBandByServiceType,
-  listCases,
-  Acivite_Case_Details,
-  get_count_by_drc_commision_rule,
-  getAllArrearsBands,
-  count_cases_rulebase_and_arrears_band,
-  Case_Distribution_Among_Agents,
-} from "../controllers/Case_controller.js";
+import { drcExtendValidityPeriod,
+        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
+        Open_No_Agent_Cases_ALL,
+        Open_No_Agent_Cases_Direct_LD,
+        assignROToCase,
+        // listAllActiveRosByDRCID,
+        Case_Status,
+        Case_List,
+        openNoAgentCasesAllByServiceTypeRulebase,
+        openNoAgentCountArrearsBandByServiceType,
+        listCases,
+        Acivite_Case_Details,
+        get_count_by_drc_commision_rule,
+        getAllArrearsBands,
+        count_cases_rulebase_and_arrears_band,
+        Case_Distribution_Among_Agents,
+        List_Case_Distribution_DRC_Summary,
+        
+ } from "../controllers/Case_controller.js";
+
 
 const router = Router();
 
@@ -2183,5 +2181,7 @@ router.post(
  */
 
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
+router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
+
 
 export default router;

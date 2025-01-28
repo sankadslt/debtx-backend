@@ -2108,5 +2108,10 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
   }
 };
 
+export const List_Case_Distribution_DRC_Summary = async (req, res) => {
+  console.log("Hello");
+
+};
+
 
 
