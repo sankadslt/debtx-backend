@@ -729,11 +729,7 @@ export const List_Incidents = async (req, res) => {
 export const total_F1_filtered_Incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
-      Incident_Status:"Reject Pending",
-      $and: [
-        { Filtered_Reason: { $ne: null } },
-        { Filtered_Reason: { $ne: "" } }
-      ]
+      Incident_Status:"Reject Pending"
     })).length
   
     return res.status(200).json({
@@ -756,7 +752,7 @@ export const total_F1_filtered_Incidents = async (req, res) => {
 export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
-      Incident_Status:"Distribution Ready"
+      Incident_Status:"Open No Agent"
     })).length
   
     return res.status(200).json({
@@ -951,4 +947,63 @@ export const List_distribution_ready_incidents = async (req, res) => {
     });
   }
 };
+
+export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Reject Pending"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved F1 filtered incident counts by arrears bands.`,
+      data: {F1_Filtered_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve F1 filtered incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
+export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
+  try {
+    const details = (await Incident.find({
+      Incident_Status:"Open No Agent"
+    }))
+
+    const arrearsBandCounts = details.reduce((counts, detail) => {
+      const band = detail.Arrears_Band;
+      counts[band] = (counts[band] || 0) + 1; 
+      return counts;
+    }, {});
+  
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved distribution ready incident counts by arrears bands.`,
+      data: {Distribution_ready_incidents_by_AB: arrearsBandCounts}
+    })
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve distribution ready incident counts by arrears bands",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
+
 

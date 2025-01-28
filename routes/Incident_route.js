@@ -15,6 +15,9 @@ List_Incidents_CPE_Collect,
 List_F1_filted_Incidents,
 List_incidents_Direct_LOD,
 List_distribution_ready_incidents,
+F1_filtered_Incidents_group_by_arrears_band,
+distribution_ready_incidents_group_by_arrears_band,
+
 
 } from "../controllers/Incident_controller.js";
 
@@ -1181,6 +1184,141 @@ router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
  */
 router.post("/List_distribution_ready_incidents",List_distribution_ready_incidents);
 
+/**
+ * @swagger
+ * /api/incident/F1_filtered_Incidents_group_by_arrears_band:
+ *   post:
+ *     summary: INC-1P57 Retrieve F1 filtered incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Reject Pending", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved F1 filtered incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved F1 filtered incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     F1_Filtered_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 12
+ *                         AB-10_20: 7
+ *                         AB-20_30: 4
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching F1 filtered incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve F1 filtered incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents_group_by_arrears_band);
+
+/**
+ * @swagger
+ * /api/incident/distribution_ready_incidents_group_by_arrears_band:
+ *   post:
+ *     summary: INC-1P58 Retrieve distribution-ready incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Open No Agent", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved distribution-ready incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved distribution-ready incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Distribution_ready_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 15
+ *                         AB-10_20: 8
+ *                         AB-20_30: 6
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching distribution-ready incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve distribution-ready incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
 
 
 export default router;
