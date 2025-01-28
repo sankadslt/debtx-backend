@@ -1510,11 +1510,12 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       drc_commision_rule,
       current_arrears_band,
       distributed_Amounts: validatedDRCList,
-    };
+    }; 
 
     // Call createTaskFunction
     const result = await createTaskFunction({
       Template_Task_Id: 3,
+      task_type: "Case Distribution Planning among DRC",
       Created_By: req.user?.username || "system",
       ...dynamicParams,
     });
