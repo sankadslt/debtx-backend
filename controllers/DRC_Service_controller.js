@@ -747,7 +747,7 @@ export const Remove_Service_From_DRC = async (req, res) => {
 //   }
 // };
 
-export const manageDRC = async (req, res) => {
+export const Change_DRC_Details_with_Services = async (req, res) => {
   const { drc_id, drc_status, services_to_add, services_to_update, teli_no, remark } = req.body;
 
   const changedBy = req.user ? req.user.username : "Admin";
@@ -780,33 +780,7 @@ export const manageDRC = async (req, res) => {
       drc.teli_no = teli_no;
     }
 
-    // // Add New Services
-    // if (Array.isArray(services_to_add) && services_to_add.length > 0) {
-    //   const newServices = await Promise.all(
-    //     services_to_add.map(async (service) => {
-    //       const { service_id } = service;
 
-    //       if (!service_id) {
-    //         throw new Error("Each service to add must include a valid service_id.");
-    //       }
-
-    //       const serviceDetails = await Service.findOne({ service_id });
-    //       if (!serviceDetails) {
-    //         throw new Error(`Service with ID ${service_id} not found in the Service collection.`);
-    //       }
-
-    //       return {
-    //         service_id: serviceDetails.service_id,
-    //         service_type: serviceDetails.service_type,
-    //         drc_service_status: "Active",
-    //         status_change_dtm: new Date(),
-    //         status_changed_by: changedBy,
-    //       };
-    //     })
-    //   );
-
-    //   drc.services_of_drc.push(...newServices);
-    // }
 // Add New Services
     if (Array.isArray(services_to_add) && services_to_add.length > 0) {
       const newServices = await Promise.all(
