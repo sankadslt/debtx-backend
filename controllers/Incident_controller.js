@@ -705,10 +705,6 @@ export const List_Incidents = async (req, res) => {
     };
 
 
-      
-      const incidents = await Incident_log.find(filter);
-
-
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved and task created successfully.",
