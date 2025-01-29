@@ -66,6 +66,7 @@ const incidentSchema = new Schema(
     {
         Incident_Id: { type: Number, required: true },
         Account_Num: { type: String, required: true },
+        Arrears_Band: {type: String, required: true},
         Arrears: { type: Number, required: true },
         Created_By: { type: String, required: true },
         Created_Dtm: { type: Date, required: true },
@@ -92,6 +93,9 @@ const incidentSchema = new Schema(
         Customer_Details: { type: customerDetailsSchema, required: true },
         Account_Details: { type: accountDetailsSchema, required: true },
         Last_Actions: { type: lastActionsSchema, required: true },
+        current_arrears_band: { type: String, required:true },
+        drc_commision_rule:{ type: String, required:true },
+
     },
     {
         collection: 'Incident', 
