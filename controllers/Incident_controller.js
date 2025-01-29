@@ -627,22 +627,22 @@ export const List_Incidents = async (req, res) => {
 
    
       if (From_Date && To_Date) {
-         
-          const fromDate = new Date(From_Date);
-          const toDate = new Date(To_Date);
-
-          if (!isNaN(fromDate) && !isNaN(toDate)) {
-              filter.Created_Dtm = {
-                  $gte: fromDate,
-                  $lte: toDate,
-              };
-          } else {
-              return res.status(400).json({
-                  status: "error",
-                  message: "Invalid date format.",
-              });
-          }
-      }
+        const fromDate = new Date(From_Date);
+        const toDate = new Date(To_Date);
+        
+        if (!isNaN(fromDate) && !isNaN(toDate)) {
+            filter.Created_Dtm = {
+                $gte: fromDate.setHours(0, 0, 0, 0),  // Start of the day
+                $lte: toDate.setHours(23, 59, 59, 999) // End of the day
+            };
+        } else {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid date format."
+            });
+        }
+    }
+    
 
       
       const incidents = await Incident_log.find(filter);
@@ -663,4 +663,6 @@ export const List_Incidents = async (req, res) => {
       });
   }
 };
+
+
 
