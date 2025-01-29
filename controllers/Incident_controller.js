@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
 import { createTaskFunction } from "../services/TaskService.js";
-import System_Case_User_Interaction from '../models/User_Interaction.js'; 
+import System_Case_User_Interaction from "../models/User_Interaction.js";
 import Incident from "../models/Incident.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -177,7 +177,9 @@ const validateCreateTaskParameters = (params) => {
   const { Incident_Id, Account_Num } = params;
 
   if (!Incident_Id || !Account_Num) {
-    throw new Error("Incident_Id and Account_Num are required parameters for Create_Task.");
+    throw new Error(
+      "Incident_Id and Account_Num are required parameters for Create_Task."
+    );
   }
 
   if (typeof Account_Num !== "string") {
@@ -189,7 +191,8 @@ const validateCreateTaskParameters = (params) => {
 
 // Create_Incident Controller
 export const Create_Incident = async (req, res) => {
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } = req.body;
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } =
+    req.body;
 
   try {
     // Validate required fields
@@ -255,11 +258,13 @@ export const Create_Incident = async (req, res) => {
     }
 
     const mongoConnection = await mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "incident_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "incident_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const Incident_Id = counterResult.seq;
 
@@ -277,7 +282,10 @@ export const Create_Incident = async (req, res) => {
     await newIncident.save();
 
     try {
-      await Request_Incident_External_information({ Account_Num, Monitor_Months: monitorMonths });
+      await Request_Incident_External_information({
+        Account_Num,
+        Monitor_Months: monitorMonths,
+      });
     } catch (apiError) {
       console.error("Error calling external API:", apiError.message);
       await Incident_log.findByIdAndDelete(newIncident._id); // Rollback saved incident
@@ -335,12 +343,6 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
 
 // export const Reject_Case = async (req, res) => {
 //   const { Incident_Id, Rejected_Reason, Rejected_By} = req.body;
@@ -725,22 +727,23 @@ export const List_Incidents = async (req, res) => {
   }
 };
 
-
 export const total_F1_filtered_Incidents = async (req, res) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Reject Pending",
-      $and: [
-        { Filtered_Reason: { $ne: null } },
-        { Filtered_Reason: { $ne: "" } }
-      ]
-    })).length
-  
+    const details = (
+      await Incident.find({
+        Incident_Status: "Reject Pending",
+        $and: [
+          { Filtered_Reason: { $ne: null } },
+          { Filtered_Reason: { $ne: "" } },
+        ],
+      })
+    ).length;
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved the total of F1 filtered incidents.`,
-      data: {F1_filtered_incident_total: details}
-    })
+      data: { F1_filtered_incident_total: details },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -751,19 +754,21 @@ export const total_F1_filtered_Incidents = async (req, res) => {
       },
     });
   }
-}
+};
 
 export const total_distribution_ready_incidents = async (req, res) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Distribution Ready"
-    })).length
-  
+    const details = (
+      await Incident.find({
+        Incident_Status: "Distribution Ready",
+      })
+    ).length;
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved the total of F1 filtered incidents.`,
-      data: {Distribution_ready_total: details}
-    })
+      data: { Distribution_ready_total: details },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -774,56 +779,55 @@ export const total_distribution_ready_incidents = async (req, res) => {
       },
     });
   }
-}
+};
 
 export const incidents_CPE_Collect_group_by_arrears_band = async (req, res) => {
-  
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Open CPE Collect"
-    }))
+    const details = await Incident.find({
+      Incident_Status: "Open CPE Collect",
+    });
 
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
-      counts[band] = (counts[band] || 0) + 1; 
+      counts[band] = (counts[band] || 0) + 1;
       return counts;
     }, {});
-  
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved CPE collect incident counts by arrears bands.`,
-      data: {CPE_collect_incidents_by_AB: arrearsBandCounts}
-    })
+      data: { CPE_collect_incidents_by_AB: arrearsBandCounts },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve CPE collect incident counts by arrears bands",
+      message:
+        "Failed to retrieve CPE collect incident counts by arrears bands",
       errors: {
         code: 500,
         description: error.message,
       },
     });
   }
-}
+};
 
 export const incidents_Direct_LOD_group_by_arrears_band = async (req, res) => {
-
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Direct LOD"
-    }))
+    const details = await Incident.find({
+      Incident_Status: "Direct LOD",
+    });
 
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
-      counts[band] = (counts[band] || 0) + 1; 
+      counts[band] = (counts[band] || 0) + 1;
       return counts;
     }, {});
-  
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved Direct LOD incident counts by arrears bands.`,
-      data: {Direct_LOD_incidents_by_AB: arrearsBandCounts}
-    })
+      data: { Direct_LOD_incidents_by_AB: arrearsBandCounts },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -834,8 +838,7 @@ export const incidents_Direct_LOD_group_by_arrears_band = async (req, res) => {
       },
     });
   }
-}
-
+};
 
 export const List_All_Incident_Case_Pending = async (req, res) => {
   try {
@@ -952,3 +955,52 @@ export const List_distribution_ready_incidents = async (req, res) => {
   }
 };
 
+export const total_incidents_CPE_Collect = async (req, res) => {
+  try {
+    const details = (
+      await Incident.find({
+        Incident_Status: "Open CPE Collect",
+      })
+    ).length;
+
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of CPE collect incidents.`,
+      data: { Distribution_ready_total: details },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the CPE collect incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+export const total_incidents_Direct_LOD = async (req, res) => {
+  try {
+    const details = (
+      await Incident.find({
+        Incident_Status: "Direct LOD",
+      })
+    ).length;
+
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully retrieved the total of Direct LOD incidents.`,
+      data: { Distribution_ready_total: details },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve the Direct LOD incident count.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
