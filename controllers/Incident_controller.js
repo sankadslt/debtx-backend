@@ -630,6 +630,7 @@ export const Upload_DRS_File = async (req, res) => {
   }
 };
 
+
 export const List_Incidents = async (req, res) => {
   try {
     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
@@ -703,8 +704,10 @@ export const List_Incidents = async (req, res) => {
       status_description: "",
     };
 
-    const newTask = new Task(taskData);
-    await newTask.save();
+
+      
+      const incidents = await Incident_log.find(filter);
+
 
     return res.status(200).json({
       status: "success",
@@ -1052,5 +1055,9 @@ export const total_incidents_Direct_LOD = async (req, res) => {
         description: error.message,
       },
     });
+
   }
 };
+
+
+
