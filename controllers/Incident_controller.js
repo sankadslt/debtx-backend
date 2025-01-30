@@ -724,39 +724,80 @@ export const Upload_DRS_File = async (req, res) => {
 //   }
 // };
 
+
+
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, From_Date, To_Date } = req.body;
+    const { Actions, Incident_Status, From_Date, To_Date, Source_Type } = req.body;
+    console.log("Request body:", req.body);
 
     let query = {};
 
+    // Validate and process date range
     if (From_Date && To_Date) {
+      // Parse dates and set time to start and end of days
       const startDate = new Date(From_Date);
+      startDate.setHours(0, 0, 0, 0);
+
       const endDate = new Date(To_Date);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Debug logging
+      console.log("Parsed dates:", {
+        original: { From_Date, To_Date },
+        parsed: { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
+      });
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format provided.",
+          debug: { From_Date, To_Date }
+        });
+      }
+
       query.Created_Dtm = {
         $gte: startDate,
-        $lte: endDate,
+        $lte: endDate
       };
-    } else if (From_Date || To_Date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Both From_Date and To_Date must be provided together.",
-      });
     }
 
-    if (Actions) {
-      query.Actions = Actions;
-    }
-    if (Incident_Status) {
-      query.Incident_Status = Incident_Status;
-    }
+    // Add other filters
+    if (Actions) query.Actions = Actions;
+    if (Incident_Status) query.Incident_Status = Incident_Status;
+    if (Source_Type) query.Source_Type = Source_Type;
 
+    // Debug: Log the final query
+    console.log("Final query:", JSON.stringify(query, null, 2));
+
+    // First, let's check what's in the database without date filter
+    const allIncidents = await Incident_log.find({}).sort({ Created_Dtm: 1 });
+    console.log("Database date range:", {
+      earliest: allIncidents.length > 0 ? allIncidents[0].Created_Dtm : null,
+      latest: allIncidents.length > 0 ? allIncidents[allIncidents.length - 1].Created_Dtm : null,
+      totalRecords: allIncidents.length
+    });
+
+    // Now execute the actual query
     const incidents = await Incident_log.find(query);
 
-    if (incidents.length === 0) {
+    if (!incidents.length) {
+      // Try query without date filter to see if other filters are the issue
+      const queryWithoutDates = { ...query };
+      delete queryWithoutDates.Created_Dtm;
+      const incidentsWithoutDates = await Incident_log.find(queryWithoutDates);
+
       return res.status(404).json({
         status: "error",
         message: "No incidents found matching the criteria.",
+        debug: {
+          appliedQuery: query,
+          totalWithoutDateFilter: incidentsWithoutDates.length,
+          dateRange: query.Created_Dtm ? {
+            from: query.Created_Dtm.$gte,
+            to: query.Created_Dtm.$lte
+          } : null
+        }
       });
     }
 
@@ -765,14 +806,16 @@ export const List_Incidents = async (req, res) => {
       message: "Incidents retrieved successfully.",
       incidents,
     });
+
   } catch (error) {
-    console.error("Error in List_Incidents:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+    });
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
-      errors: {
-        exception: error.message,
-      },
+      error: error.message
     });
   }
 };
