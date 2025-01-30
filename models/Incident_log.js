@@ -16,11 +16,14 @@ const incidentLogSchema = new Schema({
         type: String,
         required: true,
         enum: ["Pilot Suspended", "Product Terminate", "Special"], // Enum validation
-      },    
+    },
     Rejected_Reason: { type: String, required: null },
-        Rejected_By: { type: String, required: null },
-        Rejected_Dtm: { type: Date, required: null },
-},{
+    Rejected_By: { type: String, required: null },
+    Rejected_Dtm: { type: Date, required: null },
+
+    // Add Contact_Number only when DRC_Action is "collect CPE"
+    Contact_Number: { type: String, required: function () { return this.Actions === "collect CPE"; } }
+}, {
     collection: 'Incident_log', // Specify the collection name
 });
 

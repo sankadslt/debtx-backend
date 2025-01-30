@@ -190,14 +190,21 @@ const validateCreateTaskParameters = (params) => {
 };
 
 export const Create_Incident = async (req, res) => {
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } =
-    req.body;
+
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
 
   // Validate required fields
   if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
     return res.status(400).json({
       status: "error",
       message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+    });
+  }
+
+  if (DRC_Action === "collect CPE" && !Contact_Number) {
+    return res.status(400).json({
+      status: "error",
+      message: "Contact_Number is required when DRC_Action is 'collect CPE'.",
     });
   }
 
@@ -253,7 +260,7 @@ export const Create_Incident = async (req, res) => {
 
     const Incident_Id = counterResult.seq;
 
-    const newIncident = new Incident_log({
+    const newIncidentData = {
       Incident_Id,
       Account_Num,
       Incident_Status: "Incident Open",
@@ -262,8 +269,13 @@ export const Create_Incident = async (req, res) => {
       Created_By,
       Source_Type,
       Created_Dtm: moment().toDate(),
-    });
+    };
 
+    if (DRC_Action === "collect CPE") {
+      newIncidentData.Contact_Number = Contact_Number;
+    }
+
+    const newIncident = new Incident_log(newIncidentData);
     await newIncident.save({ session });
 
     try {
@@ -318,6 +330,7 @@ export const Create_Incident = async (req, res) => {
         Created_By,
         Source_Type,
         Created_Dtm: newIncident.Created_Dtm,
+        ...(DRC_Action === "collect CPE" && { Contact_Number }),
       },
     });
   } catch (error) {
@@ -333,6 +346,7 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -493,11 +507,20 @@ export const Reject_Case = async (req, res) => {
   }
 };
 
+
+// Validation function for Create_Task parameters
+const validateCreateTaskParametersForUploadDRSFile = (params) => {
+  const { file_upload_seq, File_Name, File_Type, } = params;
+
+  if (!file_upload_seq || !File_Name || !File_Type) {
+    throw new Error("file_upload_seq, File_Name, File_Type, are required parameters for Create_Task.");
+  }
+  return true;
+};
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
 
   try {
-    // Validate required fields
     if (!File_Name || !File_Type || !File_Content || !Created_By) {
       return res.status(400).json({
         status: "error",
@@ -505,14 +528,9 @@ export const Upload_DRS_File = async (req, res) => {
       });
     }
 
-    // Validate File_Type against allowed values
     const validFileTypes = [
-      "Incident Creation",
-      "Incident Reject",
-      "Distribute to DRC",
-      "Validity Period Extend",
-      "Hold",
-      "Discard",
+      "Incident Creation", "Incident Reject", "Distribute to DRC", 
+      "Validity Period Extend", "Hold", "Discard"
     ];
 
     if (!validFileTypes.includes(File_Type)) {
@@ -524,7 +542,6 @@ export const Upload_DRS_File = async (req, res) => {
       });
     }
 
-    // Generate a unique File_Id
     const mongoConnection = await db.connectMongoDB();
     const counterResult = await mongoConnection
       .collection("counters")
@@ -536,17 +553,14 @@ export const Upload_DRS_File = async (req, res) => {
 
     const file_upload_seq = counterResult.seq;
 
-    // Ensure the uploads directory exists
     const uploadDir = path.join(__dirname, "../uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Upload file to the server
     const uploadPath = path.join(uploadDir, File_Name);
     fs.writeFileSync(uploadPath, File_Content, "utf8");
 
-    // Define Forwarded_File_Path
     const forwardedFileDir = path.join(__dirname, "../forwarded");
     if (!fs.existsSync(forwardedFileDir)) {
       fs.mkdirSync(forwardedFileDir, { recursive: true });
@@ -554,7 +568,6 @@ export const Upload_DRS_File = async (req, res) => {
 
     const forwardedFilePath = path.join(forwardedFileDir, File_Name);
 
-    // Insert into file_upload_log table
     const newFileLog = new FileUploadLog({
       file_upload_seq,
       File_Name,
@@ -562,53 +575,28 @@ export const Upload_DRS_File = async (req, res) => {
       Uploaded_By: Created_By,
       Uploaded_Dtm: moment().toDate(),
       File_Path: uploadPath,
-      Forwarded_File_Path: forwardedFilePath, // Set the forwarded file path
-      File_Status: "Open", // Default to "Open"
+      Forwarded_File_Path: forwardedFilePath,
+      File_Status: "Open",
     });
 
     await newFileLog.save();
-
-    // Create Task: "Extract Incident from File" (Template_Task_Id: 1)
-    const taskCounter = await mongoConnection
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "task_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-
-    const Task_Id = taskCounter.seq;
-
     const taskData = {
-      Task_Id,
       Template_Task_Id: 1,
-      parameters: {
-        file_upload_seq: file_upload_seq.toString(),
-        File_Name,
-        File_Type,
-      },
+      task_type: "Data upload from file",
+      file_upload_seq,
+      File_Name,
+      File_Type,
       Created_By,
-      Execute_By: null,
-      Sys_Alert_ID: null,
-      Interaction_ID_Success: null,
-      Interaction_ID_Error: null,
-      Task_Id_Error: null,
-      created_dtm: new Date(),
-      end_dtm: null,
       task_status: "open",
-      status_changed_dtm: null,
-      status_description: "",
     };
-
-    // Insert task into the System_tasks table
-    await Task.create(taskData);
+    validateCreateTaskParametersForUploadDRSFile(taskData);
+    await createTaskFunction(taskData);
 
     return res.status(201).json({
       status: "success",
       message: "File uploaded successfully, and task created.",
       data: {
         file_upload_seq,
-        Task_Id,
         File_Name,
         File_Type,
         File_Path: uploadPath,
@@ -623,9 +611,7 @@ export const Upload_DRS_File = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to upload file and create task.",
-      errors: {
-        exception: error.message,
-      },
+      errors: { exception: error.message },
     });
   }
 };
