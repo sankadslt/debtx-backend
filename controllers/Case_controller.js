@@ -1658,10 +1658,6 @@ export const listHandlingCasesByDRC = async (req, res) => {
   }
 };
 
-
-
-
-
 // export const listAllActiveRosByDRCID = async (req, res) => {
 //   try {
 //     const { drc_id, rtom_area } = req.body;
@@ -1744,6 +1740,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
       
 
 // Assign Recovery Officer to Cases
+
 export const assignROToCase = async (req, res) => {
   try {
     const { case_ids, ro_id } = req.body;
