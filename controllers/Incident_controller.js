@@ -733,16 +733,16 @@ export const List_Incidents = async (req, res) => {
 
     let query = {};
 
-    // Validate and process date range
+   
     if (From_Date && To_Date) {
-      // Parse dates and set time to start and end of days
+     
       const startDate = new Date(From_Date);
       startDate.setHours(0, 0, 0, 0);
 
       const endDate = new Date(To_Date);
       endDate.setHours(23, 59, 59, 999);
 
-      // Debug logging
+      
       console.log("Parsed dates:", {
         original: { From_Date, To_Date },
         parsed: { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
@@ -762,15 +762,15 @@ export const List_Incidents = async (req, res) => {
       };
     }
 
-    // Add other filters
+    
     if (Actions) query.Actions = Actions;
     if (Incident_Status) query.Incident_Status = Incident_Status;
     if (Source_Type) query.Source_Type = Source_Type;
 
-    // Debug: Log the final query
+    
     console.log("Final query:", JSON.stringify(query, null, 2));
 
-    // First, let's check what's in the database without date filter
+    
     const allIncidents = await Incident_log.find({}).sort({ Created_Dtm: 1 });
     console.log("Database date range:", {
       earliest: allIncidents.length > 0 ? allIncidents[0].Created_Dtm : null,
@@ -778,11 +778,11 @@ export const List_Incidents = async (req, res) => {
       totalRecords: allIncidents.length
     });
 
-    // Now execute the actual query
+    
     const incidents = await Incident_log.find(query);
 
     if (!incidents.length) {
-      // Try query without date filter to see if other filters are the issue
+      
       const queryWithoutDates = { ...query };
       delete queryWithoutDates.Created_Dtm;
       const incidentsWithoutDates = await Incident_log.find(queryWithoutDates);
@@ -846,16 +846,16 @@ const validateTaskParameters = (parameters) => {
 };
 
 export const Create_Task_For_Incident_Details = async (req, res) => {
-  const session = await mongoose.startSession(); // Start session 
-  session.startTransaction(); // Start transaction
+  const session = await mongoose.startSession(); 
+  session.startTransaction(); 
 
   try {
     const { Incident_Status, From_Date, To_Date, Actions, Created_By } = req.body;
 
-    // Validate paras
+    
     if (!Created_By) {
-      await session.abortTransaction(); // Rollback 
-      session.endSession(); // End 
+      await session.abortTransaction(); 
+      session.endSession(); 
       return res.status(400).json({
         status: "error",
         message: "Created_By is a required parameter.",
@@ -870,7 +870,7 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
       Actions,
     };
 
-    // Validate paras
+   
     validateTaskParameters(parameters);
 
    
@@ -882,11 +882,11 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
       task_status: "open",
     };
 
-    //  create task
+    
     await createTaskFunction(taskData, session);
 
-    await session.commitTransaction(); // Commit transaction
-    session.endSession(); // End 
+    await session.commitTransaction(); 
+    session.endSession(); 
 
     return res.status(201).json({
       status: "success",
@@ -895,8 +895,8 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in Create_Task_For_Incident_Details:", error);
-    await session.abortTransaction(); // Rollback error
-    session.endSession(); // End 
+    await session.abortTransaction(); 
+    session.endSession();  
     return res.status(500).json({
       status: "error",
       message: error.message || "Internal server error.",
