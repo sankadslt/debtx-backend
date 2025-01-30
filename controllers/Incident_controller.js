@@ -630,6 +630,100 @@ export const Upload_DRS_File = async (req, res) => {
   }
 };
 
+// export const List_Incidents = async (req, res) => {
+//   try {
+//     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
+
+//     let query = {};
+
+//     if (From_Date && To_Date) {
+//       const startDate = new Date(From_Date);
+//       const endDate = new Date(To_Date);
+//       query.Created_Dtm = {
+//         $gte: startDate,
+//         $lte: endDate,
+//       };
+//     } else if (From_Date || To_Date) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Both From_Date and To_Date must be provided together.",
+//       });
+//     }
+
+//     if (Actions) {
+//       query.Actions = Actions;
+//     }
+//     if (Incident_Status) {
+//       query.Incident_Status = Incident_Status;
+//     }
+
+//     const incidents = await Incident_log.find(query);
+
+//     if (incidents.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No incidents found matching the criteria.",
+//       });
+//     }
+
+//     const mongo = await db.connectMongoDB();
+
+//     const TaskCounter = await mongo
+//       .collection("counters")
+//       .findOneAndUpdate(
+//         { _id: "task_id" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true }
+//       );
+
+//     if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
+//       return res.status(500).json({
+//         status: "error",
+//         message: "Failed to generate Task_Id from counters collection.",
+//       });
+//     }
+
+//     const Task_Id = TaskCounter.seq;
+
+//     const taskData = {
+//       Task_Id,
+//       Template_Task_Id: 12,
+//         parameters: {
+//           Incident_Status,
+//           StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
+//           EndDTM: To_Date ? new Date(To_Date).toISOString() : null,
+//           Actions,
+//       },
+//       Created_By: req.user?.username || "system",
+//       Execute_By: "SYS",
+//       task_status: "pending",
+//       created_dtm: new Date(),
+//       end_dtm: null,
+//       status_changed_dtm: null,
+//       status_description: "",
+//     };
+
+//     const newTask = new Task(taskData);
+//     await newTask.save();
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Incidents retrieved and task created successfully.",
+//       incidents,
+//       task: newTask,
+//     });
+//   } catch (error) {
+//     console.error("Error in List_Incidents:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const List_Incidents = async (req, res) => {
   try {
     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
@@ -666,57 +760,103 @@ export const List_Incidents = async (req, res) => {
       });
     }
 
-    const mongo = await db.connectMongoDB();
-
-    const TaskCounter = await mongo
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "task_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-
-    if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to generate Task_Id from counters collection.",
-      });
-    }
-
-    const Task_Id = TaskCounter.seq;
-
-    const taskData = {
-      Task_Id,
-      Template_Task_Id: 12,
-      parameters: {
-        Incident_Status,
-        StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
-        EndDTM: To_Date ? new Date(To_Date).toISOString() : null,
-        Actions,
-      },
-      Created_By: req.user?.username || "system",
-      Execute_By: "SYS",
-      task_status: "pending",
-      created_dtm: new Date(),
-      end_dtm: null,
-      status_changed_dtm: null,
-      status_description: "",
-    };
-
-    const newTask = new Task(taskData);
-    await newTask.save();
-
     return res.status(200).json({
       status: "success",
-      message: "Incidents retrieved and task created successfully.",
+      message: "Incidents retrieved successfully.",
       incidents,
-      task: newTask,
     });
   } catch (error) {
     console.error("Error in List_Incidents:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
+const validateTaskParameters = (parameters) => {
+  const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
+
+
+  if (!Incident_Status || typeof Incident_Status !== "string") {
+    throw new Error("Incident_Status is required and must be a string.");
+  }
+
+  
+  if (StartDTM && isNaN(new Date(StartDTM).getTime())) {
+    throw new Error("StartDTM must be a valid date string.");
+  }
+
+  if (EndDTM && isNaN(new Date(EndDTM).getTime())) {
+    throw new Error("EndDTM must be a valid date string.");
+  }
+
+  if (!Actions || typeof Actions !== "string") {
+    throw new Error("Actions is required and must be a string.");
+  }
+
+  return true;
+};
+
+export const Create_Task_For_Incident_Details = async (req, res) => {
+  const session = await mongoose.startSession(); // Start session 
+  session.startTransaction(); // Start transaction
+
+  try {
+    const { Incident_Status, From_Date, To_Date, Actions, Created_By } = req.body;
+
+    // Validate paras
+    if (!Created_By) {
+      await session.abortTransaction(); // Rollback 
+      session.endSession(); // End 
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    
+    const parameters = {
+      Incident_Status,
+      StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
+      EndDTM: To_Date ? new Date(To_Date).toISOString() : null,
+      Actions,
+    };
+
+    // Validate paras
+    validateTaskParameters(parameters);
+
+   
+    const taskData = {
+      Template_Task_Id: 12,
+      task_type: "List Incident Details",
+      parameters,
+      Created_By,
+      task_status: "open",
+    };
+
+    //  create task
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction(); // Commit transaction
+    session.endSession(); // End 
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_Incident_Details:", error);
+    await session.abortTransaction(); // Rollback error
+    session.endSession(); // End 
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
       errors: {
         exception: error.message,
       },
@@ -746,6 +886,7 @@ export const total_F1_filtered_Incidents = async (req, res) => {
     });
   }
 };
+
 
 export const total_distribution_ready_incidents = async (req, res) => {
   try {

@@ -3,6 +3,7 @@ import {
 Reject_Case,
 Create_Incident, Upload_DRS_File,
 List_Incidents,
+Create_Task_For_Incident_Details,
 
 total_F1_filtered_Incidents,
 total_distribution_ready_incidents,
@@ -24,6 +25,8 @@ distribution_ready_incidents_group_by_arrears_band,
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
+
+router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Details);
 
 /**
  * @swagger
