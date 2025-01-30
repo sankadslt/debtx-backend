@@ -2142,19 +2142,61 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 
 
 
+// export const List_Case_Distribution_DRC_Summary = async (req, res) => {
+//     try {
+//         const { drc_id, date_from, date_to, crd_distribution_status } = req.body;
+//         let filter = {};
+
+//         // If drc_id is provided, fetch corresponding drc_name
+//         if (drc_id) {
+//             const drcRecord = await DebtRecoveryCompany.findOne({ drc_id });
+//             if (!drcRecord) {
+//                 return res.status(404).json({ message: "Invalid drc_id" });
+//             }
+//             filter["array_of_distribution.drc_name"] = drcRecord.drc_name;
+//         }
+
+//         // If date range is provided, filter created_dtm accordingly
+//         if (date_from && date_to) {
+//             filter.created_dtm = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//         } else if (date_from) {
+//             filter.created_dtm = { $gte: new Date(date_from) };
+//         } else if (date_to) {
+//             filter.created_dtm = { $lte: new Date(date_to) };
+//         }
+
+//         // If crd_distribution_status is provided, filter based on it
+//         if (crd_distribution_status) {
+//             filter["crd_distribution_status.crd_distribution_status"] = crd_distribution_status;
+//         }
+
+//         // Fetch records based on filter
+//         const caseDistributions = await CaseDistribution.find(filter);
+
+//         // Calculate total_case_count and total_sum_of_arrears for each batch
+//         const response = caseDistributions.map(doc => {
+//             const total_case_count = doc.array_of_distribution.reduce((sum, entry) => sum + entry.case_count, 0);
+//             const total_sum_of_arrears = doc.array_of_distribution.reduce((sum, entry) => sum + entry.sum_of_arrears, 0);
+//             return {
+//                 ...doc.toObject(),
+//                 total_case_count,
+//                 total_sum_of_arrears
+//             };
+//         });
+
+//         res.status(200).json(response);
+//     } catch (error) {
+//         console.error("Error fetching case distributions:", error);
+//         res.status(500).json({ message: "Server Error", error });
+//     }
+// };
+
+
+
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
-        const { drc_id, date_from, date_to, crd_distribution_status } = req.body;
+        const { date_from, date_to, arrears_band, drc_commision_rule } = req.body;
         let filter = {};
-
-        // If drc_id is provided, fetch corresponding drc_name
-        if (drc_id) {
-            const drcRecord = await DebtRecoveryCompany.findOne({ drc_id });
-            if (!drcRecord) {
-                return res.status(404).json({ message: "Invalid drc_id" });
-            }
-            filter["array_of_distribution.drc_name"] = drcRecord.drc_name;
-        }
 
         // If date range is provided, filter created_dtm accordingly
         if (date_from && date_to) {
@@ -2165,9 +2207,14 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
             filter.created_dtm = { $lte: new Date(date_to) };
         }
 
-        // If crd_distribution_status is provided, filter based on it
-        if (crd_distribution_status) {
-            filter["crd_distribution_status.crd_distribution_status"] = crd_distribution_status;
+        // If arrears_band is provided, filter based on it
+        if (arrears_band) {
+            filter.arrears_band = arrears_band;
+        }
+
+        // If drc_commision_rule is provided, filter based on it
+        if (drc_commision_rule) {
+            filter.drc_commision_rule = drc_commision_rule;
         }
 
         // Fetch records based on filter
@@ -2190,6 +2237,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         res.status(500).json({ message: "Server Error", error });
     }
 };
+
 
 
 
