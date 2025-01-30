@@ -2,10 +2,14 @@ import { Router } from "express";
 import {
 Reject_Case,
 Create_Incident, Upload_DRS_File,
+
 List_Incidents,
+Create_Task_For_Incident_Details,
 
 total_F1_filtered_Incidents,
 total_distribution_ready_incidents,
+total_incidents_CPE_Collect,
+total_incidents_Direct_LOD,
 incidents_CPE_Collect_group_by_arrears_band,
 incidents_Direct_LOD_group_by_arrears_band,
 
@@ -15,16 +19,22 @@ List_Incidents_CPE_Collect,
 List_F1_filted_Incidents,
 List_incidents_Direct_LOD,
 List_distribution_ready_incidents,
+F1_filtered_Incidents_group_by_arrears_band,
+distribution_ready_incidents_group_by_arrears_band,
+
+
 
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
 
+router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Details);
+
 /**
  * @swagger
  * /api/incident/Reject_Case:
  *   post:
- *     summary: INC-1P03 Reject an incident case
+ *     summary: INC-1Axx Reject an incident case
  *     description: Updates the status of an incident to "Incident Reject" with a rejection reason, and also closes the corresponding user interaction in the system.
  *     tags:
  *       - Incident Management
@@ -161,7 +171,7 @@ router.patch("/Reject_Case", Reject_Case);
  * @swagger
  * /api/incident/List_Incidents:
  *   post:
- *     summary: INC-1P02 List incidents and create a task
+ *     summary: INC-1P04 List incidents and create a task
  *     description: Retrieves a list of incidents based on the specified criteria and creates a task for further processing. Validates input fields and interacts with the database.
  *     tags:
  *       - Incident Management
@@ -856,7 +866,7 @@ router.post("/incidents_Direct_LOD_group_by_arrears_band", incidents_Direct_LOD_
  * @swagger
  * /api/incident/List_All_Incident_Case_Pending:
  *   post:
- *     summary: INC-1P02 List all pending incidents
+ *     summary: INC-1P46 List all pending incidents
  *     description: Retrieves all incidents with a status indicating they are pending, such as "Open CPE Collect" or "Direct LOD."
  *     tags:
  *       - Incident Management
@@ -923,7 +933,7 @@ router.post("/List_All_Incident_Case_Pending",List_All_Incident_Case_Pending);
  * @swagger
  * /api/incident/List_Incidents_CPE_Collect:
  *   post:
- *     summary: INC-1P03 List incidents with "Open CPE Collect" status
+ *     summary: INC-1P47 List incidents with "Open CPE Collect" status
  *     description: Retrieves all incidents where the status is "Open CPE Collect."
  *     tags:
  *       - Incident Management
@@ -990,7 +1000,7 @@ router.post("/List_Incidents_CPE_Collect",List_Incidents_CPE_Collect);
  * @swagger
  * /api/incident/List_incidents_Direct_LOD:
  *   post:
- *     summary: INC-1P04 List incidents with "Direct LOD" status
+ *     summary: INC-1P48 List incidents with "Direct LOD" status
  *     description: Retrieves all incidents where the status is "Direct LOD."
  *     tags:
  *       - Incident Management
@@ -1056,7 +1066,7 @@ router.post("/List_incidents_Direct_LOD",List_incidents_Direct_LOD);
  * @swagger
  * /api/incidents/List_F1_filted_Incidents:
  *   post:
- *     summary: INC-2P01 List "Reject Pending" incidents
+ *     summary: INC-1P49 List "Reject Pending" incidents
  *     description: Retrieves a list of incidents with the status "Reject Pending".
  *     tags:
  *       - Incident Management
@@ -1121,7 +1131,7 @@ router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
  * @swagger
  * /api/incidents/List_distribution_ready_incidents:
  *   post:
- *     summary: INC-2P02 List "Open No Agent" incidents
+ *     summary: INC-1P50 List "Open No Agent" incidents
  *     description: Retrieves a list of incidents with the status "Open No Agent".
  *     tags:
  *       - Incident Management
@@ -1181,6 +1191,258 @@ router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
  */
 router.post("/List_distribution_ready_incidents",List_distribution_ready_incidents);
 
+/**
+ * @swagger
+ * /api/incident/total_incidents_CPE_Collect:
+ *   post:
+ *     summary: INC-1P51 Retrieve the total number of CPE Collect incidents.
+ *     description: |
+ *       Retrieve the total count of incidents with status "Open CPE Collect".
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the total count of CPE Collect incidents.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved the total of CPE collect incidents.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Distribution_ready_total:
+ *                       type: integer
+ *                       example: 42
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching CPE Collect incident count.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve the CPE collect incident count.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+router.post("/total_incidents_CPE_Collect", total_incidents_CPE_Collect);
 
+/**
+ * @swagger
+ * /api/incident/total_incidents_Direct_LOD:
+ *   post:
+ *     summary: INC-1P52 Retrieve the total number of Direct LOD incidents.
+ *     description: |
+ *       Retrieve the total count of incidents with status "Direct LOD".
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the total count of Direct LOD incidents.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved the total of Direct LOD incidents.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Distribution_ready_total:
+ *                       type: integer
+ *                       example: 30
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching Direct LOD incident count.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve the Direct LOD incident count.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+router.post("/total_incidents_Direct_LOD", total_incidents_Direct_LOD);/**
+ * @swagger
+ * /api/incident/F1_filtered_Incidents_group_by_arrears_band:
+ *   post:
+ *     summary: INC-1P57 Retrieve F1 filtered incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Reject Pending", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved F1 filtered incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved F1 filtered incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     F1_Filtered_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 12
+ *                         AB-10_20: 7
+ *                         AB-20_30: 4
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching F1 filtered incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve F1 filtered incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents_group_by_arrears_band);
+
+/**
+ * @swagger
+ * /api/incident/distribution_ready_incidents_group_by_arrears_band:
+ *   post:
+ *     summary: INC-1P58 Retrieve distribution-ready incident counts grouped by arrears bands.
+ *     description: |
+ *       Retrieve the total count of incidents with the status "Open No Agent", grouped by arrears bands.
+ * 
+ *       Arrears bands represent specific ranges, such as "AB-5_10" for arrears between 5000 and 10000.
+ * 
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jan-24| Initial version |
+ *     tags:
+ *       - Incident Management
+ * 
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved distribution-ready incident counts grouped by arrears bands.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved distribution-ready incident counts by arrears bands.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Distribution_ready_incidents_by_AB:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         AB-5_10: 15
+ *                         AB-10_20: 8
+ *                         AB-20_30: 6
+ * 
+ *       500:
+ *         description: Internal server error occurred while fetching distribution-ready incident counts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve distribution-ready incident counts by arrears bands.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred while processing the request."
+ */
+
+router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
 
 export default router;
