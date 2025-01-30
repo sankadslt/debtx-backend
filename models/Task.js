@@ -83,7 +83,8 @@ const taskSchema = new mongoose.Schema({
   },
   parameters: {
     type: Map,
-    of: String, // The value type for the map
+    of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
+    default: {},
     default: {},
   },
   Created_By: {

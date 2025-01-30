@@ -10,7 +10,6 @@
     Notes:  
 */
 
- 
 import { Router } from "express";
 import { drcExtendValidityPeriod,
         listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
@@ -25,12 +24,15 @@ import { drcExtendValidityPeriod,
         listCases,
         Acivite_Case_Details,
         get_count_by_drc_commision_rule,
-        get_count_by_drc_commision_rule_and_arrears_band,
+        getAllArrearsBands,
+        count_cases_rulebase_and_arrears_band,
+        Case_Distribution_Among_Agents,
+        List_Case_Distribution_DRC_Summary,
+        
  } from "../controllers/Case_controller.js";
 
 
 const router = Router();
-
 
 /**
  * @swagger
@@ -42,9 +44,9 @@ const router = Router();
  *   post:
  *     summary: Retrieve all cases by status and date range
  *     description: |
- *       Fetch all cases matching the provided `case_current_status`. If not specified, retrieves all statuses. 
+ *       Fetch all cases matching the provided `case_current_status`. If not specified, retrieves all statuses.
  *       Results are filtered by optional `fromDate` and `toDate` range and grouped into categories.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -188,7 +190,7 @@ router.post("/Open_No_Agent_Cases_ALL", Open_No_Agent_Cases_ALL);
  *       - `filtered_reason` is null or an empty string.
  *       - `current_arrears_amount` is greater than 1000 and less than or equal to 5000.
  *       - Optionally filtered by `fromDate` and `toDate` for the `created_dtm` field.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -323,7 +325,7 @@ router.post("/Open_No_Agent_Cases_Direct_LD", Open_No_Agent_Cases_Direct_LD);
  *     summary: C-1AO1 Extend the validity period of a DRC
  *     description: |
  *       Updates the validity period of a DRC by modifying the expiration date, adding a transaction record, and managing system case interactions.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -1162,7 +1164,10 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByServiceTypeRulebase);
+router.post(
+  "/Open_No_Agent_Cases_ALL_By_Rulebase",
+  openNoAgentCasesAllByServiceTypeRulebase
+);
 
 /**
  * @swagger
@@ -1174,7 +1179,7 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *   post:
  *     summary: C-1P19 Retrieve Open No Agent Count Arrears Bands by Rule
  *     description: |
- *       Retrieves the count of cases with current arrears amounts divided into bands based on the rule. 
+ *       Retrieves the count of cases with current arrears amounts divided into bands based on the rule.
  *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
@@ -1289,7 +1294,10 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType);
+router.post(
+  "/Open_No_Agent_Count_Arrears_Band_By_Rulebase",
+  openNoAgentCountArrearsBandByServiceType
+);
 
 /**
  * @swagger
@@ -1301,7 +1309,7 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
  *   post:
  *     summary: C-1G11 Retrieve Open No Agent Cases
  *     description: |
- *       Retrieves case details with the status "Open No Agent" for a specific date range where filtered reason is NULL. 
+ *       Retrieves case details with the status "Open No Agent" for a specific date range where filtered reason is NULL.
  *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
@@ -1557,7 +1565,6 @@ router.post("/List_Cases", listCases);
  *                       example: Detailed error message.
  */
 router.post("/Case_Status", Case_Status);
-
 
 /**
  * @swagger
@@ -1945,8 +1952,236 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule);
+router.get("/get_count_by_drc_commision_rule", get_count_by_drc_commision_rule);
 
-router.post("/get_count_by_drc_commision_rule_and_arrears_band",get_count_by_drc_commision_rule_and_arrears_band);
+router.get("/getAllArrearsBands", getAllArrearsBands);
+
+/**
+ * @swagger
+ * /api/case/count_cases_rulebase_and_arrears_band:
+ *   post:
+ *     summary: C-1P59 Count Cases by Rulebase and Arrears Band
+ *     description: |
+ *       Retrieve counts of cases grouped by arrears bands and filtered by the provided `drc_commision_rule`.
+ *       This endpoint also ensures only cases with the latest status as `Open No Agent` are considered.
+ *
+ *       | Version | Date        | Description                    | Changed By       |
+ *       |---------|-------------|--------------------------------|------------------|
+ *       | 01      | 2025-Jan-24 | Count Cases by Rulebase        | Dinusha Anupama        |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: drc_commision_rule
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: PEO TV
+ *         description: Commission rule to filter cases.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_commision_rule
+ *             properties:
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule used to filter cases.
+ *                 example: PEO TV
+ *     responses:
+ *       200:
+ *         description: Counts retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Counts retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Total:
+ *                       type: integer
+ *                       description: Total number of cases matching the criteria.
+ *                       example: 2
+ *                     Arrears_Bands:
+ *                       type: array
+ *                       description: List of arrears bands with counts of matching cases.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           band:
+ *                             type: string
+ *                             description: Range of the arrears band.
+ *                             example: 5000-10000
+ *                           count:
+ *                             type: integer
+ *                             description: Count of cases in this arrears band.
+ *                             example: 1
+ *                           details:
+ *                             type: object
+ *                             description: Additional information about the arrears band.
+ *                             properties:
+ *                               description:
+ *                                 type: string
+ *                                 description: Description of the arrears band range.
+ *                                 example: Cases in the range of 5000-10000
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drc_commision_rule is required.
+ *       404:
+ *         description: No cases or arrears bands found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No cases found for the provided criteria.
+ *       500:
+ *         description: Database or internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve counts.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
+
+router.post(
+  "/count_cases_rulebase_and_arrears_band",
+  count_cases_rulebase_and_arrears_band
+);
+
+/**
+ * @swagger
+ * /api/Case_Distribution_Among_Agents:
+ *   post:
+ *     summary: C-1P20 Case Distribution Among Agents
+ *     description: |
+ *       Creates a task to distribute cases among DRC agents based on commission rules and arrears bands.
+ *
+ *       | Version | Date        | Description                          | Changed By         |
+ *       |---------|-------------|--------------------------------------|--------------------|
+ *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Ravindu            |
+ *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Sanjaya Perera     |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_commision_rule
+ *               - current_arrears_band
+ *               - drc_list
+ *             properties:
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule used for case distribution.
+ *                 example: PEO TV
+ *               current_arrears_band:
+ *                 type: string
+ *                 description: The arrears band for filtering cases.
+ *                 example: 5000-10000
+ *               drc_list:
+ *                 type: array
+ *                 description: A list of DRCs with their respective case counts.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     DRC:
+ *                       type: string
+ *                       description: Name of the DRC agent.
+ *                       example: Agent A
+ *                     Count:
+ *                       type: integer
+ *                       description: Number of cases to be assigned.
+ *                       example: 10
+ *     responses:
+ *       200:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task created successfully.
+ *                 data:
+ *                   type: object
+ *                   description: Details of the created task.
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid input, or task conflict.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: >
+ *                     DRC commission rule, current arrears band, and DRC list fields are required,
+ *                     or already has tasks with this commission rule and arrears band.
+ *       500:
+ *         description: Internal server error - Failed to create the task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while creating the task: {error_message}"
+ */
+
+router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
+router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
+
 
 export default router;

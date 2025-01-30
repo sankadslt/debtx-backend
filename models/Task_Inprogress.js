@@ -82,10 +82,11 @@ const task_inprogress_Schema = new mongoose.Schema({
     required: true,
   },
   parameters: {
-    type: Map,
-    of: String, // The value type for the map
-    default: {},
-  },
+      type: Map,
+      of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
+      default: {},
+      default: {},
+    },
   Created_By: {
     type: String,
     required: true,
