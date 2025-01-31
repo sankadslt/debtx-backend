@@ -233,6 +233,10 @@ const roSchema = new Schema(
             required: true,
             unique: true,
         },
+        user_id: {
+            type:String,
+            // required:true,
+        },
         ro_name: {
             type: String,
             required: true,

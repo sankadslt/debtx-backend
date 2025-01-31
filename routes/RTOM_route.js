@@ -23,6 +23,7 @@ import {
     getAllRTOMsByDRCID,
     getActiveRTOMDetails,
     suspend_RTOM,
+    getAllActiveRTOMsByDRCID,
 } from '../controllers/RTOM_controller.js';
  
 const router = Router();
@@ -324,7 +325,7 @@ router.post("/RTOM_Details_By_ID", getRTOMDetailsById);
  * 
  * /api/RTOM/Register_RTOM:
  *   post:
- *     summary: Register a new RTOM.
+ *     summary: RTOM-1P01 Register a new RTOM.
  *     description: |
  *       This endpoint allows you to register a new RTOM by providing the necessary details such as area name, abbreviation, contact number, and fax number. 
  *       Optionally, you can include the `created_dtm` field in the format `DD/MM/YYYY`. If not provided, the current date will be used.
@@ -576,7 +577,7 @@ router.post("/Register_RTOM", registerRTOM);
  * 
  * /api/RTOM/Change_RTOM_Details:
  *   patch:
- *     summary: Update the details of an RTOM
+ *     summary: RTOM-1A02 Update the details of an RTOM
  *     description: |
  *       Updates the abbreviation, area name, contact number, and fax number of an RTOM.
  *       Changes are logged with the reason and updated_by fields.
@@ -687,7 +688,6 @@ router.post("/Register_RTOM", registerRTOM);
  *                   type: string
  *                   example: Failed to update RTOM details.
  */
-
 // Route to update the details of an RTOM
 router.patch("/Change_RTOM_Details", updateRTOMDetails);
 
@@ -699,7 +699,7 @@ router.patch("/Change_RTOM_Details", updateRTOMDetails);
  * 
  * /api/RTOM/List_All_DRC_Ownned_By_RTOM:
  *   post:
- *     summary: Get all active DRCs associated with an RTOM.
+ *     summary: RTOM-2P01 Get all active DRCs associated with an RTOM.
  *     description: |
  *       Retrieves a list of active Debt Recovery Companies (DRCs) associated with the given RTOM ID. 
  *       The system maps RTOM areas to Recovery Officers and their associated DRCs to produce the list.
@@ -823,7 +823,7 @@ router.post("/List_All_DRC_Ownned_By_RTOM", getAllActiveDRCs);
  * 
  * /api/RTOM/List_All_RO_Ownned_By_RTOM:
  *   post:
- *     summary: Retrieve all Recovery Officers by RTOM ID.
+ *     summary: RTOM-2P02 Retrieve all Recovery Officers by RTOM ID.
  *     description: |
  *       Retrieves a list of Recovery Officers (ROs) associated with a specific RTOM based on its ID. 
  *       The endpoint identifies the RTOM area name and matches it with Recovery Officers responsible for that area.
@@ -947,7 +947,7 @@ router.post('/List_All_RO_Ownned_By_RTOM', getAllROsByRTOMID);
  * 
  * /api/RTOM/List_All_RTOM_Ownned_By_DRC:
  *   post:
- *     summary: Retrieve RTOMs by DRC ID.
+ *     summary: RTOM-2P03 Retrieve RTOMs by DRC ID.
  *     description: |
  *       This endpoint retrieves all RTOMs associated with a given Debt Recovery Company (DRC) based on its ID. 
  *       It identifies the DRC name and maps it to Recovery Officers (ROs) to determine the RTOMs they manage.
@@ -1224,5 +1224,110 @@ router.get('/List_All_Active_RTOMs', getActiveRTOMDetails);
  */
 // Route to suspend an RTOM
 router.patch("/Suspend_RTOM", suspend_RTOM);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: RTOM
+ *     description: RTOM-related endpoints, allowing management and registration of RTOMs.
+ * 
+ * /api/RTOM/List_All_Active_RTOMs_By_DRC:
+ *   post:
+ *     summary: RTOM-2P04 Retrieve all active RTOMs by DRC ID.
+ *     description: |
+ *       This endpoint retrieves all active RTOMs associated with the given DRC ID. 
+ *       The system determines the DRC name and finds Recovery Officers (ROs) assigned to that DRC. 
+ *       It then identifies RTOMs managed by the ROs with their most recent status set to "Active".
+ *       
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Jan-23| List all active RTOMs by DRC    | Sasindu Srinayaka  |
+ *     tags:
+ *       - RTOM
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier for the DRC.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Active RTOMs retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active RTOMs retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rtom_id:
+ *                         type: integer
+ *                         description: Unique identifier of the RTOM.
+ *                         example: 1
+ *                       area_name:
+ *                         type: string
+ *                         description: Name of the RTOM's area.
+ *                         example: Matara
+ *       404:
+ *         description: No active RTOMs found for the given DRC ID or associated Recovery Officers.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active RTOMs found for the specified Recovery Officers.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No active RTOMs found for the given DRC ID.
+ *       500:
+ *         description: Internal server error occurred while fetching RTOM details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve RTOM details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error occurred while retrieving RTOM details.
+ */
+// Route to retrieve all active RTOMs by DRC ID
+router.post('/List_ALL_Active_RTOM_Ownned_By_DRC',getAllActiveRTOMsByDRCID);
 
 export default router;
