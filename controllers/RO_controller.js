@@ -805,10 +805,6 @@ export const getRODetailsByDrcID = async (req, res) => {
 
 
 
-
-
-
-
 // Retrieve Active Recovery Officers by DRC ID (MongoDB Only)
 // export const getActiveRODetailsByDrcID = async (req, res) => {
 //   try {
