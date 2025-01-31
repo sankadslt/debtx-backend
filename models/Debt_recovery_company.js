@@ -6,6 +6,10 @@ const serviceSchema = new Schema({
     type: Number,
     required: true,
   },
+  user_id: {
+    type:String,
+    // required:true,
+  },
   service_type: {
     type: String,
     required: true,

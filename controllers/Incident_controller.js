@@ -189,34 +189,28 @@ const validateCreateTaskParameters = (params) => {
   return true;
 };
 
-
-
-
-
-
-
-
-
-
-
-// Create_Incident Controller
-
 export const Create_Incident = async (req, res) => {
 
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Telephone_No } = req.body;
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
 
-
-
-  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type || !Telephone_No) {
+  // Validate required fields
+  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
     return res.status(400).json({
       status: "error",
-      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Telephone_Number) are required.",
+      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
     });
   }
 
-  const session = await mongoose.startSession();
+  if (DRC_Action === "collect CPE" && !Contact_Number) {
+    return res.status(400).json({
+      status: "error",
+      message: "Contact_Number is required when DRC_Action is 'collect CPE'.",
+    });
+  }
+
+  const session = await mongoose.startSession(); // Start a session for transaction
   try {
-    session.startTransaction();
+    session.startTransaction(); // Start the transaction
 
     const existingIncident = await Incident_log.findOne({ Account_Num });
     if (existingIncident) {
@@ -227,7 +221,11 @@ export const Create_Incident = async (req, res) => {
       });
     }
 
-    const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
+    const validActions = [
+      "collect arrears",
+      "collect arrears and CPE",
+      "collect CPE",
+    ];
     if (!validActions.includes(DRC_Action)) {
       return res.status(400).json({
         status: "error",
@@ -251,7 +249,7 @@ export const Create_Incident = async (req, res) => {
       });
     }
 
-    const monitorMonths = Monitor_Months || 3;
+    const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = await mongoose.connection;
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
@@ -262,7 +260,7 @@ export const Create_Incident = async (req, res) => {
 
     const Incident_Id = counterResult.seq;
 
-    const newIncident = new Incident_log({
+    const newIncidentData = {
       Incident_Id,
       Account_Num,
       Incident_Status: "Incident Open",
@@ -270,10 +268,14 @@ export const Create_Incident = async (req, res) => {
       Monitor_Months: monitorMonths,
       Created_By,
       Source_Type,
-      Telephone_No,
       Created_Dtm: moment().toDate(),
-    });
+    };
 
+    if (DRC_Action === "collect CPE") {
+      newIncidentData.Contact_Number = Contact_Number;
+    }
+
+    const newIncident = new Incident_log(newIncidentData);
     await newIncident.save({ session });
 
     try {
@@ -304,16 +306,18 @@ export const Create_Incident = async (req, res) => {
       await createTaskFunction(taskData, session);
     } catch (taskError) {
       console.error("Error creating task:", taskError.message);
-      await session.abortTransaction();
+      await session.abortTransaction(); // Rollback transaction
       return res.status(500).json({
         status: "error",
         message: "Failed to create task.",
-        errors: { exception: taskError.message },
+        errors: {
+          exception: taskError.message,
+        },
       });
     }
 
-    await session.commitTransaction();
-    session.endSession(); 
+    await session.commitTransaction(); // Commit transaction
+    session.endSession(); // End session
 
     return res.status(201).json({
       status: "success",
@@ -325,21 +329,26 @@ export const Create_Incident = async (req, res) => {
         Monitor_Months: monitorMonths,
         Created_By,
         Source_Type,
-        Telephone_No, 
         Created_Dtm: newIncident.Created_Dtm,
+        ...(DRC_Action === "collect CPE" && { Contact_Number }),
       },
     });
   } catch (error) {
     console.error("Unexpected error during incident creation:", error);
-    await session.abortTransaction();
-    session.endSession();
+    await session.abortTransaction(); // Rollback transaction on error
+    session.endSession(); // End session
     return res.status(500).json({
       status: "error",
       message: "Failed to create incident.",
-      errors: { exception: error.message },
+      errors: {
+        exception: error.message,
+      },
     });
   }
 };
+
+
+
 
 
 
@@ -498,11 +507,20 @@ export const Reject_Case = async (req, res) => {
   }
 };
 
+
+// Validation function for Create_Task parameters
+const validateCreateTaskParametersForUploadDRSFile = (params) => {
+  const { file_upload_seq, File_Name, File_Type, } = params;
+
+  if (!file_upload_seq || !File_Name || !File_Type) {
+    throw new Error("file_upload_seq, File_Name, File_Type, are required parameters for Create_Task.");
+  }
+  return true;
+};
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
 
   try {
-    // Validate required fields
     if (!File_Name || !File_Type || !File_Content || !Created_By) {
       return res.status(400).json({
         status: "error",
@@ -510,14 +528,9 @@ export const Upload_DRS_File = async (req, res) => {
       });
     }
 
-    // Validate File_Type against allowed values
     const validFileTypes = [
-      "Incident Creation",
-      "Incident Reject",
-      "Distribute to DRC",
-      "Validity Period Extend",
-      "Hold",
-      "Discard",
+      "Incident Creation", "Incident Reject", "Distribute to DRC", 
+      "Validity Period Extend", "Hold", "Discard"
     ];
 
     if (!validFileTypes.includes(File_Type)) {
@@ -529,7 +542,6 @@ export const Upload_DRS_File = async (req, res) => {
       });
     }
 
-    // Generate a unique File_Id
     const mongoConnection = await db.connectMongoDB();
     const counterResult = await mongoConnection
       .collection("counters")
@@ -541,17 +553,14 @@ export const Upload_DRS_File = async (req, res) => {
 
     const file_upload_seq = counterResult.seq;
 
-    // Ensure the uploads directory exists
     const uploadDir = path.join(__dirname, "../uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Upload file to the server
     const uploadPath = path.join(uploadDir, File_Name);
     fs.writeFileSync(uploadPath, File_Content, "utf8");
 
-    // Define Forwarded_File_Path
     const forwardedFileDir = path.join(__dirname, "../forwarded");
     if (!fs.existsSync(forwardedFileDir)) {
       fs.mkdirSync(forwardedFileDir, { recursive: true });
@@ -559,7 +568,6 @@ export const Upload_DRS_File = async (req, res) => {
 
     const forwardedFilePath = path.join(forwardedFileDir, File_Name);
 
-    // Insert into file_upload_log table
     const newFileLog = new FileUploadLog({
       file_upload_seq,
       File_Name,
@@ -567,53 +575,28 @@ export const Upload_DRS_File = async (req, res) => {
       Uploaded_By: Created_By,
       Uploaded_Dtm: moment().toDate(),
       File_Path: uploadPath,
-      Forwarded_File_Path: forwardedFilePath, // Set the forwarded file path
-      File_Status: "Open", // Default to "Open"
+      Forwarded_File_Path: forwardedFilePath,
+      File_Status: "Open",
     });
 
     await newFileLog.save();
-
-    // Create Task: "Extract Incident from File" (Template_Task_Id: 1)
-    const taskCounter = await mongoConnection
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "task_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-
-    const Task_Id = taskCounter.seq;
-
     const taskData = {
-      Task_Id,
       Template_Task_Id: 1,
-      parameters: {
-        file_upload_seq: file_upload_seq.toString(),
-        File_Name,
-        File_Type,
-      },
+      task_type: "Data upload from file",
+      file_upload_seq,
+      File_Name,
+      File_Type,
       Created_By,
-      Execute_By: null,
-      Sys_Alert_ID: null,
-      Interaction_ID_Success: null,
-      Interaction_ID_Error: null,
-      Task_Id_Error: null,
-      created_dtm: new Date(),
-      end_dtm: null,
       task_status: "open",
-      status_changed_dtm: null,
-      status_description: "",
     };
-
-    // Insert task into the System_tasks table
-    await Task.create(taskData);
+    validateCreateTaskParametersForUploadDRSFile(taskData);
+    await createTaskFunction(taskData);
 
     return res.status(201).json({
       status: "success",
       message: "File uploaded successfully, and task created.",
       data: {
         file_upload_seq,
-        Task_Id,
         File_Name,
         File_Type,
         File_Path: uploadPath,
@@ -628,9 +611,7 @@ export const Upload_DRS_File = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to upload file and create task.",
-      errors: {
-        exception: error.message,
-      },
+      errors: { exception: error.message },
     });
   }
 };
@@ -729,80 +710,39 @@ export const Upload_DRS_File = async (req, res) => {
 //   }
 // };
 
-
-
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, From_Date, To_Date, Source_Type } = req.body;
-    console.log("Request body:", req.body);
+    const { Actions, Incident_Status, From_Date, To_Date } = req.body;
 
     let query = {};
 
-   
     if (From_Date && To_Date) {
-     
       const startDate = new Date(From_Date);
-      startDate.setHours(0, 0, 0, 0);
-
       const endDate = new Date(To_Date);
-      endDate.setHours(23, 59, 59, 999);
-
-      
-      console.log("Parsed dates:", {
-        original: { From_Date, To_Date },
-        parsed: { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
-      });
-
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid date format provided.",
-          debug: { From_Date, To_Date }
-        });
-      }
-
       query.Created_Dtm = {
         $gte: startDate,
-        $lte: endDate
+        $lte: endDate,
       };
+    } else if (From_Date || To_Date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both From_Date and To_Date must be provided together.",
+      });
     }
 
-    
-    if (Actions) query.Actions = Actions;
-    if (Incident_Status) query.Incident_Status = Incident_Status;
-    if (Source_Type) query.Source_Type = Source_Type;
+    if (Actions) {
+      query.Actions = Actions;
+    }
+    if (Incident_Status) {
+      query.Incident_Status = Incident_Status;
+    }
 
-    
-    console.log("Final query:", JSON.stringify(query, null, 2));
-
-    
-    const allIncidents = await Incident_log.find({}).sort({ Created_Dtm: 1 });
-    console.log("Database date range:", {
-      earliest: allIncidents.length > 0 ? allIncidents[0].Created_Dtm : null,
-      latest: allIncidents.length > 0 ? allIncidents[allIncidents.length - 1].Created_Dtm : null,
-      totalRecords: allIncidents.length
-    });
-
-    
     const incidents = await Incident_log.find(query);
 
-    if (!incidents.length) {
-      
-      const queryWithoutDates = { ...query };
-      delete queryWithoutDates.Created_Dtm;
-      const incidentsWithoutDates = await Incident_log.find(queryWithoutDates);
-
+    if (incidents.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No incidents found matching the criteria.",
-        debug: {
-          appliedQuery: query,
-          totalWithoutDateFilter: incidentsWithoutDates.length,
-          dateRange: query.Created_Dtm ? {
-            from: query.Created_Dtm.$gte,
-            to: query.Created_Dtm.$lte
-          } : null
-        }
       });
     }
 
@@ -811,16 +751,14 @@ export const List_Incidents = async (req, res) => {
       message: "Incidents retrieved successfully.",
       incidents,
     });
-
   } catch (error) {
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error("Error in List_Incidents:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
-      error: error.message
+      errors: {
+        exception: error.message,
+      },
     });
   }
 };
@@ -851,16 +789,16 @@ const validateTaskParameters = (parameters) => {
 };
 
 export const Create_Task_For_Incident_Details = async (req, res) => {
-  const session = await mongoose.startSession(); 
-  session.startTransaction(); 
+  const session = await mongoose.startSession(); // Start session 
+  session.startTransaction(); // Start transaction
 
   try {
     const { Incident_Status, From_Date, To_Date, Actions, Created_By } = req.body;
 
-    
+    // Validate paras
     if (!Created_By) {
-      await session.abortTransaction(); 
-      session.endSession(); 
+      await session.abortTransaction(); // Rollback 
+      session.endSession(); // End 
       return res.status(400).json({
         status: "error",
         message: "Created_By is a required parameter.",
@@ -875,7 +813,7 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
       Actions,
     };
 
-   
+    // Validate paras
     validateTaskParameters(parameters);
 
    
@@ -887,11 +825,11 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
       task_status: "open",
     };
 
-    
+    //  create task
     await createTaskFunction(taskData, session);
 
-    await session.commitTransaction(); 
-    session.endSession(); 
+    await session.commitTransaction(); // Commit transaction
+    session.endSession(); // End 
 
     return res.status(201).json({
       status: "success",
@@ -900,8 +838,8 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in Create_Task_For_Incident_Details:", error);
-    await session.abortTransaction(); 
-    session.endSession();  
+    await session.abortTransaction(); // Rollback error
+    session.endSession(); // End 
     return res.status(500).json({
       status: "error",
       message: error.message || "Internal server error.",
