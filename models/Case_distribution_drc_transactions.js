@@ -89,11 +89,11 @@ const caseDistributionSchema = new Schema(
     // Move crd_distribution_status here
     crd_distribution_status: [crdDistributionStatusSchema],
 
-    forward_for_approvals_on: { type: Date },
-    approved_by: { type: String },
-    approved_on: { type: Date },
-    proceed_on: { type: Date },
-    tmp_record_remove_on: { type: Date }
+    forward_for_approvals_on: { type: Date, default: null  },
+    approved_by: { type: String, default: null  },
+    approved_on: { type: Date, default: null  },
+    proceed_on: { type: Date, default: null  },
+    tmp_record_remove_on: { type: Date, default: null  }
   },
   {
     collection: 'Case_distribution_drc_transactions', // Collection name
