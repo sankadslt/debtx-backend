@@ -1,4 +1,3 @@
-// services/IncidentService.js
 
 export const Request_Incident_External_information = async ({ Account_Num, Monitor_Months }) => {
     
@@ -8,4 +7,7 @@ export const Request_Incident_External_information = async ({ Account_Num, Monit
     // Simulate a successful API response
     return { success: true, message: "External information requested successfully." };
   };
+
+  
+  
   
