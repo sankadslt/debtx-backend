@@ -31,7 +31,8 @@ import {
   get_count_by_drc_commision_rule,
   getAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
-  // Case_Distribution_Among_Agents,
+  Case_Distribution_Among_Agents,
+  List_Case_Distribution_DRC_Summary,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
