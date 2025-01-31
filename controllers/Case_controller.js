@@ -21,6 +21,7 @@ import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
+import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -1351,36 +1352,32 @@ export const get_count_by_drc_commision_rule = async (req, res) => {
 };
 
 // export const Case_Distribution_Among_Agents = async (req, res) => {
+//   const { drc_commision_rule, current_arrears_band, drc_list,created_by } = req.body;
 
-//   const {drc_commision_rule, current_arrears_band, drc_list} = req.body;
-  
-//   if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+//   if (!drc_commision_rule || !current_arrears_band || !drc_list || !created_by) {
 //     return res.status(400).json({
 //       status: "error",
-//       message: "DRC comision rule, current arrears band and DRC list feilds are required.",
+//       message: "DRC commission rule, current arrears band, and DRC list fields are required.",
 //     });
-//   };
+//   }
 
 //   if (drc_list.length <= 0) {
 //     return res.status(400).json({
 //       status: "error",
-//       message: "DRC List should not be empty",
+//       message: "DRC List should not be empty.",
 //     });
-//   };
-//   // validate the DRC list and counts
+//   }
+
 //   const validateDRCList = (drcList) => {
 //     if (!Array.isArray(drcList)) {
 //       throw new Error("DRC List must be an array.");
 //     }
-  
+
 //     return drcList.map((item, index) => {
-//       if (
-//         typeof item.DRC !== "string" ||
-//         typeof item.Count !== "number"
-//       ) {
+//       if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
 //         throw new Error(`Invalid structure at index ${index} in DRC List.`);
 //       }
-  
+
 //       return {
 //         DRC: item.DRC,
 //         Count: item.Count,
@@ -1389,77 +1386,90 @@ export const get_count_by_drc_commision_rule = async (req, res) => {
 //   };
 
 //   try {
+//     // Validate the DRC list
 //     const validatedDRCList = validateDRCList(drc_list);
 
-//     const mongo = await db.connectMongoDB();    
-//     // const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-//     //   { _id: "task_id" },
-//     //   { $inc: { seq: 1 } },
-//     //   { returnDocument: "after", upsert: true }
-//     // );
-//     // if (!TaskCounter || !TaskCounter.seq) {
-//     //   return res.status(500).json({
-//     //     status: "error",
-//     //     message: "Failed to generate Task_Id from counters collection.",
-//     //   });
-//     // };
-//     // const Task_Id = TaskCounter.seq;
+//     const mongo = await db.connectMongoDB();
 
-//     // Validation to check for existing documents with task_status = "Discard"
-//     const existingTask = await mongo.collection("tasks").findOne({
-//       task_status: "Complete",
-//       "parameters.drc_commision_rule": { $exists: true },
-//       "parameters.current_arrears_band": { $exists: true },
+//     // Validation for existing tasks with `task_status` and specific parameters
+//     const existingTask = await mongo.collection("System_tasks").findOne({
+//       task_status: { $ne: "Complete" },
+//       "parameters.drc_commision_rule": drc_commision_rule,
+//       "parameters.current_arrears_band": current_arrears_band,
 //     });
-
+//     // console.log(existingTask);
 //     if (existingTask) {
 //       return res.status(400).json({
 //         status: "error",
-//         message: "A document with 'task_status = Discard' cannot contain both 'drc_commision_rule' and 'current_arrears_band'.",
+//         message: "Already has tasks with this commision rule and arrears band ",
 //       });
 //     }
 
-//     // const taskData = {
-//     //   Task_Id,
-//     //   Template_Task_Id: 3, 
-//     //   parameters: {
-//     //     drc_commision_rule,
-//     //     current_arrears_band,
-//     //     distributed_Amounts:validatedDRCList
-//     //   },
-//     //   Created_By: req.user?.username || "system",
-//     //   Execute_By: "SYS", 
-//     //   task_status: "open", 
-//     //   created_dtm: new Date(),
-//     //   end_dtm: null,
-//     //   status_changed_dtm: null,
-//     //   status_description: "",
-//     // };
+//     // Prepare dynamic parameters for the task
+//     const dynamicParams = {
+//       drc_commision_rule,
+//       current_arrears_band,
+//       distributed_Amounts: validatedDRCList,
+//     }; 
 
-//     // const newTask = new Task(taskData);
-//     // await newTask.save();
+//     // Call createTaskFunction
+//     const result = await createTaskFunction({
+//       Template_Task_Id: 3,
+//       task_type: "Case Distribution Planning among DRC",
+//       created_By: created_by,
+//       ...dynamicParams,
+//     });
+    
+//     const counter_result_of_case_distribution_batch_id = await mongo.collection("counters").findOneAndUpdate(
+//       { _id: "case_distribution_batch_id" },
+//       { $inc: { seq: 1 } },
+//       { returnDocument: "after", upsert: true }
+//     );
+//     const case_distribution_batch_id = counter_result_of_case_distribution_batch_id.seq; // Use `value` to access the updated document
+//     console.log("case_distribution_batch_id:", case_distribution_batch_id);
 
-//     // return res.status(200).json({
-//     //   status: "success",
-//     //   message: "Task created successfully.",
-//     //   data: { Task_Id },
-//     // });
+//     if (!case_distribution_batch_id) {
+//       throw new Error("Failed to generate case_distribution_batch_id.");
+//     }
+
+//     // Prepare Case distribution drc transactions data
+//     const Case_distribution_drc_transactions_data = {
+//       case_distribution_batch_id,
+//       batch_seq: 1,
+//       created_dtm: new Date(),
+//       created_by,
+//       action_type: "distribution",
+//       drc_commision_rule,
+//       current_arrears_band,
+//       array_of_distribution:validatedDRCList,
+//       rulebase_count: 100,
+//       rulebase_arrears_sum: 5000,
+//       crd_distribution_status: {crd_distribution_status:"Open",created_dtm:new Date()},
+//     };
+
+//     // Insert into Case_distribution_drc_transactions collection
+//     const new_Case_distribution_drc_transaction = new Case_distribution_drc_transactions(Case_distribution_drc_transactions_data);
+//     await new_Case_distribution_drc_transaction.save();
+
+
+//     // Return success response from createTaskFunction
+//     return res.status(200).json(result);
 //   } catch (error) {
 //     console.error(error);
 //     return res.status(500).json({
 //       status: "error",
-//       message: "An error occurred while creating the task.. ${error.message}",
+//       message: `An error occurred while storiing : ${error.message}`,
 //     });
 //   }
 // };
 
 export const Case_Distribution_Among_Agents = async (req, res) => {
-  const { drc_commision_rule, current_arrears_band, drc_list } = req.body;
+  const { drc_commision_rule, current_arrears_band, drc_list, created_by } = req.body;
 
-  if (!drc_commision_rule || !current_arrears_band || !drc_list) {
+  if (!drc_commision_rule || !current_arrears_band || !drc_list || !created_by) {
     return res.status(400).json({
       status: "error",
-      message: "DRC commission rule, current arrears band, and DRC list fields are required.",
+      message: "DRC commission rule, current arrears band, created by and DRC list fields are required.",
     });
   }
 
@@ -1493,7 +1503,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 
     const mongo = await db.connectMongoDB();
 
-    // Validation for existing tasks with `task_status` and specific parameters
+    // Validation for existing tasks with task_status and specific parameters
     const existingTask = await mongo.collection("System_tasks").findOne({
       task_status: { $ne: "Complete" },
       "parameters.drc_commision_rule": drc_commision_rule,
@@ -1518,9 +1528,41 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     const result = await createTaskFunction({
       Template_Task_Id: 3,
       task_type: "Case Distribution Planning among DRC",
-      Created_By: req.user?.username || "system",
+      Created_By: created_by,
       ...dynamicParams,
     });
+
+    const counter_result_of_case_distribution_batch_id = await mongo.collection("counters").findOneAndUpdate(
+      { _id: "case_distribution_batch_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    const case_distribution_batch_id = counter_result_of_case_distribution_batch_id.seq; // Use `value` to access the updated document
+    console.log("case_distribution_batch_id:", case_distribution_batch_id);
+
+    if (!case_distribution_batch_id) {
+      throw new Error("Failed to generate case_distribution_batch_id.");
+    }
+
+    // Prepare Case distribution drc transactions data
+    const Case_distribution_drc_transactions_data = {
+      case_distribution_batch_id,
+      batch_seq: 1,
+      created_dtm: new Date(),
+      created_by,
+      action_type: "distribution",
+      drc_commision_rule,
+      current_arrears_band,
+      array_of_distribution:validatedDRCList,
+      rulebase_count: 100,
+      rulebase_arrears_sum: 5000,
+      crd_distribution_status: {crd_distribution_status:"Open",created_dtm:new Date()},
+    };
+
+    // Insert into Case_distribution_drc_transactions collection
+    const new_Case_distribution_drc_transaction = new Case_distribution_drc_transactions(Case_distribution_drc_transactions_data);
+    await new_Case_distribution_drc_transaction.save();
+
 
     // Return success response from createTaskFunction
     return res.status(200).json(result);
@@ -1532,7 +1574,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     });
   }
 };
-
 
 export const listHandlingCasesByDRC = async (req, res) => {
   const { drc_id, rtom, ro_id, arrears_band, from_date, to_date } = req.body;
