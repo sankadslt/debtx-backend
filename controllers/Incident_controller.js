@@ -189,21 +189,34 @@ const validateCreateTaskParameters = (params) => {
   return true;
 };
 
-export const Create_Incident = async (req, res) => {
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type } =
-    req.body;
 
-  // Validate required fields
-  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
+
+
+
+
+
+
+
+
+
+// Create_Incident Controller
+
+export const Create_Incident = async (req, res) => {
+
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Telephone_No } = req.body;
+
+
+
+  if (!Account_Num || !DRC_Action || !Created_By || !Source_Type || !Telephone_No) {
     return res.status(400).json({
       status: "error",
-      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Telephone_Number) are required.",
     });
   }
 
-  const session = await mongoose.startSession(); // Start a session for transaction
+  const session = await mongoose.startSession();
   try {
-    session.startTransaction(); // Start the transaction
+    session.startTransaction();
 
     const existingIncident = await Incident_log.findOne({ Account_Num });
     if (existingIncident) {
@@ -214,11 +227,7 @@ export const Create_Incident = async (req, res) => {
       });
     }
 
-    const validActions = [
-      "collect arrears",
-      "collect arrears and CPE",
-      "collect CPE",
-    ];
+    const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
     if (!validActions.includes(DRC_Action)) {
       return res.status(400).json({
         status: "error",
@@ -242,7 +251,7 @@ export const Create_Incident = async (req, res) => {
       });
     }
 
-    const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
+    const monitorMonths = Monitor_Months || 3;
 
     const mongoConnection = await mongoose.connection;
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
@@ -261,6 +270,7 @@ export const Create_Incident = async (req, res) => {
       Monitor_Months: monitorMonths,
       Created_By,
       Source_Type,
+      Telephone_No,
       Created_Dtm: moment().toDate(),
     });
 
@@ -294,18 +304,16 @@ export const Create_Incident = async (req, res) => {
       await createTaskFunction(taskData, session);
     } catch (taskError) {
       console.error("Error creating task:", taskError.message);
-      await session.abortTransaction(); // Rollback transaction
+      await session.abortTransaction();
       return res.status(500).json({
         status: "error",
         message: "Failed to create task.",
-        errors: {
-          exception: taskError.message,
-        },
+        errors: { exception: taskError.message },
       });
     }
 
-    await session.commitTransaction(); // Commit transaction
-    session.endSession(); // End session
+    await session.commitTransaction();
+    session.endSession(); 
 
     return res.status(201).json({
       status: "success",
@@ -317,24 +325,21 @@ export const Create_Incident = async (req, res) => {
         Monitor_Months: monitorMonths,
         Created_By,
         Source_Type,
+        Telephone_No, 
         Created_Dtm: newIncident.Created_Dtm,
       },
     });
   } catch (error) {
     console.error("Unexpected error during incident creation:", error);
-    await session.abortTransaction(); // Rollback transaction on error
-    session.endSession(); // End session
+    await session.abortTransaction();
+    session.endSession();
     return res.status(500).json({
       status: "error",
       message: "Failed to create incident.",
-      errors: {
-        exception: error.message,
-      },
+      errors: { exception: error.message },
     });
   }
 };
-
-
 
 
 
