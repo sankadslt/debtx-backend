@@ -801,6 +801,7 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
       message: "Active RTOMs retrieved successfully.",
       data: uniqueActiveRTOMs,
     });
+    
   } catch (error) {
     console.error("Error retrieving RTOM names:", error);
     return res.status(500).json({
