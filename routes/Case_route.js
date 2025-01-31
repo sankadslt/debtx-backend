@@ -11,26 +11,28 @@
 */
 
 import { Router } from "express";
-import { drcExtendValidityPeriod,
-        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
-        Open_No_Agent_Cases_ALL,
-        Open_No_Agent_Cases_Direct_LD,
-        assignROToCase,
-        // listAllActiveRosByDRCID,
-        Case_Status,
-        Case_List,
-        openNoAgentCasesAllByServiceTypeRulebase,
-        openNoAgentCountArrearsBandByServiceType,
-        listCases,
-        Acivite_Case_Details,
-        get_count_by_drc_commision_rule,
-        getAllArrearsBands,
-        count_cases_rulebase_and_arrears_band,
-        Case_Distribution_Among_Agents,
-        List_Case_Distribution_DRC_Summary,
-        
- } from "../controllers/Case_controller.js";
-
+import {
+  drcExtendValidityPeriod,
+  listHandlingCasesByDRC,
+  Case_Abandant,
+  Approve_Case_abandant,
+  Open_No_Agent_Cases_F1_Filter,
+  Case_Current_Status,
+  Open_No_Agent_Cases_ALL,
+  Open_No_Agent_Cases_Direct_LD,
+  assignROToCase,
+  // listAllActiveRosByDRCID,
+  Case_Status,
+  Case_List,
+  openNoAgentCasesAllByServiceTypeRulebase,
+  openNoAgentCountArrearsBandByServiceType,
+  listCases,
+  Acivite_Case_Details,
+  get_count_by_drc_commision_rule,
+  getAllArrearsBands,
+  count_cases_rulebase_and_arrears_band,
+  // Case_Distribution_Among_Agents,
+} from "../controllers/Case_controller.js";
 
 const router = Router();
 
@@ -790,8 +792,310 @@ router.post("/Case_Current_Status", Case_Current_Status);
 
 // router.post("/List_All_DRC_Owned_By_Case", listAllDRCOwnedByCase);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to managing and assigning Recovery Officers to cases.
+ * 
+ * /api/case/Assign_RO_To_Case:
+ *   patch:
+ *     summary: Assign a Recovery Officer to cases.
+ *     description: |
+ *       This endpoint assigns a Recovery Officer to multiple cases. The Recovery Officer must be assigned to at least one RTOM area 
+ *       that matches the case's area. If a case's area does not match any of the officer's assigned RTOMs, it will not be updated.
+ *       
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Jan-31| Assign Recovery Officer to cases | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: List of case IDs to which the Recovery Officer will be assigned.
+ *                 example: [101, 102, 103]
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID who will be assigned.
+ *                 example: 10
+ *     responses:
+ *       200:
+ *         description: Recovery Officer assigned successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Recovery Officers assigned successfully.
+ *                 details:
+ *                   type: object
+ *                   properties:
+ *                     updated_cases:
+ *                       type: integer
+ *                       description: Number of cases successfully updated.
+ *                       example: 2
+ *                     failed_cases:
+ *                       type: array
+ *                       description: List of cases that could not be updated.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           case_id:
+ *                             type: integer
+ *                             example: 104
+ *                           message:
+ *                             type: string
+ *                             example: "The area 'Colombo' does not match any RTOM area assigned to Recovery Officer with ro_id: 10."
+ *       400:
+ *         description: Validation error - Missing or invalid required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to assign Recovery Officer.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: case_ids must be a non-empty array and ro_id is required.
+ *       404:
+ *         description: Recovery Officer or cases not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No cases found for the provided case IDs.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No Recovery Officer found.
+ *       500:
+ *         description: Internal server error occurred while assigning the Recovery Officer.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while assigning the Recovery Officer.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while assigning the Recovery Officer.
+ */
 router.patch("/Assign_RO_To_Case", assignROToCase);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to handling cases by DRC.
+ * 
+ * /api/case/List_Handling_Cases_By_DRC:
+ *   post:
+ *     summary: Retrieve cases handled by a DRC with filtering options.
+ *     description: |
+ *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC). 
+ *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
+ *       
+ *       | Version | Date       | Description                       | Changed By         |
+ *       |---------|------------|-----------------------------------|--------------------|
+ *       | 01      | 2025-Jan-31| List handling cases by DRC        | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 5001
+ *               rtom:
+ *                 type: string
+ *                 description: Area name associated with the case.
+ *                 example: Matara
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: 5
+ *               arrears_band:
+ *                 type: string
+ *                 description: Arrears category for filtering cases.
+ *                 example: AB-5_10
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering cases.
+ *                 example: "2025-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering cases.
+ *                 example: "2025-01-31"
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         description: Unique identifier for the case.
+ *                         example: 101
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Case creation date.
+ *                         example: "2024-06-15T08:00:00Z"
+ *                       current_arreas_amount:
+ *                         type: number
+ *                         description: Outstanding arrears amount.
+ *                         example: 25000.50
+ *                       area:
+ *                         type: string
+ *                         description: RTOM area related to the case.
+ *                         example: Matara
+ *                       remark:
+ *                         type: string
+ *                         description: Latest remark on the case.
+ *                         example: "Awaiting customer response."
+ *                       expire_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Case expiration date.
+ *                         example: "2025-01-01T00:00:00Z"
+ *                       ro_name:
+ *                         type: string
+ *                         description: Name of the assigned Recovery Officer.
+ *                         example: "John Doe"
+ *       400:
+ *         description: Validation error - Missing required fields or no filter parameters provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: At least one filtering parameter is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.
+ *       404:
+ *         description: No matching cases found based on the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error occurred while fetching case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while retrieving cases.
+ */
 router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
@@ -2080,7 +2384,6 @@ router.get("/getAllArrearsBands", getAllArrearsBands);
  *                       type: string
  *                       example: Detailed error message.
  */
-
 router.post(
   "/count_cases_rulebase_and_arrears_band",
   count_cases_rulebase_and_arrears_band
@@ -2179,7 +2482,6 @@ router.post(
  *                   type: string
  *                   example: "An error occurred while creating the task: {error_message}"
  */
-
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
 

@@ -1522,7 +1522,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       drc_commision_rule,
       current_arrears_band,
       distributed_Amounts: validatedDRCList,
-    }; 
+    };
 
     // Call createTaskFunction
     const result = await createTaskFunction({
@@ -1591,8 +1591,20 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    // Build the query dynamically based on provided parameters
-    const cases = await Case_details.find({
+    // Ensure at least one optional parameter is provided
+    if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
+        },
+      });
+    }
+
+    // Build query dynamically based on provided parameters
+    let query = {
       $and: [
         { "drc.drc_id": drc_id },
         {
@@ -1610,48 +1622,38 @@ export const listHandlingCasesByDRC = async (req, res) => {
             ],
           },
         },
-        {
-          $and: [
-            { "drc.drc_status": "Active" },
-            { "drc.removed_dtm": null },
-          ],
-        },
+        { "drc.drc_status": "Active" },
+        { "drc.removed_dtm": null },
         {
           $or: [
             { "drc.recovery_officers": { $size: 0 } },
             { "drc.recovery_officers": { $elemMatch: { "removed_dtm": null } } },
           ],
         },
-        {
-          $and: [
-            { area: rtom },
-            { arrears_band: arrears_band },
+      ],
+    };
+
+    // Add optional filters dynamically
+    if (rtom) query.$and.push({ area: rtom });
+    if (arrears_band) query.$and.push({ arrears_band });
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
             {
-              $expr: {
-                // Match cases where the ro_id matches the last recovery_officer's ro_id in the drc array
-                $eq: [
-                  ro_id,
-                  {
-                    $arrayElemAt: [
-                      { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] },
-                      -1,
-                    ],
-                  },
-                ],
-              },
-            },
-            {
-              // Ensure from_date is less than created_dtm in drc array
-              "drc.created_dtm": { $gt: new Date(from_date) },
-            },
-            {
-              // Ensure to_date is greater than expire_dtm in drc array
-              "drc.expire_dtm": { $lt: new Date(to_date) },
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
             },
           ],
         },
-      ],
-    });
+      });
+    }
+    if (from_date && to_date) {
+      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+    }
+
+    const cases = await Case_details.find(query);
 
     // Handle case where no matching cases are found
     if (cases.length === 0) {
@@ -1665,14 +1667,13 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
       cases.map(async (caseData) => {
         const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
         const lastRecoveryOfficer =
           lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
-        
+
         // Fetch matching recovery officer asynchronously
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
           ro_id: lastRecoveryOfficer.ro_id,
@@ -1685,7 +1686,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           area: caseData.area,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: lastDrc.expire_dtm,
-          ro_name: matchingRecoveryOfficer?.ro_name || null, // Use the fetched recovery officer name
+          ro_name: matchingRecoveryOfficer?.ro_name || null,
         };
       })
     );
@@ -1708,6 +1709,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     });
   }
 };
+
 
 // export const listAllActiveRosByDRCID = async (req, res) => {
 //   try {
@@ -1920,30 +1922,6 @@ export const assignROToCase = async (req, res) => {
   }
 };
 
-
-export const listAllCaseTransactionalLogs = async (req, res) => {
-  try {
-    // Fetch all cases from the database
-    const cases = await Case_details.find();
-
-    // Return the list of cases
-    return res.status(200).json({
-      status: "success",
-      message: "Cases retrieved successfully.",
-      data: cases,
-    });
-  } catch (error) {
-    // Handle errors
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to retrieve cases.",
-      errors: {
-        code: 500,
-        description: error.message,
-      },    
-    });
-  }
-};
 
 
 
