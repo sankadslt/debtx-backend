@@ -31,7 +31,8 @@ import {
   get_count_by_drc_commision_rule,
   getAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
-  // Case_Distribution_Among_Agents,
+  Case_Distribution_Among_Agents,
+  List_Case_Distribution_DRC_Summary
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -2483,6 +2484,7 @@ router.post(
  *                   example: "An error occurred while creating the task: {error_message}"
  */
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
+
 router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
 
 
