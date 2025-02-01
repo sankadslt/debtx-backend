@@ -1681,6 +1681,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
         return {
           case_id: caseData.case_id,
+          status: caseData.case_current_status,
           created_dtm: lastDrc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
@@ -1792,8 +1793,6 @@ export const listHandlingCasesByDRC = async (req, res) => {
 // };
       
 
-// Assign Recovery Officer to Cases
-
 export const assignROToCase = async (req, res) => {
   try {
     const { case_ids, ro_id } = req.body;
@@ -1825,7 +1824,7 @@ export const assignROToCase = async (req, res) => {
       });
     }
 
-    // Extract the RTOM areas the recovery officer is assigned to
+    // Extract the RTOM areas assigned to the recovery officer
     const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
 
     const errors = [];
@@ -1844,7 +1843,7 @@ export const assignROToCase = async (req, res) => {
     for (const caseData of cases) {
       const { case_id, drc, area } = caseData;
 
-      // Check if the case area matches one of the recovery officer's assigned areas
+      // Ensure the case area matches one of the recovery officer's assigned areas
       if (!assignedAreas.includes(area)) {
         errors.push({
           case_id,
@@ -1853,7 +1852,7 @@ export const assignROToCase = async (req, res) => {
         continue;
       }
 
-      // Ensure there's at least one DRC and that `expire_dtm` is null
+      // Ensure there's at least one DRC with expire_dtm as null
       const activeDrc = drc.find((d) => d.expire_dtm === null);
       if (!activeDrc) {
         errors.push({
@@ -1863,25 +1862,25 @@ export const assignROToCase = async (req, res) => {
         continue;
       }
 
+      // Ensure recovery_officers array exists in the active DRC
       const recoveryOfficers = activeDrc.recovery_officers || [];
       const lastOfficer = recoveryOfficers[recoveryOfficers.length - 1];
 
-      // Check if the last officer's remove_dtm is null
+      // If there is a last officer, ensure remove_dtm is updated
       if (lastOfficer && lastOfficer.removed_dtm === null) {
-        // Update the last officer's removed_dtm
         lastOfficer.removed_dtm = new Date();
       }
 
       // Prepare the new recovery officer object
       const newOfficer = {
         ro_id,
-        assigned_dtm: new Date(), // Current date and time
+        assigned_dtm: new Date(),
         assigned_by,
         removed_dtm: null,
         case_removal_remark: null,
       };
 
-      // Add the new officer to the array
+      // Add the new officer to the recovery_officers array
       recoveryOfficers.push(newOfficer);
 
       // Update the case data
@@ -1900,7 +1899,7 @@ export const assignROToCase = async (req, res) => {
       await Case_details.bulkWrite(updates);
     }
 
-    // Response with success and error details
+    // Respond with success and error details
     res.status(200).json({
       status: "success",
       message: "Recovery Officers assigned successfully.",
@@ -1921,6 +1920,8 @@ export const assignROToCase = async (req, res) => {
     });
   }
 };
+
+
 
 
 
