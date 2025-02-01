@@ -2176,7 +2176,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
         const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
-        let filter = {};
+        let filter = {batch_seq: 1}; // Ensuring only batch_seq: 1 records are retrieved
 
         // If date range is provided, filter created_dtm accordingly
         if (date_from && date_to) {
