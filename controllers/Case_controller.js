@@ -2209,6 +2209,94 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
 
 
 
+const validateTaskParameters = (parameters) => {
+  const { current_arrears_band, date_from, date_to, drc_commision_rule } = parameters;
+
+  if (!current_arrears_band || typeof current_arrears_band !== "string") {
+    throw new Error("current_arrears_band is required and must be a string.");
+  }
+
+  // Only validate dates if they are not null
+  if (date_from !== null && date_from !== undefined && isNaN(new Date(date_from).getTime())) {
+    throw new Error("date_from must be a valid date string or null.");
+  }
+
+  if (date_to !== null && date_to !== undefined && isNaN(new Date(date_to).getTime())) {
+    throw new Error("date_to must be a valid date string or null.");
+  }
+
+  if (!drc_commision_rule || typeof drc_commision_rule !== "string") {
+    throw new Error("drc_commision_rule is required and must be a string.");
+  }
+
+  return true;
+};
+
+export const Create_Task_For_case_distribution = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { current_arrears_band, date_from, date_to, drc_commision_rule, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      current_arrears_band,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      drc_commision_rule,
+      Created_By,
+      task_status: "open"
+    };
+
+    validateTaskParameters(parameters);
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 13,
+      task_type: "Case_distribution_task",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
+
+
+
+
 
 
 

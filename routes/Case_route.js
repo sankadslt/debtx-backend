@@ -33,6 +33,7 @@ import {
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
   List_Case_Distribution_DRC_Summary,
+  Create_Task_For_case_distribution,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -2610,5 +2611,9 @@ router.post(
   "/List_Case_Distribution_DRC_Summary",
   List_Case_Distribution_DRC_Summary
 );
+
+
+router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
+
 
 export default router;
