@@ -1923,10 +1923,6 @@ export const assignROToCase = async (req, res) => {
 };
 
 
-
-
-
-
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 //   const { drc_commision_rule } = req.body;
 
@@ -2209,7 +2205,8 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
 };
 
-export const List_ALL_Distribution_Details_By_Batch_ID = async (req, res) => {
+//this function give the data wit RTOm 
+export const AAA = async (req, res) => {  
   try {
     const { case_distribution_batch_id } = req.body;
     
@@ -2235,14 +2232,14 @@ export const List_ALL_Distribution_Details_By_Batch_ID = async (req, res) => {
       {
         $project: {
           _id: 0,
-          case_distribution_batch_id: 1,
+          // case_distribution_batch_id: 1,
           batch_seq: 1,
           created_dtm: 1,
-          drc_commision_rule: 1,
-          current_arrears_band: 1,
+          // drc_commision_rule: 1,
+          // current_arrears_band: 1,
           action_type: 1,
-          rulebase_count: 1,
-          rulebase_arrears_sum: 1,
+          // rulebase_count: 1,
+          // rulebase_arrears_sum: 1,
           case_count: { $sum: "$drc_summary.case_count" },
           total_arrears_amount: { $sum: "$drc_summary.tot_arrease" },
           drc_summary: {
@@ -2262,7 +2259,7 @@ export const List_ALL_Distribution_Details_By_Batch_ID = async (req, res) => {
     ]);
 
     if (caseDistribution.length == 0) {
-      return res.status(404).json({ message: "Batch not found." });
+      return res.status(404).json({ status: "Error",message: "Batch not found." });
     }
     return res.status(200).json({
       status: "success",
@@ -2365,8 +2362,40 @@ export const Create_Task_For_case_distribution = async (req, res) => {
   }
 };
 
+//this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
+export const get_all_transaction_seq_of_batch_id = async (req, res) => {
+  try {
+    const { case_distribution_batch_id } = req.body;
 
+    if (!case_distribution_batch_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id is a required parameter.",
+      });
+    }
 
+    const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id });
+
+    if (transactions_data.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for this batch ID.",
+      });
+    }
+
+    return res.status(200).json({ 
+      status: "success",
+      message: `Successfully retrieved ${transactions_data.length} records`,
+      data: transactions_data,
+    });
+  } catch (error) {
+    console.error("Error fetching batch data:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error. Please try again later.",
+    });
+  }
+};
 
 
 

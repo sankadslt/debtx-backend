@@ -33,8 +33,10 @@ import {
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
   List_Case_Distribution_DRC_Summary,
-  List_ALL_Distribution_Details_By_Batch_ID,
+  // List_ALL_Distribution_Details_By_Batch_ID,
+  // AAA,
   Create_Task_For_case_distribution,
+  get_all_transaction_seq_of_batch_id,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -2614,7 +2616,9 @@ router.post(
 );
 
 
-router.post("/List_ALL_Distribution_Details_By_Batch_ID", List_ALL_Distribution_Details_By_Batch_ID);
+// router.post("/AAA", AAA);  //List_ALL_Distribution_Details_By_Batch_ID
+
+router.post("/get_all_transaction_seq_of_batch_id", get_all_transaction_seq_of_batch_id);
 
 router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
 
