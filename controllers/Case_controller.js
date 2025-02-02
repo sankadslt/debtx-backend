@@ -22,6 +22,7 @@ import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
+import Case_distribution_drc_summary from "../models/Case_distribution_drc_summary.js"
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -2207,7 +2208,78 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
 };
 
+export const List_ALL_Distribution_Details_By_Batch_ID = async (req, res) => {
+  try {
+    const { case_distribution_batch_id } = req.body;
+    
+    if (!case_distribution_batch_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id is required.",
+      });
+    }
 
+    const caseDistribution = await CaseDistribution.aggregate([
+      {
+        $match: { case_distribution_batch_id: case_distribution_batch_id }
+      },
+      {
+        $lookup: {
+          from: "Case_Distribution_DRC_Summary",
+          localField: "case_distribution_batch_id",
+          foreignField: "case_distribution_batch_id",
+          as: "drc_summary"
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          case_distribution_batch_id: 1,
+          batch_seq: 1,
+          created_dtm: 1,
+          drc_commision_rule: 1,
+          current_arrears_band: 1,
+          action_type: 1,
+          rulebase_count: 1,
+          rulebase_arrears_sum: 1,
+          case_count: { $sum: "$drc_summary.case_count" },
+          total_arrears_amount: { $sum: "$drc_summary.tot_arrease" },
+          drc_summary: {
+            $map: {
+              input: "$drc_summary",
+              as: "drc",
+              in: {
+                drc: "$$drc.drc",  // Use drc_id instead of drc (as per schema)
+                rtom: "$$drc.rtom",
+                case_count: "$$drc.case_count",
+                tot_arrease: "$$drc.tot_arrease"
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    if (caseDistribution.length == 0) {
+      return res.status(404).json({ message: "Batch not found." });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "Batch retrieved successfully.",
+      data: caseDistribution,
+    });
+
+  } catch (error) {
+    console.error("Error fetching case distribution:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Error fetching case distribution.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
 
 
