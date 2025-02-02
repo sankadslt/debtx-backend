@@ -1682,6 +1682,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
         return {
           case_id: caseData.case_id,
+          status: caseData.case_current_status,
           created_dtm: lastDrc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
@@ -1793,8 +1794,6 @@ export const listHandlingCasesByDRC = async (req, res) => {
 // };
       
 
-// Assign Recovery Officer to Cases
-
 export const assignROToCase = async (req, res) => {
   try {
     const { case_ids, ro_id } = req.body;
@@ -1826,7 +1825,7 @@ export const assignROToCase = async (req, res) => {
       });
     }
 
-    // Extract the RTOM areas the recovery officer is assigned to
+    // Extract the RTOM areas assigned to the recovery officer
     const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
 
     const errors = [];
@@ -1845,7 +1844,7 @@ export const assignROToCase = async (req, res) => {
     for (const caseData of cases) {
       const { case_id, drc, area } = caseData;
 
-      // Check if the case area matches one of the recovery officer's assigned areas
+      // Ensure the case area matches one of the recovery officer's assigned areas
       if (!assignedAreas.includes(area)) {
         errors.push({
           case_id,
@@ -1854,7 +1853,7 @@ export const assignROToCase = async (req, res) => {
         continue;
       }
 
-      // Ensure there's at least one DRC and that `expire_dtm` is null
+      // Ensure there's at least one DRC with expire_dtm as null
       const activeDrc = drc.find((d) => d.expire_dtm === null);
       if (!activeDrc) {
         errors.push({
@@ -1864,25 +1863,25 @@ export const assignROToCase = async (req, res) => {
         continue;
       }
 
+      // Ensure recovery_officers array exists in the active DRC
       const recoveryOfficers = activeDrc.recovery_officers || [];
       const lastOfficer = recoveryOfficers[recoveryOfficers.length - 1];
 
-      // Check if the last officer's remove_dtm is null
+      // If there is a last officer, ensure remove_dtm is updated
       if (lastOfficer && lastOfficer.removed_dtm === null) {
-        // Update the last officer's removed_dtm
         lastOfficer.removed_dtm = new Date();
       }
 
       // Prepare the new recovery officer object
       const newOfficer = {
         ro_id,
-        assigned_dtm: new Date(), // Current date and time
+        assigned_dtm: new Date(),
         assigned_by,
         removed_dtm: null,
         case_removal_remark: null,
       };
 
-      // Add the new officer to the array
+      // Add the new officer to the recovery_officers array
       recoveryOfficers.push(newOfficer);
 
       // Update the case data
@@ -1901,7 +1900,7 @@ export const assignROToCase = async (req, res) => {
       await Case_details.bulkWrite(updates);
     }
 
-    // Response with success and error details
+    // Respond with success and error details
     res.status(200).json({
       status: "success",
       message: "Recovery Officers assigned successfully.",
@@ -1922,6 +1921,8 @@ export const assignROToCase = async (req, res) => {
     });
   }
 };
+
+
 
 
 
@@ -2177,7 +2178,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
         const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
-        let filter = {};
+        let filter = {batch_seq: 1}; // Ensuring only batch_seq: 1 records are retrieved
 
         // If date range is provided, filter created_dtm accordingly
         if (date_from && date_to) {
@@ -2280,6 +2281,94 @@ export const List_ALL_Distribution_Details_By_Batch_ID = async (req, res) => {
     });
   }
 };
+
+const validateTaskParameters = (parameters) => {
+  const { current_arrears_band, date_from, date_to, drc_commision_rule } = parameters;
+
+  if (!current_arrears_band || typeof current_arrears_band !== "string") {
+    throw new Error("current_arrears_band is required and must be a string.");
+  }
+
+  // Only validate dates if they are not null
+  if (date_from !== null && date_from !== undefined && isNaN(new Date(date_from).getTime())) {
+    throw new Error("date_from must be a valid date string or null.");
+  }
+
+  if (date_to !== null && date_to !== undefined && isNaN(new Date(date_to).getTime())) {
+    throw new Error("date_to must be a valid date string or null.");
+  }
+
+  if (!drc_commision_rule || typeof drc_commision_rule !== "string") {
+    throw new Error("drc_commision_rule is required and must be a string.");
+  }
+
+  return true;
+};
+
+export const Create_Task_For_case_distribution = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { current_arrears_band, date_from, date_to, drc_commision_rule, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      current_arrears_band,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      drc_commision_rule,
+      Created_By,
+      task_status: "open"
+    };
+
+    validateTaskParameters(parameters);
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 13,
+      task_type: "Case_distribution_task",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
+
+
+
 
 
 
