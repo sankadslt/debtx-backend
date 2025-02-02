@@ -493,312 +493,312 @@ export const Open_No_Agent_Cases_ALL = async (req, res) => {
         error: error.message,
       });
     }
-  };
-  
-  export const Case_Abandant = async (req, res) => {
-    const { case_id, Action, Done_By } = req.body;
-  
-    try {
-      // Validate required fields
-      if (!case_id || !Action || !Done_By) {
-        return res.status(400).json({
-          status: "error",
-          message: "case_id, Action, and Done_By are required.",
-        });
-      }
-  
-      // Validate Action
-      if (Action !== "Abandaned") {
-        return res.status(400).json({
-          status: "error",
-          message: `Invalid action. Only 'Abandaned' is allowed.`,
-        });
-      }
-  
-      // Fetch the case to ensure it exists
-      const caseRecord = await Case_details.findOne({ case_id });
-  
-      if (!caseRecord) {
-        return res.status(404).json({
-          status: "error",
-          message: `Case with ID ${case_id} not found.`,
-        });
-      }
-  
-      // Check if the case is already abandoned
-      if (caseRecord.case_current_status === "Abandaned") {
-        return res.status(400).json({
-          status: "error",
-          message: `Case with ID ${case_id} is already abandoned.`,
-        });
-      }
-  
-      // Update the case details
-      const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id },
-        {
-          $set: {
-            case_current_status: "Abandaned",
-          },
-          $push: {
-            abnormal_stop: {
-              remark: `Case marked as ${Action}`,
-              done_by: Done_By,
-              done_on: moment().toDate(),
-              action: Action,
-            },
-          },
-        },
-        { new: true, runValidators: true }
-      );
+};
 
-      const mongoConnection = await mongoose.connection;
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-        { _id: "transaction_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-      const Transaction_Id = counterResult.seq;
-  
-      // Log the transaction in SystemTransaction
-      const transactionData = {
-        Transaction_Id,
-        transaction_type_id: 5,
-        parameters: {
-          case_id,
-          action: Action,
-          done_by: Done_By,
-          done_on: moment().toDate(),
-        },
-        created_dtm: moment().toDate(),
-      };
-  
-      const newTransaction = new SystemTransaction(transactionData);
-      await newTransaction.save();
-  
-      return res.status(200).json({
-        status: "success",
-        message: "Case abandoned successfully.",
-        data: {
-          case_id: updatedCase.case_id,
-          case_current_status: updatedCase.case_current_status,
-          abnormal_stop: updatedCase.abnormal_stop,
-          transaction: {
-            Transaction_Id,
-            transaction_type_id: transactionData.transaction_type_id,
-            created_dtm: transactionData.created_dtm,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Error during case abandonment:", error.message);
-      return res.status(500).json({
+export const Case_Abandant = async (req, res) => {
+  const { case_id, Action, Done_By } = req.body;
+
+  try {
+    // Validate required fields
+    if (!case_id || !Action || !Done_By) {
+      return res.status(400).json({
         status: "error",
-        message: "Failed to abandon case.",
-        errors: {
-          exception: error.message,
-        },
+        message: "case_id, Action, and Done_By are required.",
       });
     }
-  };
 
-
-  export const Approve_Case_abandant = async (req, res) => {
-    const { case_id, Approved_By } = req.body;
-  
-    try {
-      // Validate required fields
-      if (!case_id || !Approved_By) {
-        return res.status(400).json({
-          status: "error",
-          message: "case_id and Approved_By are required.",
-        });
-      }
-  
-      // Fetch the case to ensure it exists and is discarded
-      const caseRecord = await Case_details.findOne({ case_id });
-  
-      if (!caseRecord) {
-        return res.status(404).json({
-          status: "error",
-          message: `Case with ID ${case_id} not found.`,
-        });
-      }
-  
-      if (caseRecord.case_current_status !== "Abandaned") {
-        return res.status(400).json({
-          status: "error",
-          message: `Case with ID ${case_id} is not in 'Abandaned' status.`,
-        });
-      }
-  
-      // Update the case details to reflect approval
-      const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id },
-        {
-          $set: {
-            case_current_status: "Abandaned Approved",
-          },
-          $push: {
-            approve: {
-              approved_process: "Case Abandaned Approval",
-              approved_by: Approved_By,
-              approved_on: moment().toDate(),
-              remark: "Case abandaned approved successfully.",
-            },
-            abnormal_stop: {
-              remark: `Case marked as Abandaned Approved`,
-              done_by: Approved_By,
-              done_on: moment().toDate(),
-              action: 'Abandaned Approved',
-            },
-          },
-        },
-        { new: true, runValidators: true } // Return the updated document and apply validation
-      );
-  
-      return res.status(200).json({
-        status: "success",
-        message: "Case Abandaned approved successfully.",
-        data: {
-          case_id: updatedCase.case_id,
-          case_current_status: updatedCase.case_current_status,
-          approved_by: Approved_By,
-          approved_on: moment().toDate(),
-        },
-      });
-    } catch (error) {
-      console.error("Error during case discard approval:", error.message);
-      return res.status(500).json({
+    // Validate Action
+    if (Action !== "Abandaned") {
+      return res.status(400).json({
         status: "error",
-        message: "Failed to approve case discard.",
-        errors: {
-          exception: error.message,
-        },
+        message: `Invalid action. Only 'Abandaned' is allowed.`,
       });
     }
-  };
 
-  export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
-    const { from_date, to_date } = req.body;
-  
-    try {
-      // Validate date inputs
-      if (!from_date || !to_date) {
-        return res.status(400).json({
-          status: "error",
-          message: "Both from_date and to_date are required.",
-        });
-      }
-  
-      const fromDate = new Date(from_date);
-      const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
-  
-      if (isNaN(fromDate) || isNaN(toDate)) {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid date format. Use a valid ISO date format.",
-        });
-      }
-  
-      if (fromDate > toDate) {
-        return res.status(400).json({
-          status: "error",
-          message: "from_date cannot be later than to_date.",
-        });
-      }
-  
-      // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
-      // Also filter by created_dtm within the provided date range
-      const cases = await Case_details.find({
-        case_current_status: "Open No Agent",
-        //filtered_reason: { $exists: true, $ne: null, $ne: "" },
-        filtered_reason: { $type: "string", $ne: "" },
-        created_dtm: { $gte: fromDate, $lte: toDate },
+    // Fetch the case to ensure it exists
+    const caseRecord = await Case_details.findOne({ case_id });
+
+    if (!caseRecord) {
+      return res.status(404).json({
+        status: "error",
+        message: `Case with ID ${case_id} not found.`,
+      });
+    }
+
+    // Check if the case is already abandoned
+    if (caseRecord.case_current_status === "Abandaned") {
+      return res.status(400).json({
+        status: "error",
+        message: `Case with ID ${case_id} is already abandoned.`,
+      });
+    }
+
+    // Update the case details
+    const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $set: {
+          case_current_status: "Abandaned",
+        },
+        $push: {
+          abnormal_stop: {
+            remark: `Case marked as ${Action}`,
+            done_by: Done_By,
+            done_on: moment().toDate(),
+            action: Action,
+          },
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    const mongoConnection = await mongoose.connection;
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "transaction_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    const Transaction_Id = counterResult.seq;
+
+    // Log the transaction in SystemTransaction
+    const transactionData = {
+      Transaction_Id,
+      transaction_type_id: 5,
+      parameters: {
+        case_id,
+        action: Action,
+        done_by: Done_By,
+        done_on: moment().toDate(),
+      },
+      created_dtm: moment().toDate(),
+    };
+
+    const newTransaction = new SystemTransaction(transactionData);
+    await newTransaction.save();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case abandoned successfully.",
+      data: {
+        case_id: updatedCase.case_id,
+        case_current_status: updatedCase.case_current_status,
+        abnormal_stop: updatedCase.abnormal_stop,
+        transaction: {
+          Transaction_Id,
+          transaction_type_id: transactionData.transaction_type_id,
+          created_dtm: transactionData.created_dtm,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error during case abandonment:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to abandon case.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
+export const Approve_Case_abandant = async (req, res) => {
+  const { case_id, Approved_By } = req.body;
+
+  try {
+    // Validate required fields
+    if (!case_id || !Approved_By) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_id and Approved_By are required.",
+      });
+    }
+
+    // Fetch the case to ensure it exists and is discarded
+    const caseRecord = await Case_details.findOne({ case_id });
+
+    if (!caseRecord) {
+      return res.status(404).json({
+        status: "error",
+        message: `Case with ID ${case_id} not found.`,
+      });
+    }
+
+    if (caseRecord.case_current_status !== "Abandaned") {
+      return res.status(400).json({
+        status: "error",
+        message: `Case with ID ${case_id} is not in 'Abandaned' status.`,
+      });
+    }
+
+    // Update the case details to reflect approval
+    const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $set: {
+          case_current_status: "Abandaned Approved",
+        },
+        $push: {
+          approve: {
+            approved_process: "Case Abandaned Approval",
+            approved_by: Approved_By,
+            approved_on: moment().toDate(),
+            remark: "Case abandaned approved successfully.",
+          },
+          abnormal_stop: {
+            remark: `Case marked as Abandaned Approved`,
+            done_by: Approved_By,
+            done_on: moment().toDate(),
+            action: 'Abandaned Approved',
+          },
+        },
+      },
+      { new: true, runValidators: true } // Return the updated document and apply validation
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case Abandaned approved successfully.",
+      data: {
+        case_id: updatedCase.case_id,
+        case_current_status: updatedCase.case_current_status,
+        approved_by: Approved_By,
+        approved_on: moment().toDate(),
+      },
+    });
+  } catch (error) {
+    console.error("Error during case discard approval:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to approve case discard.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+export const Open_No_Agent_Cases_F1_Filter = async (req, res) => {
+  const { from_date, to_date } = req.body;
+
+  try {
+    // Validate date inputs
+    if (!from_date || !to_date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both from_date and to_date are required.",
+      });
+    }
+
+    const fromDate = new Date(from_date);
+    const toDate = new Date(new Date(to_date).setHours(23, 59, 59, 999));
+
+    if (isNaN(fromDate) || isNaN(toDate)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid date format. Use a valid ISO date format.",
+      });
+    }
+
+    if (fromDate > toDate) {
+      return res.status(400).json({
+        status: "error",
+        message: "from_date cannot be later than to_date.",
+      });
+    }
+
+    // Fetch cases where case_current_status is 'Open No Agent' and filtered_reason is not null or empty
+    // Also filter by created_dtm within the provided date range
+    const cases = await Case_details.find({
+      case_current_status: "Open No Agent",
+      //filtered_reason: { $exists: true, $ne: null, $ne: "" },
+      filtered_reason: { $type: "string", $ne: "" },
+      created_dtm: { $gte: fromDate, $lte: toDate },
+    })
+      .select({
+        case_id: 1,
+        account_no: 1,
+        customer_ref: 1,
+        arrears_amount: 1,
+        area: 1,
+        rtom: 1,
+        filtered_reason: 1,
+        created_dtm: 1,
       })
-        .select({
-          case_id: 1,
-          account_no: 1,
-          customer_ref: 1,
-          arrears_amount: 1,
-          area: 1,
-          rtom: 1,
-          filtered_reason: 1,
-          created_dtm: 1,
-        })
-        .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
-  
-      // If no cases match the criteria
-      if (!cases || cases.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: "No cases found matching the criteria.",
-        });
-      }
-  
-      return res.status(200).json({
-        status: "success",
-        message: "Filtered cases retrieved successfully.",
-        data: cases,
-      });
-    } catch (error) {
-      console.error("Error fetching filtered cases:", error.message);
-      return res.status(500).json({
+      .sort({ created_dtm: -1 }); // Sort by creation date (most recent first)
+
+    // If no cases match the criteria
+    if (!cases || cases.length === 0) {
+      return res.status(404).json({
         status: "error",
-        message: "Failed to retrieve cases.",
-        errors: {
-          exception: error.message,
-        },
+        message: "No cases found matching the criteria.",
       });
     }
-  };
 
-  export const Case_Current_Status = async (req, res) => {
-    const { Case_ID } = req.body;
+    return res.status(200).json({
+      status: "success",
+      message: "Filtered cases retrieved successfully.",
+      data: cases,
+    });
+  } catch (error) {
+    console.error("Error fetching filtered cases:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve cases.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
-    try {
-      // Validate input
-      if (!Case_ID) {
-        return res.status(400).json({
-          status: "error",
-          message: "Case_ID is required.",
-        });
-      }
+export const Case_Current_Status = async (req, res) => {
+  const { Case_ID } = req.body;
 
-      // Query the database for the case by Case_ID
-      const caseData = await Case_details.findOne({ case_id: Case_ID });
-
-      // Check if the case exists
-      if (!caseData) {
-        return res.status(404).json({
-          status: "error",
-          message: `Case with ID ${Case_ID} not found.`,
-        });
-      }
-
-      // Extract the current status
-      const { case_current_status } = caseData;
-
-      // Return the current status along with relevant case details
-      return res.status(200).json({
-        status: "success",
-        message: "Case current status retrieved successfully.",
-        data: {
-          case_id: caseData.case_id,
-          case_current_status,
-        },
-      });
-    } catch (error) {
-      console.error("Error retrieving case status:", error.message);
-      return res.status(500).json({
+  try {
+    // Validate input
+    if (!Case_ID) {
+      return res.status(400).json({
         status: "error",
-        message: "Failed to retrieve case status.",
-        errors: {
-          exception: error.message,
-        },
+        message: "Case_ID is required.",
       });
     }
-  };
+
+    // Query the database for the case by Case_ID
+    const caseData = await Case_details.findOne({ case_id: Case_ID });
+
+    // Check if the case exists
+    if (!caseData) {
+      return res.status(404).json({
+        status: "error",
+        message: `Case with ID ${Case_ID} not found.`,
+      });
+    }
+
+    // Extract the current status
+    const { case_current_status } = caseData;
+
+    // Return the current status along with relevant case details
+    return res.status(200).json({
+      status: "success",
+      message: "Case current status retrieved successfully.",
+      data: {
+        case_id: caseData.case_id,
+        case_current_status,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving case status:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case status.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
 // export const assignROToCase = async (req, res) => {
 //   try {
@@ -910,149 +910,142 @@ export const Open_No_Agent_Cases_ALL = async (req, res) => {
 //   }
 // };
 
-  export const Case_Status = async (req, res) => {
-    const { Case_ID } = req.body;
+export const Case_Status = async (req, res) => {
+  const { Case_ID } = req.body;
 
-    try {
-      // Validate input
-      if (!Case_ID) {
-        return res.status(400).json({
-          status: "error",
-          message: "Case_ID is required.",
-        });
-      }
-
-      // Query the database for the case by Case_ID
-      const caseData = await Case_details.findOne({ case_id: Case_ID });
-
-      // Check if the case exists
-      if (!caseData) {
-        return res.status(404).json({
-          status: "error",
-          message: `Case with ID ${Case_ID} not found.`,
-        });
-      }
-
-      // Extract the case_status array
-      const { case_status } = caseData;
-
-      // Check if the case_status array exists and has entries
-      if (!case_status || case_status.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: "No case status found for the given case.",
-        });
-      }
-
-      // Find the latest case status by sorting the array by created_dtm in descending order
-      const latestStatus = case_status.reduce((latest, current) =>
-        new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
-      );
-
-      // Return the latest case status along with relevant case details
-      return res.status(200).json({
-        status: "success",
-        message: "Latest case status retrieved successfully.",
-        data: {
-          case_id: caseData.case_id,
-          case_status: latestStatus.case_status,
-          status_reason: latestStatus.status_reason,
-          created_dtm: latestStatus.created_dtm,
-          created_by: latestStatus.created_by,
-          notified_dtm: latestStatus.notified_dtm,
-          expire_dtm: latestStatus.expire_dtm,
-        },
-      });
-    } catch (error) {
-      console.error("Error retrieving case status:", error.message);
-      return res.status(500).json({
+  try {
+    // Validate input
+    if (!Case_ID) {
+      return res.status(400).json({
         status: "error",
-        message: "Failed to retrieve case status.",
-        errors: {
-          exception: error.message,
-        },
+        message: "Case_ID is required.",
       });
     }
-  };
 
-  export const Case_List = async (req, res) => {
-    const { account_no } = req.body;
+    // Query the database for the case by Case_ID
+    const caseData = await Case_details.findOne({ case_id: Case_ID });
 
-    try {
-      // Validate input
-      if (!account_no) {
-        return res.status(400).json({
-          status: "error",
-          message: "Account number is required.",
-        });
-      }
-
-      // Query the database for all cases with the specified account_no
-      const caseData = await Case_details.find(
-        { account_no },
-        {
-          _id: 1,
-          case_id: 1,
-          incident_id: 1,
-          account_no: 1,
-          customer_ref: 1,
-          created_dtm: 1,
-          implemented_dtm: 1,
-          area: 1,
-          rtom: 1,
-          drc_selection_rule_base: 1,
-          current_selection_logic: 1,
-          bss_arrears_amount: 1,
-          current_arrears_amount: 1,
-          action_type: 1,
-          selection_rule: 1,
-          last_payment_date: 1,
-          monitor_months: 1,
-          last_bss_reading_date: 1,
-          commission: 1,
-          case_current_status: 1,
-          filtered_reason: 1,
-          "case_status.case_status": 1,
-          "case_status.status_reason": 1,
-          "case_status.created_dtm": 1,
-          "case_status.created_by": 1,
-          "case_status.notified_dtm": 1,
-          "case_status.expire_dtm": 1,
-        }
-      );
-
-      // Check if any cases were found
-      if (!caseData || caseData.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: `No cases found for account number ${account_no}.`,
-        });
-      }
-
-      // Return the filtered case details
-      return res.status(200).json({
-        status: "success",
-        message: "Cases retrieved successfully.",
-        data: caseData,
-      });
-    } catch (error) {
-      console.error("Error retrieving cases:", error.message);
-      return res.status(500).json({
+    // Check if the case exists
+    if (!caseData) {
+      return res.status(404).json({
         status: "error",
-        message: "Failed to retrieve cases.",
-        errors: {
-          exception: error.message,
-        },
+        message: `Case with ID ${Case_ID} not found.`,
       });
     }
-  };
 
+    // Extract the case_status array
+    const { case_status } = caseData;
 
+    // Check if the case_status array exists and has entries
+    if (!case_status || case_status.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No case status found for the given case.",
+      });
+    }
 
+    // Find the latest case status by sorting the array by created_dtm in descending order
+    const latestStatus = case_status.reduce((latest, current) =>
+      new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
+    );
 
+    // Return the latest case status along with relevant case details
+    return res.status(200).json({
+      status: "success",
+      message: "Latest case status retrieved successfully.",
+      data: {
+        case_id: caseData.case_id,
+        case_status: latestStatus.case_status,
+        status_reason: latestStatus.status_reason,
+        created_dtm: latestStatus.created_dtm,
+        created_by: latestStatus.created_by,
+        notified_dtm: latestStatus.notified_dtm,
+        expire_dtm: latestStatus.expire_dtm,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving case status:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case status.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
+export const Case_List = async (req, res) => {
+  const { account_no } = req.body;
 
+  try {
+    // Validate input
+    if (!account_no) {
+      return res.status(400).json({
+        status: "error",
+        message: "Account number is required.",
+      });
+    }
 
+    // Query the database for all cases with the specified account_no
+    const caseData = await Case_details.find(
+      { account_no },
+      {
+        _id: 1,
+        case_id: 1,
+        incident_id: 1,
+        account_no: 1,
+        customer_ref: 1,
+        created_dtm: 1,
+        implemented_dtm: 1,
+        area: 1,
+        rtom: 1,
+        drc_selection_rule_base: 1,
+        current_selection_logic: 1,
+        bss_arrears_amount: 1,
+        current_arrears_amount: 1,
+        action_type: 1,
+        selection_rule: 1,
+        last_payment_date: 1,
+        monitor_months: 1,
+        last_bss_reading_date: 1,
+        commission: 1,
+        case_current_status: 1,
+        filtered_reason: 1,
+        "case_status.case_status": 1,
+        "case_status.status_reason": 1,
+        "case_status.created_dtm": 1,
+        "case_status.created_by": 1,
+        "case_status.notified_dtm": 1,
+        "case_status.expire_dtm": 1,
+      }
+    );
+
+    // Check if any cases were found
+    if (!caseData || caseData.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `No cases found for account number ${account_no}.`,
+      });
+    }
+
+    // Return the filtered case details
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: caseData,
+    });
+  } catch (error) {
+    console.error("Error retrieving cases:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve cases.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
 
 
@@ -1854,11 +1847,11 @@ export const assignROToCase = async (req, res) => {
       }
 
       // Ensure there's at least one DRC with expire_dtm as null
-      const activeDrc = drc.find((d) => d.expire_dtm === null);
+      const activeDrc = drc.find((d) => d.removed_dtm === null);
       if (!activeDrc) {
         errors.push({
           case_id,
-          message: "No active DRC with expire_dtm as null found.",
+          message: "No active DRC with removed_dtm as null found.",
         });
         continue;
       }
@@ -2205,7 +2198,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
 };
 
-//this function give the data wit RTOm 
+//this function give the data wit RTOM
 export const AAA = async (req, res) => {  
   try {
     const { case_distribution_batch_id } = req.body;
