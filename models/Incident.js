@@ -70,7 +70,7 @@ const incidentSchema = new Schema(
         Arrears: { type: Number, required: true },
         Created_By: { type: String, required: true },
         Created_Dtm: { type: Date, required: true },
-        Incident_Status: { type: String, enum: ['Incident Open', 'Incident Reject'], required: true },
+        Incident_Status: { type: String, enum: ['Incident Open', 'Incident Reject','Reject Pending', 'Open No Agent'], required: true },
         Incident_Status_Dtm: { type: Date, required: true },
         Status_Description: { type: String, required: true },
         File_Name_Dump: { type: String, required: true },

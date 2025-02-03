@@ -22,11 +22,83 @@ List_distribution_ready_incidents,
 F1_filtered_Incidents_group_by_arrears_band,
 distribution_ready_incidents_group_by_arrears_band,
 
-
+Forward_F1_filtered_incident
 
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
+
+/**
+ * @swagger
+ * /api/incident/Forward_F1_filtered_incident:
+ *   post:
+ *     summary: Update incident status to "Open No Agent"
+ *     description: Updates the status of an incident with the specified ID if its current status is "Reject Pending".
+ *     tags:
+ *       - Incident Management
+ *     parameters:
+ *       - in: query
+ *         name: incidentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "12345"
+ *         description: The unique identifier of the incident to be updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               incidentId:
+ *                 type: string
+ *                 description: The ID of the incident to be updated.
+ *                 example: "12345"
+ *     responses:
+ *       200:
+ *         description: Incident status updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident status updated successfully."
+ *       400:
+ *         description: Invalid input or business rule violation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident status must be 'Reject Pending' to update."
+ *       404:
+ *         description: Incident not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Incident not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+router.post("/Forward_F1_filtered_incident", Forward_F1_filtered_incident);
+
 
 router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Details);
 
@@ -1309,7 +1381,9 @@ router.post("/total_incidents_CPE_Collect", total_incidents_CPE_Collect);
  *                       type: string
  *                       example: "An unexpected error occurred while processing the request."
  */
-router.post("/total_incidents_Direct_LOD", total_incidents_Direct_LOD);/**
+router.post("/total_incidents_Direct_LOD", total_incidents_Direct_LOD);
+
+/**
  * @swagger
  * /api/incident/F1_filtered_Incidents_group_by_arrears_band:
  *   post:
@@ -1374,7 +1448,6 @@ router.post("/total_incidents_Direct_LOD", total_incidents_Direct_LOD);/**
  *                       type: string
  *                       example: "An unexpected error occurred while processing the request."
  */
-
 router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents_group_by_arrears_band);
 
 /**
@@ -1442,7 +1515,6 @@ router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents
  *                       type: string
  *                       example: "An unexpected error occurred while processing the request."
  */
-
 router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
 
 export default router;

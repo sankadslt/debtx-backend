@@ -1185,3 +1185,40 @@ export const total_incidents_Direct_LOD = async (req, res) => {
 
 
 
+export const Forward_F1_filtered_incident = async (req, res) => {
+  const { incidentId } = req.body;
+
+  if (!incidentId) {
+      return res.status(400).json({ message: 'Incident ID is required' });
+  }
+
+  try {
+    
+      const incident = await Incident.findOne({ Incident_Id: incidentId });
+
+      if (!incident) {
+          return res.status(404).json({ message: 'Incident not found' });
+      }
+
+     
+      if (incident.Incident_Status !== 'Reject Pending') {
+          return res.status(400).json({ message: 'Incident status must be "Reject Pending" to update' });
+      }
+
+      
+      await Incident.updateOne(
+          { Incident_Id: incidentId },
+          {
+              $set: {
+                  Incident_Status: 'Open No Agent',
+                  Incident_Status_Dtm: new Date(),
+              },
+          }
+      );
+
+      return res.status(200).json({ message: 'Incident status updated successfully' });
+  } catch (error) {
+      console.error('Error updating incident status:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+  }
+};
