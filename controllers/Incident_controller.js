@@ -510,54 +510,58 @@ export const Reject_Case = async (req, res) => {
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
-  const { file_upload_seq, File_Name, File_Type, } = params;
-
+  const { file_upload_seq, File_Name, File_Type } = params;
   if (!file_upload_seq || !File_Name || !File_Type) {
-    throw new Error("file_upload_seq, File_Name, File_Type, are required parameters for Create_Task.");
+    throw new Error("file_upload_seq, File_Name, File_Type are required parameters for Create_Task.");
   }
   return true;
 };
+
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
 
+  if (!File_Name || !File_Type || !File_Content || !Created_By) {
+    return res.status(400).json({
+      status: "error",
+      message: "All fields are required.",
+    });
+  }
+
+  const validFileTypes = [
+    "Incident Creation", "Incident Reject", "Distribute to DRC",
+    "Validity Period Extend", "Hold", "Discard"
+  ];
+
+
+  if (!validFileTypes.includes(File_Type)) {
+    return res.status(400).json({
+      status: "error",
+      message: `Invalid File Type. Allowed values are: ${validFileTypes.join(", ")}.`,
+    });
+  }
+
+  const session = await mongoose.startSession(); // Start a transaction session
+  session.startTransaction();
+
   try {
-    if (!File_Name || !File_Type || !File_Content || !Created_By) {
-      return res.status(400).json({
-        status: "error",
-        message: "All fields are required.",
-      });
-    }
-
-    const validFileTypes = [
-      "Incident Creation", "Incident Reject", "Distribute to DRC", 
-      "Validity Period Extend", "Hold", "Discard"
-    ];
-
-    if (!validFileTypes.includes(File_Type)) {
-      return res.status(400).json({
-        status: "error",
-        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(
-          ", "
-        )}.`,
-      });
-    }
-
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "file_upload_seq" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
+
+
+    // Increment the counter for file_upload_seq
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "file_upload_seq" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
 
     const file_upload_seq = counterResult.seq;
 
+    // File upload handling
     const uploadDir = path.join(__dirname, "../uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-
     const uploadPath = path.join(uploadDir, File_Name);
     fs.writeFileSync(uploadPath, File_Content, "utf8");
 
@@ -565,9 +569,9 @@ export const Upload_DRS_File = async (req, res) => {
     if (!fs.existsSync(forwardedFileDir)) {
       fs.mkdirSync(forwardedFileDir, { recursive: true });
     }
-
     const forwardedFilePath = path.join(forwardedFileDir, File_Name);
 
+    // Save file upload log within the transaction
     const newFileLog = new FileUploadLog({
       file_upload_seq,
       File_Name,
@@ -579,7 +583,9 @@ export const Upload_DRS_File = async (req, res) => {
       File_Status: "Open",
     });
 
-    await newFileLog.save();
+    await newFileLog.save({ session });
+
+    // Create task within the transaction
     const taskData = {
       Template_Task_Id: 1,
       task_type: "Data upload from file",
@@ -589,8 +595,13 @@ export const Upload_DRS_File = async (req, res) => {
       Created_By,
       task_status: "open",
     };
+
     validateCreateTaskParametersForUploadDRSFile(taskData);
-    await createTaskFunction(taskData);
+    await createTaskFunction(taskData); // Ensure this supports transactions if needed
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(201).json({
       status: "success",
@@ -607,6 +618,9 @@ export const Upload_DRS_File = async (req, res) => {
       },
     });
   } catch (error) {
+    await session.abortTransaction(); // Rollback changes
+    session.endSession();
+
     console.error("Error during file upload and task creation:", error.message);
     return res.status(500).json({
       status: "error",
