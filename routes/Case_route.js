@@ -31,7 +31,12 @@ import {
   get_count_by_drc_commision_rule,
   getAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
-  // Case_Distribution_Among_Agents,
+  Case_Distribution_Among_Agents,
+  List_Case_Distribution_DRC_Summary,
+  // List_ALL_Distribution_Details_By_Batch_ID,
+  // AAA,
+  Create_Task_For_case_distribution,
+  get_all_transaction_seq_of_batch_id,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -797,14 +802,14 @@ router.post("/Case_Current_Status", Case_Current_Status);
  * tags:
  *   - name: Case Management
  *     description: Endpoints related to managing and assigning Recovery Officers to cases.
- * 
+ *
  * /api/case/Assign_RO_To_Case:
  *   patch:
  *     summary: Assign a Recovery Officer to cases.
  *     description: |
- *       This endpoint assigns a Recovery Officer to multiple cases. The Recovery Officer must be assigned to at least one RTOM area 
+ *       This endpoint assigns a Recovery Officer to multiple cases. The Recovery Officer must be assigned to at least one RTOM area
  *       that matches the case's area. If a case's area does not match any of the officer's assigned RTOMs, it will not be updated.
- *       
+ *
  *       | Version | Date       | Description                     | Changed By         |
  *       |---------|------------|---------------------------------|--------------------|
  *       | 01      | 2025-Jan-31| Assign Recovery Officer to cases | Sasindu Srinayaka  |
@@ -934,14 +939,14 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  * tags:
  *   - name: Case Management
  *     description: Endpoints related to handling cases by DRC.
- * 
+ *
  * /api/case/List_Handling_Cases_By_DRC:
  *   post:
  *     summary: Retrieve cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC). 
+ *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC).
  *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Jan-31| List handling cases by DRC        | Sasindu Srinayaka  |
@@ -2483,7 +2488,139 @@ router.post(
  *                   example: "An error occurred while creating the task: {error_message}"
  */
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
-router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
+
+/**
+ * @swagger
+ * /api/List_Case_Distribution_DRC_Summary:
+ *   post:
+ *     summary: C-1P21 List Case Distribution DRC Summary
+ *     description: |
+ *       Retrieves a summary of case distributions based on date range, arrears band, and commission rule.
+ *
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Jan-28 | List Case Distribution DRC Summary        | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering case distributions.
+ *                 example: "2025-01-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering case distributions.
+ *                 example: "2025-01-31"
+ *               arrears_band:
+ *                 type: string
+ *                 description: The arrears band to filter cases.
+ *                 example: "5000-10000"
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule for filtering cases.
+ *                 example: "PEO TV"
+ *     responses:
+ *       200:
+ *         description: Case distribution summary retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     description: Unique identifier for the record.
+ *                     example: "65a1b2c3d4e5f67890123456"
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date and time of case distribution creation.
+ *                     example: "2025-01-15T10:30:00Z"
+ *                   arrears_band:
+ *                     type: string
+ *                     description: The arrears band associated with the case distribution.
+ *                     example: "5000-10000"
+ *                   drc_commision_rule:
+ *                     type: string
+ *                     description: The commission rule applied to the case distribution.
+ *                     example: "PEO TV"
+ *                   total_case_count:
+ *                     type: integer
+ *                     description: Total number of cases distributed.
+ *                     example: 15
+ *                   total_sum_of_arrears:
+ *                     type: number
+ *                     format: float
+ *                     description: Total sum of arrears for distributed cases.
+ *                     example: 250000.75
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Invalid date range provided.
+ *       404:
+ *         description: No case distributions found matching the criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No case distributions found for the provided criteria.
+ *       500:
+ *         description: Internal server error - Failed to fetch data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Server Error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed error message.
+ */
+
+router.post(
+  "/List_Case_Distribution_DRC_Summary",
+  List_Case_Distribution_DRC_Summary
+);
+
+
+// router.post("/AAA", AAA);  //List_ALL_Distribution_Details_By_Batch_ID
+
+router.post("/get_all_transaction_seq_of_batch_id", get_all_transaction_seq_of_batch_id);
+
+router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
 
 
 export default router;

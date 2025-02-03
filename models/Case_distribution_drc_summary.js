@@ -4,9 +4,9 @@ import { Schema, model } from 'mongoose';
 const caseDistributionDRCSummarySchema = new Schema({
   case_distribution_batch_id: { type: Number, required: true },
   created_dtm: { type: Date, required: true },
-  drc_id: {type:Number, required:true},
+  drc: {type:String, required:true},
   rtom: {type:String, required:true},
-  case_count: {type:String, required:true},
+  case_count: {type:Number, required:true},
   tot_arrease: {type:Number, required:true},
   month_1_sc: {type:Number, default:null},
   month_2_sc: {type:Number, default:null},

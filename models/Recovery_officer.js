@@ -212,7 +212,7 @@ const remarkSchema = new Schema({
 const roStatusSchema = new Schema({
     status: {
         type: String,
-        enum: ['Active', 'Inactive', 'Pending'],
+        enum: ['Active', 'Inactive', 'Pending','Terminate'],
         required: true,
     },
     ro_status_date: {
@@ -232,6 +232,10 @@ const roSchema = new Schema(
             type: Number,
             required: true,
             unique: true,
+        },
+        user_id: {
+            type:String,
+            // required:true,
         },
         ro_name: {
             type: String,

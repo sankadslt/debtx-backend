@@ -40,7 +40,7 @@
 
 
 import { Schema, model } from 'mongoose';
-
+ 
 // Define the crd_distribution_status schema
 const crdDistributionStatusSchema = new Schema({
   crd_distribution_status: { 
@@ -50,6 +50,20 @@ const crdDistributionStatusSchema = new Schema({
   },
   created_dtm: { type: Date, required: true }
 });
+
+// Define the array_of_distribution schema with two possible structures
+const arrayOfDistributionSchema = new Schema(
+  {
+    DRC: { type: String }, 
+    Count: { type: Number }, 
+
+    drc_name: { type: String }, 
+    rtom: { type: String },
+    case_count: { type: Number },
+    sum_of_arrears: { type: Number }
+  },
+  { _id: false }
+);
 
 // Define the main schema
 const caseDistributionSchema = new Schema(
@@ -64,29 +78,22 @@ const caseDistributionSchema = new Schema(
       required: true 
     },
     drc_commision_rule: { type: String, required: true },
-    arrears_band: { type: String, required: true }, // Added arrears_band field
+    current_arrears_band: { type: String, required: true }, // Added arrears_band field
 
-    array_of_distribution: [
-      {
-        drc_name: { type: String, required: true },
-        rtom: { type: String, required: true },
-        case_count: { type: Number, required: true },
-        sum_of_arrears: { type: Number, required: true }
-      }
-    ],
+    array_of_distribution: [arrayOfDistributionSchema],
 
-    selection_logic: { type: String, required: true },
+    // selection_logic: { type: String, required: true },
     rulebase_count: { type: Number, required: true },
     rulebase_arrears_sum: { type: Number, required: true },
 
     // Move crd_distribution_status here
     crd_distribution_status: [crdDistributionStatusSchema],
 
-    forward_for_approvals_on: { type: Date },
-    approved_by: { type: String },
-    approved_on: { type: Date },
-    proceed_on: { type: Date },
-    tmp_record_remove_on: { type: Date }
+    forward_for_approvals_on: { type: Date, default: null  },
+    approved_by: { type: String, default: null  },
+    approved_on: { type: Date, default: null  },
+    proceed_on: { type: Date, default: null  },
+    tmp_record_remove_on: { type: Date, default: null  }
   },
   {
     collection: 'Case_distribution_drc_transactions', // Collection name

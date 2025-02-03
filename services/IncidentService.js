@@ -1,4 +1,6 @@
+
 import axios from 'axios';
+
 
 const API_BASE_URL = '/api/incident';
 
@@ -19,12 +21,11 @@ export const fetchIncidents = async (filters) => {
   }
 };
 
-// Example implementation for `Request_Incident_External_information`
-export const Request_Incident_External_information = async (incidentId) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/External_Information/${incidentId}`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
-};
+export const Request_Incident_External_information = async ({ Account_Num, Monitor_Months }) => {
+    
+    console.log("Requesting external information...");
+    console.log("Account_Num:", Account_Num, "Monitor_Months:", Monitor_Months);
+  
+    // Simulate a successful API response
+    return { success: true, message: "External information requested successfully." };
+  };
