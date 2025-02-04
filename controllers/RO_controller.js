@@ -90,23 +90,83 @@ export const Change_RO_Status = async (req, res) => {
   // }
 };
 
-export const Suspend_Ro = async (req, res) =>{
-  const { ro_id, ro_remark, } = req.body;
-  const remark_edit_by = "Admin";
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const ro_end_date = `${year}-${month}-${day}`;
+// export const Suspend_Ro = async (req, res) =>{
+//   const { ro_id, ro_remark, } = req.body;
+//   const remark_edit_by = "Admin";
+//   const today = new Date();
+//   const year = today.getFullYear();
+//   const month = String(today.getMonth() + 1).padStart(2, '0');
+//   const day = String(today.getDate()).padStart(2, '0');
+//   const ro_end_date = `${year}-${month}-${day}`;
 
-  if (!ro_id || !ro_remark || !ro_end_date) {
-    return res.status(400).json({
+//   if (!ro_id || !ro_remark || !ro_end_date) {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "All field are required",
+//     });
+//   };
+
+//   try{
+//     const filter = { ro_id: ro_id };
+//     const update = {
+//       $set: {
+//         ro_end_date: ro_end_date,
+//       },
+//       $push: {
+//         remark: {
+//           remark: ro_remark,
+//           remark_date: ro_end_date,
+//           remark_edit_by: remark_edit_by,
+//         },
+//       },
+//     };
+//     const updatedResult = await Recovery_officer.updateOne(filter, update);
+    
+//     if (updatedResult.matchedCount === 0) {
+//       console.log("Recovery Officer not found in MongoDB:", updatedResult);
+//       return res.status(400).json({
+//             status: "error",
+//             message: "Recovery Officer not found in MongoDB",
+//       });
+//     }
+//     return res.status(200).json({
+//       status: "success",
+//       message: "The Recovery Officer has been suspended..",
+//       data: updatedResult,
+//     });
+//   }catch (mongoError) {
+//       console.error("Error updating MongoDB:", mongoError.message);
+//   }
+// };
+
+//Suspend RTOM From RO Officer Profile details
+
+export const Suspend_Ro = async (req, res) => {
+  const { ro_id, remark, remark_edit_by } = req.body;
+  const ro_status = "Terminate";
+  const ro_end_date = new Date();
+
+  if (!ro_id || !remark) {
+    return res.status(400).json({ 
       status: "error",
-      message: "All field are required",
+      message: "All fields are required",
     });
-  };
+  }
 
-  try{
+  try {
+    // Check if RTOM already terminated
+    const existingRo = await Recovery_officer.findOne({ ro_id });
+
+    if (existingRo && existingRo.ro_status.length > 0) {
+      const lastStatus = existingRo.ro_status[existingRo.ro_status.length - 1];
+      if (lastStatus.status === "Terminate") {
+        return res.status(400).json({
+          status: "error",
+          message: "RO has already been terminated and cannot be reactivated.",
+        });
+      }
+    }
+
     const filter = { ro_id: ro_id };
     const update = {
       $set: {
@@ -114,32 +174,42 @@ export const Suspend_Ro = async (req, res) =>{
       },
       $push: {
         remark: {
-          remark: ro_remark,
+          remark: remark,
           remark_date: ro_end_date,
-          remark_edit_by: remark_edit_by,
+          remark_edit_by: remark_edit_by || "system",
         },
+        ro_status: {
+          status: ro_status,
+          ro_status_date: ro_end_date,
+          ro_status_edit_by: remark_edit_by || "system"
+        }
       },
     };
+
     const updatedResult = await Recovery_officer.updateOne(filter, update);
-    
+
     if (updatedResult.matchedCount === 0) {
-      console.log("Recovery Officer not found in MongoDB:", updatedResult);
+      console.log("RO not found in Database:", updatedResult);
       return res.status(400).json({
-            status: "error",
-            message: "Recovery Officer not found in MongoDB",
+        status: "error",
+        message: "RO not found in Database",
       });
     }
+
     return res.status(200).json({
       status: "success",
-      message: "The Recovery Officer has been suspended..",
+      message: "The RO has been suspended.",
       data: updatedResult,
     });
-  }catch (mongoError) {
-      console.error("Error updating MongoDB:", mongoError.message);
+  } catch (mongoError) {
+    console.error("Error updating MongoDB:", mongoError.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
   }
 };
 
-//Suspend RTOM From RO Officer Profile details
 export const Suspend_RTOM_From_RO = async (req, res) => {
   const { ro_id, rtom_id} = req.body; 
   const rtom_status = "Inactive";
@@ -802,10 +872,6 @@ export const getRODetailsByDrcID = async (req, res) => {
     });
   }
 };
-
-
-
-
 
 
 
