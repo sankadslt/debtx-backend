@@ -8,7 +8,8 @@ import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
 import { createTaskFunction } from "../services/TaskService.js";
-import System_Case_User_Interaction from "../models/User_Interaction.js";
+import User_Interaction_Log from "../models/User_Interaction_Log.js";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
 import Incident from "../models/Incident.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -350,20 +351,169 @@ export const Create_Incident = async (req, res) => {
 
 
 
+// export const Reject_Case = async (req, res) => {
+//   try {
+//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
+
+//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
+//       return res.status(400).json({
+//         message:
+//           "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
+//       });
+//     }
+
+//     const incidentUpdateResult = await Incident.findOneAndUpdate(
+//       { Incident_Id },
+//       {
+//         $set: {
+//           Incident_Status: "Incident Reject",
+//           Rejected_Reason: Reject_Reason,
+//           Rejected_By,
+//           Rejected_Dtm: new Date(),
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     if (!incidentUpdateResult) {
+//       return res.status(404).json({ message: "Incident not found." });
+//     }
+
+//     const caseUserInteractionUpdateResult =
+//       await System_Case_User_Interaction.findOneAndUpdate(
+//         { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
+//         {
+//           $set: {
+//             User_Interaction_status: "close",
+//             User_Interaction_status_changed_dtm: new Date(),
+//           },
+//         },
+//         { new: true }
+//       );
+
+//     if (!caseUserInteractionUpdateResult) {
+//       return res
+//         .status(404)
+//         .json({ message: "System Case User Interaction not found." });
+//     }
+
+//     res.status(200).json({
+//       message: "Incident rejected and status updated successfully.",
+//       incident: incidentUpdateResult,
+//       caseUserInteraction: caseUserInteractionUpdateResult,
+//     });
+//   } catch (error) {
+//     console.error("Error rejecting the case:", error);
+//     res
+//       .status(500)
+//       .json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
 
 
+export const Reject_Case = async (req, res) => {
+  try {
+    const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
 
+    // Validate required fields
+    if (!Incident_Id || !Reject_Reason || !Rejected_By) {
+      return res.status(400).json({
+        message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
+      });
+    }
 
+    // Start a session for the transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Update Incident status
+      const incidentUpdateResult = await Incident.findOneAndUpdate(
+        { Incident_Id: Number(Incident_Id) }, // Ensure correct type
+        {
+          $set: {
+            Incident_Status: "Incident Reject",
+            Rejected_Reason: Reject_Reason,
+            Rejected_By,
+            Rejected_Dtm: new Date(),
+          },
+        },
+        { new: true, session }
+      );
+
+      if (!incidentUpdateResult) {
+        throw new Error("Incident not found or failed to update.");
+      }
+
+      // Update User_Interaction_Log
+      const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
+        {
+          "parameters.Incident_Id": String(Incident_Id), // Ensure type matches the stored data
+          Templete_User_Interaction_ID: 5,
+          User_Interaction_Type: "Validate Incident",
+        },
+        {
+          $set: {
+            User_Interaction_Status: "close",
+            User_Interaction_Status_DTM: new Date(), // Ensure this field is updated
+            Rejected_Reason: Reject_Reason,
+            Rejected_By,
+          },
+        },
+        { new: true, session }
+      );
+
+      if (!logUpdateResult) {
+        throw new Error("No matching record found in User_Interaction_Log.");
+      }
+
+      // Delete from User_Interaction_Progress_Log
+      const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
+        {
+          "parameters.Incident_Id": String(Incident_Id), // Ensure type matches
+          Templete_User_Interaction_ID: 5,
+          User_Interaction_Type: "Validate Incident",
+        },
+        { session }
+      );
+
+      if (!progressLogDeleteResult) {
+        throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
+      }
+
+      // Commit the transaction
+      await session.commitTransaction();
+
+      // Return success response
+      res.status(200).json({
+        message: "Incident rejected and status updated successfully.",
+        updatedLog: logUpdateResult,
+      });
+    } catch (innerError) {
+      // Abort the transaction on error
+      await session.abortTransaction();
+      console.error("Inner Transaction Error:", innerError.message);
+      throw innerError;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    console.error("Error rejecting the case:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 // export const Reject_Case = async (req, res) => {
-//   const { Incident_Id, Rejected_Reason, Rejected_By} = req.body;
-
 //   try {
+//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
+
 //     // Validate required fields
-//     if (!Incident_Id || !Rejected_Reason || !Rejected_By ) {
+//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
 //       return res.status(400).json({
-//         status: "error",
-//         message: "Incident_Id, Rejected_Reason, Rejected_By are required.",
+//         message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
 //       });
 //     }
 
@@ -382,9 +532,9 @@ export const Create_Incident = async (req, res) => {
 //         {
 //           $set: {
 //             Incident_Status: "Incident Reject",
-//             Rejected_Reason,
+//             Rejected_Reason: Reject_Reason,
 //             Rejected_By,
-//             Rejected_Dtm: moment().toDate(),
+//             Rejected_Dtm: new Date(),
 //           },
 //         },
 //         { new: true, session }
@@ -396,117 +546,65 @@ export const Create_Incident = async (req, res) => {
 //         throw new Error("Incident not found or failed to update.");
 //       }
 
-//       // Update UserInteraction status
-//       const interactionUpdateResult = await System_Case_User_Interaction.findOneAndUpdate(
-//         { Case_User_Interaction_id: 5, "parameters.Incident_Id": String(Incident_Id) },
+//       // Update User_Interaction_Log
+//       const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
+//         {
+//           "parameters.Incident_Id": Incident_Id,
+//           Templete_User_Interaction_ID: 5,
+//           User_Interaction_Type: "Validate Incident",
+//         },
 //         {
 //           $set: {
-//             status: "close",
-//             status_changed_dtm: new Date(),
-//             status_description: "Incident Rejected",
+//             User_Interaction_Status: "close",
+//             User_Interaction_Status_DTM: new Date(),
+//             Rejected_Reason: Reject_Reason,
+//             Rejected_By,
 //           },
 //         },
 //         { new: true, session }
 //       );
 
-//       console.log('Interaction Update Result:', interactionUpdateResult);
-
-//       if (!interactionUpdateResult) {
-//         throw new Error("User Interaction not found or failed to update.");
+//       if (!logUpdateResult) {
+//         throw new Error("No matching record found in User_Interaction_Log.");
 //       }
 
-//       // Commit transaction
-//       await session.commitTransaction();
-//       session.endSession();
-
-//       // Respond with success
-//       return res.status(200).json({
-//         status: "success",
-//         message: "Incident rejected successfully.",
-//         data: {
-//           incident: incidentUpdateResult,
-//           interaction: interactionUpdateResult,
+//       // Delete from User_Interaction_Progress_Log
+//       const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
+//         {
+//           "parameters.Incident_Id": Incident_Id,
+//           Templete_User_Interaction_ID: 5,
+//           User_Interaction_Type: "Validate Incident",
 //         },
+//         { session }
+//       );
+
+//       if (!progressLogDeleteResult) {
+//         throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
+//       }
+
+//       // Commit the transaction
+//       await session.commitTransaction();
+
+//       // Return success response
+//       res.status(200).json({
+//         message: "Incident rejected and status updated successfully.",
+//         updatedLog: logUpdateResult,
 //       });
-//     } catch (transactionError) {
-//       // Rollback transaction on error
+//     } catch (innerError) {
+//       // Abort the transaction on error
 //       await session.abortTransaction();
+//       throw innerError;
+//     } finally {
 //       session.endSession();
-//       console.error("Transaction error:", transactionError);
-//       throw transactionError;
 //     }
 //   } catch (error) {
-//     // Log unexpected errors and respond
-//     console.error("Error in Reject_Case:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to reject incident.",
-//       errors: {
-//         exception: error.message,
-//       },
+//     console.error("Error rejecting the case:", error);
+//     res.status(500).json({
+//       message: "Internal Server Error",
+//       error: error.message,
 //     });
 //   }
 // };
-
-export const Reject_Case = async (req, res) => {
-  try {
-    const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-    if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-      return res.status(400).json({
-        message:
-          "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-      });
-    }
-
-    const incidentUpdateResult = await Incident.findOneAndUpdate(
-      { Incident_Id },
-      {
-        $set: {
-          Incident_Status: "Incident Reject",
-          Rejected_Reason: Reject_Reason,
-          Rejected_By,
-          Rejected_Dtm: new Date(),
-        },
-      },
-      { new: true }
-    );
-
-    if (!incidentUpdateResult) {
-      return res.status(404).json({ message: "Incident not found." });
-    }
-
-    const caseUserInteractionUpdateResult =
-      await System_Case_User_Interaction.findOneAndUpdate(
-        { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-        {
-          $set: {
-            User_Interaction_status: "close",
-            User_Interaction_status_changed_dtm: new Date(),
-          },
-        },
-        { new: true }
-      );
-
-    if (!caseUserInteractionUpdateResult) {
-      return res
-        .status(404)
-        .json({ message: "System Case User Interaction not found." });
-    }
-
-    res.status(200).json({
-      message: "Incident rejected and status updated successfully.",
-      incident: incidentUpdateResult,
-      caseUserInteraction: caseUserInteractionUpdateResult,
-    });
-  } catch (error) {
-    console.error("Error rejecting the case:", error);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
-  }
-};
-
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
