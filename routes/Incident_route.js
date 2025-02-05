@@ -1094,7 +1094,7 @@ router.post("/List_incidents_Direct_LOD",List_incidents_Direct_LOD);
 
 /**
  * @swagger
- * /api/incidents/List_F1_filted_Incidents:
+ * /api/incident/List_F1_filted_Incidents:
  *   post:
  *     summary: INC-1P49 List "Reject Pending" incidents
  *     description: Retrieves a list of incidents with the status "Reject Pending".
@@ -1159,7 +1159,7 @@ router.post("/List_F1_filted_Incidents",List_F1_filted_Incidents);
 
 /**
  * @swagger
- * /api/incidents/List_distribution_ready_incidents:
+ * /api/incident/List_distribution_ready_incidents:
  *   post:
  *     summary: INC-1P50 List "Open No Agent" incidents
  *     description: Retrieves a list of incidents with the status "Open No Agent".
