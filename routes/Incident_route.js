@@ -22,8 +22,8 @@ List_distribution_ready_incidents,
 F1_filtered_Incidents_group_by_arrears_band,
 distribution_ready_incidents_group_by_arrears_band,
 
-Forward_F1_filtered_incident
-
+Forward_F1_filtered_incident,
+Create_Case_for_incident
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
@@ -1475,4 +1475,5 @@ router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents
  */
 router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
 
+router.post("/Create_Case_for_incident",Create_Case_for_incident);
 export default router;
