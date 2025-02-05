@@ -1065,7 +1065,7 @@ export const List_All_Incident_Case_Pending = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: pendingStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1087,7 +1087,7 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: cpeCollectStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1109,7 +1109,7 @@ export const List_incidents_Direct_LOD = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: directLODStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1131,7 +1131,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: rejectpendingStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1153,7 +1153,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
