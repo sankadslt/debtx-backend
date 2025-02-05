@@ -11,6 +11,7 @@ import { createTaskFunction } from "../services/TaskService.js";
 import User_Interaction_Log from "../models/User_Interaction_Log.js";
 import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
 import Incident from "../models/Incident.js";
+import Case_details from "../models/Case_details.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 // import logger from "../utils/logger.js";
@@ -1329,5 +1330,76 @@ export const Forward_F1_filtered_incident = async (req, res) => {
   } catch (error) {
       console.error('Error updating incident status:', error);
       return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const Create_Case_for_incident = async (req, res) => {
+  try {
+    const { Incident_Id } = req.body;
+
+    // Validate the incoming request
+    if (!Incident_Id) {
+      return res.status(400).json({ error: 'Incident_Id is required' });
+    }
+
+    // Fetch the Incident data
+    const incidentData = await Incident.findOne({ Incident_Id });
+
+    if (!incidentData) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+  // Map incident data to case details, ensuring no missing required fields
+const caseData = {
+  case_id: Math.floor(Math.random() * 100000),
+  incident_id: incidentData.Incident_Id,
+  account_no: incidentData.Account_Num || "Unknown", 
+  customer_ref: incidentData.Customer_Details?.Customer_Name || 'N/A',
+  created_dtm: new Date(),
+  implemented_dtm: incidentData.Created_Dtm || new Date(),
+  area: incidentData.Region || 'Unknown',
+  rtom: incidentData.Product_Details[0]?.Service_Type || 'Unknown',
+  arrears_band: incidentData.Arrears_Band || "Default Band",
+  bss_arrears_amount: incidentData.Arrears || 0,
+  current_arrears_amount: incidentData.Arrears || 0,
+  current_arrears_band: incidentData.current_arrears_band || "Default Band",
+  action_type: 'New Case',
+  drc_commision_rule: incidentData.drc_commision_rule || "PEO TV", // Default to valid enum value
+  last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+  monitor_months: 6,
+  last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+  commission: 0,
+  case_current_status: 'Open',
+  filtered_reason: incidentData.Filtered_Reason || null,
+  ref_products: incidentData.Product_Details.length > 0
+    ? incidentData.Product_Details.map(product => ({
+        service: product.Service_Type || "Unknown",
+        product_label: product.Product_Label || "N/A",
+        product_status: product.Product_Status || "Active", // Default fallback value
+        status_Dtm: product.Effective_Dtm || new Date(),
+        rtom: product.Region || "N/A",
+        product_ownership: product.Equipment_Ownership || "Unknown",
+        Service_address: product.Service_Address || "N/A",
+      }))
+    : [{
+        service: "Default Service",
+        product_label: "Default Product",
+        product_status: "Active",
+        status_Dtm: new Date(),
+        rtom: "Default RTOM",
+        product_ownership: "Unknown",
+        Service_address: "Default Address",
+      }],
+};
+
+    // Create and save the new case
+    const newCase = new Case_details(caseData);
+    await newCase.save();
+
+    res.status(201).json({ message: 'Case created successfully', case: newCase });
+  } catch (error) {
+    console.error('Error creating case:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
