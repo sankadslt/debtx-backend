@@ -105,33 +105,11 @@ router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Detail
 /**
  * @swagger
  * /api/incident/Reject_Case:
- *   post:
- *     summary: INC-1Axx Reject an incident case
- *     description: Updates the status of an incident to "Incident Reject" with a rejection reason, and also closes the corresponding user interaction in the system.
+ *   patch:
+ *     summary: INC-1P05 Reject an incident and update the status
+ *     description: Updates the status of an incident to "Incident Reject" along with the rejection reason and other details. Logs the action and deletes progress logs from the database.
  *     tags:
  *       - Incident Management
- *     parameters:
- *       - in: query
- *         name: Incident_Id
- *         required: true
- *         schema:
- *           type: integer
- *           example: 102
- *         description: The unique identifier of the incident to reject.
- *       - in: query
- *         name: Reject_Reason
- *         required: true
- *         schema:
- *           type: string
- *           example: "Duplicate entry"
- *         description: The reason for rejecting the incident.
- *       - in: query
- *         name: Rejected_By
- *         required: true
- *         schema:
- *           type: string
- *           example: "user123"
- *         description: The username or ID of the person rejecting the incident.
  *     requestBody:
  *       required: true
  *       content:
@@ -141,15 +119,15 @@ router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Detail
  *             properties:
  *               Incident_Id:
  *                 type: integer
- *                 description: The unique identifier of the incident to reject.
+ *                 description: Unique identifier of the incident.
  *                 example: 102
  *               Reject_Reason:
  *                 type: string
- *                 description: The reason for rejecting the incident.
- *                 example: "Duplicate entry"
+ *                 description: Reason for rejecting the incident.
+ *                 example: "Invalid incident details provided."
  *               Rejected_By:
  *                 type: string
- *                 description: The username or ID of the person rejecting the incident.
+ *                 description: Username of the person rejecting the incident.
  *                 example: "user123"
  *     responses:
  *       200:
@@ -162,48 +140,28 @@ router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Detail
  *                 message:
  *                   type: string
  *                   example: "Incident rejected and status updated successfully."
- *                 incident:
+ *                 updatedLog:
  *                   type: object
  *                   properties:
- *                     Incident_Id:
- *                       type: integer
- *                       description: Unique identifier of the incident.
- *                       example: 102
- *                     Incident_Status:
- *                       type: string
- *                       description: Status of the incident.
- *                       example: "Incident Reject"
- *                     Rejected_Reason:
- *                       type: string
- *                       description: Reason for rejecting the incident.
- *                       example: "Duplicate entry"
- *                     Rejected_By:
- *                       type: string
- *                       description: The user who rejected the incident.
- *                       example: "user123"
- *                     Rejected_Dtm:
- *                       type: string
- *                       format: date-time
- *                       description: Date and time the incident was rejected.
- *                       example: "2025-01-19T14:30:00Z"
- *                 caseUserInteraction:
- *                   type: object
- *                   properties:
- *                     Case_User_Interaction_id:
- *                       type: integer
- *                       description: ID of the case user interaction.
- *                       example: 5
- *                     User_Interaction_status:
+ *                     User_Interaction_Status:
  *                       type: string
  *                       description: Status of the user interaction.
  *                       example: "close"
- *                     User_Interaction_status_changed_dtm:
+ *                     User_Interaction_Status_DTM:
  *                       type: string
  *                       format: date-time
- *                       description: Date and time the user interaction status was changed.
- *                       example: "2025-01-19T14:35:00Z"
+ *                       description: Date and time the interaction status was changed.
+ *                       example: "2025-02-04T12:00:00.000Z"
+ *                     Rejected_Reason:
+ *                       type: string
+ *                       description: Reason for rejecting the incident.
+ *                       example: "Invalid incident details provided."
+ *                     Rejected_By:
+ *                       type: string
+ *                       description: Username of the person rejecting the incident.
+ *                       example: "user123"
  *       400:
- *         description: Missing required fields or invalid input.
+ *         description: Invalid input or missing fields.
  *         content:
  *           application/json:
  *             schema:
@@ -213,7 +171,7 @@ router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Detail
  *                   type: string
  *                   example: "Incident_Id, Reject_Reason, and Rejected_By are required fields."
  *       404:
- *         description: Incident or system case user interaction not found.
+ *         description: Incident or log not found.
  *         content:
  *           application/json:
  *             schema:
@@ -221,7 +179,7 @@ router.post("/Create_Task_For_Incident_Details", Create_Task_For_Incident_Detail
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Incident not found."
+ *                   example: "Incident not found or failed to update."
  *       500:
  *         description: Internal server error.
  *         content:

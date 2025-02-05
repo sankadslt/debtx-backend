@@ -39,10 +39,12 @@ const interactionSchema = new mongoose.Schema(
         default: {},
         default: {},
     },
-    Transaction_Status_DTM: {
+    User_Interaction_Status_DTM: {
       type: Date,
       default:null
     },
+    Rejected_Reason: { type: String, default: null },
+    Rejected_By: { type: String, default: null },
   },
   {
     collection: 'User_Interaction_Progress_Log', 
