@@ -643,15 +643,12 @@ export const Upload_DRS_File = async (req, res) => {
 
   try {
     const mongoConnection = await db.connectMongoDB();
-
-
     // Increment the counter for file_upload_seq
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "file_upload_seq" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
     );
-
 
     const file_upload_seq = counterResult.seq;
 
