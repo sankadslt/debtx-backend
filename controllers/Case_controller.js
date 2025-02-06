@@ -51,7 +51,6 @@ export const getAllArrearsBands = async (req, res) => {
   }
 };
 
-
 export const drcExtendValidityPeriod = async (req, res) => {
   const { Case_Id, DRC_Id, No_Of_Month, Extended_By } = req.body;
 
@@ -1850,90 +1849,12 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
 
     // Fetch the case details
     const caseData = await Case_details.findOne({ case_id });
-    if (!caseData) {
+
+    // Check if the drc has any case
+    if (caseData.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "Case not found.",
-      });
-    }
-
-    // Fetch the DRC details
-    const drcData = await DRC.findOne({ drc_id });
-    if (!drcData) {
-      return res.status(404).json({
-        status: "error",
-        message: "DRC not found.",
-      });
-    }
-
-    // Fetch the Recovery Officer details
-    const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
-    if (!recoveryOfficer) {
-      return res.status(404).json({
-        status: "error",
-        message: "Recovery Officer not found.",
-      });
-    }
-
-    // Extract the RTOM areas assigned to the recovery officer
-    const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
-
-    // Check if the case area matches one of the recovery officer's assigned areas
-    if (!assignedAreas.includes(caseData.area)) {
-      return res.status(400).json({
-        status: "error",
-        message: "The case area does not match any RTOM area assigned to the Recovery Officer.",
-      });
-    }
-
-    // Check if the DRC is active and not removed
-    if (drcData.drc_status !== "Active" || drcData.removed_dtm !== null) {
-      return res.status(400).json({
-        status: "error",
-        message: "The DRC is not active or has been removed.",
-      });
-    }
-
-    // Get the recovery_officers array from the DRC
-    const recoveryOfficers = drcData.recovery_officers || [];
-
-    // Check if the Recovery Officer is assigned to the DRC
-    const assignedOfficer = recoveryOfficers.find((officer) => officer.ro_id === ro_id);
-    if (!assignedOfficer) {
-      return res.status(400).json({
-        status: "error",
-        message: "The Recovery Officer is not assigned to the DRC.",
-      });
-    }
-
-    // Check if the Recovery Officer has been removed
-    if (assignedOfficer.removed_dtm !== null) {
-      return res.status(400).json({
-        status: "error",
-        message: "The Recovery Officer has been removed from the DRC.",
-      });
-    }
-
-    // Get the case_status array from the case details
-    const caseStatuses = caseData.case_status || [];
-
-    // Check if the case is in the "Open No Agent" status
-    const openNoAgentStatus = caseStatuses.find((status) => status.case_status === "Open No Agent");
-    if (!openNoAgentStatus) {
-      return res.status(400).json({
-        status: "error",
-        message: "The case is not in the 'Open No Agent' status.",
-      });
-    }
-
-    // Get the case_behaviors array from the case details
-    const caseBehaviors = caseData.case_behaviors || [];
-
-    // Check if the case has any behaviors
-    if (caseBehaviors.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No behaviors found for the case.",
       });
     }
 
