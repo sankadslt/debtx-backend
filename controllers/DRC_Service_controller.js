@@ -8,12 +8,9 @@
     Notes:  
 */
 
-
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
-
-
 
 import moment from "moment"; // Import moment.js for date formatting
 
@@ -67,7 +64,6 @@ export const getDRCDetailsByDate = async (req, res) => {
   }
 };
 
-
 // Get all DRC details created between a specific time period
 export const getDRCDetailsByTimePeriod = async (req, res) => {
   const { date, startTime, endTime } = req.query;
@@ -77,7 +73,8 @@ export const getDRCDetailsByTimePeriod = async (req, res) => {
     if (!date || !startTime || !endTime) {
       return res.status(400).json({
         status: "error",
-        message: "Date, start time, and end time are required to fetch DRC details.",
+        message:
+          "Date, start time, and end time are required to fetch DRC details.",
       });
     }
 
@@ -115,7 +112,10 @@ export const getDRCDetailsByTimePeriod = async (req, res) => {
       data: drcDetails,
     });
   } catch (error) {
-    console.error("Unexpected error fetching DRC details by time period:", error);
+    console.error(
+      "Unexpected error fetching DRC details by time period:",
+      error
+    );
     return res.status(500).json({
       status: "error",
       message: "Failed to fetch DRC details.",
@@ -126,21 +126,12 @@ export const getDRCDetailsByTimePeriod = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
 export const registerDRCWithServices = async (req, res) => {
-  const { DRC_Name, DRC_Business_Registration_Number, Contact_Number, Services } = req.body;
+  const { DRC_Name, DRC_Business_Registration_Number, Contact_Number, DRC_Email,Services } = req.body;
 
   try {
     // Validate required fields
-    if (!DRC_Name || !DRC_Business_Registration_Number || !Contact_Number) {
+    if (!DRC_Name || !DRC_Business_Registration_Number || !Contact_Number || !DRC_Email) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
@@ -150,18 +141,21 @@ export const registerDRCWithServices = async (req, res) => {
       });
     }
 
-    // Normalize the business registration number to lowercase for case-insensitive comparison
+    // Normalize the business registration number and email to lowercase for case-insensitive comparison
     const normalizedBusinessRegNumber = DRC_Business_Registration_Number.trim().toLowerCase();
-
+    const normalizedEmail = DRC_Email.trim().toLowerCase();
     // Check if `drc_business_registration_number` is unique (case-insensitive)
     const existingDRC = await DRC.findOne({
-      drc_business_registration_number: normalizedBusinessRegNumber,
+      $or: [
+        { drc_business_registration_number: normalizedBusinessRegNumber },
+        { drc_email: normalizedEmail },
+      ],
     });
 
     if (existingDRC) {
       return res.status(400).json({
         status: "error",
-        message: "DRC Business Registration Number already exists.",
+        message: "DRC Business Registration Number or Email already exists.",
       });
     }
 
@@ -172,11 +166,13 @@ export const registerDRCWithServices = async (req, res) => {
 
     // Generate `drc_id` from MongoDB counter
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "drc_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "drc_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const drc_id = counterResult.seq;
 
@@ -185,6 +181,7 @@ export const registerDRCWithServices = async (req, res) => {
       drc_id,
       drc_business_registration_number: normalizedBusinessRegNumber, // Save normalized value
       drc_name: DRC_Name,
+      drc_email: normalizedEmail, // Save normalized email
       drc_status: drcStatus,
       teli_no: Contact_Number,
       drc_end_dat: null, // Default to no end date
@@ -215,6 +212,7 @@ export const registerDRCWithServices = async (req, res) => {
       data: {
         drc_id,
         drc_name: DRC_Name,
+        drc_email: normalizedEmail,
         contact_no: Contact_Number,
         drc_business_registration_number: DRC_Business_Registration_Number,
       },
@@ -231,7 +229,6 @@ export const registerDRCWithServices = async (req, res) => {
   }
 };
 
-
 // export const Service_to_DRC = async (req, res) => {
 //   const { DRC_ID, Service_ID } = req.body;
 
@@ -246,7 +243,7 @@ export const registerDRCWithServices = async (req, res) => {
 
 //     // Check if the service exists in MySQL for the DRC
 //     const checkQuery = `
-//       SELECT * FROM company_owned_services 
+//       SELECT * FROM company_owned_services
 //       WHERE drc_id = ? AND service_id = ?;
 //     `;
 
@@ -381,7 +378,6 @@ export const registerDRCWithServices = async (req, res) => {
 //   }
 // };
 
-
 export const Service_to_DRC = async (req, res) => {
   const { DRC_ID, Service_ID } = req.body;
 
@@ -466,7 +462,6 @@ export const Service_to_DRC = async (req, res) => {
     });
   }
 };
-
 
 //   export const Remove_Service_From_DRC = async (req, res) => {
 //   const { DRC_ID, Service_ID } = req.body;
@@ -600,13 +595,16 @@ export const Remove_Service_From_DRC = async (req, res) => {
     }
 
     const serviceIndex = drcRecord.services_of_drc.findIndex(
-      (service) => service.service_id === Service_ID && service.drc_service_status === "Active"
+      (service) =>
+        service.service_id === Service_ID &&
+        service.drc_service_status === "Active"
     );
 
     if (serviceIndex === -1) {
       return res.status(404).json({
         status: "error",
-        message: "No active service found for the specified DRC and Service ID.",
+        message:
+          "No active service found for the specified DRC and Service ID.",
       });
     }
 
@@ -634,8 +632,7 @@ export const Remove_Service_From_DRC = async (req, res) => {
       errors: { exception: error.message },
     });
   }
-};  
-  
+};
 
 // export const manageDRC = async (req, res) => {
 //   const { drc_id, drc_status, services_to_add, services_to_update, teli_no } = req.body;
@@ -748,12 +745,20 @@ export const Remove_Service_From_DRC = async (req, res) => {
 // };
 
 export const Change_DRC_Details_with_Services = async (req, res) => {
-  const { drc_id, drc_status, services_to_add, services_to_update, teli_no, remark } = req.body;
+  const {
+    drc_id,
+    drc_status,
+    services_to_add,
+    services_to_update,
+    drc_email,
+    teli_no,
+    remark,
+  } = req.body;
 
   const changedBy = req.user ? req.user.username : "Admin";
 
   try {
-    // Validate DRC ID
+  
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -761,7 +766,7 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
       });
     }
 
-    // Fetch the DRC document
+   
     const drc = await DRC.findOne({ drc_id });
     if (!drc) {
       return res.status(404).json({
@@ -770,39 +775,47 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
       });
     }
 
-    // Update DRC status if provided
     if (drc_status) {
       drc.drc_status = drc_status;
     }
 
-    // Update telephone number if provided
     if (teli_no) {
       drc.teli_no = teli_no;
     }
 
+    if (drc_email) {
+      drc.drc_email = drc_email;
+    }
 
-// Add New Services
+    // Add New Services
     if (Array.isArray(services_to_add) && services_to_add.length > 0) {
       const newServices = await Promise.all(
         services_to_add.map(async (service) => {
           const { service_id } = service;
 
           if (!service_id) {
-            throw new Error("Each service to add must include a valid service_id.");
+            throw new Error(
+              "Each service to add must include a valid service_id."
+            );
           }
 
           // Check if the service already exists in DRC
           const isServiceExisting = drc.services_of_drc.some(
-            (existingService) => existingService.service_id === Number(service_id)
+            (existingService) =>
+              existingService.service_id === Number(service_id)
           );
 
           if (isServiceExisting) {
-            throw new Error(`Service with ID ${service_id} already exists in DRC.`);
+            throw new Error(
+              `Service with ID ${service_id} already exists in DRC.`
+            );
           }
 
           const serviceDetails = await Service.findOne({ service_id });
           if (!serviceDetails) {
-            throw new Error(`Service with ID ${service_id} not found in the Service collection.`);
+            throw new Error(
+              `Service with ID ${service_id} not found in the Service collection.`
+            );
           }
 
           return {
@@ -826,7 +839,9 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
         const { service_id, drc_service_status } = service;
 
         if (!service_id) {
-          throw new Error("Each service to update must include a valid service_id.");
+          throw new Error(
+            "Each service to update must include a valid service_id."
+          );
         }
 
         const serviceIndex = drc.services_of_drc.findIndex(
@@ -834,7 +849,8 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
         );
 
         if (serviceIndex !== -1) {
-          drc.services_of_drc[serviceIndex].drc_service_status = drc_service_status;
+          drc.services_of_drc[serviceIndex].drc_service_status =
+            drc_service_status;
           drc.services_of_drc[serviceIndex].status_change_dtm = new Date();
           drc.services_of_drc[serviceIndex].status_changed_by = changedBy;
         } else {
@@ -844,13 +860,15 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
 
       if (notFoundServices.length > 0) {
         throw new Error(
-          `The following service IDs were not found in DRC services: ${notFoundServices.join(", ")}`
+          `The following service IDs were not found in DRC services: ${notFoundServices.join(
+            ", "
+          )}`
         );
       }
     }
 
-    // Add a Remark
     if (remark) {
+      drc.remark = drc.remark || [];
       drc.remark.push({
         remark,
         remark_Dtm: new Date(),

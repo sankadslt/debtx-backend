@@ -40,6 +40,19 @@ const contactsSchema = new Schema({
   email: { type: String, required: true },
   lan: { type: String, required: true },
   address: { type: String, required: true },
+  geo_location: {type: String, default:null},
+},{ _id: false });
+
+const editedcontactsSchema = new Schema({
+  ro_id: { type: Number, required: true },
+  drc_id: { type: Number, required: true },
+  edited_dtm: { type: Date, required: true },
+  mob: { type: String, required: true },
+  email: { type: String, required: true },
+  lan: { type: String, required: true },
+  address: { type: String, required: true },
+  geo_location: {type: String, default:null},
+  remark:{type: String, default:null},
 },{ _id: false });
 
 // Define the schema for DRC
@@ -66,11 +79,34 @@ const abnormalSchema = new Schema({
   action: {type:String, required:true}
 },{_id: false });
 
+const productDetailsSchema = new Schema({
+  service: { type: String, required: true },
+  product_label: { type: String, required: true },
+  product_status: { type: String, enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], required: true },
+  status_Dtm: { type: Date, required: true },
+  rtom: { type: String, required: true },
+  product_ownership: { type: String, required: true },
+  Service_address: { type: String, required: true },
+});
+
+const RoNegotiateCpCollectSchema = new mongoose.Schema({
+  drc_id: { type: String, required: true },
+  ro_id: { type: String, required: true },
+  serial_no: { type: String, required: true },
+  order_id: { type: String, required: true },
+  service_type: { type: String, required: true },
+  date: { type: Date, required: true },
+  more_info_about_item: { type: String }, // Optional for additional information
+  rcmp_submit_dtm: { type: Date },
+  rcmp_status: { type: String },
+  rcmp_date: { type: Date },
+});
+
 // Define the main case details schema
 const caseDetailsSchema = new Schema({
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
-  account_no: { type: Number, required: true },
+  account_no: { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
@@ -87,13 +123,17 @@ const caseDetailsSchema = new Schema({
   last_bss_reading_date: { type: Date, required: true },
   commission: { type: Number, required: true },
   case_current_status: { type: String, required: true },
-  filtered_reason: { type: String, default: null },
-  contact: [contactsSchema],
+  filtered_reason: { type: String, default: null }, 
+  ro_edited_customer_details: [editedcontactsSchema],
+  current_contact: [contactsSchema],
   remark: [remarkSchema],
   approve: [approvalSchema],
   case_status: [caseStatusSchema],
   drc: [drcSchema],
-  abnormal_stop: [abnormalSchema]
+  abnormal_stop: [abnormalSchema],
+  ref_products: [productDetailsSchema], 
+  ro_nagotiate_cp_collect: [RoNegotiateCpCollectSchema],
+  
 },
 {
     collection: 'Case_details', 
