@@ -1293,7 +1293,70 @@ export const total_incidents_Direct_LOD = async (req, res) => {
   }
 };
 
+export const Reject_F1_filtered_Incident = async (req, res) => {
+  try{
+    const { Incident_Id } = req.body;
 
+    if (!Incident_Id) {
+      return res.status(400).json({
+        status:"error",
+        message:"Incident_Id is a required field.",
+        errors: {
+          code: 400,
+          description: error.message,
+        },
+      });
+    }
+
+    const incident = await Incident.findOne({ Incident_Id: Incident_Id});
+
+    if (!incident) {
+        return res.status(404).json({
+           status:"error",
+           message: 'Incident not found',
+           errors: {
+            code: 404,
+            description: error.message,
+          }
+      });
+    }
+
+    if (incident.Incident_Status !== 'Reject Pending') {
+        return res.status(400).json({ 
+         status:"error",
+         message: 'Incident status must be "Reject Pending" to update' ,
+         errors: {
+          code: 400,
+          description: error.message,
+        }
+      });
+    }
+
+    await Incident.updateOne(
+      { Incident_Id: Incident_Id},
+      {
+          $set: {
+              Incident_Status: 'Incident Reject',
+              Incident_Status_Dtm: new Date(),
+          },
+      }
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: `Successfully rejected the F1 filtered incident.`
+    });
+  }catch(error){
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to rejected the F1 filtered incident.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+}
 
 export const Forward_F1_filtered_incident = async (req, res) => {
   const { incidentId } = req.body;
@@ -1403,3 +1466,59 @@ const caseData = {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
+export const Foward_Direct_LOD = async (req, res) => {
+  const { Incident_Id } = req.body;
+
+  if (!Incident_Id) {
+    return res.status(400).json({
+      status:"error",
+      message:"Incident_Id is a required field.",
+      errors: {
+        code: 400,
+        description: error.message,
+      },
+    });
+  }
+
+  try {
+    
+      const incident = await Incident.findOne({ Incident_Id: Incident_Id });
+
+      if (!incident) {
+          return res.status(404).json({ 
+            status:"error",
+            message: 'Incident not found' ,
+            errors: {
+              code: 404,
+              description: error.message,
+            }
+         });
+      }
+
+      await Incident.updateOne(
+          { Incident_Id: Incident_Id },
+          {
+              $set: {
+                  Incident_Status: 'Direct LOD',
+                  Incident_Status_Dtm: new Date(),
+              },
+          }
+      );
+
+      return res.status(200).json({ 
+        status: "success",
+        message: 'Incident status updated successfully' 
+      });
+  } catch (error) {
+      console.error('Error updating incident status:', error);
+      return res.status(500).json({ 
+        status: "error",
+        message: 'Internal server error' ,
+        errors: {
+          code: 500,
+          description: error.message,
+        },
+      });
+  }
+}
