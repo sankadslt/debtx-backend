@@ -77,7 +77,7 @@
 //       enum: ['distribution', 'amend'], // Restrict action_type to these two values
 //       required: true 
 //     },
-//     drc_commision_rule: { type: String, required: true },
+    // drc_commision_rule: { type: String, required: true },
 //     current_arrears_band: { type: String, required: true }, // Added arrears_band field
 
 //     array_of_distribution: [arrayOfDistributionSchema],
@@ -147,6 +147,7 @@ const caseDistributionSchema = new Schema({
     rulebase_count: { type: Number, required: true},
     rulebase_arrears_sum: { type: Number, required: true},
     status: [crdDistributionStatusSchema],
+    drc_commision_rule: { type: String, required: true },
     forward_for_approvals_on: { type: Date, required: true},
     approved_by: { type: String, required: true},
     approved_on: { type: Date, required: true },

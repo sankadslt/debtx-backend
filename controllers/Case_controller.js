@@ -1956,11 +1956,119 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
   } 
 };
 
+// export const count_cases_rulebase_and_arrears_band = async (req, res) => {
+//   const { drc_commision_rule } = req.body;
+
+//   try {
+//     // Validate input
+//     if (!drc_commision_rule) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "drc_commision_rule is required.",
+//       });
+//     }
+
+//     // Hardcoded case_status
+//     const case_status = "Open No Agent";
+
+//     // Connect to MongoDB and fetch arrears bands dynamically
+//     const mongoConnection = await db.connectMongoDB();
+//     if (!mongoConnection) {
+//       throw new Error("MongoDB connection failed");
+//     }
+
+//     const arrearsBandsData = await mongoConnection
+//       .collection("Arrears_bands")
+//       .findOne({});
+//     if (!arrearsBandsData) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No arrears bands found.",
+//       });
+//     }
+
+//     // Convert arrears bands data into an array
+//     const arrearsBands = Object.entries(arrearsBandsData)
+//       .filter(([key]) => key !== "_id") // Exclude the MongoDB _id field
+//       .map(([key, value]) => ({ key, range: value, count: 0 }));
+
+//     // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
+//     const cases = await Case_details.find({
+//       "case_status.case_status": case_status, // Hardcoded case_status
+//       drc_commision_rule, // Match the provided drc_commision_rule
+//     });
+
+//     // Check if any cases were found
+//     if (!cases || cases.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No cases found for the provided criteria.",
+//       });
+//     }
+
+//     // Filter cases where the latest case_status matches the hardcoded case_status
+//     const filteredCases = cases.filter((caseData) => {
+//       const { case_status: statuses } = caseData;
+
+//       // Find the latest status by created_dtm
+//       const latestStatus = statuses.reduce((latest, current) =>
+//         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
+//       );
+
+//       // Check if the latest status matches the hardcoded case_status
+//       return latestStatus.case_status === case_status;
+//     });
+
+//     // Count total filtered cases
+//     const totalCases = filteredCases.length;
+
+//     // Update counts dynamically based on arrears bands
+//     filteredCases.forEach((caseData) => {
+//       const { arrears_band } = caseData;
+
+//       // Find the arrears band and increment its count
+//       const band = arrearsBands.find((band) => band.key === arrears_band);
+//       if (band) {
+//         band.count++;
+//       }
+//     });
+
+//     // Format the response to include arrears bands dynamically
+//     const formattedBands = arrearsBands.map((band) => ({
+//       band: band.range,
+//       // [`count_${band.range.replace(/-/g, "_")}`]: band.count,
+//       count: band.count,
+//       details: {
+//         description: `Cases in the range of ${band.range}`,
+//       },
+//     }));
+
+//     // Respond with the structured results
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Counts retrieved successfully.",
+//       data: {
+//         Total: totalCases,
+//         Arrears_Bands: formattedBands,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error retrieving counts:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve counts.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
+
 export const count_cases_rulebase_and_arrears_band = async (req, res) => {
   const { drc_commision_rule } = req.body;
 
   try {
-    // Validate input
     if (!drc_commision_rule) {
       return res.status(400).json({
         status: "error",
@@ -1968,18 +2076,13 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       });
     }
 
-    // Hardcoded case_status
     const case_status = "Open No Agent";
-
-    // Connect to MongoDB and fetch arrears bands dynamically
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
     }
 
-    const arrearsBandsData = await mongoConnection
-      .collection("Arrears_bands")
-      .findOne({});
+    const arrearsBandsData = await mongoConnection.collection("Arrears_bands").findOne({});
     if (!arrearsBandsData) {
       return res.status(404).json({
         status: "error",
@@ -1987,18 +2090,15 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       });
     }
 
-    // Convert arrears bands data into an array
     const arrearsBands = Object.entries(arrearsBandsData)
-      .filter(([key]) => key !== "_id") // Exclude the MongoDB _id field
-      .map(([key, value]) => ({ key, range: value, count: 0 }));
+      .filter(([key]) => key !== "_id")
+      .map(([key, value]) => ({ key, range: value, count: 0, arrears_sum: 0 }));
 
-    // Fetch all cases that match the hardcoded case_status and provided drc_commision_rule
     const cases = await Case_details.find({
-      "case_status.case_status": case_status, // Hardcoded case_status
-      drc_commision_rule, // Match the provided drc_commision_rule
+      "case_status.case_status": case_status,
+      drc_commision_rule,
     });
 
-    // Check if any cases were found
     if (!cases || cases.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -2006,44 +2106,34 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       });
     }
 
-    // Filter cases where the latest case_status matches the hardcoded case_status
     const filteredCases = cases.filter((caseData) => {
       const { case_status: statuses } = caseData;
-
-      // Find the latest status by created_dtm
       const latestStatus = statuses.reduce((latest, current) =>
         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
       );
-
-      // Check if the latest status matches the hardcoded case_status
       return latestStatus.case_status === case_status;
     });
 
-    // Count total filtered cases
     const totalCases = filteredCases.length;
 
-    // Update counts dynamically based on arrears bands
     filteredCases.forEach((caseData) => {
-      const { arrears_band } = caseData;
-
-      // Find the arrears band and increment its count
+      const { arrears_band, current_arrears_amount } = caseData;
       const band = arrearsBands.find((band) => band.key === arrears_band);
       if (band) {
         band.count++;
+        band.arrears_sum += current_arrears_amount || 0;
       }
     });
 
-    // Format the response to include arrears bands dynamically
     const formattedBands = arrearsBands.map((band) => ({
       band: band.range,
-      // [`count_${band.range.replace(/-/g, "_")}`]: band.count,
       count: band.count,
+      arrears_sum: band.arrears_sum,
       details: {
         description: `Cases in the range of ${band.range}`,
       },
     }));
 
-    // Respond with the structured results
     return res.status(200).json({
       status: "success",
       message: "Counts retrieved successfully.",
@@ -2064,12 +2154,13 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
   }
 };
 
+
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
-        const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
-        let filter = {batch_seq: 1}; // Ensuring only batch_seq: 1 records are retrieved
+        const { date_from, date_to, arrears_band, drc_commision_rule } = req.body;
+        let filter = {};
 
-        // If date range is provided, filter created_dtm accordingly
+        // Filter based on date range
         if (date_from && date_to) {
             filter.created_dtm = { $gte: new Date(date_from), $lte: new Date(date_to) };
         } else if (date_from) {
@@ -2078,27 +2169,58 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
             filter.created_dtm = { $lte: new Date(date_to) };
         }
 
-        // If current_arrears_band is provided, filter based on it
-        if (current_arrears_band) {
-            filter.current_arrears_band = current_arrears_band;
+        // Filter based on arrears_band
+        if (arrears_band) {
+            filter.arrears_band = arrears_band;
         }
 
-        // If drc_commision_rule is provided, filter based on it
+        // Filter based on drc_commision_rule
         if (drc_commision_rule) {
             filter.drc_commision_rule = drc_commision_rule;
         }
 
-        // Fetch records based on filter
+        // Fetch case distributions based on filter
         const caseDistributions = await CaseDistribution.find(filter);
 
-        res.status(200).json(caseDistributions);
+        // Process results to extract the last batch_seq details and last crd_distribution_status
+        const response = caseDistributions.map(doc => {
+            // Sort batch_seq_details by batch_seq in descending order and take the last one
+            const lastBatchSeq = doc.batch_seq_details?.length
+                ? doc.batch_seq_details.sort((a, b) => b.batch_seq - a.batch_seq)[0]
+                : null;
+
+            // Sort status by created_dtm in descending order and take the last one
+            const lastStatus = doc.status?.length
+                ? doc.status.sort((a, b) => new Date(b.created_dtm) - new Date(a.created_dtm))[0]
+                : null;
+
+            return {
+                _id: doc._id,
+                case_distribution_batch_id: doc.case_distribution_batch_id,
+                batch_seq_details: lastBatchSeq ? [lastBatchSeq] : [], // Only the last batch_seq
+                created_dtm: doc.created_dtm,
+                created_by: doc.created_by,
+                arrears_band: doc.arrears_band,
+                rulebase_count: doc.rulebase_count,
+                rulebase_arrears_sum: doc.rulebase_arrears_sum,
+                status: lastStatus ? [lastStatus] : [], // Only the last status
+                drc_commision_rule: doc.drc_commision_rule,
+                forward_for_approvals_on: doc.forward_for_approvals_on,
+                approved_by: doc.approved_by,
+                approved_on: doc.approved_on,
+                proceed_on: doc.proceed_on,
+                tmp_record_remove_on: doc.tmp_record_remove_on
+            };
+        });
+
+        res.status(200).json(response);
     } catch (error) {
         console.error("Error fetching case distributions:", error);
         res.status(500).json({ message: "Server Error", error });
     }
 };
 
-//this function give the data wit RTOM
+
 export const AAA = async (req, res) => {  
   try {
     const { case_distribution_batch_id } = req.body;
