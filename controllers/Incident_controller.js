@@ -8,8 +8,10 @@ import fs from "fs";
 import path from "path";
 import { Request_Incident_External_information } from "../services/IncidentService.js";
 import { createTaskFunction } from "../services/TaskService.js";
-import System_Case_User_Interaction from "../models/User_Interaction.js";
+import User_Interaction_Log from "../models/User_Interaction_Log.js";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
 import Incident from "../models/Incident.js";
+import Case_details from "../models/Case_details.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 // import logger from "../utils/logger.js";
@@ -350,20 +352,169 @@ export const Create_Incident = async (req, res) => {
 
 
 
+// export const Reject_Case = async (req, res) => {
+//   try {
+//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
+
+//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
+//       return res.status(400).json({
+//         message:
+//           "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
+//       });
+//     }
+
+//     const incidentUpdateResult = await Incident.findOneAndUpdate(
+//       { Incident_Id },
+//       {
+//         $set: {
+//           Incident_Status: "Incident Reject",
+//           Rejected_Reason: Reject_Reason,
+//           Rejected_By,
+//           Rejected_Dtm: new Date(),
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     if (!incidentUpdateResult) {
+//       return res.status(404).json({ message: "Incident not found." });
+//     }
+
+//     const caseUserInteractionUpdateResult =
+//       await System_Case_User_Interaction.findOneAndUpdate(
+//         { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
+//         {
+//           $set: {
+//             User_Interaction_status: "close",
+//             User_Interaction_status_changed_dtm: new Date(),
+//           },
+//         },
+//         { new: true }
+//       );
+
+//     if (!caseUserInteractionUpdateResult) {
+//       return res
+//         .status(404)
+//         .json({ message: "System Case User Interaction not found." });
+//     }
+
+//     res.status(200).json({
+//       message: "Incident rejected and status updated successfully.",
+//       incident: incidentUpdateResult,
+//       caseUserInteraction: caseUserInteractionUpdateResult,
+//     });
+//   } catch (error) {
+//     console.error("Error rejecting the case:", error);
+//     res
+//       .status(500)
+//       .json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
 
 
+export const Reject_Case = async (req, res) => {
+  try {
+    const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
 
+    // Validate required fields
+    if (!Incident_Id || !Reject_Reason || !Rejected_By) {
+      return res.status(400).json({
+        message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
+      });
+    }
 
+    // Start a session for the transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Update Incident status
+      const incidentUpdateResult = await Incident.findOneAndUpdate(
+        { Incident_Id: Number(Incident_Id) }, // Ensure correct type
+        {
+          $set: {
+            Incident_Status: "Incident Reject",
+            Rejected_Reason: Reject_Reason,
+            Rejected_By,
+            Rejected_Dtm: new Date(),
+          },
+        },
+        { new: true, session }
+      );
+
+      if (!incidentUpdateResult) {
+        throw new Error("Incident not found or failed to update.");
+      }
+
+      // Update User_Interaction_Log
+      const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
+        {
+          "parameters.Incident_Id": String(Incident_Id), // Ensure type matches the stored data
+          Templete_User_Interaction_ID: 5,
+          User_Interaction_Type: "Validate Incident",
+        },
+        {
+          $set: {
+            User_Interaction_Status: "close",
+            User_Interaction_Status_DTM: new Date(), // Ensure this field is updated
+            Rejected_Reason: Reject_Reason,
+            Rejected_By,
+          },
+        },
+        { new: true, session }
+      );
+
+      if (!logUpdateResult) {
+        throw new Error("No matching record found in User_Interaction_Log.");
+      }
+
+      // Delete from User_Interaction_Progress_Log
+      const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
+        {
+          "parameters.Incident_Id": String(Incident_Id), // Ensure type matches
+          Templete_User_Interaction_ID: 5,
+          User_Interaction_Type: "Validate Incident",
+        },
+        { session }
+      );
+
+      if (!progressLogDeleteResult) {
+        throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
+      }
+
+      // Commit the transaction
+      await session.commitTransaction();
+
+      // Return success response
+      res.status(200).json({
+        message: "Incident rejected and status updated successfully.",
+        updatedLog: logUpdateResult,
+      });
+    } catch (innerError) {
+      // Abort the transaction on error
+      await session.abortTransaction();
+      console.error("Inner Transaction Error:", innerError.message);
+      throw innerError;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    console.error("Error rejecting the case:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 // export const Reject_Case = async (req, res) => {
-//   const { Incident_Id, Rejected_Reason, Rejected_By} = req.body;
-
 //   try {
+//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
+
 //     // Validate required fields
-//     if (!Incident_Id || !Rejected_Reason || !Rejected_By ) {
+//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
 //       return res.status(400).json({
-//         status: "error",
-//         message: "Incident_Id, Rejected_Reason, Rejected_By are required.",
+//         message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
 //       });
 //     }
 
@@ -382,9 +533,9 @@ export const Create_Incident = async (req, res) => {
 //         {
 //           $set: {
 //             Incident_Status: "Incident Reject",
-//             Rejected_Reason,
+//             Rejected_Reason: Reject_Reason,
 //             Rejected_By,
-//             Rejected_Dtm: moment().toDate(),
+//             Rejected_Dtm: new Date(),
 //           },
 //         },
 //         { new: true, session }
@@ -396,168 +547,117 @@ export const Create_Incident = async (req, res) => {
 //         throw new Error("Incident not found or failed to update.");
 //       }
 
-//       // Update UserInteraction status
-//       const interactionUpdateResult = await System_Case_User_Interaction.findOneAndUpdate(
-//         { Case_User_Interaction_id: 5, "parameters.Incident_Id": String(Incident_Id) },
+//       // Update User_Interaction_Log
+//       const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
+//         {
+//           "parameters.Incident_Id": Incident_Id,
+//           Templete_User_Interaction_ID: 5,
+//           User_Interaction_Type: "Validate Incident",
+//         },
 //         {
 //           $set: {
-//             status: "close",
-//             status_changed_dtm: new Date(),
-//             status_description: "Incident Rejected",
+//             User_Interaction_Status: "close",
+//             User_Interaction_Status_DTM: new Date(),
+//             Rejected_Reason: Reject_Reason,
+//             Rejected_By,
 //           },
 //         },
 //         { new: true, session }
 //       );
 
-//       console.log('Interaction Update Result:', interactionUpdateResult);
-
-//       if (!interactionUpdateResult) {
-//         throw new Error("User Interaction not found or failed to update.");
+//       if (!logUpdateResult) {
+//         throw new Error("No matching record found in User_Interaction_Log.");
 //       }
 
-//       // Commit transaction
-//       await session.commitTransaction();
-//       session.endSession();
-
-//       // Respond with success
-//       return res.status(200).json({
-//         status: "success",
-//         message: "Incident rejected successfully.",
-//         data: {
-//           incident: incidentUpdateResult,
-//           interaction: interactionUpdateResult,
+//       // Delete from User_Interaction_Progress_Log
+//       const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
+//         {
+//           "parameters.Incident_Id": Incident_Id,
+//           Templete_User_Interaction_ID: 5,
+//           User_Interaction_Type: "Validate Incident",
 //         },
+//         { session }
+//       );
+
+//       if (!progressLogDeleteResult) {
+//         throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
+//       }
+
+//       // Commit the transaction
+//       await session.commitTransaction();
+
+//       // Return success response
+//       res.status(200).json({
+//         message: "Incident rejected and status updated successfully.",
+//         updatedLog: logUpdateResult,
 //       });
-//     } catch (transactionError) {
-//       // Rollback transaction on error
+//     } catch (innerError) {
+//       // Abort the transaction on error
 //       await session.abortTransaction();
+//       throw innerError;
+//     } finally {
 //       session.endSession();
-//       console.error("Transaction error:", transactionError);
-//       throw transactionError;
 //     }
 //   } catch (error) {
-//     // Log unexpected errors and respond
-//     console.error("Error in Reject_Case:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to reject incident.",
-//       errors: {
-//         exception: error.message,
-//       },
+//     console.error("Error rejecting the case:", error);
+//     res.status(500).json({
+//       message: "Internal Server Error",
+//       error: error.message,
 //     });
 //   }
 // };
 
-export const Reject_Case = async (req, res) => {
-  try {
-    const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-    if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-      return res.status(400).json({
-        message:
-          "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-      });
-    }
-
-    const incidentUpdateResult = await Incident.findOneAndUpdate(
-      { Incident_Id },
-      {
-        $set: {
-          Incident_Status: "Incident Reject",
-          Rejected_Reason: Reject_Reason,
-          Rejected_By,
-          Rejected_Dtm: new Date(),
-        },
-      },
-      { new: true }
-    );
-
-    if (!incidentUpdateResult) {
-      return res.status(404).json({ message: "Incident not found." });
-    }
-
-    const caseUserInteractionUpdateResult =
-      await System_Case_User_Interaction.findOneAndUpdate(
-        { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-        {
-          $set: {
-            User_Interaction_status: "close",
-            User_Interaction_status_changed_dtm: new Date(),
-          },
-        },
-        { new: true }
-      );
-
-    if (!caseUserInteractionUpdateResult) {
-      return res
-        .status(404)
-        .json({ message: "System Case User Interaction not found." });
-    }
-
-    res.status(200).json({
-      message: "Incident rejected and status updated successfully.",
-      incident: incidentUpdateResult,
-      caseUserInteraction: caseUserInteractionUpdateResult,
-    });
-  } catch (error) {
-    console.error("Error rejecting the case:", error);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
-  }
-};
-
-
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
-  const { file_upload_seq, File_Name, File_Type, } = params;
-
+  const { file_upload_seq, File_Name, File_Type } = params;
   if (!file_upload_seq || !File_Name || !File_Type) {
-    throw new Error("file_upload_seq, File_Name, File_Type, are required parameters for Create_Task.");
+    throw new Error("file_upload_seq, File_Name, File_Type are required parameters for Create_Task.");
   }
   return true;
 };
+
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
 
+  if (!File_Name || !File_Type || !File_Content || !Created_By) {
+    return res.status(400).json({
+      status: "error",
+      message: "All fields are required.",
+    });
+  }
+
+  const validFileTypes = [
+    "Incident Creation", "Incident Reject", "Distribute to DRC",
+    "Validity Period Extend", "Hold", "Discard"
+  ];
+
+
+  if (!validFileTypes.includes(File_Type)) {
+    return res.status(400).json({
+      status: "error",
+      message: `Invalid File Type. Allowed values are: ${validFileTypes.join(", ")}.`,
+    });
+  }
+
+  const session = await mongoose.startSession(); // Start a transaction session
+  session.startTransaction();
+
   try {
-    if (!File_Name || !File_Type || !File_Content || !Created_By) {
-      return res.status(400).json({
-        status: "error",
-        message: "All fields are required.",
-      });
-    }
-
-    const validFileTypes = [
-      "Incident Creation", "Incident Reject", "Distribute to DRC", 
-      "Validity Period Extend", "Hold", "Discard"
-    ];
-
-    if (!validFileTypes.includes(File_Type)) {
-      return res.status(400).json({
-        status: "error",
-        message: `Invalid File Type. Allowed values are: ${validFileTypes.join(
-          ", "
-        )}.`,
-      });
-    }
-
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection
-      .collection("counters")
-      .findOneAndUpdate(
-        { _id: "file_upload_seq" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
+    // Increment the counter for file_upload_seq
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "file_upload_seq" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
 
     const file_upload_seq = counterResult.seq;
 
+    // File upload handling
     const uploadDir = path.join(__dirname, "../uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-
     const uploadPath = path.join(uploadDir, File_Name);
     fs.writeFileSync(uploadPath, File_Content, "utf8");
 
@@ -565,9 +665,9 @@ export const Upload_DRS_File = async (req, res) => {
     if (!fs.existsSync(forwardedFileDir)) {
       fs.mkdirSync(forwardedFileDir, { recursive: true });
     }
-
     const forwardedFilePath = path.join(forwardedFileDir, File_Name);
 
+    // Save file upload log within the transaction
     const newFileLog = new FileUploadLog({
       file_upload_seq,
       File_Name,
@@ -579,7 +679,9 @@ export const Upload_DRS_File = async (req, res) => {
       File_Status: "Open",
     });
 
-    await newFileLog.save();
+    await newFileLog.save({ session });
+
+    // Create task within the transaction
     const taskData = {
       Template_Task_Id: 1,
       task_type: "Data upload from file",
@@ -589,8 +691,13 @@ export const Upload_DRS_File = async (req, res) => {
       Created_By,
       task_status: "open",
     };
+
     validateCreateTaskParametersForUploadDRSFile(taskData);
-    await createTaskFunction(taskData);
+    await createTaskFunction(taskData); // Ensure this supports transactions if needed
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(201).json({
       status: "success",
@@ -607,6 +714,9 @@ export const Upload_DRS_File = async (req, res) => {
       },
     });
   } catch (error) {
+    await session.abortTransaction(); // Rollback changes
+    session.endSession();
+
     console.error("Error during file upload and task creation:", error.message);
     return res.status(500).json({
       status: "error",
@@ -967,7 +1077,7 @@ export const List_All_Incident_Case_Pending = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: pendingStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -989,7 +1099,7 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: cpeCollectStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1011,7 +1121,7 @@ export const List_incidents_Direct_LOD = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: directLODStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1033,7 +1143,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: rejectpendingStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1055,7 +1165,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-    }).select("Incident_Id Account_Num Incident_Status Created_Dtm");
+    });
 
     return res.status(200).json({
       status: "success",
@@ -1223,3 +1333,111 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
   }
 }
 
+export const Forward_F1_filtered_incident = async (req, res) => {
+  const { incidentId } = req.body;
+
+  if (!incidentId) {
+      return res.status(400).json({ message: 'Incident ID is required' });
+  }
+
+  try {
+    
+      const incident = await Incident.findOne({ Incident_Id: incidentId });
+
+      if (!incident) {
+          return res.status(404).json({ message: 'Incident not found' });
+      }
+
+     
+      if (incident.Incident_Status !== 'Reject Pending') {
+          return res.status(400).json({ message: 'Incident status must be "Reject Pending" to update' });
+      }
+
+      
+      await Incident.updateOne(
+          { Incident_Id: incidentId },
+          {
+              $set: {
+                  Incident_Status: 'Open No Agent',
+                  Incident_Status_Dtm: new Date(),
+              },
+          }
+      );
+
+      return res.status(200).json({ message: 'Incident status updated successfully' });
+  } catch (error) {
+      console.error('Error updating incident status:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const Create_Case_for_incident = async (req, res) => {
+  try {
+    const { Incident_Id } = req.body;
+
+    // Validate the incoming request
+    if (!Incident_Id) {
+      return res.status(400).json({ error: 'Incident_Id is required' });
+    }
+
+    // Fetch the Incident data
+    const incidentData = await Incident.findOne({ Incident_Id });
+
+    if (!incidentData) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+  // Map incident data to case details, ensuring no missing required fields
+const caseData = {
+  case_id: Math.floor(Math.random() * 100000),
+  incident_id: incidentData.Incident_Id,
+  account_no: incidentData.Account_Num || "Unknown", 
+  customer_ref: incidentData.Customer_Details?.Customer_Name || 'N/A',
+  created_dtm: new Date(),
+  implemented_dtm: incidentData.Created_Dtm || new Date(),
+  area: incidentData.Region || 'Unknown',
+  rtom: incidentData.Product_Details[0]?.Service_Type || 'Unknown',
+  arrears_band: incidentData.Arrears_Band || "Default Band",
+  bss_arrears_amount: incidentData.Arrears || 0,
+  current_arrears_amount: incidentData.Arrears || 0,
+  current_arrears_band: incidentData.current_arrears_band || "Default Band",
+  action_type: 'New Case',
+  drc_commision_rule: incidentData.drc_commision_rule || "PEO TV", // Default to valid enum value
+  last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+  monitor_months: 6,
+  last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+  commission: 0,
+  case_current_status: 'Open',
+  filtered_reason: incidentData.Filtered_Reason || null,
+  ref_products: incidentData.Product_Details.length > 0
+    ? incidentData.Product_Details.map(product => ({
+        service: product.Service_Type || "Unknown",
+        product_label: product.Product_Label || "N/A",
+        product_status: product.Product_Status || "Active", // Default fallback value
+        status_Dtm: product.Effective_Dtm || new Date(),
+        rtom: product.Region || "N/A",
+        product_ownership: product.Equipment_Ownership || "Unknown",
+        Service_address: product.Service_Address || "N/A",
+      }))
+    : [{
+        service: "Default Service",
+        product_label: "Default Product",
+        product_status: "Active",
+        status_Dtm: new Date(),
+        rtom: "Default RTOM",
+        product_ownership: "Unknown",
+        Service_address: "Default Address",
+      }],
+};
+
+    // Create and save the new case
+    const newCase = new Case_details(caseData);
+    await newCase.save();
+
+    res.status(201).json({ message: 'Case created successfully', case: newCase });
+  } catch (error) {
+    console.error('Error creating case:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};

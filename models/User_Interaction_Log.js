@@ -1,5 +1,4 @@
-import mongoose from 'mongoose';
-
+import mongoose from "mongoose";
 
 const interactionSchema = new mongoose.Schema(
   {
@@ -28,29 +27,32 @@ const interactionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    User_Transaction_Status: {
-        type: String,
-        enum: ['Open', 'Error', 'Complete'], 
-        default: 'open',
-      },
+    User_Interaction_Status: {
+      type: String,
+      enum: ["Open", "Error", "Complete"],
+      default: "open",
+    },
     parameters: {
-        type: Map,
-        of: mongoose.Schema.Types.Mixed, 
-        default: {},
-        default: {},
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+      default: {},
     },
-    Transaction_Status_DTM: {
+    User_Interaction_Status_DTM: {
       type: Date,
-      default:null
+      default: null,
     },
+    Rejected_Reason: { type: String, default: null },
+    Rejected_By: { type: String, default: null },
   },
   {
-    collection: 'User_Interaction_Log', 
+    collection: "User_Interaction_Log",
   }
 );
 
-
-const User_Interaction_Log = mongoose.model('User_Interaction_Log', interactionSchema);
-
+const User_Interaction_Log = mongoose.model(
+  "User_Interaction_Log",
+  interactionSchema
+);
 
 export default User_Interaction_Log;
