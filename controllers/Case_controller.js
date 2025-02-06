@@ -51,6 +51,7 @@ export const getAllArrearsBands = async (req, res) => {
   }
 };
 
+
 export const drcExtendValidityPeriod = async (req, res) => {
   const { Case_Id, DRC_Id, No_Of_Month, Extended_By } = req.body;
 
@@ -800,6 +801,7 @@ export const Case_Current_Status = async (req, res) => {
   }
 };
 
+
 // export const assignROToCase = async (req, res) => {
 //   try {
 //     const { case_id, ro_id } = req.body;
@@ -1046,7 +1048,6 @@ export const Case_List = async (req, res) => {
     });
   }
 };
-
 
 
 export const openNoAgentCasesAllByServiceTypeRulebase = async (req, res) => {
@@ -1706,87 +1707,6 @@ export const listHandlingCasesByDRC = async (req, res) => {
 };
 
 
-// export const listAllActiveRosByDRCID = async (req, res) => {
-//   try {
-//     const { drc_id, rtom_area } = req.body;
-
-//     // Validate input
-//     if (!drc_id || !rtom_area) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "All fields are required.",
-//       });
-//     }
-
-//     // Step 1: Find cases in the `case_details` collection matching the conditions
-//     const cases = await Case_details.find({
-//       "drc.drc_id": drc_id,
-//       "drc.drc_status": "Active",
-//       "drc.removed_dtm": null,
-//     });
-
-//     if (cases.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No active cases found with the provided DRC ID.",
-//       });
-//     }
-//     // Step 2: Extract unique `drc_name` values from the matched cases
-//     const drcNames = [
-//       ...new Set(
-//         cases.flatMap((c) =>
-//           c.drc.filter((d) => d.drc_id === drc_id).map((d) => d.drc_name)
-//         )
-//       ),
-//     ];
-
-//     if (drcNames.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No active DRC names found for the provided DRC ID.",
-//       });
-//     }
-//     // Step 3: Find recovery officers matching the `drc_name` and `rtom_area` conditions
-//     const recoveryOfficers = await RecoveryOfficer.find({
-//       $and: [
-//         { drc_name: { $in: drcNames } }, // Match drc_name in recovery officer
-//         { "rtoms_for_ro.name": rtom_area }, // Match rtom_area in rtoms_for_ro
-//       ],
-//       status: "Active", // Only Active RTOMs
-//       ro_end_dtm: null, // Ensure recovery officer has no end date
-//     });
-
-//     if (recoveryOfficers.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No active Recovery Officers found for the specified conditions.",
-//       });
-//     }
-//     // Step 4: Format the result
-//     const response = recoveryOfficers.map((officer) => ({
-//       ro_id: officer.ro_id,
-//       ro_name: officer.ro_name,
-//     }));
-
-//     // Step 4: Return the list of recovery officers
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Active Recovery Officers retrieved successfully.",
-//       data: response,
-//     });
-//   } catch (error) {
-//     console.error("Error retrieving active ROs:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to retrieve active ROs.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-      
-
 export const assignROToCase = async (req, res) => {
   try {
     const { case_ids, ro_id } = req.body;
@@ -1915,6 +1835,126 @@ export const assignROToCase = async (req, res) => {
   }
 };
 
+
+export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
+  try {
+    const { case_id, drc_id, ro_id } = req.body;
+
+    // Validate input
+    if (!case_id || !drc_id || !ro_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required.",
+      });
+    }
+
+    // Fetch the case details
+    const caseData = await Case_details.findOne({ case_id });
+    if (!caseData) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found.",
+      });
+    }
+
+    // Fetch the DRC details
+    const drcData = await DRC.findOne({ drc_id });
+    if (!drcData) {
+      return res.status(404).json({
+        status: "error",
+        message: "DRC not found.",
+      });
+    }
+
+    // Fetch the Recovery Officer details
+    const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
+    if (!recoveryOfficer) {
+      return res.status(404).json({
+        status: "error",
+        message: "Recovery Officer not found.",
+      });
+    }
+
+    // Extract the RTOM areas assigned to the recovery officer
+    const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
+
+    // Check if the case area matches one of the recovery officer's assigned areas
+    if (!assignedAreas.includes(caseData.area)) {
+      return res.status(400).json({
+        status: "error",
+        message: "The case area does not match any RTOM area assigned to the Recovery Officer.",
+      });
+    }
+
+    // Check if the DRC is active and not removed
+    if (drcData.drc_status !== "Active" || drcData.removed_dtm !== null) {
+      return res.status(400).json({
+        status: "error",
+        message: "The DRC is not active or has been removed.",
+      });
+    }
+
+    // Get the recovery_officers array from the DRC
+    const recoveryOfficers = drcData.recovery_officers || [];
+
+    // Check if the Recovery Officer is assigned to the DRC
+    const assignedOfficer = recoveryOfficers.find((officer) => officer.ro_id === ro_id);
+    if (!assignedOfficer) {
+      return res.status(400).json({
+        status: "error",
+        message: "The Recovery Officer is not assigned to the DRC.",
+      });
+    }
+
+    // Check if the Recovery Officer has been removed
+    if (assignedOfficer.removed_dtm !== null) {
+      return res.status(400).json({
+        status: "error",
+        message: "The Recovery Officer has been removed from the DRC.",
+      });
+    }
+
+    // Get the case_status array from the case details
+    const caseStatuses = caseData.case_status || [];
+
+    // Check if the case is in the "Open No Agent" status
+    const openNoAgentStatus = caseStatuses.find((status) => status.case_status === "Open No Agent");
+    if (!openNoAgentStatus) {
+      return res.status(400).json({
+        status: "error",
+        message: "The case is not in the 'Open No Agent' status.",
+      });
+    }
+
+    // Get the case_behaviors array from the case details
+    const caseBehaviors = caseData.case_behaviors || [];
+
+    // Check if the case has any behaviors
+    if (caseBehaviors.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No behaviors found for the case.",
+      });
+    }
+
+    // Return the case behaviors
+    return res.status(200).json({
+      status: "success",
+      message: "Case behaviors retrieved successfully.",
+      data: caseBehaviors,  // Return the case behaviors
+    })
+  } catch (error) {
+    // Handle unexpected errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving case behaviors.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  } 
+};
 
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 //   const { drc_commision_rule } = req.body;
