@@ -24,12 +24,19 @@ import { drcExtendValidityPeriod,
         openNoAgentCountArrearsBandByServiceType,
         listCases,
         Acivite_Case_Details,
+<<<<<<< Updated upstream
         get_count_by_drc_commision_rule,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
         Case_Distribution_Among_Agents,
         
+=======
+        listAllDRCMediationBoardCases
+
+>>>>>>> Stashed changes
  } from "../controllers/Case_controller.js";
+
+
 
 
 const router = Router();
@@ -1948,6 +1955,7 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
+<<<<<<< Updated upstream
 router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule); 
 
 router.get("/getAllArrearsBands",getAllArrearsBands); 
@@ -2082,5 +2090,8 @@ router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_ar
 router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
 
+=======
+router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases)
+>>>>>>> Stashed changes
 
 export default router;
