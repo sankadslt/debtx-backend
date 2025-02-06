@@ -13,7 +13,6 @@
 import { Router } from "express";
 import {
   drcExtendValidityPeriod,
-  listHandlingCasesByDRC,
   Case_Abandant,
   Approve_Case_abandant,
   Open_No_Agent_Cases_F1_Filter,
@@ -21,6 +20,8 @@ import {
   Open_No_Agent_Cases_ALL,
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
+  listHandlingCasesByDRC,
+  listBehaviorsOfCaseDuringDRC,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -1102,6 +1103,9 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       example: Internal server error while retrieving cases.
  */
 router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
+
+
+router.post("/List_Behaviors_of_case_during_DRC", listBehaviorsOfCaseDuringDRC);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
