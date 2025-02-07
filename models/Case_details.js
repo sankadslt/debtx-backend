@@ -102,6 +102,14 @@ const RoNegotiateCpCollectSchema = new mongoose.Schema({
   rcmp_date: { type: Date },
 });
 
+const roNegotiationSchema = new mongoose.Schema({
+  drc_id: { type: String, required: true },
+  ro_id: { type: String, required: true },
+  created_dtm: { type: Date, required: true },
+  feild_reason: { type: String, required: true },
+  remark: { type: String },
+});
+
 // Define the main case details schema
 const caseDetailsSchema = new Schema({
   case_id: { type: Number, required: true,unique: true },
@@ -132,7 +140,8 @@ const caseDetailsSchema = new Schema({
   drc: [drcSchema],
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 
-  ro_nagotiate_cp_collect: [RoNegotiateCpCollectSchema],
+  ro_negotiation: [roNegotiationSchema],
+  ro_negotiate_cp_collect: [RoNegotiateCpCollectSchema],
   
 },
 {
