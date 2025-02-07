@@ -2344,8 +2344,6 @@ export const get_all_transaction_seq_of_batch_id = async (req, res) => {
   }
 };
 
-
-
 //     // Input validation
 //     if (!drc_id) {
 //       return res.status(400).json({

@@ -28,7 +28,8 @@ import { drcExtendValidityPeriod,
         get_count_by_drc_commision_rule,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
-        Case_Distribution_Among_Agents
+        Case_Distribution_Among_Agents,
+        get_all_transaction_seq_of_batch_id
 
  } from "../controllers/Case_controller.js";
 
@@ -2081,6 +2082,7 @@ router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_ar
 
 router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
-router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases)
+router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
 
+router.post("/get_all_transaction_seq_of_batch_id",get_all_transaction_seq_of_batch_id);
 export default router;
