@@ -160,8 +160,8 @@ export const createTask = async (req, res) => {
     // Task object
     const taskData = {
       Task_Id,
-      Template_Task_Id: 14, // Adjust as needed
-      task_type: "Download Incidents",
+      Template_Task_Id: 21,
+      task_type: "Create Incident list for download",
       parameters: {
         DRC_Action,
         Incident_Status,
@@ -223,8 +223,8 @@ export const Task_for_Download_Incidents = async (req, res) => {
       // Task object
       const taskData = {
           Task_Id,
-          Template_Task_Id: 14, // Placeholder, adjust if needed
-          task_type: "Download Incidents",
+          Template_Task_Id: 21, // Placeholder, adjust if needed
+          task_type: "Create Incident list for download",
           parameters: {
               DRC_Action,
               Incident_Status,
