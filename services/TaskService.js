@@ -200,10 +200,10 @@ export const createTask = async (req, res) => {
 };
 
 export const Task_for_Download_Incidents = async (req, res) => {
-  const { DRC_Action, Incident_Status, From_Date, To_Date, Created_By } = req.body;
+  const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
 
-  if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
-      return res.status(400).json({ error: "Missing required parameters" });
+  if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters From Date To Date" });
   }
 
   const session = await mongoose.startSession();
@@ -228,6 +228,7 @@ export const Task_for_Download_Incidents = async (req, res) => {
           parameters: {
               DRC_Action,
               Incident_Status,
+              Source_Type,
               From_Date,
               To_Date,
           },
