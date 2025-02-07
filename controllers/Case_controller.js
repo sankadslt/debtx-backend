@@ -1465,14 +1465,14 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     });
   }
 
-  if (drc_list.length <= 0) {
+  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
     return res.status(400).json({
       status: "error",
       message: "DRC List should not be empty.",
     });
   }
 
-  const validateDRCList = (drcList) => {
+  const validateDRCList = (drcList) =>  {
     if (!Array.isArray(drcList)) {
       throw new Error("DRC List must be an array.");
     }
@@ -1535,19 +1535,31 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     if (!case_distribution_batch_id) {
       throw new Error("Failed to generate case_distribution_batch_id.");
     }
-
-    // Prepare Case distribution drc transactions data
-    const Case_distribution_drc_transactions_data = {
-      case_distribution_batch_id,
+    const batch_seq_details = [{
       batch_seq: 1,
       created_dtm: new Date(),
       created_by,
       action_type: "distribution",
-      drc_commision_rule,
+      array_of_distributions: drc_list.map(({ DRC, Count }) => ({
+        drc: DRC,
+        rulebase_count: Count,
+      })),
+      batch_seq_rulebase_count: 100,
+    }];
+    // Prepare Case distribution drc transactions data
+    const Case_distribution_drc_transactions_data = {
+      case_distribution_batch_id,
+      batch_seq_details,
+      created_dtm: new Date(),
+      created_by,
       current_arrears_band,
-      array_of_distribution:validatedDRCList,
       rulebase_count: 100,
       rulebase_arrears_sum: 5000,
+      status: [{
+        crd_distribution_status: "Open",
+        created_dtm: new Date(),
+      }],
+      drc_commision_rule,  
       crd_distribution_status: {crd_distribution_status:"Open",created_dtm:new Date()},
     };
 
