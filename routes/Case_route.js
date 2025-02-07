@@ -2,8 +2,8 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-    Last Modified Date: 2024-01-19
-    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com)       
+    Last Modified Date: 2024-02-07
+    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -29,7 +29,8 @@ import { drcExtendValidityPeriod,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
         Case_Distribution_Among_Agents,
-        get_all_transaction_seq_of_batch_id
+        List_all_transaction_seq_of_batch_id,
+        
 
  } from "../controllers/Case_controller.js";
 
@@ -2084,5 +2085,5 @@ router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
 router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
 
-router.post("/get_all_transaction_seq_of_batch_id",get_all_transaction_seq_of_batch_id);
+router.post("/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id);
 export default router;
