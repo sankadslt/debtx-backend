@@ -2090,6 +2090,111 @@ router.post(
   count_cases_rulebase_and_arrears_band
 );
 
+/**
+ * @swagger
+ * /api/Case_Distribution_Among_Agents:
+ *   post:
+ *     summary: C-1P20 Distribute Cases Among Agents
+ *     description: |
+ *       Distribute Cases among Agents and case_status='Open Assign Agent'
+ *
+ *
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-Jan-28 | Case distribution among agents        | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_commision_rule
+ *               - current_arrears_band
+ *               - drc_list
+ *               - created_by
+ *             properties:
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule for distributing cases.
+ *                 example: "PEO TV"
+ *               current_arrears_band:
+ *                 type: string
+ *                 description: The arrears band used for filtering cases.
+ *                 example: "5000-10000"
+ *               drc_list:
+ *                 type: array
+ *                 description: List of DRCs and their case counts.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     DRC:
+ *                       type: string
+ *                       description: The agent or DRC handling cases.
+ *                       example: "Agent_001"
+ *                     Count:
+ *                       type: integer
+ *                       description: The number of cases assigned.
+ *                       example: 5
+ *               created_by:
+ *                 type: string
+ *                 description: The user who initiated the distribution.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Task successfully created for case distribution.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task successfully created.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     task_id:
+ *                       type: string
+ *                       description: Unique identifier for the created task.
+ *                       example: "task_12345"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: Unique batch ID for case distribution.
+ *                       example: 1001
+ *       400:
+ *         description: Validation error - Missing or incorrect required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC commission rule, current arrears band, created by and DRC list fields are required.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while creating the task.
+ */
+
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
 router.post(
