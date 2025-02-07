@@ -17,6 +17,8 @@ import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
 import SystemTransaction from "../models/System_transaction.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
+import CaseSettlement from "../models/Case_settlement.js";
+import CasePayments from "../models/Case_payments.js";
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -1846,23 +1848,100 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Fetch the case details
-    const caseData = await Case_details.findOne({ case_id });
+    // Fetch the case details (use find() to get an array of documents)
+    const cases = await Case_details.find({ case_id }).collation({ locale: 'en', strength: 2 });
 
-    // Check if the drc has any case
-    if (caseData.length === 0) {
+    // Check if any cases exist
+    if (cases.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Case not found.",
+        message: "No matching cases found for the given criteria.",
+        errors: {
+          code: 404,
+          description: "No cases satisfy the provided criteria.",
+        },
       });
     }
 
-    // Return the case behaviors
+    // Fetch settlement data (use find() to get an array of documents)
+    const settlementData = await CaseSettlement.find({ case_id }).collation({ locale: 'en', strength: 2 });
+
+    // Check if the case has any settlements
+    if (settlementData.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No settlements found for the case.",
+        errors: {
+          code: 404,
+          description: "No settlements found for the case.",
+        },
+      });
+    }
+
+    // Fetch payment data (use find() to get an array of documents)
+    const paymentData = await CasePayments.find({ case_id }).collation({ locale: 'en', strength: 2 });
+
+    // Check if the case has any payments
+    if (paymentData.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No payments found for the case.",
+        errors: {
+          code: 404,
+          description: "No payments found for the case.",
+        },
+      });
+    }
+
+    // Use Promise.all to handle asynchronous operations
+    const formattedCaseDetails = await Promise.all(
+      cases.map(async (caseData) => {
+        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastRecoveryOfficer =
+          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+
+        // Fetch matching recovery officer asynchronously
+        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+          ro_id: lastRecoveryOfficer.ro_id,
+        });
+
+        return {
+          case_id: caseData.case_id,
+          status: caseData.case_current_status,
+          created_dtm: lastDrc.created_dtm,
+          current_arreas_amount: caseData.current_arrears_amount,
+          area: caseData.area,
+          remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
+          expire_dtm: lastDrc.expire_dtm,
+          ro_name: matchingRecoveryOfficer?.ro_name || null,
+        };
+      })
+    );
+
+    const formattedPayments = paymentData.map((payment) => ({
+      case_id: payment.case_id,
+      payment_date: payment.created_dtm,
+      payment_amount: payment.bill_paid_amount,
+      settle_amount: payment.settled_balance,
+    }));
+
+    const formattedSettlements = settlementData.map((settlement) => ({
+      case_id: settlement.case_id,
+      settlement_date: settlement.created_dtm,
+      settlement_expire_date: settlement.expire_date,
+      settlement_status: settlement.settlement_status,
+    }));
+
+    // Return success response
     return res.status(200).json({
       status: "success",
-      message: "Case behaviors retrieved successfully.",
-      data: caseBehaviors,  // Return the case behaviors
-    })
+      message: "Cases retrieved successfully.",
+      data: {
+        cases: formattedCaseDetails,
+        payments: formattedPayments,
+        settlements: formattedSettlements,
+      },
+    });
   } catch (error) {
     // Handle unexpected errors
     return res.status(500).json({
@@ -1873,7 +1952,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         description: error.message,
       },
     });
-  } 
+  }
 };
 
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {

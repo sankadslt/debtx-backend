@@ -17,6 +17,7 @@ import { drcExtendValidityPeriod,
         Open_No_Agent_Cases_ALL,
         Open_No_Agent_Cases_Direct_LD,
         assignROToCase,
+        listBehaviorsOfCaseDuringDRC,
         // listAllActiveRosByDRCID,
         Case_Status,
         Case_List,
@@ -794,6 +795,8 @@ router.post("/Case_Current_Status", Case_Current_Status);
 router.patch("/Assign_RO_To_Case", assignROToCase);
 
 router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
+
+router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
