@@ -723,7 +723,7 @@ export const Upload_DRS_File = async (req, res) => {
 
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, From_Date, To_Date } = req.body;
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
 
     let query = {};
 
@@ -746,6 +746,9 @@ export const List_Incidents = async (req, res) => {
     }
     if (Incident_Status) {
       query.Incident_Status = Incident_Status;
+    }
+    if (Source_Type) {
+      query.Source_Type = Source_Type;
     }
 
     const incidents = await Incident_log.find(query);
