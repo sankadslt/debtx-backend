@@ -12,14 +12,10 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
-import RecoveryOfficer from "../models/Recovery_officer.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
-<<<<<<< Updated upstream
 import SystemTransaction from "../models/System_transaction.js";
-=======
 import RecoveryOfficer from "../models/Recovery_officer.js"
->>>>>>> Stashed changes
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -2273,6 +2269,140 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
       errors: {
         code: 500,
         description: error.message,
+      },
+    });
+  }
+};
+
+// get CaseDetails for MediationBoard 
+
+// export const getCaseDetailsbyMediationBoard = async (req, res) => {
+//   try {
+//     const { case_id  } = req.body;
+    
+//     if (!case_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Case ID is required.",
+//         errors: {
+//           code: 400,
+//           description: "Please provide a case_id in the request body.",
+//         },
+//       });
+//     }
+
+//     const caseDetails = await Case_details.findOne(
+//       { case_id: case_id },
+//       {
+//         case_id: 1,
+//         customer_ref: 1,
+//         account_no: 1,
+//         current_arrears_amount: 1,
+//         last_payment_date: 1
+//         // Removed _id: 0 to include the _id field in the response
+//       }
+//     );
+
+//     if (!caseDetails) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "Case not found.",
+//         errors: {
+//           code: 404,
+//           description: "No case data matches the provided ID.",
+//         },
+//       });
+//     }
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Case details retrieved successfully.",
+//       data: caseDetails,
+//     });
+
+//   } catch (err) {
+//     console.error("Detailed error:", {
+//       message: err.message,
+//       stack: err.stack,
+//       name: err.name
+//     });
+
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve case details.",
+//       errors: {
+//         code: 500,
+//         description: err.message || "Internal server error occurred while fetching case details.",
+//       },
+//     });
+//   }
+// };
+
+
+
+
+// get CaseDetails for MediationBoard 
+
+export const getCaseDetailsbyMediationBoard = async (req, res) => {
+  try {
+    const { case_id, drc_id } = req.body;
+    
+    if (!case_id || !drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both Case ID and DRC ID are required.",
+        errors: {
+          code: 400,
+          description: "Please provide both case_id and drc_id in the request body.",
+        },
+      });
+    }
+
+    // Find the case that matches both case_id and has the specified drc_id in its drc array
+    const caseDetails = await Case_details.findOne(
+      {
+        case_id: case_id,
+        'drc.drc_id': drc_id  // Look for drc_id within the drc array
+      },
+      {
+        case_id: 1,
+        customer_ref: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+        last_payment_date: 1
+      }
+    );
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found or DRC ID doesn't match.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided Case ID and DRC ID combination.",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      data: caseDetails,
+    });
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 500,
+        description: err.message || "Internal server error occurred while fetching case details.",
       },
     });
   }
