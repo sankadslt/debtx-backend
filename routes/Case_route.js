@@ -2309,5 +2309,10 @@ router.post(
 router.post(
   "/List_all_transaction_seq_of_batch_id",
   List_all_transaction_seq_of_batch_id
-);
+);   
+
+router.post(
+    "/Create_Task_For_case_distribution_transaction",
+    Create_Task_For_case_distribution_transaction
+  );  
 export default router;

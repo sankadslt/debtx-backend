@@ -2475,7 +2475,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 
     const taskData = {
       Template_Task_Id: 27,
-      task_type: "Case_distribution_task",
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
       ...parameters,
     };
 
