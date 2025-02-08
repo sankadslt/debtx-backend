@@ -2089,6 +2089,146 @@ router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
 router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to retrieving case details based on mediation board requests.
+ * 
+ * /api/case/Case_Details_for_DRC:
+ *   post:
+ *     summary: Retrieve case details by Case ID and DRC ID.
+ *     description: |
+ *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
+ *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+ *       the system returns relevant case details.
+ *       
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier for the case.
+ *                 example: 101
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier for the Debt Recovery Company (DRC).
+ *                 example: 5
+ *     responses:
+ *       200:
+ *         description: Case details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case details retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       description: Case ID.
+ *                       example: 101
+ *                     customer_ref:
+ *                       type: string
+ *                       description: Customer reference number.
+ *                       example: CUST-2024-001
+ *                     account_no:
+ *                       type: string
+ *                       description: Customer's account number.
+ *                       example: ACC-56789
+ *                     current_arrears_amount:
+ *                       type: number
+ *                       description: The amount of arrears on the case.
+ *                       example: 15000.75
+ *                     last_payment_date:
+ *                       type: string
+ *                       format: date
+ *                       description: Last payment date associated with the case.
+ *                       example: "2025-01-15"
+ *       400:
+ *         description: Validation error - Case ID and DRC ID are required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Both Case ID and DRC ID are required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Please provide both case_id and drc_id in the request body.
+ *       404:
+ *         description: Case not found or DRC ID doesn't match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case not found or DRC ID doesn't match.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No case found with the provided Case ID and DRC ID combination.
+ *       500:
+ *         description: Internal server error occurred while fetching case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve case details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error occurred while fetching case details.
+ */
 router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
+
 
 export default router;
