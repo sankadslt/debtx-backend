@@ -2077,7 +2077,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
-        const { date_from, date_to, arrears_band, drc_commision_rule } = req.body;
+        const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
         let filter = {};
 
         // Filter based on date range
@@ -2090,8 +2090,8 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         }
 
         // Filter based on arrears_band
-        if (arrears_band) {
-            filter.arrears_band = arrears_band;
+        if (current_arrears_band) {
+            filter.current_arrears_band = current_arrears_band;
         }
 
         // Filter based on drc_commision_rule
@@ -2120,7 +2120,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
                 batch_seq_details: lastBatchSeq ? [lastBatchSeq] : [], // Only the last batch_seq
                 created_dtm: doc.created_dtm,
                 created_by: doc.created_by,
-                arrears_band: doc.arrears_band,
+                current_arrears_band: doc.current_arrears_band,
                 rulebase_count: doc.rulebase_count,
                 rulebase_arrears_sum: doc.rulebase_arrears_sum,
                 status: lastStatus ? [lastStatus] : [], // Only the last status
@@ -2267,8 +2267,8 @@ export const Create_Task_For_case_distribution = async (req, res) => {
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
-      Template_Task_Id: 13,
-      task_type: "Case_distribution_task",
+      Template_Task_Id: 26,
+      task_type: "Create Case distribution DRC Transaction List for Downloard",
       ...parameters, // Spreads parameters directly into taskData
     };
 
@@ -2516,4 +2516,8 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
       },
     });
   }
+};
+
+export const Batch_Forward_for_Proceed = async (req, res) => {
+
 };
