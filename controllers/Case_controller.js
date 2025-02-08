@@ -1048,7 +1048,6 @@ export const Case_List = async (req, res) => {
   }
 };
 
-
 export const openNoAgentCasesAllByServiceTypeRulebase = async (req, res) => {
 
   const { Rule, From_Date, To_Date , Case_Status} = req.body;
@@ -1914,6 +1913,10 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          ro_request_created_dtm: caseData.request_created_dtm,
+          ro_request: caseData.ro_requests.ro_request,
+          ro_request_todo_dtm: caseData.ro_requests.todo_dtm,
+          ro_request_completed_dtm: caseData.ro_requests.completed_dtm,
         };
       })
     );

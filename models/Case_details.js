@@ -89,7 +89,7 @@ const productDetailsSchema = new Schema({
   Service_address: { type: String, required: true },
 });
 
-const RoNegotiateCpCollectSchema = new mongoose.Schema({
+const RoNegotiateCpeCollectSchema = new mongoose.Schema({
   drc_id: { type: String, required: true },
   ro_id: { type: String, required: true },
   serial_no: { type: String, required: true },
@@ -108,6 +108,16 @@ const roNegotiationSchema = new mongoose.Schema({
   created_dtm: { type: Date, required: true },
   feild_reason: { type: String, required: true },
   remark: { type: String },
+});
+
+const roRequestsSchema = new mongoose.Schema({
+  drc_id: { type: String, required: true },
+  ro_id: { type: String, required: true },
+  created_dtm: { type: Date, required: true },
+  ro_request: { type: String, required: true },
+  intraction_id: { type: Number, required: true },
+  todo_dtm: { type: Date, required: true },
+  completed_dtm: { type: Date, required: true },
 });
 
 // Define the main case details schema
@@ -141,7 +151,8 @@ const caseDetailsSchema = new Schema({
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 
   ro_negotiation: [roNegotiationSchema],
-  ro_negotiate_cp_collect: [RoNegotiateCpCollectSchema],
+  ro_requests: [roRequestsSchema],
+  ro_negotiate_cp_collect: [RoNegotiateCpeCollectSchema],
   
 },
 {
