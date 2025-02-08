@@ -2,15 +2,14 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-    Last Modified Date: 2024-01-19
-    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com)       
+    Last Modified Date: 2024-02-07
+    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
     Notes:  
 */
 
- 
 import { Router } from "express";
 import { drcExtendValidityPeriod,
         listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
@@ -29,12 +28,17 @@ import { drcExtendValidityPeriod,
         get_count_by_drc_commision_rule,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
-        Case_Distribution_Among_Agents
+        Case_Distribution_Among_Agents,
+        List_Case_Distribution_DRC_Summary,
+        Batch_Forward_for_Proceed,
+        Create_Task_For_case_distribution,
+        List_all_transaction_seq_of_batch_id,
+        Create_Task_For_case_distribution_transaction,
+        
 
  } from "../controllers/Case_controller.js";
 
 const router = Router();
-
 
 /**
  * @swagger
@@ -46,9 +50,9 @@ const router = Router();
  *   post:
  *     summary: Retrieve all cases by status and date range
  *     description: |
- *       Fetch all cases matching the provided `case_current_status`. If not specified, retrieves all statuses. 
+ *       Fetch all cases matching the provided `case_current_status`. If not specified, retrieves all statuses.
  *       Results are filtered by optional `fromDate` and `toDate` range and grouped into categories.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -192,7 +196,7 @@ router.post("/Open_No_Agent_Cases_ALL", Open_No_Agent_Cases_ALL);
  *       - `filtered_reason` is null or an empty string.
  *       - `current_arrears_amount` is greater than 1000 and less than or equal to 5000.
  *       - Optionally filtered by `fromDate` and `toDate` for the `created_dtm` field.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -327,7 +331,7 @@ router.post("/Open_No_Agent_Cases_Direct_LD", Open_No_Agent_Cases_Direct_LD);
  *     summary: C-1AO1 Extend the validity period of a DRC
  *     description: |
  *       Updates the validity period of a DRC by modifying the expiration date, adding a transaction record, and managing system case interactions.
- *       
+ *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
  *       | 01      | 2025-Jan-09| Initial version|
@@ -1168,7 +1172,10 @@ router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByServiceTypeRulebase);
+router.post(
+  "/Open_No_Agent_Cases_ALL_By_Rulebase",
+  openNoAgentCasesAllByServiceTypeRulebase
+);
 
 /**
  * @swagger
@@ -1180,7 +1187,7 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *   post:
  *     summary: C-1P19 Retrieve Open No Agent Count Arrears Bands by Rule
  *     description: |
- *       Retrieves the count of cases with current arrears amounts divided into bands based on the rule. 
+ *       Retrieves the count of cases with current arrears amounts divided into bands based on the rule.
  *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
@@ -1295,7 +1302,10 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType);
+router.post(
+  "/Open_No_Agent_Count_Arrears_Band_By_Rulebase",
+  openNoAgentCountArrearsBandByServiceType
+);
 
 /**
  * @swagger
@@ -1307,7 +1317,7 @@ router.post("/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArr
  *   post:
  *     summary: C-1G11 Retrieve Open No Agent Cases
  *     description: |
- *       Retrieves case details with the status "Open No Agent" for a specific date range where filtered reason is NULL. 
+ *       Retrieves case details with the status "Open No Agent" for a specific date range where filtered reason is NULL.
  *
  *       | Version | Date       | Description    |
  *       |---------|------------|----------------|
@@ -1563,7 +1573,6 @@ router.post("/List_Cases", listCases);
  *                       example: Detailed error message.
  */
 router.post("/Case_Status", Case_Status);
-
 
 /**
  * @swagger
@@ -1951,9 +1960,9 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/get_count_by_drc_commision_rule",get_count_by_drc_commision_rule); 
+router.get("/get_count_by_drc_commision_rule", get_count_by_drc_commision_rule);
 
-router.get("/getAllArrearsBands",getAllArrearsBands); 
+router.get("/getAllArrearsBands", getAllArrearsBands);
 
 /**
  * @swagger
@@ -2080,10 +2089,242 @@ router.get("/getAllArrearsBands",getAllArrearsBands);
  *                       example: Detailed error message.
  */
 
-router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_arrears_band);
+router.post(
+  "/count_cases_rulebase_and_arrears_band",
+  count_cases_rulebase_and_arrears_band
+);
 
-router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
+/**
+ * @swagger
+ * /api/Case_Distribution_Among_Agents:
+ *   post:
+ *     summary: C-1P20 Distribute Cases Among Agents
+ *     description: |
+ *       Distribute Cases among Agents and case_status='Open Assign Agent'
+ *
+ *
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-Jan-28 | Case distribution among agents        | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_commision_rule
+ *               - current_arrears_band
+ *               - drc_list
+ *               - created_by
+ *             properties:
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule for distributing cases.
+ *                 example: "PEO TV"
+ *               current_arrears_band:
+ *                 type: string
+ *                 description: The arrears band used for filtering cases.
+ *                 example: "5000-10000"
+ *               drc_list:
+ *                 type: array
+ *                 description: List of DRCs and their case counts.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     DRC:
+ *                       type: string
+ *                       description: The agent or DRC handling cases.
+ *                       example: "Agent_001"
+ *                     Count:
+ *                       type: integer
+ *                       description: The number of cases assigned.
+ *                       example: 5
+ *               created_by:
+ *                 type: string
+ *                 description: The user who initiated the distribution.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Task successfully created for case distribution.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task successfully created.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     task_id:
+ *                       type: string
+ *                       description: Unique identifier for the created task.
+ *                       example: "task_12345"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: Unique batch ID for case distribution.
+ *                       example: 1001
+ *       400:
+ *         description: Validation error - Missing or incorrect required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC commission rule, current arrears band, created by and DRC list fields are required.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while creating the task.
+ */
 
-router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases)
+router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
+router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
+
+router.post("/Batch_Forward_for_Proceed",Batch_Forward_for_Proceed);
+
+router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution);
+
+router.post(
+  "/List_All_DRC_Mediation_Board_Cases",
+  listAllDRCMediationBoardCases
+);
+
+/**
+ * @swagger
+ * /api/List_all_transaction_seq_of_batch_id:
+ *   post:
+ *     summary: C-1P062 List All Transactions of a Batch
+ *     description: |
+ *      this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
+ *
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-Jan-28 | List all transactions by batch ID     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: string
+ *                 description: The batch ID for which transactions should be retrieved.
+ *                 example: "65a1b2c3d4e5f67890123456"
+ *     responses:
+ *       200:
+ *         description: Transactions retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved 5 records.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Unique identifier for the transaction.
+ *                         example: "65b2c3d4e5f6789012345678"
+ *                       case_distribution_batch_id:
+ *                         type: string
+ *                         description: Batch ID associated with the transaction.
+ *                         example: "65a1b2c3d4e5f67890123456"
+ *                       transaction_type:
+ *                         type: string
+ *                         description: Type of transaction.
+ *                         example: "Allocation"
+ *                       transaction_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time of the transaction.
+ *                         example: "2025-01-28T14:30:00Z"
+ *                       transaction_amount:
+ *                         type: number
+ *                         format: float
+ *                         description: Amount associated with the transaction.
+ *                         example: 1000.50
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id is a required parameter.
+ *       404:
+ *         description: No transactions found for the given batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No data found for this batch ID.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Server error. Please try again later.
+ */
+
+router.post(
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);   
+
+router.post(
+    "/Create_Task_For_case_distribution_transaction",
+    Create_Task_For_case_distribution_transaction
+  );  
 export default router;

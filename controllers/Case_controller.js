@@ -1466,14 +1466,14 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     });
   }
 
-  if (drc_list.length <= 0) {
+  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
     return res.status(400).json({
       status: "error",
       message: "DRC List should not be empty.",
     });
   }
 
-  const validateDRCList = (drcList) => {
+  const validateDRCList = (drcList) =>  {
     if (!Array.isArray(drcList)) {
       throw new Error("DRC List must be an array.");
     }
@@ -1536,19 +1536,31 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     if (!case_distribution_batch_id) {
       throw new Error("Failed to generate case_distribution_batch_id.");
     }
-
-    // Prepare Case distribution drc transactions data
-    const Case_distribution_drc_transactions_data = {
-      case_distribution_batch_id,
+    const batch_seq_details = [{
       batch_seq: 1,
       created_dtm: new Date(),
       created_by,
       action_type: "distribution",
-      drc_commision_rule,
+      array_of_distributions: drc_list.map(({ DRC, Count }) => ({
+        drc: DRC,
+        rulebase_count: Count,
+      })),
+      batch_seq_rulebase_count: 100,
+    }];
+    // Prepare Case distribution drc transactions data
+    const Case_distribution_drc_transactions_data = {
+      case_distribution_batch_id,
+      batch_seq_details,
+      created_dtm: new Date(),
+      created_by,
       current_arrears_band,
-      array_of_distribution:validatedDRCList,
       rulebase_count: 100,
       rulebase_arrears_sum: 5000,
+      status: [{
+        crd_distribution_status: "Open",
+        created_dtm: new Date(),
+      }],
+      drc_commision_rule,  
       crd_distribution_status: {crd_distribution_status:"Open",created_dtm:new Date()},
     };
 
@@ -2159,7 +2171,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
-        const { date_from, date_to, arrears_band, drc_commision_rule } = req.body;
+        const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
         let filter = {};
 
         // Filter based on date range
@@ -2172,8 +2184,8 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         }
 
         // Filter based on arrears_band
-        if (arrears_band) {
-            filter.arrears_band = arrears_band;
+        if (current_arrears_band) {
+            filter.current_arrears_band = current_arrears_band;
         }
 
         // Filter based on drc_commision_rule
@@ -2202,7 +2214,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
                 batch_seq_details: lastBatchSeq ? [lastBatchSeq] : [], // Only the last batch_seq
                 created_dtm: doc.created_dtm,
                 created_by: doc.created_by,
-                arrears_band: doc.arrears_band,
+                current_arrears_band: doc.current_arrears_band,
                 rulebase_count: doc.rulebase_count,
                 rulebase_arrears_sum: doc.rulebase_arrears_sum,
                 status: lastStatus ? [lastStatus] : [], // Only the last status
@@ -2220,80 +2232,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         console.error("Error fetching case distributions:", error);
         res.status(500).json({ message: "Server Error", error });
     }
-};
-
-
-export const AAA = async (req, res) => {  
-  try {
-    const { case_distribution_batch_id } = req.body;
-    
-    if (!case_distribution_batch_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "case_distribution_batch_id is required.",
-      });
-    }
-
-    const caseDistribution = await CaseDistribution.aggregate([
-      {
-        $match: { case_distribution_batch_id: case_distribution_batch_id }
-      },
-      {
-        $lookup: {
-          from: "Case_Distribution_DRC_Summary",
-          localField: "case_distribution_batch_id",
-          foreignField: "case_distribution_batch_id",
-          as: "drc_summary"
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          // case_distribution_batch_id: 1,
-          batch_seq: 1,
-          created_dtm: 1,
-          // drc_commision_rule: 1,
-          // current_arrears_band: 1,
-          action_type: 1,
-          // rulebase_count: 1,
-          // rulebase_arrears_sum: 1,
-          case_count: { $sum: "$drc_summary.case_count" },
-          total_arrears_amount: { $sum: "$drc_summary.tot_arrease" },
-          drc_summary: {
-            $map: {
-              input: "$drc_summary",
-              as: "drc",
-              in: {
-                drc: "$$drc.drc",  // Use drc_id instead of drc (as per schema)
-                rtom: "$$drc.rtom",
-                case_count: "$$drc.case_count",
-                tot_arrease: "$$drc.tot_arrease"
-              }
-            }
-          }
-        }
-      }
-    ]);
-
-    if (caseDistribution.length == 0) {
-      return res.status(404).json({ status: "Error",message: "Batch not found." });
-    }
-    return res.status(200).json({
-      status: "success",
-      message: "Batch retrieved successfully.",
-      data: caseDistribution,
-    });
-
-  } catch (error) {
-    console.error("Error fetching case distribution:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Error fetching case distribution.",
-      errors: {
-        exception: error.message,
-      },
-    });
-  }
 };
 
 const validateTaskParameters = (parameters) => {
@@ -2349,8 +2287,8 @@ export const Create_Task_For_case_distribution = async (req, res) => {
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
-      Template_Task_Id: 13,
-      task_type: "Case_distribution_task",
+      Template_Task_Id: 26,
+      task_type: "Create Case distribution DRC Transaction List for Downloard",
       ...parameters, // Spreads parameters directly into taskData
     };
 
@@ -2380,7 +2318,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
 };
 
 //this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
-export const get_all_transaction_seq_of_batch_id = async (req, res) => {
+export const List_all_transaction_seq_of_batch_id = async (req, res) => {
   try {
     const { case_distribution_batch_id } = req.body;
 
@@ -2413,8 +2351,6 @@ export const get_all_transaction_seq_of_batch_id = async (req, res) => {
     });
   }
 };
-
-
 
 //     // Input validation
 //     if (!drc_id) {
@@ -2599,3 +2535,89 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
+
+export const Batch_Forward_for_Proceed = async (req, res) => {
+
+};
+export const Create_Task_For_case_distribution_transaction = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const {case_distribution_batch_id } = req.body;
+
+    if (!case_distribution_batch_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id is a required parameter.",
+      });
+    }
+    const parameters = {
+      case_distribution_batch_id
+    };
+
+    const taskData = {
+      Template_Task_Id: 27,
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
+      ...parameters,
+    };
+
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Create Case distribution DRC Transaction_1_Batch List for Download",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+// export const get_distribution_array_of_a_transaction = async (req, res) => {
+//   try {
+//     const { case_distribution_batch_id, batch_seq } = req.body;
+
+//     if (!case_distribution_batch_id || !batch_seq) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "case_distribution_batch_id is a required parameter.",
+//       });
+//     }
+
+//     const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id,batch_seq_details.batch_seq = batch_seq });
+
+//     if (transactions_data.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No data found for this batch ID.",
+//       });
+//     }
+
+//     return res.status(200).json({ 
+//       status: "success",
+//       message: `Successfully retrieved ${transactions_data.length} records`,
+//       data: transactions_data,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching batch data:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Server error. Please try again later.",
+//     });
+//   }
+// }
