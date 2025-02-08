@@ -153,11 +153,10 @@ const caseDetailsSchema = new Schema({
   ro_negotiation: [roNegotiationSchema],
   ro_requests: [roRequestsSchema],
   ro_negotiate_cp_collect: [RoNegotiateCpeCollectSchema],
-  
 },
 {
-    collection: 'Case_details', 
-    timestamps: true,
+  collection: 'Case_details', 
+  timestamps: true,
 }
 );
 
