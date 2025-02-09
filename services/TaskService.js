@@ -160,8 +160,8 @@ export const createTask = async (req, res) => {
     // Task object
     const taskData = {
       Task_Id,
-      Template_Task_Id: 14, // Adjust as needed
-      task_type: "Download Incidents",
+      Template_Task_Id: 21,
+      task_type: "Create Incident list for download",
       parameters: {
         DRC_Action,
         Incident_Status,
@@ -200,10 +200,10 @@ export const createTask = async (req, res) => {
 };
 
 export const Task_for_Download_Incidents = async (req, res) => {
-  const { DRC_Action, Incident_Status, From_Date, To_Date, Created_By } = req.body;
+  const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
 
-  if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
-      return res.status(400).json({ error: "Missing required parameters" });
+  if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters From Date To Date" });
   }
 
   const session = await mongoose.startSession();
@@ -223,11 +223,12 @@ export const Task_for_Download_Incidents = async (req, res) => {
       // Task object
       const taskData = {
           Task_Id,
-          Template_Task_Id: 14, // Placeholder, adjust if needed
-          task_type: "Download Incidents",
+          Template_Task_Id: 21, // Placeholder, adjust if needed
+          task_type: "Create Incident list for download",
           parameters: {
               DRC_Action,
               Incident_Status,
+              Source_Type,
               From_Date,
               To_Date,
           },

@@ -126,7 +126,7 @@ const batchseqSchema = new Schema({
     action_type: { type: String, required: true, enum: ['distribution', 'amend'],},
     array_of_distributions: [arrayOfDistributionSchema] ,
     batch_seq_rulebase_count: { type: Number, required: true},
-    batch_seq_rulebase_arrears_sum: { type: Number, required: true},
+    // batch_seq_rulebase_arrears_sum: { type: Number, required: true},
 }, { _id: false });
 
 const crdDistributionStatusSchema = new Schema({
@@ -143,16 +143,16 @@ const caseDistributionSchema = new Schema({
     batch_seq_details: [batchseqSchema],
     created_dtm: { type: Date, required: true },
     created_by: { type: String, required: true},
-    arrears_band: { type: String, required: true},
+    current_arrears_band: { type: String, required: true},
     rulebase_count: { type: Number, required: true},
     rulebase_arrears_sum: { type: Number, required: true},
     status: [crdDistributionStatusSchema],
     drc_commision_rule: { type: String, required: true },
-    forward_for_approvals_on: { type: Date, required: true},
-    approved_by: { type: String, required: true},
-    approved_on: { type: Date, required: true },
-    proceed_on: { type: Date, required: true },
-    tmp_record_remove_on: { type: Date, required: true }
+    forward_for_approvals_on: { type: Date, default:null},
+    approved_by: { type: String, default:null},
+    approved_on: { type: Date, default:null},
+    proceed_on: { type: Date, default:null},
+    tmp_record_remove_on: { type: Date, default:null}
 },{
   collection: 'Case_distribution_drc_transactions',
   timestamps: true
