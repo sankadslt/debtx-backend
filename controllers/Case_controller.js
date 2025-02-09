@@ -2485,8 +2485,10 @@ export const get_all_transaction_seq_of_batch_id = async (req, res) => {
 //   }
 // };
 
+
+
 export const listAllDRCMediationBoardCases = async (req, res) => {
-  const { drc_id, rtom, ro_id, action_type, from_date, to_date } = req.body;
+  const { drc_id, rtom, ro_id, action_type, from_date, to_date, case_current_status } = req.body;
 
   try {
     // Validate the DRC ID
@@ -2502,13 +2504,13 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     }
 
     // Ensure at least one optional parameter is provided
-    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
+    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
         errors: {
           code: 400,
-          description: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.",
+          description: "Provide at least one of rtom, ro_id, action_type, status, or both from_date and to_date together.",
         },
       });
     }
@@ -2517,20 +2519,25 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     let query = { "drc.drc_id": drc_id };
 
     // Initialize $and array if any optional filters are provided
-    if (rtom || action_type || ro_id || (from_date && to_date)) {
+    if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
       query.$and = [];
     }
 
     // Add optional filters dynamically
     if (rtom) query.$and.push({ area: rtom });
+    // if (rtom) query.$and.push({ rtom: area });
     if (action_type) query.$and.push({ action_type });
+    if (case_current_status) query.$and.push({ case_current_status:case_current_status });
     if (ro_id) {
       query.$and.push({
         $expr: {
           $eq: [
             ro_id,
             {
-              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+              $arrayElemAt: [
+                { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] },
+                -1,
+              ],
             },
           ],
         },
@@ -2558,7 +2565,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
       cases.map(async (caseData) => {
-        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastDrc = caseData.drc[caseData.drc.length - 1];
         const lastRecoveryOfficer =
           lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
 
@@ -2574,6 +2581,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           area: caseData.area,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          rtom: caseData.area,
         };
       })
     );
@@ -2596,3 +2604,115 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
+
+// export const listAllDRCMediationBoardCases = async (req, res) => {
+//   const { drc_id, rtom, ro_id, action_type, from_date, to_date } = req.body;
+
+//   try {
+//     // Validate the DRC ID
+//     if (!drc_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to retrieve DRC details.",
+//         errors: {
+//           code: 400,
+//           description: "DRC ID is required.",
+//         },
+//       });
+//     }
+
+//     // Ensure at least one optional parameter is provided
+//     if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "At least one filtering parameter is required.",
+//         errors: {
+//           code: 400,
+//           description: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.",
+//         },
+//       });
+//     }
+
+//     // Build query dynamically based on provided parameters
+//     let query = { "drc.drc_id": drc_id };
+
+//     // Initialize $and array if any optional filters are provided
+//     if (rtom || action_type || ro_id || (from_date && to_date)) {
+//       query.$and = [];
+//     }
+
+//     // Add optional filters dynamically
+//     if (rtom) query.$and.push({ rtom: rtom });
+//     if (action_type) query.$and.push({ action_type });
+//     if (ro_id) {
+//       query.$and.push({
+//         $expr: {
+//           $eq: [
+//             ro_id,
+//             {
+//               $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+//             },
+//           ],
+//         },
+//       });
+//     }
+//     if (from_date && to_date) {
+//       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+//       query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+//     }
+
+//     const cases = await Case_details.find(query);
+
+//     // Handle case where no matching cases are found
+//     if (cases.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No matching cases found for the given criteria.",
+//         errors: {
+//           code: 404,
+//           description: "No cases satisfy the provided criteria.",
+//         },
+//       });
+//     }
+
+//     // Use Promise.all to handle asynchronous operations
+//     const formattedCases = await Promise.all(
+//       cases.map(async (caseData) => {
+//         const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+//         const lastRecoveryOfficer =
+//           lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+
+//         // Fetch matching recovery officer asynchronously
+//         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+//           ro_id: lastRecoveryOfficer.ro_id,
+//         });
+
+//         return {
+//           case_id: caseData.case_id,
+//           status: caseData.case_current_status,
+//           created_dtm: lastDrc.created_dtm,
+//           area: caseData.area,
+//           expire_dtm: lastDrc.expire_dtm,
+//           ro_name: matchingRecoveryOfficer?.ro_name || null,
+//         };
+//       })
+//     );
+
+//     // Return success response
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Cases retrieved successfully.",
+//       data: formattedCases,
+//     });
+//   } catch (error) {
+//     // Handle errors
+//     return res.status(500).json({
+//       status: "error",
+//       message: "An error occurred while retrieving cases.",
+//       errors: {
+//         code: 500,
+//         description: error.message,
+//       },
+//     });
+//   }
+// };

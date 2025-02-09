@@ -2081,6 +2081,6 @@ router.post("/count_cases_rulebase_and_arrears_band",count_cases_rulebase_and_ar
 
 router.post("/Case_Distribution_Among_Agents",Case_Distribution_Among_Agents);
 
-router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases)
+router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
 
 export default router;
