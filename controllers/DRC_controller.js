@@ -598,7 +598,7 @@ export const endDRC = async (req, res) => {
   try {
     const { drc_id, drc_end_dat, remark, remark_edit_by } = req.body;
 
- 
+    // Validate required fields
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -613,7 +613,7 @@ export const endDRC = async (req, res) => {
       });
     }
 
-  
+    // Find the DRC record
     const drc = await DRC.findOne({ drc_id });
     if (!drc) {
       return res.status(404).json({
@@ -622,11 +622,13 @@ export const endDRC = async (req, res) => {
       });
     }
 
-    
+    // Update DRC status and end date
+    drc.drc_status = "Ended";
     if (drc_end_dat) {
       drc.drc_end_dat = drc_end_dat;
     }
 
+    // Add new remark
     const newRemark = {
       remark,
       remark_Dtm: new Date(),
@@ -634,13 +636,13 @@ export const endDRC = async (req, res) => {
     };
     drc.remark.push(newRemark);
 
-    
+    // Save the updated DRC record
     await drc.save();
 
-    
+    // Respond with success message and updated DRC
     return res.status(200).json({
       status: "success",
-      message: "DRC Ended.",
+      message: "DRC ended successfully.",
       data: drc,
     });
   } catch (error) {
@@ -651,7 +653,6 @@ export const endDRC = async (req, res) => {
     });
   }
 };
-
 
 
 

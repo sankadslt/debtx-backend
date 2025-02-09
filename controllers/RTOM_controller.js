@@ -677,7 +677,7 @@ export const suspend_RTOM = async (req, res) => {
   const updated_by = "System"; // Set default updated_by to "System" if not provided
 
   if (!rtom_id || !reason || !rtom_end_date || !rtom_status) {
-    return res.status(400).json({
+    return res.status(400).json({ 
       status: "error",
       message: "All fields are required",
     });
@@ -801,6 +801,7 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
       message: "Active RTOMs retrieved successfully.",
       data: uniqueActiveRTOMs,
     });
+    
   } catch (error) {
     console.error("Error retrieving RTOM names:", error);
     return res.status(500).json({
