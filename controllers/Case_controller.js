@@ -2,7 +2,7 @@
     Purpose: This template is used for the Case Controllers.
     Created Date: 2025-01-08
     Created By:  Naduni Rabel (rabelnaduni2000@gmail.com)
-    Last Modified Date: 2025-01-19
+    Last Modified Date: 2025-02-09
     Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com)
     Version: Node.js v20.11.1
     Dependencies: axios , mongoose
@@ -1852,7 +1852,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     const { case_id, drc_id, ro_id } = req.body;
 
     // Validate input
-    if (!case_id || !drc_id || !ro_id) {
+    if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
         message: "All fields are required.",
@@ -1860,10 +1860,57 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     }
 
     // Fetch the case details (use find() to get an array of documents)
-    const cases = await Case_details.find({ case_id }).collation({ locale: 'en', strength: 2 });
+    let query = {
+      "drc.drc_id": drc_id,
+      case_id,
+      $and: [],
+    };
+
+    // let query = {
+    //   $or: [
+    //     { "drc.drc_id": drc_id },
+    //     { "drc.recovery_officers.ro_id": ro_id },
+    //   ],
+    //   case_id,
+    // };
+
+    // Add the ro_id condition to the query if provided
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
+      });
+    }
+
+    const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
+      
+      // {
+      //   case_id: 1,
+      //   customer_ref: 1,
+      //   account_no: 1,
+      //   current_arrears_amount: 1,
+      //   last_payment_date: 1,
+      //   "ref_products.product_label": 1,
+      //   "ref_products.service": 1,
+      //   "ref_products.product_status": 1,
+      //   "ref_products.service_address": 1,
+      //   "ro_negotiation.created_dtm": 1,
+      //   "ro_negotiation.feild_reason": 1,
+      //   "ro_negotiation.remark": 1,
+      //   "ro_requests.created_dtm": 1,
+      //   "ro_requests.ro_request": 1,
+      //   "ro_requests.todo_dtm": 1,
+      //   "ro_requests.completed_dtm": 1,
+      // }
 
     // Check if any cases exist
-    if (cases.length === 0) {
+    if (!caseData) {
       return res.status(404).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
@@ -1875,10 +1922,17 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     }
 
     // Fetch settlement data (use find() to get an array of documents)
-    const settlementData = await CaseSettlement.find({ case_id }).collation({ locale: 'en', strength: 2 });
+    const settlementData = await CaseSettlement.findOne(
+      { case_id },
+      {
+        created_dtm: 1,
+        settlement_status: 1,
+        expire_date: 1
+      }
+    ).collation({ locale: 'en', strength: 2 });
 
     // Check if the case has any settlements
-    if (settlementData.length === 0) {
+    if (!settlementData) {
       return res.status(404).json({
         status: "error",
         message: "No settlements found for the case.",
@@ -1890,10 +1944,16 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     }
 
     // Fetch payment data (use find() to get an array of documents)
-    const paymentData = await CasePayments.find({ case_id }).collation({ locale: 'en', strength: 2 });
+    const paymentData = await CasePayments.findOne(
+      { case_id },
+      {
+        created_dtm: 1,
+        bill_paid_amount: 1,
+        settled_balance: 1
+      }
+    ).collation({ locale: 'en', strength: 2 });
 
-    // Check if the case has any payments
-    if (paymentData.length === 0) {
+    if (!paymentData) {
       return res.status(404).json({
         status: "error",
         message: "No payments found for the case.",
@@ -1905,57 +1965,39 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     }
 
     // Use Promise.all to handle asynchronous operations
-    const formattedCaseDetails = await Promise.all(
-      cases.map(async (caseData) => {
-        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
-        const lastRecoveryOfficer =
-          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+    const findDrc = { "drc.drc_id": drc_id}
+    const lastRecoveryOfficer =
+      caseData.findDrc?.recovery_officers?.[caseData.findDrc.recovery_officers.length - 1];
 
-        // Fetch matching recovery officer asynchronously
-        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-          ro_id: lastRecoveryOfficer.ro_id,
-        });
+    let matchingRecoveryOfficer = null;
+    if (lastRecoveryOfficer?.ro_id) {
+      matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+        ro_id: lastRecoveryOfficer.ro_id,
+      });
+    }
 
-        return {
-          case_id: caseData.case_id,
-          status: caseData.case_current_status,
-          created_dtm: lastDrc.created_dtm,
-          current_arreas_amount: caseData.current_arrears_amount,
-          area: caseData.area,
-          remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
-          expire_dtm: lastDrc.expire_dtm,
-          ro_name: matchingRecoveryOfficer?.ro_name || null,
-          ro_request_created_dtm: caseData.request_created_dtm,
-          ro_request: caseData.ro_requests.ro_request,
-          ro_request_todo_dtm: caseData.ro_requests.todo_dtm,
-          ro_request_completed_dtm: caseData.ro_requests.completed_dtm,
-        };
-      })
-    );
+    const formattedCaseDetails = {
+      case_id: caseData.case_id,
+      customer_ref: caseData.customer_ref,
+      account_no: caseData.account_no,
+      current_arrears_amount: caseData.current_arrears_amount,
+      last_payment_date: caseData.last_payment_date,
+      ref_products: caseData.ref_products || null,
+      ro_negotiation: caseData.ro_negotiation || null,
+      ro_requests: caseData.ro_requests || null,
+      ro_id: lastRecoveryOfficer?.ro_id || null,
+    };
 
-    const formattedPayments = paymentData.map((payment) => ({
-      case_id: payment.case_id,
-      payment_date: payment.created_dtm,
-      payment_amount: payment.bill_paid_amount,
-      settle_amount: payment.settled_balance,
-    }));
-
-    const formattedSettlements = settlementData.map((settlement) => ({
-      case_id: settlement.case_id,
-      settlement_date: settlement.created_dtm,
-      settlement_expire_date: settlement.expire_date,
-      settlement_status: settlement.settlement_status,
-    }));
 
     // Return success response
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
       data: {
-        cases: formattedCaseDetails,
-        payments: formattedPayments,
-        settlements: formattedSettlements,
-      },
+        formattedCaseDetails,
+        settlementData,
+        paymentData,
+      }
     });
   } catch (error) {
     // Handle unexpected errors
