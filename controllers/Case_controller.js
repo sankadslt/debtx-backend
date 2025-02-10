@@ -2586,14 +2586,14 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   session.startTransaction();
 
   try {
-    const {case_distribution_batch_id } = req.body;
+    const {case_distribution_batch_id,Created_By, } = req.body;
 
-    if (!case_distribution_batch_id) {
+    if (!case_distribution_batch_id || !Created_By) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "case_distribution_batch_id is a required parameter.",
+        message: "case_distribution_batch_id and Created_By are required parameter.",
       });
     }
     const parameters = {
@@ -2604,6 +2604,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
       Template_Task_Id: 27,
       task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
       ...parameters,
+      Created_By,
     };
 
     await createTaskFunction(taskData, session);
@@ -2682,3 +2683,53 @@ export const get_distribution_array_of_a_transaction = async (req, res) => {
     });
   }
 }
+
+export const Create_Task_For_case_distribution_transaction_array = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_distribution_batch_id, batch_seq, Created_By } = req.body;
+
+    if (!case_distribution_batch_id || !batch_seq || !Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id, batch_seq, and Created_By are required parameters.",      });
+    }
+    const parameters = {
+      case_distribution_batch_id,
+      batch_seq
+    };
+
+    const taskData = {
+      Template_Task_Id: 28,
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Downloard",
+      Created_By,
+      ...parameters,
+    };
+
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Create Case distribution DRC Transaction_1_Batch List distribution array for Download",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
