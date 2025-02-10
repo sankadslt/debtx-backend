@@ -1127,10 +1127,11 @@ export const List_incidents_Direct_LOD = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: directLODStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: directLODStatuses } };
+      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
@@ -1141,10 +1142,8 @@ export const List_incidents_Direct_LOD = async (req, res) => {
           $lte: new Date(`${ToDate}T23:59:59.999Z`),
         };
       }
-  
       incidents = await Incident.find(query).sort({ Created_Dtm: -1 });
     }
-  
     return res.status(200).json({
       status: "success",
       message: "Direct LOD incidents retrieved successfully.",
@@ -1490,7 +1489,7 @@ const caseData = {
 };
 
 export const Forward_Direct_LOD = async (req, res) => {
-  
+
     const session = await mongoose.startSession();
     session.startTransaction();
     
