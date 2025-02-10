@@ -35,6 +35,8 @@ import { drcExtendValidityPeriod,
         List_all_transaction_seq_of_batch_id,
         Create_Task_For_case_distribution_transaction,
         ListActiveRORequestsMediation,
+        get_distribution_array_of_a_transaction,
+        
 
  } from "../controllers/Case_controller.js";
 
@@ -2324,10 +2326,14 @@ router.post(
 );   
 
 router.post(
-    "/Create_Task_For_case_distribution_transaction",
+    "/w",
     Create_Task_For_case_distribution_transaction
-  );  
+  );
+  
+  router.post(
+    "/get_distribution_array_of_a_transaction",
+    get_distribution_array_of_a_transaction
+  );
 
-router.post("/get_all_case_distribution", ListActiveRORequestsMediation);
   
 export default router;
