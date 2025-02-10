@@ -5,13 +5,13 @@ import User from "../models/User.js";
 // Helper function to generate tokens
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
-    { id: user._id, username: user.username, email: user.email, role: user.role },
+    { user_id: user.user_id, username: user.username, email: user.email, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "15m" } // Short lifespan for access tokens
   );
 
   const refreshToken = jwt.sign(
-    { id: user._id, username: user.username, email: user.email, role: user.role },
+    { user_id: user.user_id, username: user.username, email: user.email, role: user.role },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: "7d" } // Longer lifespan for refresh tokens
   );
@@ -21,15 +21,15 @@ const generateTokens = (user) => {
 
 // Register a new user
 export const registerUser = async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { user_id, user_type, username, email, password, role, created_by, login_method } = req.body;
 
   try {
-    if (!username || !email || !password || !role) {
+    if (!user_id || !user_type || !username || !email || !password || !role || !created_by || !login_method) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword, role });
+    const newUser = new User({ user_id, user_type, username, email, password: hashedPassword, role, created_by, login_method });
 
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
@@ -83,7 +83,7 @@ export const refreshToken = async (req, res) => {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     // Generate new tokens
-    const user = { _id: decoded.id, username: decoded.username, email: decoded.email, role: decoded.role };
+    const user = { user_id: decoded.user_id, username: decoded.username, email: decoded.email, role: decoded.role };
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
     // Set the new refresh token in HttpOnly cookie
