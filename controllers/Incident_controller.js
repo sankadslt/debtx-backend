@@ -1116,20 +1116,42 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 };
 
 export const List_incidents_Direct_LOD = async (req, res) => {
+
   try {
+    const {Source_Type, FromDate, ToDate}= req.body;
     const directLODStatuses = ["Direct LOD"];
+   // const fromDate = new Date(`${FromDate}T00:00:00.000Z`);
+    //const toDate = new Date(`${ToDate}T23:59:59.999Z`);
+    let incidents;
 
-    const incidents = await Incident.find({
-      Incident_Status: { $in: directLODStatuses },
-    });
+    if(!Source_Type && !FromDate && !ToDate){
+      incidents = await Incident.find({
+        Incident_Status: { $in: directLODStatuses },
+      }).sort({ Created_Dtm: -1 }) 
+      .limit(10); 
+    }else{
+      const query = { Incident_Status: { $in: directLODStatuses } };
 
+      if (Source_Type) {
+        query.Source_Type = Source_Type;
+      }
+      if (FromDate && ToDate) {
+        query.Created_Dtm = {
+          $gte: new Date(`${FromDate}T00:00:00.000Z`),
+          $lte: new Date(`${ToDate}T23:59:59.999Z`),
+        };
+      }
+  
+      incidents = await Incident.find(query).sort({ Created_Dtm: -1 });
+    }
+  
     return res.status(200).json({
       status: "success",
-      message: "Pending incidents retrieved successfully.",
+      message: "Direct LOD incidents retrieved successfully.",
       data: incidents,
     });
   } catch (error) {
-    console.error("Error fetching pending incidents:", error);
+    console.error("Error fetching Direct LOD incidents:", error);
     return res.status(500).json({
       status: "error",
       message: error.message || "An unexpected error occurred.",
@@ -1467,58 +1489,103 @@ const caseData = {
   }
 };
 
-export const Foward_Direct_LOD = async (req, res) => {
-  const { Incident_Id } = req.body;
+export const Forward_Direct_LOD = async (req, res) => {
+  
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+    const { Incident_Id } = req.body;
+    if (!Incident_Id) {
+      const error = new Error("Incident_Id is required.");
+      error.statusCode = 400;
+      throw error;
+    }
+  
+    const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
-  if (!Incident_Id) {
-    return res.status(400).json({
-      status:"error",
-      message:"Incident_Id is a required field.",
+    if (!incidentData) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ 
+        status: "error",
+        message: "Incident not found",
+        errors: {
+          code: 404,
+          description: "No matching incident found.",
+        },
+      });
+    }
+
+    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+      { _id: "case_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", session, upsert: true }
+    );
+
+    const Case_Id = counterResult.seq;
+   
+    const caseData = {
+      case_id: Case_Id,
+      incident_id: incidentData.Incident_Id,
+      account_no: incidentData.Account_Num || "Unknown", 
+      customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+      created_dtm: new Date(),
+      implemented_dtm: incidentData.Created_Dtm || new Date(),
+      area: incidentData.Region || "Unknown",
+      rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+      arrears_band: incidentData.Arrears_Band || "Default Band",
+      bss_arrears_amount: incidentData.Arrears || 0,
+      current_arrears_amount: incidentData.Arrears || 0,
+      current_arrears_band: incidentData.current_arrears_band || "Default Band",
+      action_type: "New Case",
+      drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+      last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+      monitor_months: 6,
+      last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+      commission: 0,
+      case_current_status: incidentData.Incident_Status,
+      filtered_reason: incidentData.Filtered_Reason || null,
+      ref_products: incidentData.Product_Details.map(product => ({
+        service: product.Service_Type || "Unknown",
+        product_label: product.Product_Label || "N/A",
+        product_status: product.Product_Status || "Active",
+        status_Dtm: product.Effective_Dtm || new Date(),
+        rtom: product.Region || "N/A",
+        product_ownership: product.Equipment_Ownership || "Unknown",
+        Service_address: product.Service_Address || "N/A",
+      })) || [],
+    };
+
+    const newCase = new Case_details(caseData);
+    await newCase.save({ session });
+
+    await Incident.updateOne(
+      { Incident_Id },
+      { $set: { Proceed_Dtm: new Date() } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({ 
+      status: "success",
+      message: "Direct LOD incident successfully forwarded" 
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    
+    console.error("Error forwarding Direct LOD incident: ", error);
+    return res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Internal server error",
       errors: {
-        code: 400,
-        description: error.message,
+        code: error.statusCode || 500,
+        description: error.message || "An unexpected error occurred.",
       },
     });
   }
-
-  try {
-    
-      const incident = await Incident.findOne({ Incident_Id: Incident_Id });
-
-      if (!incident) {
-          return res.status(404).json({ 
-            status:"error",
-            message: 'Incident not found' ,
-            errors: {
-              code: 404,
-              description: error.message,
-            }
-         });
-      }
-
-      await Incident.updateOne(
-          { Incident_Id: Incident_Id },
-          {
-              $set: {
-                  Incident_Status: 'Direct LOD',
-                  Incident_Status_Dtm: new Date(),
-              },
-          }
-      );
-
-      return res.status(200).json({ 
-        status: "success",
-        message: 'Incident status updated successfully' 
-      });
-  } catch (error) {
-      console.error('Error updating incident status:', error);
-      return res.status(500).json({ 
-        status: "error",
-        message: 'Internal server error' ,
-        errors: {
-          code: 500,
-          description: error.message,
-        },
-      });
-  }
-}
+};
