@@ -37,7 +37,7 @@ import { drcExtendValidityPeriod,
         get_distribution_array_of_a_transaction,
         Create_Task_For_case_distribution_transaction_array,
         Exchange_DRC_RTOM_Cases,
-        
+        Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
 
  } from "../controllers/Case_controller.js";
 
@@ -2344,5 +2344,10 @@ router.post(
 router.post(
   "/Exchange_DRC_RTOM_Cases",
   Exchange_DRC_RTOM_Cases
+); 
+
+router.post(
+  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
 );
 export default router;

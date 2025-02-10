@@ -23,6 +23,7 @@ import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
+import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -2795,7 +2796,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       Created_By: created_by,
       ...dynamicParams,
     });
-    
+
     if(result.status==="error"){
       return res.status(400).json({
         status: "error",
@@ -2851,6 +2852,71 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: `An error occurred while creating the task: ${error.message}`,
+    });
+  }
+};
+
+export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res) => {
+  const { case_distribution_batch_id } = req.body;
+
+  try {
+    if (!case_distribution_batch_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Case_Distribution_Batch_ID is required",
+      });
+    }
+
+    const result = await tempCaseDistribution.aggregate([
+      {
+        $match: { case_distribution_batch_id: case_distribution_batch_id },
+      },
+      {
+        $group: {
+          _id: {
+            case_distribution_batch_id: "$case_distribution_batch_id",
+            drc_id: "$drc_id",
+            rtom: "$rtom",
+          },
+          case_count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          case_distribution_batch_id: "$_id.case_distribution_batch_id",
+          drc_id: "$_id.drc_id",
+          rtom: "$_id.rtom",
+          case_count: 1,
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No case distribution details found for the given batch ID.",
+        errors: {
+          code: 404,
+          description: "No records match the provided Case_Distribution_Batch_ID.",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case distribution details retrieved successfully.",
+      data: result,
+    });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving case distribution details.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
     });
   }
 };
