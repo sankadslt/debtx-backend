@@ -2630,36 +2630,55 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   }
 };
 
-// export const get_distribution_array_of_a_transaction = async (req, res) => {
-//   try {
-//     const { case_distribution_batch_id, batch_seq } = req.body;
+export const get_distribution_array_of_a_transaction = async (req, res) => {
+  try {
+    const { case_distribution_batch_id, batch_seq } = req.body;
 
-//     if (!case_distribution_batch_id || !batch_seq) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "case_distribution_batch_id is a required parameter.",
-//       });
-//     }
+    if (!case_distribution_batch_id || !batch_seq) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id and batch_seq are required parameters.",
+      });
+    }
 
-//     const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id,batch_seq_details.batch_seq = batch_seq });
+    const transactions_data = await Case_distribution_drc_transactions.find({
+      case_distribution_batch_id,
+      "batch_seq_details.batch_seq": batch_seq
+    },{
+      _id: 0,
+      case_distribution_batch_id: 1,
+      created_dtm: 1,
+      created_by:1,
+      rulebase_count:1,
+      rulebase_arrears_sum:1,
+      status:1,
+      drc_commision_rule:1,
+      forward_for_approvals_on:1,
+      approved_by:1,
+      approved_on:1,
+      proceed_on:1,
+      tmp_record_remove_on:1,
+      current_arrears_band:1,
+      batch_seq_details: { $elemMatch: { batch_seq: batch_seq } }
+    });
+    
+    if (transactions_data.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for this batch ID.",
+      });
+    }
 
-//     if (transactions_data.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No data found for this batch ID.",
-//       });
-//     }
-
-//     return res.status(200).json({ 
-//       status: "success",
-//       message: `Successfully retrieved ${transactions_data.length} records`,
-//       data: transactions_data,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching batch data:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Server error. Please try again later.",
-//     });
-//   }
-// }
+    return res.status(200).json({ 
+      status: "success",
+      message: `Successfully retrieved ${transactions_data.length} records`,
+      data: transactions_data,
+    });
+  } catch (error) {
+    console.error("Error fetching batch data:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error. Please try again later.",
+    });
+  }
+}
