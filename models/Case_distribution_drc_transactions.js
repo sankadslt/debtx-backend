@@ -110,11 +110,14 @@ import { Schema, model } from 'mongoose';
 
 const arrayOfDistributionSchema = new Schema(
   {
-    drc: { type: String }, 
+    drc: { type: String },
+    drc_id: { type: Number }, 
     rulebase_count: { type: Number }, 
-    plus_drc: { type: String }, 
+    plus_drc: { type: String },
+    plus_drc_id: { type: Number },  
     plus_rulebase_count: { type: Number }, 
-    minus_drc: { type: String }, 
+    minus_drc: { type: String },
+    minus_drc_id: { type: Number }, 
     minus_rulebase_count: { type: Number }, 
     rtom: { type: String },
     rulebase_arrears_sum: { type: Number }

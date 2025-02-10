@@ -2733,3 +2733,124 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
     });
   }
 };
+
+export const Exchange_DRC_RTOM_Cases = async (req, res) => {
+  const { case_distribution_batch_id, drc_list, created_by } = req.body;
+
+  if (!case_distribution_batch_id || !drc_list || !created_by) {
+    return res.status(400).json({
+      status: "error",
+      message: "case distribution batch id, created by and DRC list fields are required.",
+    });
+  }
+
+  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
+    return res.status(400).json({
+      status: "error",
+      message: "DRC List should not be empty.",
+    });
+  }
+
+  const validateDRCList = (drcList) => {
+    if (!Array.isArray(drcList)) {
+      throw new Error("DRC List must be an array.");
+    }
+    return drcList.map((item, index) => {
+      const isValid = 
+        typeof item.plus_drc === "string" &&
+        typeof item.plus_rulebase_count === "number" &&
+        typeof item.minus_drc === "string" &&
+        typeof item.minus_rulebase_count === "number" &&
+        typeof item.plus_drc_id === "number" &&
+        typeof item.minus_drc_id === "number";
+
+      if (!isValid) {
+        throw new Error(`Invalid structure at index ${index} in DRC List.`);
+      }
+
+      return {
+        plus_drc_id: item.plus_drc_id,
+        plus_drc: item.plus_drc,
+        plus_rulebase_count: item.plus_rulebase_count,
+        minus_drc_id: item.minus_drc_id,
+        minus_drc: item.minus_drc,
+        minus_rulebase_count: item.minus_rulebase_count,
+      };
+    });
+  };
+
+  try {
+    const validatedDRCList = validateDRCList(drc_list);
+    
+    // Prepare dynamic parameters for the task
+    const dynamicParams = {
+      case_distribution_batch_id,
+      exchange_drc_list: validatedDRCList,
+    };
+
+    // Call createTaskFunction
+    const result = await createTaskFunction({
+      Template_Task_Id: 29,
+      task_type: "Exchange Case Distribution Planning among DRC",
+      Created_By: created_by,
+      ...dynamicParams,
+    });
+    
+    if(result.status==="error"){
+      return res.status(400).json({
+        status: "error",
+        message: `An error occurred while creating the task: ${result}`,
+      });
+    }
+    // Fetch the existing document to get the last batch_seq
+    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id });
+
+    let nextBatchSeq = 1;
+
+    if (existingCase && existingCase.batch_seq_details.length > 0) {
+        const lastBatchSeq = existingCase.batch_seq_details[existingCase.batch_seq_details.length - 1].batch_seq;
+        nextBatchSeq = lastBatchSeq + 1;
+    }
+    console.log(nextBatchSeq);
+
+    const newBatchSeqEntry = {
+      batch_seq: nextBatchSeq,
+      created_dtm: new Date(),
+      created_by,
+      action_type: "amend",
+      array_of_distributions: drc_list.map(({
+        plus_drc_id,
+        plus_drc,
+        plus_rulebase_count,
+        minus_drc_id,
+        minus_drc,
+        minus_rulebase_count,
+        rtom,
+      }) => ({
+        plus_drc_id,
+        plus_drc,
+        plus_rulebase_count,
+        minus_drc_id,
+        minus_drc,
+        minus_rulebase_count,
+        rtom,
+      })),
+      batch_seq_rulebase_count: 100,
+    };
+    
+    existingCase.batch_seq_details.push(newBatchSeqEntry);
+    await existingCase.save();
+    
+    return res.status(200).json({
+      status: "success",
+      message: `New batch sequence ${nextBatchSeq} added successfully.`,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: "error",
+      message: `An error occurred while creating the task: ${error.message}`,
+    });
+  }
+};
