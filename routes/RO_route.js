@@ -1496,7 +1496,7 @@ router.patch("/Change_RO_profile", EditRO);
 
 /**
  * @swagger
- * /api/recovery_officer/List_DRC_All_Cases:
+ * /api/recovery_officer/List_All_DRC_Negotiation_Cases:
  *   post:
  *     summary: Retrieve all cases assigned to a specific DRC
  *     description: |

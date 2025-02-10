@@ -14,6 +14,7 @@ import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
+import CaseDetails from "../models/CaseMode.js";
 
 
 // Update Recovery Officer Status by ID
@@ -2874,18 +2875,19 @@ export const EditRO = async (req, res) => {
 
 export const listDRCAllCases = async (req, res) => {
   try {
-    const { drc_id,ro_id, From_DAT, TO_DAT, case_current_status } = req.body; // Change from req.query to req.body
+    const { drc_id, ro_id, From_DAT, TO_DAT, case_current_status } = req.body; // Correct extraction from body
 
     // Validate required parameters
-    if (!drc_id || ro_id|| !From_DAT || !TO_DAT) {
+    if (!drc_id || !ro_id || !From_DAT || !TO_DAT) {
       return res.status(400).json({
         status: "error",
         message: "DRC, From_DAT, and TO_DAT are required.",
       });
     }
 
+    // Define the query with the required filters
     let query = {
-      DRC,
+      drc_id, // Corrected field name
       assigned_date: { $gte: new Date(From_DAT), $lte: new Date(TO_DAT) },
     };
 
@@ -2893,7 +2895,7 @@ export const listDRCAllCases = async (req, res) => {
       query.case_status = case_current_status;
     }
 
-    // Fetch cases from database
+    // Fetch cases from the database
     const cases = await CaseDetails.find(query);
 
     return res.status(200).json({
