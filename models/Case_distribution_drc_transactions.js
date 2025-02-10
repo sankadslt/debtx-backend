@@ -112,7 +112,10 @@ const arrayOfDistributionSchema = new Schema(
   {
     drc: { type: String }, 
     rulebase_count: { type: Number }, 
-    drc: { type: String }, 
+    plus_drc: { type: String }, 
+    plus_rulebase_count: { type: Number }, 
+    minus_drc: { type: String }, 
+    minus_rulebase_count: { type: Number }, 
     rtom: { type: String },
     rulebase_arrears_sum: { type: Number }
   },
