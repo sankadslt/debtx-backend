@@ -2355,8 +2355,8 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - case_distribution_batch_id,
- *               -Created_By
+ *               - case_distribution_batch_id
+ *
  *
  *             properties:
  *               case_distribution_batch_id:
@@ -2435,6 +2435,113 @@ router.post(
   "/get_distribution_array_of_a_transaction",
   get_distribution_array_of_a_transaction
 );
+
+/**
+ * @swagger
+ * /api/Create_Task_For_case_distribution_transaction_array:
+ *   post:
+ *     summary: xxxx Create Task for Case Distribution Transaction Array
+ *     description: |
+ *       Creates a task for case distribution transactions with batch sequence details.
+ *
+ *       | Version | Date        | Description                                                   | Changed By       |
+ *       |---------|------------|---------------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-10 | Initial creation of task for batch list distribution array  | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - batch_seq
+ *               - Created_By
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               batch_seq:
+ *                 type: integer
+ *                 description: The batch sequence number.
+ *                 example: 1
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: Task successfully created for case distribution transaction array.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Create Case distribution DRC Transaction_1_Batch List distribution array for Download
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template ID for the created task.
+ *                       example: 28
+ *                     task_type:
+ *                       type: string
+ *                       description: The type of task created.
+ *                       example: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: The batch ID associated with the task.
+ *                       example: 1001
+ *                     batch_seq:
+ *                       type: integer
+ *                       description: The batch sequence number.
+ *                       example: 1
+ *                     Created_By:
+ *                       type: string
+ *                       description: The user who created the task.
+ *                       example: "admin_user"
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id, batch_seq, and Created_By are required parameters.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Error message details.
+ */
 
 router.post(
   "/Create_Task_For_case_distribution_transaction_array",
