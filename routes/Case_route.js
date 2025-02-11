@@ -2667,6 +2667,125 @@ router.post(
 
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
+/**
+ * @swagger
+ * /Case_Distribution_Details_With_Drc_Rtom_ByBatchId:
+ *   post:
+ *     summary: xxxx Retrieve Case Distribution Details by Batch ID
+ *     description: |
+ *       Fetches case distribution details including DRC and RTOM information for a given batch ID.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Case Distribution API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved case distribution details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Case distribution details retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: integer
+ *                         example: 1001
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 2
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM1234"
+ *                       case_count:
+ *                         type: integer
+ *                         example: 50
+ *                       drc_name:
+ *                         type: string
+ *                         example: "Debt Recovery Corp"
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case_Distribution_Batch_ID is required."
+ *       404:
+ *         description: No records found for the provided batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "No case distribution details found for the given batch ID."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: "No records match the provided Case_Distribution_Batch_ID."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving case distribution details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Error message details."
+ */
+
 router.post(
   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
