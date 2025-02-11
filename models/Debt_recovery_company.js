@@ -6,6 +6,10 @@ const serviceSchema = new Schema({
     type: Number,
     required: true,
   },
+  user_id: {
+    type:String,
+    // required:true,
+  },
   service_type: {
     type: String,
     required: true,
@@ -55,9 +59,14 @@ const drcSchema = new Schema(
       type: String,
       required: true,
     },
+    drc_email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     drc_status: {
       type: String,
-      enum: ["Active", "Inactive", "Pending"],
+      enum: ["Active", "Inactive", "Pending","Ended"],
       default: "Active",
     },
     teli_no: {

@@ -5,15 +5,15 @@ import User from "../models/User.js";
 // Helper function to generate tokens
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
-    { id: user._id, email: user.email, role: user.role },
+    { user_id: user.user_id, username: user.username, email: user.email, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "15m" } // Short lifespan for access tokens
   );
 
   const refreshToken = jwt.sign(
-    { id: user._id, email: user.email, role: user.role },
+    { user_id: user.user_id, username: user.username, email: user.email, role: user.role },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" } // Longer lifespan for refresh tokens
+    { expiresIn: "1d" } // Longer lifespan for refresh tokens
   );
 
   return { accessToken, refreshToken };
@@ -21,15 +21,15 @@ const generateTokens = (user) => {
 
 // Register a new user
 export const registerUser = async (req, res) => {
-  const { email, password, role } = req.body;
+  const { user_id, user_type, username, email, password, role, created_by, login_method } = req.body;
 
   try {
-    if (!email || !password || !role) {
+    if (!user_id || !user_type || !username || !email || !password || !role || !created_by || !login_method) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword, role });
+    const newUser = new User({ user_id, user_type, username, email, password: hashedPassword, role, created_by, login_method });
 
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
@@ -61,10 +61,10 @@ export const loginUser = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Secure only in production
       sameSite: "Strict", // Prevent CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 1 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.status(200).json({ accessToken });
+    res.status(200).json({ accessToken, username: user.username });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Error logging in", error: error.message });
@@ -83,7 +83,7 @@ export const refreshToken = async (req, res) => {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     // Generate new tokens
-    const user = { _id: decoded.id, email: decoded.email, role: decoded.role };
+    const user = { user_id: decoded.user_id, username: decoded.username, email: decoded.email, role: decoded.role };
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
     // Set the new refresh token in HttpOnly cookie
@@ -91,12 +91,28 @@ export const refreshToken = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 1 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.status(200).json({ accessToken });
+    res.status(200).json({ accessToken, username: decoded.username });
   } catch (error) {
     console.error("Error refreshing token:", error);
     res.status(403).json({ message: "Invalid refresh token" });
+  }
+};
+
+// Get user data by user_id
+export const getUserData = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select("-password"); // Exclude password for security
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({ message: "Error fetching user data", error: error.message });
   }
 };
