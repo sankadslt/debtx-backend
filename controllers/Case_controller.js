@@ -2935,12 +2935,27 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
         },
       },
       {
+        $lookup: {
+          from: "Debt_recovery_company", 
+          localField: "_id.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
         $project: {
           _id: 0,
           case_distribution_batch_id: "$_id.case_distribution_batch_id",
           drc_id: "$_id.drc_id",
           rtom: "$_id.rtom",
           case_count: 1,
+          drc_name: "$drc_details.drc_name",
         },
       },
     ]);
