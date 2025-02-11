@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
   created_on: { type: Date, default: Date.now },
   user_active: { type: Boolean, required: true, default: true },
   login_method: { type: String, required: true, enum: ["slt", "email", "facebook"] },
-  seequance_id: { type: String, required: true }
+  seequance_id: { type: String }
 });
 
 const User = mongoose.model("User", userSchema);

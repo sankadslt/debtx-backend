@@ -13,7 +13,7 @@ const generateTokens = (user) => {
   const refreshToken = jwt.sign(
     { user_id: user.user_id, username: user.username, email: user.email, role: user.role },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" } // Longer lifespan for refresh tokens
+    { expiresIn: "1d" } // Longer lifespan for refresh tokens
   );
 
   return { accessToken, refreshToken };
@@ -61,7 +61,7 @@ export const loginUser = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Secure only in production
       sameSite: "Strict", // Prevent CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 1 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(200).json({ accessToken, username: user.username });
@@ -91,12 +91,28 @@ export const refreshToken = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 1 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(200).json({ accessToken, username: decoded.username });
   } catch (error) {
     console.error("Error refreshing token:", error);
     res.status(403).json({ message: "Invalid refresh token" });
+  }
+};
+
+// Get user data by user_id
+export const getUserData = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select("-password"); // Exclude password for security
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({ message: "Error fetching user data", error: error.message });
   }
 };
