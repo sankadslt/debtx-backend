@@ -15,6 +15,11 @@ const RORequestSchema = new Schema(
       type: Date, 
       required: true 
     }, // Request end date/time
+    request_mode: { 
+      type: String, 
+      enum: ['Negotiation', 'Mediation Board'],
+      required: true 
+    }, // Request mode
   },
   {
     collection: 'RO_Request',
