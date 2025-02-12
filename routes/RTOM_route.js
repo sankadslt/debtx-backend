@@ -1331,5 +1331,4 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
 router.post('/List_ALL_Active_RTOM_Ownned_By_DRC',getAllActiveRTOMsByDRCID);
 router.post('/active-rtoms',getAllActiveRTOMsByDRCID);
 
-
 export default router;
