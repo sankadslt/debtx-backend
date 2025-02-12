@@ -11,6 +11,7 @@
 */
 
 import { Router } from "express";
+<<<<<<< Updated upstream
 import {
   drcExtendValidityPeriod,
   listHandlingCasesByDRC,
@@ -47,6 +48,35 @@ import {
   getCaseDetailsbyMediationBoard,
   ListActiveMediationResponse
 } from "../controllers/Case_controller.js";
+=======
+import { drcExtendValidityPeriod,
+        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
+        Open_No_Agent_Cases_ALL,
+        Open_No_Agent_Cases_Direct_LD,
+        assignROToCase,
+        listBehaviorsOfCaseDuringDRC,
+        // listAllActiveRosByDRCID,
+        Case_Status,
+        Case_List,
+        openNoAgentCasesAllByServiceTypeRulebase,
+        openNoAgentCountArrearsBandByServiceType,
+        listCases,
+        Acivite_Case_Details,
+        listAllDRCMediationBoardCases,
+        get_count_by_drc_commision_rule,
+        getAllArrearsBands,
+        count_cases_rulebase_and_arrears_band,
+        Case_Distribution_Among_Agents,
+        List_Case_Distribution_DRC_Summary,
+        Batch_Forward_for_Proceed,
+        Create_Task_For_case_distribution,
+        List_all_transaction_seq_of_batch_id,
+        Create_Task_For_case_distribution_transaction,
+        getCaseDetailsbyMediationBoard,
+        ListActiveRORequestsMediation
+
+ } from "../controllers/Case_controller.js";
+>>>>>>> Stashed changes
 
 const router = Router();
 
@@ -2567,6 +2597,7 @@ router.post(
  */
 
 router.post(
+<<<<<<< Updated upstream
   "/Create_Task_For_case_distribution_transaction",
   Create_Task_For_case_distribution_transaction
 );
@@ -2933,4 +2964,11 @@ router.get("/List_Active_RO_RequestsMediation",ListActiveRORequestsMediation);
 
 router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
 
+=======
+    "/Create_Task_For_case_distribution_transaction",
+    Create_Task_For_case_distribution_transaction
+  ); 
+  
+router.get("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+>>>>>>> Stashed changes
 export default router;
