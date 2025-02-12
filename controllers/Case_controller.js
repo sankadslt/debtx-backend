@@ -2469,10 +2469,8 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 //   }
 // };
 
-
-
 export const listAllDRCMediationBoardCases = async (req, res) => {
-  const { drc_id, rtom, ro_id, action_type, from_date, to_date, case_current_status } = req.body;
+  const { drc_id, rtom, ro_id, action_type, from_date, to_date } = req.body;
 
   try {
     // Validate the DRC ID
@@ -2488,13 +2486,13 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     }
 
     // Ensure at least one optional parameter is provided
-    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
         errors: {
           code: 400,
-          description: "Provide at least one of rtom, ro_id, action_type, status, or both from_date and to_date together.",
+          description: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.",
         },
       });
     }
@@ -2506,34 +2504,18 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     };
 
     // Initialize $and array if any optional filters are provided
-    if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
+    if (rtom || action_type || ro_id || (from_date && to_date)) {
       query.$and = [];
     }
 
     // Add optional filters dynamically
     if (rtom) query.$and.push({ area: rtom });
-    // if (rtom) query.$and.push({ rtom: area });
     if (action_type) query.$and.push({ action_type });
-    if (case_current_status) query.$and.push({ case_current_status:case_current_status });
     if (ro_id) {
       query.$and.push({
-<<<<<<< Updated upstream
-        $expr: {
-          $eq: [
-            ro_id,
-            {
-              $arrayElemAt: [
-                { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] },
-                -1,
-              ],
-            },
-          ],
-        },
-=======
         "mediation_board": {
           $elemMatch: { ro_id: ro_id }
         }
->>>>>>> Stashed changes
       });
     }
     if (from_date && to_date) {
@@ -2563,15 +2545,10 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     const formattedCases = await Promise.all(
       cases.map(async (caseData) => {
         const lastDrc = caseData.drc[caseData.drc.length - 1];
-<<<<<<< Updated upstream
-        const lastRecoveryOfficer =
-          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
-=======
         
         // Get the latest mediation board entry
         const latestMediationBoard = caseData.mediation_board
           .sort((a, b) => b.created_dtm - a.created_dtm)[0];
->>>>>>> Stashed changes
 
         // Fetch matching recovery officer asynchronously
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
@@ -2585,9 +2562,6 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           area: caseData.area,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
-<<<<<<< Updated upstream
-          rtom: caseData.area,
-=======
           mediation_details: {
             created_dtm: latestMediationBoard.created_dtm,
             mediation_board_calling_dtm: latestMediationBoard.mediation_board_calling_dtm,
@@ -2597,7 +2571,6 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
             customer_response: latestMediationBoard.customer_response,
             next_calling_dtm: latestMediationBoard.next_calling_dtm
           }
->>>>>>> Stashed changes
         };
       })
     );
@@ -2620,6 +2593,8 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
+
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
 
 };
