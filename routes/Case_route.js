@@ -11,7 +11,8 @@
 */
 
 import { Router } from "express";
-import { drcExtendValidityPeriod,
+import { 
+        // drcExtendValidityPerid,
         listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
         Open_No_Agent_Cases_ALL,
         Open_No_Agent_Cases_Direct_LD,
@@ -32,22 +33,18 @@ import { drcExtendValidityPeriod,
         List_Case_Distribution_DRC_Summary,
         Batch_Forward_for_Proceed,
         Create_Task_For_case_distribution,
-        List_all_transaction_seq_of_batch_id,
+        // List_all_transaction_seq_of_batch_id,
         Create_Task_For_case_distribution_transaction,
-<<<<<<< Updated upstream
-        getCaseDetailsbyMediationBoard
-=======
         getCaseDetailsbyMediationBoard,
-        get_distribution_array_of_a_transaction,
+        // get_distribution_array_of_a_transaction,
         Create_Task_For_case_distribution_transaction_array,
         Exchange_DRC_RTOM_Cases,
         Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
-        ListAllActiveMediationBoardResponse
+        ListActiveRORequestsMediation
+        // ListAllActiveMediationBoardResponse
         // ListActiveRORequestsMediation
->>>>>>> Stashed changes
 
  } from "../controllers/Case_controller.js";
-
 const router = Router();
 
 /**
@@ -463,7 +460,7 @@ router.post("/Open_No_Agent_Cases_Direct_LD", Open_No_Agent_Cases_Direct_LD);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.patch("/Drc_Extend_Validity_Period", drcExtendValidityPeriod);
+// router.patch("/Drc_Extend_Validity_Period", drcExtendValidityPeriod);
 
 /**
  * @swagger
@@ -2468,24 +2465,19 @@ router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distributi
  */
 
 router.post(
-  "/List_all_transaction_seq_of_batch_id",
-  List_all_transaction_seq_of_batch_id
-);   
-
-router.post(
-<<<<<<< Updated upstream
-    "/Create_Task_For_case_distribution_transaction",
-    Create_Task_For_case_distribution_transaction
-  );  
-=======
   "/Create_Task_For_case_distribution_transaction",
   Create_Task_For_case_distribution_transaction
 );
 
 router.post(
-  "/get_distribution_array_of_a_transaction",
-  get_distribution_array_of_a_transaction
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
 );
+
+// router.post(
+//   "/get_distribution_array_of_a_transaction",
+//   get_distribution_array_of_a_transaction
+// );
 
 /**
  * @swagger
@@ -2594,10 +2586,10 @@ router.post(
  *                       example: Error message details.
  */
 
-router.post(
-  "/Create_Task_For_case_distribution_transaction_array",
-  Create_Task_For_case_distribution_transaction_array
-);
+// router.post(
+//   "/Create_Task_For_case_distribution_transaction_array",
+//   Create_Task_For_case_distribution_transaction_array
+// );
 
 /**
  * @swagger
@@ -2714,7 +2706,7 @@ router.post(
  *                   example: "An error occurred while creating the task."
  */
 
-router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
+// router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
 /**
  * @swagger
@@ -2840,8 +2832,5 @@ router.post(
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
 );
 
-router.post ("/get_CaseDetails_by_MediationBoard",getCaseDetailsbyMediationBoard);
-
-router.get("/List_All_ActiveMediationBoard_Response",ListAllActiveMediationBoardResponse);
->>>>>>> Stashed changes
+router.get("/List_Active_RO_RequestsMediation",ListActiveRORequestsMediation);
 export default router;
