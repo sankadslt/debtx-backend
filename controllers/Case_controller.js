@@ -19,10 +19,12 @@ import SystemTransaction from "../models/System_transaction.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
+import RO_Request from "../models/Template_RO_Request .js"
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
+import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -1986,6 +1988,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
       ro_id: lastRecoveryOfficer?.ro_id || null,
+      
     };
 
 
@@ -2594,14 +2597,14 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   session.startTransaction();
 
   try {
-    const {case_distribution_batch_id } = req.body;
+    const {case_distribution_batch_id,Created_By, } = req.body;
 
-    if (!case_distribution_batch_id) {
+    if (!case_distribution_batch_id || !Created_By) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "case_distribution_batch_id is a required parameter.",
+        message: "case_distribution_batch_id and Created_By are required parameter.",
       });
     }
     const parameters = {
@@ -2612,6 +2615,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
       Template_Task_Id: 27,
       task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
       ...parameters,
+      Created_By,
     };
 
     await createTaskFunction(taskData, session);
@@ -2638,18 +2642,57 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   }
 };
 
-// export const get_distribution_array_of_a_transaction = async (req, res) => {
-//   try {
-//     const { case_distribution_batch_id, batch_seq } = req.body;
+export const get_distribution_array_of_a_transaction = async (req, res) => {
+  try {
+    const { case_distribution_batch_id, batch_seq } = req.body;
 
-//     if (!case_distribution_batch_id || !batch_seq) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "case_distribution_batch_id is a required parameter.",
-//       });
-//     }
+    if (!case_distribution_batch_id || !batch_seq) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id and batch_seq are required parameters.",
+      });
+    }
 
-//     const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id,batch_seq_details.batch_seq = batch_seq });
+    const transactions_data = await Case_distribution_drc_transactions.find({
+      case_distribution_batch_id,
+      "batch_seq_details.batch_seq": batch_seq
+    },{
+      _id: 0,
+      case_distribution_batch_id: 1,
+      created_dtm: 1,
+      created_by:1,
+      rulebase_count:1,
+      rulebase_arrears_sum:1,
+      status:1,
+      drc_commision_rule:1,
+      forward_for_approvals_on:1,
+      approved_by:1,
+      approved_on:1,
+      proceed_on:1,
+      tmp_record_remove_on:1,
+      current_arrears_band:1,
+      batch_seq_details: { $elemMatch: { batch_seq: batch_seq } }
+    });
+    
+    if (transactions_data.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for this batch ID.",
+      });
+    }
+    return res.status(200).json({ 
+      status: "success",
+      message: `Successfully retrieved ${transactions_data.length} records`,
+      data: transactions_data,
+    });
+  } catch (error) {
+    console.error("Error fetching batch data:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error. Please try again later.",
+    });
+  }
+};
 
 //     if (transactions_data.length === 0) {
 //       return res.status(404).json({
@@ -2671,3 +2714,286 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 //     });
 //   }
 // }
+
+// List  All Active Mediation RO Requests from SLT
+
+
+export const ListActiveRORequestsMediation = async (req, res) => {
+  try {
+    // Fetch all RO details from MongoDB
+    const ro_requests = await RO_Request.find();
+
+    // Check if any data is found in databases
+    if (ro_requests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No RO request found.",
+      });
+    }
+
+    // Return the retrieved data
+    return res.status(200).json({
+      status: "success",
+      message: "Ro request details retrieved successfully.",
+      data: ro_requests,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching RO details.",
+      error: error.message,
+    });
+  }
+};
+
+export const Create_Task_For_case_distribution_transaction_array = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_distribution_batch_id, batch_seq, Created_By } = req.body;
+
+    if (!case_distribution_batch_id || !batch_seq || !Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id, batch_seq, and Created_By are required parameters.",      });
+    }
+    const parameters = {
+      case_distribution_batch_id,
+      batch_seq
+    };
+
+    const taskData = {
+      Template_Task_Id: 28,
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Downloard",
+      Created_By,
+      ...parameters,
+    };
+
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Create Case distribution DRC Transaction_1_Batch List distribution array for Download",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+export const Exchange_DRC_RTOM_Cases = async (req, res) => {
+  const { case_distribution_batch_id, drc_list, created_by } = req.body;
+
+  if (!case_distribution_batch_id || !drc_list || !created_by) {
+    return res.status(400).json({
+      status: "error",
+      message: "case distribution batch id, created by and DRC list fields are required.",
+    });
+  }
+
+  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
+    return res.status(400).json({
+      status: "error",
+      message: "DRC List should not be empty.",
+    });
+  }
+
+  const validateDRCList = (drcList) => {
+    if (!Array.isArray(drcList)) {
+      throw new Error("DRC List must be an array.");
+    }
+    return drcList.map((item, index) => {
+      const isValid = 
+        typeof item.plus_drc === "string" &&
+        typeof item.plus_rulebase_count === "number" &&
+        typeof item.minus_drc === "string" &&
+        typeof item.minus_rulebase_count === "number" &&
+        typeof item.plus_drc_id === "number" &&
+        typeof item.minus_drc_id === "number";
+
+      if (!isValid) {
+        throw new Error(`Invalid structure at index ${index} in DRC List.`);
+      }
+
+      return {
+        plus_drc_id: item.plus_drc_id,
+        plus_drc: item.plus_drc,
+        plus_rulebase_count: item.plus_rulebase_count,
+        minus_drc_id: item.minus_drc_id,
+        minus_drc: item.minus_drc,
+        minus_rulebase_count: item.minus_rulebase_count,
+      };
+    });
+  };
+
+  try {
+    const validatedDRCList = validateDRCList(drc_list);
+    
+    // Prepare dynamic parameters for the task
+    const dynamicParams = {
+      case_distribution_batch_id,
+      exchange_drc_list: validatedDRCList,
+    };
+
+    // Call createTaskFunction
+    const result = await createTaskFunction({
+      Template_Task_Id: 29,
+      task_type: "Exchange Case Distribution Planning among DRC",
+      Created_By: created_by,
+      ...dynamicParams,
+    });
+
+    if(result.status==="error"){
+      return res.status(400).json({
+        status: "error",
+        message: `An error occurred while creating the task: ${result}`,
+      });
+    }
+    // Fetch the existing document to get the last batch_seq
+    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id });
+
+    let nextBatchSeq = 1;
+
+    if (existingCase && existingCase.batch_seq_details.length > 0) {
+        const lastBatchSeq = existingCase.batch_seq_details[existingCase.batch_seq_details.length - 1].batch_seq;
+        nextBatchSeq = lastBatchSeq + 1;
+    }
+    console.log(nextBatchSeq);
+
+    const newBatchSeqEntry = {
+      batch_seq: nextBatchSeq,
+      created_dtm: new Date(),
+      created_by,
+      action_type: "amend",
+      array_of_distributions: drc_list.map(({
+        plus_drc_id,
+        plus_drc,
+        plus_rulebase_count,
+        minus_drc_id,
+        minus_drc,
+        minus_rulebase_count,
+        rtom,
+      }) => ({
+        plus_drc_id,
+        plus_drc,
+        plus_rulebase_count,
+        minus_drc_id,
+        minus_drc,
+        minus_rulebase_count,
+        rtom,
+      })),
+      batch_seq_rulebase_count: 100,
+    };
+    
+    existingCase.batch_seq_details.push(newBatchSeqEntry);
+    await existingCase.save();
+    
+    return res.status(200).json({
+      status: "success",
+      message: `New batch sequence ${nextBatchSeq} added successfully.`,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: "error",
+      message: `An error occurred while creating the task: ${error.message}`,
+    });
+  }
+};
+
+export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res) => {
+  const { case_distribution_batch_id } = req.body;
+
+  try {
+    if (!case_distribution_batch_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Case_Distribution_Batch_ID is required",
+      });
+    }
+
+    const result = await tempCaseDistribution.aggregate([
+      {
+        $match: { case_distribution_batch_id: case_distribution_batch_id },
+      },
+      {
+        $group: {
+          _id: {
+            case_distribution_batch_id: "$case_distribution_batch_id",
+            drc_id: "$drc_id",
+            rtom: "$rtom",
+          },
+          case_count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "Debt_recovery_company", 
+          localField: "_id.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          case_distribution_batch_id: "$_id.case_distribution_batch_id",
+          drc_id: "$_id.drc_id",
+          rtom: "$_id.rtom",
+          case_count: 1,
+          drc_name: "$drc_details.drc_name",
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No case distribution details found for the given batch ID.",
+        errors: {
+          code: 404,
+          description: "No records match the provided Case_Distribution_Batch_ID.",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case distribution details retrieved successfully.",
+      data: result,
+    });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving case distribution details.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
