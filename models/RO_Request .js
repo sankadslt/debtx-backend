@@ -22,7 +22,7 @@ const RORequestSchema = new Schema(
     }, // Request mode
   },
   {
-    collection: 'RO_Request',
+    collection: 'Template_RO_Request',
   }
 );
 
