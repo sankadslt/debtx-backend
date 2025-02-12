@@ -121,6 +121,18 @@ const roRequestsSchema = new mongoose.Schema({
   completed_dtm: { type: Date, required: true },
 });
 
+const mediationBoardSchema = new mongoose.Schema({
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
+  created_dtm: { type: Date, required: true },
+  mediation_board_calling_dtm: { type: Date, required: true },
+  customer_available: { type: String, required: true, enum: ['yes','no'] },
+  comment: { type: String, default:null },
+  settlement_id: { type: Number, required: true },
+  customer_response: { type: String, default:null },
+  next_calling_dtm: { type: Date, default:null },
+
+});
 // Define the main case details schema
 const caseDetailsSchema = new Schema({
   case_id: { type: Number, required: true,unique: true },
@@ -154,6 +166,7 @@ const caseDetailsSchema = new Schema({
   ro_negotiation: [roNegotiationSchema],
   ro_requests: [roRequestsSchema],
   ro_negotiate_cpe_collect: [RoNegotiateCpeCollectSchema],
+  mediation_board: [mediationBoardSchema],
 },
 {
   collection: 'Case_details', 
