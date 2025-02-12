@@ -24,7 +24,8 @@ import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
-
+import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
+import Template_Negotiation from "../models/Template_negotiation.js";
 
 
 
@@ -1990,6 +1991,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
       ro_id: lastRecoveryOfficer?.ro_id || null,
+      
     };
 
 
@@ -2590,14 +2592,14 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   session.startTransaction();
 
   try {
-    const {case_distribution_batch_id } = req.body;
+    const {case_distribution_batch_id,Created_By, } = req.body;
 
-    if (!case_distribution_batch_id) {
+    if (!case_distribution_batch_id || !Created_By) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "case_distribution_batch_id is a required parameter.",
+        message: "case_distribution_batch_id and Created_By are required parameter.",
       });
     }
     const parameters = {
@@ -2608,6 +2610,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
       Template_Task_Id: 27,
       task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
       ...parameters,
+      Created_By,
     };
 
     await createTaskFunction(taskData, session);
@@ -2634,18 +2637,57 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   }
 };
 
-// export const get_distribution_array_of_a_transaction = async (req, res) => {
-//   try {
-//     const { case_distribution_batch_id, batch_seq } = req.body;
+export const get_distribution_array_of_a_transaction = async (req, res) => {
+  try {
+    const { case_distribution_batch_id, batch_seq } = req.body;
 
-//     if (!case_distribution_batch_id || !batch_seq) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "case_distribution_batch_id is a required parameter.",
-//       });
-//     }
+    if (!case_distribution_batch_id || !batch_seq) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_distribution_batch_id and batch_seq are required parameters.",
+      });
+    }
 
-//     const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id,batch_seq_details.batch_seq = batch_seq });
+    const transactions_data = await Case_distribution_drc_transactions.find({
+      case_distribution_batch_id,
+      "batch_seq_details.batch_seq": batch_seq
+    },{
+      _id: 0,
+      case_distribution_batch_id: 1,
+      created_dtm: 1,
+      created_by:1,
+      rulebase_count:1,
+      rulebase_arrears_sum:1,
+      status:1,
+      drc_commision_rule:1,
+      forward_for_approvals_on:1,
+      approved_by:1,
+      approved_on:1,
+      proceed_on:1,
+      tmp_record_remove_on:1,
+      current_arrears_band:1,
+      batch_seq_details: { $elemMatch: { batch_seq: batch_seq } }
+    });
+    
+    if (transactions_data.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for this batch ID.",
+      });
+    }
+    return res.status(200).json({ 
+      status: "success",
+      message: `Successfully retrieved ${transactions_data.length} records`,
+      data: transactions_data,
+    });
+  } catch (error) {
+    console.error("Error fetching batch data:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error. Please try again later.",
+    });
+  }
+};
 
 //     if (transactions_data.length === 0) {
 //       return res.status(404).json({
@@ -2671,34 +2713,6 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 // List  All Active Mediation RO Requests from SLT
 
 
-// export const ListActiveRORequestsMediation = async (req, res) => {
-//   try {
-//     // Fetch all RO details from MongoDB
-//     const ro_requests = await RO_Request.find();
-
-//     // Check if any data is found in databases
-//     if (ro_requests.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No RO request found.",
-//       });
-//     }
-
-//     // Return the retrieved data
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Ro request details retrieved successfully.",
-//       data: ro_requests,
-//     });
-//   } catch (error) {
-//     console.error("Unexpected error:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error occurred while fetching RO details.",
-//       error: error.message,
-//     });
-//   }
-// };
 
 export const Create_Task_For_case_distribution_transaction_array = async (req, res) => {
   const session = await mongoose.startSession();
@@ -2878,36 +2892,57 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
     if (!case_distribution_batch_id) {
       return res.status(400).json({
         status: "error",
-        message: "Both Case ID and DRC ID are required.",
-        errors: {
-          code: 400,
-          description: "Please provide both case_id and drc_id in the request body.",
-        },
+        message: "Case_Distribution_Batch_ID is required",
       });
     }
 
-    // Find the case that matches both case_id and has the specified drc_id in its drc array
-    const caseDetails = await Case_details.findOne(
+    const result = await tempCaseDistribution.aggregate([
       {
-        case_id: case_id,
-        'drc.drc_id': drc_id  // Look for drc_id within the drc array
+        $match: { case_distribution_batch_id: case_distribution_batch_id },
       },
       {
-        case_id: 1,
-        customer_ref: 1,
-        account_no: 1,
-        current_arrears_amount: 1,
-        last_payment_date: 1
-      }
-    );
+        $group: {
+          _id: {
+            case_distribution_batch_id: "$case_distribution_batch_id",
+            drc_id: "$drc_id",
+            rtom: "$rtom",
+          },
+          case_count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "Debt_recovery_company", 
+          localField: "_id.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          case_distribution_batch_id: "$_id.case_distribution_batch_id",
+          drc_id: "$_id.drc_id",
+          rtom: "$_id.rtom",
+          case_count: 1,
+          drc_name: "$drc_details.drc_name",
+        },
+      },
+    ]);
 
-    if (!caseDetails) {
+    if (result.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Case not found or DRC ID doesn't match.",
+        message: "No case distribution details found for the given batch ID.",
         errors: {
           code: 404,
-          description: "No case found with the provided Case ID and DRC ID combination.",
+          description: "No records match the provided Case_Distribution_Batch_ID.",
         },
       });
     }
@@ -2937,6 +2972,7 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 };
 
 
+// List  All Active Mediation RO Requests from SLT
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
     // Fetch only RO requests where end_dtm is null
@@ -3030,6 +3066,37 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
         code: 500,
         description: err.message || "Internal server error occurred while fetching case details.",
       },
+    });
+  }
+};
+
+// List All Active Mediation Board Response
+
+export const ListActiveMediationResponse = async (req, res) => {
+  try {
+    // Fetch only negotiations where end_dtm is null
+    const activeNegotiations = await Template_Negotiation.find({ end_dtm: null });
+
+    // Check if any active negotiations are found
+    if (activeNegotiations.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active negotiations found.",
+      });
+    }
+
+    // Return the retrieved active negotiations
+    return res.status(200).json({
+      status: "success",
+      message: "Active negotiation details retrieved successfully.",
+      data: activeNegotiations,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active negotiation details.",
+      error: error.message,
     });
   }
 };
