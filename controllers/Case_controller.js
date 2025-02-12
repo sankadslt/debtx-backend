@@ -1988,6 +1988,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
       ro_id: lastRecoveryOfficer?.ro_id || null,
+      
     };
 
 
