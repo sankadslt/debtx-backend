@@ -1987,7 +1987,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ref_products: caseData.ref_products || null,
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
-      ro_id: lastRecoveryOfficer?.ro_id || null,
+      recovery_officer: caseData.findDrc?.lastRecoveryOfficer?.ro_id || null,
       
     };
 
