@@ -11,36 +11,40 @@
 */
 
 import { Router } from "express";
-import { drcExtendValidityPeriod,
-        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
-        Open_No_Agent_Cases_ALL,
-        Open_No_Agent_Cases_Direct_LD,
-        assignROToCase,
-        listBehaviorsOfCaseDuringDRC,
-        // listAllActiveRosByDRCID,
-        Case_Status,
-        Case_List,
-        openNoAgentCasesAllByServiceTypeRulebase,
-        openNoAgentCountArrearsBandByServiceType,
-        listCases,
-        Acivite_Case_Details,
-        listAllDRCMediationBoardCases,
-        get_count_by_drc_commision_rule,
-        getAllArrearsBands,
-        count_cases_rulebase_and_arrears_band,
-        Case_Distribution_Among_Agents,
-        List_Case_Distribution_DRC_Summary,
-        Batch_Forward_for_Proceed,
-        Create_Task_For_case_distribution,
-        List_all_transaction_seq_of_batch_id,
-        Create_Task_For_case_distribution_transaction,
-        ListActiveRORequestsMediation,
-        get_distribution_array_of_a_transaction,
-        Create_Task_For_case_distribution_transaction_array,
-        Exchange_DRC_RTOM_Cases,
-        Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
-
- } from "../controllers/Case_controller.js";
+import {
+  drcExtendValidityPeriod,
+  listHandlingCasesByDRC,
+  Case_Abandant,
+  Approve_Case_abandant,
+  Open_No_Agent_Cases_F1_Filter,
+  Case_Current_Status,
+  Open_No_Agent_Cases_ALL,
+  Open_No_Agent_Cases_Direct_LD,
+  assignROToCase,
+  listBehaviorsOfCaseDuringDRC,
+  // listAllActiveRosByDRCID,
+  Case_Status,
+  Case_List,
+  openNoAgentCasesAllByServiceTypeRulebase,
+  openNoAgentCountArrearsBandByServiceType,
+  listCases,
+  Acivite_Case_Details,
+  listAllDRCMediationBoardCases,
+  get_count_by_drc_commision_rule,
+  getAllArrearsBands,
+  count_cases_rulebase_and_arrears_band,
+  Case_Distribution_Among_Agents,
+  List_Case_Distribution_DRC_Summary,
+  Batch_Forward_for_Proceed,
+  Create_Task_For_case_distribution,
+  List_all_transaction_seq_of_batch_id,
+  Create_Task_For_case_distribution_transaction,
+  ListActiveRORequestsMediation,
+  get_distribution_array_of_a_transaction,
+  Create_Task_For_case_distribution_transaction_array,
+  Exchange_DRC_RTOM_Cases,
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
+} from "../controllers/Case_controller.js";
 
 const router = Router();
 
@@ -2546,10 +2550,241 @@ router.post(
   Create_Task_For_case_distribution_transaction_array
 );
 
-router.post(
-  "/Exchange_DRC_RTOM_Cases",
-  Exchange_DRC_RTOM_Cases
-); 
+/**
+ * @swagger
+ * /Exchange_DRC_RTOM_Cases:
+ *   post:
+ *     summary: C-1P24 Exchange Case Distribution Planning among DRC
+ *     description: |
+ *       Creates a task to exchange case distribution planning among DRCs.
+ *
+ *       | Version | Date        | Description                                     | Changed By       |
+ *       |---------|------------|-------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Exchange DRC cases API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - drc_list
+ *               - created_by
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               drc_list:
+ *                 type: array
+ *                 description: List of DRC exchange details.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - plus_drc_id
+ *                     - plus_drc
+ *                     - plus_rulebase_count
+ *                     - minus_drc_id
+ *                     - minus_drc
+ *                     - minus_rulebase_count
+ *                   properties:
+ *                     plus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC gaining cases.
+ *                       example: 2
+ *                     plus_drc:
+ *                       type: string
+ *                       description: Name of the DRC gaining cases.
+ *                       example: "DRC A"
+ *                     plus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases added to the DRC.
+ *                       example: 50
+ *                     minus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC losing cases.
+ *                       example: 3
+ *                     minus_drc:
+ *                       type: string
+ *                       description: Name of the DRC losing cases.
+ *                       example: "DRC B"
+ *                     minus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases removed from the DRC.
+ *                       example: 50
+ *                     rtom:
+ *                       type: string
+ *                       description: Additional RTOM information.
+ *                       example: "RTOM1234"
+ *               created_by:
+ *                 type: string
+ *                 description: User who initiated the request.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Successfully exchanged case distributions among DRCs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "New batch sequence 2 added successfully."
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "case distribution batch id, created by, and DRC list fields are required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while creating the task."
+ */
+
+router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
+
+/**
+ * @swagger
+ * /Case_Distribution_Details_With_Drc_Rtom_ByBatchId:
+ *   post:
+ *     summary: xxxx Retrieve Case Distribution Details by Batch ID
+ *     description: |
+ *       Fetches case distribution details including DRC and RTOM information for a given batch ID.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Case Distribution API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved case distribution details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Case distribution details retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: integer
+ *                         example: 1001
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 2
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM1234"
+ *                       case_count:
+ *                         type: integer
+ *                         example: 50
+ *                       drc_name:
+ *                         type: string
+ *                         example: "Debt Recovery Corp"
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case_Distribution_Batch_ID is required."
+ *       404:
+ *         description: No records found for the provided batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "No case distribution details found for the given batch ID."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: "No records match the provided Case_Distribution_Batch_ID."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving case distribution details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Error message details."
+ */
 
 router.post(
   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",

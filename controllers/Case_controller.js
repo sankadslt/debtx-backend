@@ -19,7 +19,7 @@ import SystemTransaction from "../models/System_transaction.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
-import RO_Request from "../models/RO_Request .js"
+import RO_Request from "../models/Template_RO_Request .js"
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -1988,6 +1988,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
       ro_id: lastRecoveryOfficer?.ro_id || null,
+      
     };
 
 

@@ -114,6 +114,7 @@ const roRequestsSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   created_dtm: { type: Date, required: true },
+  ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
   intraction_id: { type: Number, required: true },
   todo_dtm: { type: Date, required: true },
