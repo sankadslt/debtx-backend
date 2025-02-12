@@ -2562,5 +2562,5 @@ router.post(
     Create_Task_For_case_distribution_transaction
   ); 
   
-router.get("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
 export default router;

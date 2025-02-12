@@ -2975,21 +2975,36 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 // List  All Active Mediation RO Requests from SLT
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
-    // Fetch only RO requests where end_dtm is null
-    const ro_requests = await RO_Request.find({ end_dtm: null });
+    // Get request_mode from either body (POST) or query (GET)
+    const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
+    
+    // Base query for active requests
+    let query = { end_dtm: null };
+    
+    // Add request_mode filter if provided
+    if (request_mode) {
+      query.request_mode = request_mode;
+    }
+    
+    // Fetch RO requests that match all criteria
+    const ro_requests = await RO_Request.find(query);
 
-    // Check if any active requests are found
+    // Check if any matching requests are found
     if (ro_requests.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "No active RO requests found.",
+        message: request_mode 
+          ? `No active RO requests found with request_mode: ${request_mode}.`
+          : "No active RO requests found.",
       });
     }
 
-    // Return the retrieved active RO requests
+    // Return only the matching records
     return res.status(200).json({
       status: "success",
-      message: "Active RO request details retrieved successfully.",
+      message: request_mode
+        ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
+        : "Active RO request details retrieved successfully.",
       data: ro_requests,
     });
   } catch (error) {
