@@ -1479,7 +1479,7 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 
-router.post("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
+router.patch("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
 
 router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
 export default router;
