@@ -3039,14 +3039,16 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
     const caseDetails = await Case_details.findOne(
       {
         case_id: case_id,
-        'drc.drc_id': drc_id  // Look for drc_id within the drc array
+        "drc.drc_id":drc_id,
+        'mediation_board.drc_id': drc_id, // Look for drc_id within the mediation_board array
       },
       {
         case_id: 1,
         customer_ref: 1,
         account_no: 1,
         current_arrears_amount: 1,
-        last_payment_date: 1
+        last_payment_date: 1,
+        mediation_board: 1, // Include the mediation_board array
       }
     );
 
@@ -3061,10 +3063,20 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
       });
     }
 
+    // Count the number of objects in the mediation_board array
+    const mediationBoardCount = caseDetails.mediation_board.length;
+
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: caseDetails,
+      data: {
+        case_id: caseDetails.case_id,
+        customer_ref: caseDetails.customer_ref,
+        account_no: caseDetails.account_no,
+        current_arrears_amount: caseDetails.current_arrears_amount,
+        last_payment_date: caseDetails.last_payment_date,
+        calling_round: mediationBoardCount, // Include the count in the response
+      },
     });
 
   } catch (err) {
@@ -3115,3 +3127,5 @@ export const ListActiveMediationResponse = async (req, res) => {
     });
   }
 };
+
+// Create Mediation board

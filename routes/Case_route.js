@@ -35,7 +35,8 @@ import { drcExtendValidityPeriod,
         List_all_transaction_seq_of_batch_id,
         Create_Task_For_case_distribution_transaction,
         getCaseDetailsbyMediationBoard,
-        ListActiveRORequestsMediation
+        ListActiveRORequestsMediation,
+        ListActiveMediationResponse
 
  } from "../controllers/Case_controller.js";
 
@@ -2202,7 +2203,221 @@ router.post(
 
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
+
+
 router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
+
+
+
+router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
+
+router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
+
+router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution );
+
+
+/**
+ * @swagger
+ * /api/List_all_transaction_seq_of_batch_id:
+ *   post:
+ *     summary: C-1P062 List All Transactions of a Batch
+ *     description: |
+ *      this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
+ *
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-feb-06 | List all transactions by batch ID     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: string
+ *                 description: The batch ID for which transactions should be retrieved.
+ *                 example: "65a1b2c3d4e5f67890123456"
+ *     responses:
+ *       200:
+ *         description: Transactions retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved 5 records.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Unique identifier for the transaction.
+ *                         example: "65b2c3d4e5f6789012345678"
+ *                       case_distribution_batch_id:
+ *                         type: string
+ *                         description: Batch ID associated with the transaction.
+ *                         example: "65a1b2c3d4e5f67890123456"
+ *                       transaction_type:
+ *                         type: string
+ *                         description: Type of transaction.
+ *                         example: "Allocation"
+ *                       transaction_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time of the transaction.
+ *                         example: "2025-01-28T14:30:00Z"
+ *                       transaction_amount:
+ *                         type: number
+ *                         format: float
+ *                         description: Amount associated with the transaction.
+ *                         example: 1000.50
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id is a required parameter.
+ *       404:
+ *         description: No transactions found for the given batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No data found for this batch ID.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Server error. Please try again later.
+ */
+
+router.post(
+  "/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id );
+
+/**
+ * @swagger
+ * /api/Create_Task_For_case_distribution_transaction:
+ *   post:
+ *     summary: xxxx Create Task for Case Distribution Transaction
+ *     description: |
+ *       Creates a task for case distribution transactions based on the provided batch ID.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-10 | Initial creation of task for case distribution     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *
+ *
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *     responses:
+ *       201:
+ *         description: Task successfully created for case distribution transaction.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Create Case distribution DRC Transaction_1_Batch List for Download
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template ID for the created task.
+ *                       example: 27
+ *                     task_type:
+ *                       type: string
+ *                       description: The type of task created.
+ *                       example: "Create Case distribution DRC Transaction_1 _Batch List for Download"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: The batch ID associated with the task.
+ *                       example: 1001
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id is a required parameter.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Error message details.
+ */
+
+router.post(
+    "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
 
 /**
  * @swagger
@@ -2345,43 +2560,36 @@ router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases)
  */
 router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
 
-router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
-
-router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
-
-router.post(
-  "/Create_Task_For_case_distribution",
-  Create_Task_For_case_distribution
-);
-
 
 /**
  * @swagger
- * /api/List_all_transaction_seq_of_batch_id:
- *   post:
- *     summary: C-1P062 List All Transactions of a Batch
+ * tags:
+ *   - name: Recovery Officer Requests
+ *     description: Endpoints related to active mediation requests by Recovery Officers.
+ * 
+ * /api/case/List_Active_RO_Requests_Mediation:
+ *   get:
+ *     summary: Retrieve all active RO mediation requests.
  *     description: |
- *      this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
- *
- *       | Version | Date        | Description                            | Changed By       |
- *       |---------|------------|----------------------------------------|------------------|
- *       | 01      | 2025-feb-06 | List all transactions by batch ID     | Sanjaya Perera   |
- *
- *     tags: [Case Management]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               case_distribution_batch_id:
- *                 type: string
- *                 description: The batch ID for which transactions should be retrieved.
- *                 example: "65a1b2c3d4e5f67890123456"
+ *       This endpoint retrieves all active Recovery Officer (RO) mediation requests where `end_dtm` is null, 
+ *       indicating that the request is still open. It optionally filters requests based on `request_mode`.
+ *       
+ *       | Version | Date       | Description                                 | Changed By         |
+ *       |---------|------------|---------------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-13| List all active RO mediation requests      | U.H.Nandali Linara  |
+ *     tags:
+ *       - Recovery Officer Requests
+ *     parameters:
+ *       - in: query
+ *         name: request_mode
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Filter by specific request mode.
+ *         example: "urgent"
  *     responses:
  *       200:
- *         description: Transactions retrieved successfully.
+ *         description: Active RO mediation requests retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -2392,49 +2600,36 @@ router.post(
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Successfully retrieved 5 records.
+ *                   example: Active RO request details retrieved successfully.
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       _id:
+ *                       request_id:
+ *                         type: integer
+ *                         description: Unique identifier for the request.
+ *                         example: 101
+ *                       ro_id:
+ *                         type: integer
+ *                         description: ID of the Recovery Officer making the request.
+ *                         example: 1001
+ *                       request_mode:
  *                         type: string
- *                         description: Unique identifier for the transaction.
- *                         example: "65b2c3d4e5f6789012345678"
- *                       case_distribution_batch_id:
- *                         type: string
- *                         description: Batch ID associated with the transaction.
- *                         example: "65a1b2c3d4e5f67890123456"
- *                       transaction_type:
- *                         type: string
- *                         description: Type of transaction.
- *                         example: "Allocation"
- *                       transaction_date:
+ *                         description: Mode of the request (e.g., urgent, standard).
+ *                         example: "urgent"
+ *                       created_dtm:
  *                         type: string
  *                         format: date-time
- *                         description: Date and time of the transaction.
- *                         example: "2025-01-28T14:30:00Z"
- *                       transaction_amount:
- *                         type: number
- *                         format: float
- *                         description: Amount associated with the transaction.
- *                         example: 1000.50
- *       400:
- *         description: Validation error - Missing required parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: case_distribution_batch_id is a required parameter.
+ *                         description: The date and time the request was made.
+ *                         example: "2025-01-15T08:00:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the request ended, if applicable.
+ *                         example: null
  *       404:
- *         description: No transactions found for the given batch ID.
+ *         description: No active RO mediation requests found.
  *         content:
  *           application/json:
  *             schema:
@@ -2445,9 +2640,9 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No data found for this batch ID.
+ *                   example: No active RO requests found.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while fetching active RO requests.
  *         content:
  *           application/json:
  *             schema:
@@ -2458,45 +2653,36 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Server error. Please try again later.
+ *                   example: Internal server error occurred while fetching active RO details.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
  */
 
-router.post(
-  "/List_all_transaction_seq_of_batch_id",
-  List_all_transaction_seq_of_batch_id
-);
+router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+
 
 /**
  * @swagger
- * /api/Create_Task_For_case_distribution_transaction:
- *   post:
- *     summary: xxxx Create Task for Case Distribution Transaction
+ * tags:
+ *   - name: Mediation
+ *     description: Endpoints related to active mediation and negotiations.
+ * 
+ * /api/case/List_Active_Mediation_Response:
+ *   get:
+ *     summary: Retrieve all active mediation negotiations.
  *     description: |
- *       Creates a task for case distribution transactions based on the provided batch ID.
- *
- *       | Version | Date        | Description                                          | Changed By       |
- *       |---------|------------|------------------------------------------------------|------------------|
- *       | 01      | 2025-Feb-10 | Initial creation of task for case distribution     | Sanjaya Perera   |
- *
- *     tags: [Case Management]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - case_distribution_batch_id
- *
- *
- *             properties:
- *               case_distribution_batch_id:
- *                 type: integer
- *                 description: Unique batch ID for case distribution.
- *                 example: 1001
+ *       This endpoint retrieves all active mediation negotiations where the `end_dtm` field is null, 
+ *       indicating that the negotiation is still ongoing.
+ *       
+ *       | Version | Date       | Description                      | Changed By         |
+ *       |---------|------------|----------------------------------|--------------------|
+ *       | 01      | 2025-Feb-13| List all active negotiations     | U.H.Nandali Linara  |
+ *     tags:
+ *       - Mediation
  *     responses:
- *       201:
- *         description: Task successfully created for case distribution transaction.
+ *       200:
+ *         description: Active mediation negotiations retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -2507,24 +2693,36 @@ router.post(
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Create Case distribution DRC Transaction_1_Batch List for Download
+ *                   example: Active negotiation details retrieved successfully.
  *                 data:
- *                   type: object
- *                   properties:
- *                     Template_Task_Id:
- *                       type: integer
- *                       description: The template ID for the created task.
- *                       example: 27
- *                     task_type:
- *                       type: string
- *                       description: The type of task created.
- *                       example: "Create Case distribution DRC Transaction_1 _Batch List for Download"
- *                     case_distribution_batch_id:
- *                       type: integer
- *                       description: The batch ID associated with the task.
- *                       example: 1001
- *       400:
- *         description: Validation error - Missing required parameters.
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       negotiation_id:
+ *                         type: integer
+ *                         description: Unique identifier for the negotiation.
+ *                         example: 101
+ *                       case_id:
+ *                         type: integer
+ *                         description: ID of the related case.
+ *                         example: 1001
+ *                       status:
+ *                         type: string
+ *                         description: Status of the negotiation.
+ *                         example: "Ongoing"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the negotiation started.
+ *                         example: "2025-01-15T08:00:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the negotiation ended, if applicable.
+ *                         example: null
+ *       404:
+ *         description: No active negotiations found.
  *         content:
  *           application/json:
  *             schema:
@@ -2535,9 +2733,9 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: case_distribution_batch_id is a required parameter.
+ *                   example: No active negotiations found.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while fetching active negotiations.
  *         content:
  *           application/json:
  *             schema:
@@ -2548,19 +2746,12 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Internal server error.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     exception:
- *                       type: string
- *                       example: Error message details.
+ *                   example: Internal server error occurred while fetching active negotiation details.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
  */
 
-router.post(
-    "/Create_Task_For_case_distribution_transaction",
-    Create_Task_For_case_distribution_transaction
-  ); 
-  
-router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+
 export default router;
