@@ -2720,8 +2720,7 @@ router.post(
 );
 
 router.post(
-  "/List_All_DRC_Mediation_Board_Cases",
-  listAllDRCMediationBoardCases
+  "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
 );
 
 /**

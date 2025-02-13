@@ -2474,8 +2474,11 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
       });
     }
 
-    // Build query dynamically based on provided parameters
-    let query = { "drc.drc_id": drc_id };
+    // Build base query for cases with mediation board entries
+    let query = {
+      "drc.drc_id": drc_id,
+      "mediation_board": { $exists: true, $ne: [] } // Ensure mediation_board array exists and is not empty
+    };
 
     // Initialize $and array if any optional filters are provided
     if (rtom || action_type || ro_id || (from_date && to_date)) {
@@ -2487,19 +2490,18 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     if (action_type) query.$and.push({ action_type });
     if (ro_id) {
       query.$and.push({
-        $expr: {
-          $eq: [
-            ro_id,
-            {
-              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
-            },
-          ],
-        },
+        "mediation_board": {
+          $elemMatch: { ro_id: ro_id }
+        }
       });
     }
     if (from_date && to_date) {
-      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ 
+        "mediation_board.created_dtm": { 
+          $gte: new Date(from_date),
+          $lte: new Date(to_date)
+        }
+      });
     }
 
     const cases = await Case_details.find(query);
@@ -2508,7 +2510,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     if (cases.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "No matching cases found for the given criteria.",
+        message: "No matching mediation board cases found for the given criteria.",
         errors: {
           code: 404,
           description: "No cases satisfy the provided criteria.",
@@ -2519,13 +2521,15 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
       cases.map(async (caseData) => {
-        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
-        const lastRecoveryOfficer =
-          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+        const lastDrc = caseData.drc[caseData.drc.length - 1];
+        
+        // Get the latest mediation board entry
+        const latestMediationBoard = caseData.mediation_board
+          .sort((a, b) => b.created_dtm - a.created_dtm)[0];
 
         // Fetch matching recovery officer asynchronously
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-          ro_id: lastRecoveryOfficer.ro_id,
+          ro_id: latestMediationBoard.ro_id,
         });
 
         return {
@@ -2535,6 +2539,15 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           area: caseData.area,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          mediation_details: {
+            created_dtm: latestMediationBoard.created_dtm,
+            mediation_board_calling_dtm: latestMediationBoard.mediation_board_calling_dtm,
+            customer_available: latestMediationBoard.customer_available,
+            comment: latestMediationBoard.comment,
+            settlement_id: latestMediationBoard.settlement_id,
+            customer_response: latestMediationBoard.customer_response,
+            next_calling_dtm: latestMediationBoard.next_calling_dtm
+          }
         };
       })
     );
@@ -2542,14 +2555,14 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Return success response
     return res.status(200).json({
       status: "success",
-      message: "Cases retrieved successfully.",
+      message: "Mediation board cases retrieved successfully.",
       data: formattedCases,
     });
   } catch (error) {
     // Handle errors
     return res.status(500).json({
       status: "error",
-      message: "An error occurred while retrieving cases.",
+      message: "An error occurred while retrieving mediation board cases.",
       errors: {
         code: 500,
         description: error.message,
@@ -2557,7 +2570,6 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
-
 export const Batch_Forward_for_Proceed = async (req, res) => {
 
 };
