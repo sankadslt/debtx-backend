@@ -2549,7 +2549,6 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
         // Get the latest mediation board entry
         const latestMediationBoard = caseData.mediation_board
           .sort((a, b) => b.created_dtm - a.created_dtm)[0];
-          
 
         // Fetch matching recovery officer asynchronously
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
@@ -2570,7 +2569,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
             comment: latestMediationBoard.comment,
             settlement_id: latestMediationBoard.settlement_id,
             customer_response: latestMediationBoard.customer_response,
-            next_calling_dtm: latestMediationBoard.next_calling_dtm,
+            next_calling_dtm: latestMediationBoard.next_calling_dtm
           }
         };
       })
@@ -2594,8 +2593,6 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
-
-
 export const Batch_Forward_for_Proceed = async (req, res) => {
 
 };
