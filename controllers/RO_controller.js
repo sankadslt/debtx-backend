@@ -14,6 +14,7 @@ import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
+// import caseDetails from "../models/Case_details.js"
 
 
 // Update Recovery Officer Status by ID
@@ -2871,4 +2872,10 @@ export const EditRO = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
 

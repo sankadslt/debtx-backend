@@ -23,6 +23,7 @@ import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 import Case_distribution_drc_summary from "../models/Case_distribution_drc_summary.js"
+import Incident from "../models/Incident.js";
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -2392,6 +2393,112 @@ export const get_all_transaction_seq_of_batch_id = async (req, res) => {
 
 
 
+
+
+
+
+// Fetches detailed information about a case.
+export const drcCaseDetails = async (req, res) => {
+  const case_id = req.body.case_id;
+
+  try {
+    // Check if case_id is missing
+    if (!case_id) {
+      return res.status(400).json({ error: "Case ID is required." });
+    }
+    // Find case details in the database using the case_id
+    const caseDetails = await Case_details.findOne({ case_id }).lean();
+    // Check if case details were found
+    if (!caseDetails) {
+      return res.status(404).json({ error: "Case not found." });
+    }
+    // Return the case details in the response
+    res.status(200).json({
+      caseId: caseDetails.case_id,
+      customerRef: caseDetails.customer_ref,
+      accountNo: caseDetails.account_no,
+      arrearsAmount: caseDetails.current_arrears_amount,
+      lastPaymentDate: caseDetails.last_payment_date,
+      contactDetails: caseDetails.current_contact,
+    });
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
+
+
+// Updates DRC case details with new contact information and remarks.
+export const updateDrcCaseDetails = async (req, res) => {
+  try {
+    // Extract fields from the request body
+    const { case_id, mob, email, nic, lan , address, remark } = req.body;
+
+    // Validate if case_id is provided
+    if (!case_id) {
+      return res.status(400).json({ error: "case_id is required" });
+    }
+
+    // Fetch case details from the database
+    const caseDetails = await Case_details.findOne({ case_id });
+    if (!caseDetails) {
+      return res.status(404).json({ error: "Case not found" });
+    }
+
+
+    // Schema for edited contact details
+    const editedcontactsSchema = {
+      ro_id:  "125" ,
+      drc_id: "2365",
+      edited_dtm: new Date(),
+      mob: mob,
+      email: email,
+      nic: nic,
+      lan: lan,
+      address: address,
+      geo_location: null,
+      remark: remark,
+    };
+    // Schema for current contact details
+    const contactsSchema ={
+      mob: mob,
+      email: email,
+      nic: nic,
+      lan: lan,
+      address: address,
+      geo_location: null,
+    };
+
+    // Prepare update data
+    const updateData = {};
+    // Add edited contact details to the update data
+    if (editedcontactsSchema) {
+      updateData.$push = updateData.$push || {};
+      updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
+      console.log("updateData.contact", updateData);
+    }
+
+    // Update remark array
+    if (contactsSchema) {
+      updateData.$set = updateData.$set || {};
+      updateData.$set.current_contact = [contactsSchema];
+      console.log("updateData.remark", updateData);
+    }
+
+    // Perform the update in the database
+    const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id }, // Match the document by case_id
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    console.log("Updated case", updatedCase);
+    return res.status(200).json(updatedCase);
+  } catch (error) {
+    console.error("Error updating case", error);
+    return res.status(500).json({ error: "Failed to update the case" });
+  }
+};
 
 
 
