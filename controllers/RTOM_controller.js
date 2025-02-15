@@ -105,7 +105,7 @@ export const registerRTOM = async (req, res) => {
 
   try {
     // Validate required fields
-    if (!area_name || !rtom_abbreviation || !rtom_contact_number || !rtom_fax_number ) {
+    if (!area_name || !rtom_abbreviation || !rtom_contact_number || !rtom_fax_number  ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
