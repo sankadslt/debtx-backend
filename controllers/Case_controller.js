@@ -3128,4 +3128,13 @@ export const ListActiveMediationResponse = async (req, res) => {
   }
 };
 
+
 // Create Mediation board
+
+// export const MediationBoard = async (req, res) => {
+//   try {
+//     const { case_id, drc_id, ro_id,  } = req.body;
+//   } catch (error){
+
+//   }
+// }
