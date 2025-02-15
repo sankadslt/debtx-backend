@@ -3036,21 +3036,11 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
     }
 
     // Find the case that matches both case_id and has the specified drc_id in its drc array
-    const caseDetails = await Case_details.findOne(
-      {
-        case_id: case_id,
-        "drc.drc_id":drc_id,
-        'mediation_board.drc_id': drc_id, // Look for drc_id within the mediation_board array
-      },
-      {
-        case_id: 1,
-        customer_ref: 1,
-        account_no: 1,
-        current_arrears_amount: 1,
-        last_payment_date: 1,
-        mediation_board: 1, // Include the mediation_board array
-      }
-    );
+    const caseDetails = await Case_details.findOne({
+      case_id: case_id,
+      "drc.drc_id": drc_id,
+      'mediation_board.drc_id': drc_id,
+    }).lean();  // Using lean() for better performance
 
     if (!caseDetails) {
       return res.status(404).json({
@@ -3064,17 +3054,13 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
     }
 
     // Count the number of objects in the mediation_board array
-    const mediationBoardCount = caseDetails.mediation_board.length;
+    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
       data: {
-        case_id: caseDetails.case_id,
-        customer_ref: caseDetails.customer_ref,
-        account_no: caseDetails.account_no,
-        current_arrears_amount: caseDetails.current_arrears_amount,
-        last_payment_date: caseDetails.last_payment_date,
+        ...caseDetails,  // All fields from the case details
         calling_round: mediationBoardCount, // Include the count in the response
       },
     });
@@ -3096,6 +3082,83 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
     });
   }
 };
+
+// export const getCaseDetailsbyMediationBoard = async (req, res) => {
+//   try {
+//     const { case_id, drc_id } = req.body;
+    
+//     if (!case_id || !drc_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Both Case ID and DRC ID are required.",
+//         errors: {
+//           code: 400,
+//           description: "Please provide both case_id and drc_id in the request body.",
+//         },
+//       });
+//     }
+
+//     // Find the case that matches both case_id and has the specified drc_id in its drc array
+//     const caseDetails = await Case_details.findOne(
+//       {
+//         case_id: case_id,
+//         "drc.drc_id":drc_id,
+//         'mediation_board.drc_id': drc_id, // Look for drc_id within the mediation_board array
+//       },
+//       {
+//         case_id: 1,
+//         customer_ref: 1,
+//         account_no: 1,
+//         current_arrears_amount: 1,
+//         last_payment_date: 1,
+//         mediation_board: 1, // Include the mediation_board array
+//       }
+//     );
+
+//     if (!caseDetails) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "Case not found or DRC ID doesn't match.",
+//         errors: {
+//           code: 404,
+//           description: "No case found with the provided Case ID and DRC ID combination.",
+//         },
+//       });
+//     }
+
+//     // Count the number of objects in the mediation_board array
+//     const mediationBoardCount = caseDetails.mediation_board.length;
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Case details retrieved successfully.",
+//       data: {
+//         case_id: caseDetails.case_id,
+//         customer_ref: caseDetails.customer_ref,
+//         account_no: caseDetails.account_no,
+//         current_arrears_amount: caseDetails.current_arrears_amount,
+//         last_payment_date: caseDetails.last_payment_date,
+//         calling_round: mediationBoardCount, // Include the count in the response
+//       },
+//     });
+
+//   } catch (err) {
+//     console.error("Detailed error:", {
+//       message: err.message,
+//       stack: err.stack,
+//       name: err.name
+//     });
+
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve case details.",
+//       errors: {
+//         code: 500,
+//         description: err.message || "Internal server error occurred while fetching case details.",
+//       },
+//     });
+//   }
+// };
 
 // List All Active Mediation Board Response
 
