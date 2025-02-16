@@ -20,10 +20,22 @@ const generateTokens = (user) => {
 // Register a new user
 export const registerUser = async (req, res) => {
   try {
-    const { user_id, user_type, username, email, password, role, created_by, login_method } = req.body;
+    const { user_id, user_type, username, email, password, role, created_by, login_method, drc_id } = req.body;
 
     if (!user_id || !user_type || !username || !email || !password || !role || !created_by || !login_method) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Validate DRC User Registration
+    if (role === "drc_user") {
+      if (!drc_id) {
+        return res.status(400).json({ message: "DRC user must have a valid drc_id" });
+      }
+
+      const drcAdmin = await User.findOne({ user_id: drc_id, role: "drc_admin" });
+      if (!drcAdmin) {
+        return res.status(400).json({ message: "Invalid drc_id. DRC Admin not found." });
+      }
     }
 
     // Check if email already exists
@@ -32,7 +44,7 @@ export const registerUser = async (req, res) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const newUser = new User({
       user_id,
       user_type,
@@ -41,7 +53,8 @@ export const registerUser = async (req, res) => {
       password: hashedPassword,
       role,
       created_by,
-      login_method
+      login_method,
+      drc_id: role === "drc_user" ? drc_id : null, // Assign drc_id only for drc_user
     });
 
     await newUser.save();
@@ -84,7 +97,18 @@ export const loginUser = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    res.status(200).json({ accessToken, username: user.username });
+    // Fetch DRC Admin ID if user is a DRC User
+    let drcAdminId = null;
+    if (user.role === "drc_user" && user.drc_id) {
+      drcAdminId = user.drc_id;
+    }
+
+    res.status(200).json({
+      accessToken,
+      username: user.username,
+      role: user.role,
+      drc_admin_id: drcAdminId, // Return DRC Admin ID
+    });
 
   } catch (error) {
     console.error("Error logging in:", error);
@@ -132,7 +156,21 @@ export const getUserData = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(user);
+    // Fetch DRC Admin ID if the user is a DRC User
+    let drcAdminId = null;
+    if (user.role === "drc_user" && user.drc_id) {
+      drcAdminId = user.drc_id;
+    }
+
+    res.status(200).json({
+      user_id: user.user_id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      user_type: user.user_type,
+      drc_admin_id: drcAdminId, // Include DRC Admin ID
+    });
+
   } catch (error) {
     console.error("Error fetching user data:", error);
     res.status(500).json({ message: "Error fetching user data", error: error.message });
