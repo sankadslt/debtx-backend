@@ -2988,3 +2988,180 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
     });
   }
 };
+
+// Fetch all batch details
+export const List_All_Batch_Details = async (req, res) => {
+  try {
+      const batchDetails = await CaseDistribution.find(); // Retrieve all documents
+      res.status(200).json(batchDetails);
+  } catch (error) {
+      console.error("Error fetching batch details:", error);
+      res.status(500).json({ message: 'Error retrieving batch details', error });
+  }
+};
+
+
+// Approve one or more batches
+// export const Approve_Batch_or_Batches = async (req, res) => {
+//   try {
+//       const { case_distribution_batch_ids } = req.body; // Expecting an array of IDs
+
+//       if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids)) {
+//           return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+//       }
+
+//       const currentDate = new Date(); // Get the current date
+
+//       // Update matching records
+//       const result = await CaseDistribution.updateMany(
+//           { case_distribution_batch_id: { $in: case_distribution_batch_ids } }, // Find documents by ID array
+//           {
+//               $set: { 
+//                   approved_on: currentDate,
+//                   approved_by: "Admin"
+//               },
+//               $push: { 
+//                   status: { 
+//                       crd_distribution_status: "Complete",
+//                       created_dtm: currentDate
+//                   }
+//               }
+//           }
+//       );
+
+//       if (result.modifiedCount > 0) {
+//           res.status(200).json({ message: "Batches approved successfully", updatedCount: result.modifiedCount });
+//       } else {
+//           res.status(404).json({ message: "No matching batches found" });
+//       }
+//   } catch (error) {
+//       console.error("Error approving batches:", error);
+//       res.status(500).json({ message: "Error approving batches", error });
+//   }
+// };
+
+
+export const Approve_Batch_or_Batches = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_distribution_batch_ids, Created_By } = req.body; // Expecting Created_By from request body
+
+    if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+    }
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Created_By is required for task creation" });
+    }
+
+    const currentDate = new Date(); // Get current timestamp
+
+    // Update case distribution batches
+    const result = await CaseDistribution.updateMany(
+      { case_distribution_batch_id: { $in: case_distribution_batch_ids } },
+      {
+        $set: {
+          approved_on: currentDate,
+          approved_by: "Admin",
+        },
+        $push: {
+          status: {
+            crd_distribution_status: "Complete",
+            created_dtm: currentDate,
+          },
+        },
+      },
+      { session }
+    );
+
+    if (result.modifiedCount === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "No matching batches found" });
+    }
+
+    // --- Create Task for Approved Batches ---
+    const taskData = {
+      Template_Task_Id: 29,
+      task_type: "Create Task for Approve Cases from Batch_ID",
+      case_distribution_batch_id: case_distribution_batch_ids, // One or more IDs
+      approved_on: currentDate.toISOString(),
+      approved_by: "Admin",
+      Created_By, // Ensure Created_By is passed correctly
+      task_status: "open",
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Batches approved successfully, and task created.",
+      updatedCount: result.modifiedCount,
+      taskData,
+    });
+  } catch (error) {
+    console.error("Error approving batches:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error approving batches",
+      error: error.message || "Internal server error.",
+    });
+  }
+};
+
+
+export const Create_task_for_batch_approval = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_distribution_batch_ids } = req.body;
+
+    if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids) || case_distribution_batch_ids.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+    }
+
+    const currentDate = new Date();
+
+    // --- Create Task ---
+    const taskData = {
+      Template_Task_Id: 30, // Different Task ID for approval tasks
+      task_type: "Letting know the batch approval",
+      case_distribution_batch_id: case_distribution_batch_ids, // List of batch IDs
+      created_on: currentDate.toISOString(),
+      Created_By: "System", // Default creator
+      task_status: "open",
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: "Task for batch approval created successfully.",
+      taskData,
+    });
+  } catch (error) {
+    console.error("Error creating batch approval task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating batch approval task",
+      error: error.message || "Internal server error.",
+    });
+  }
+};
