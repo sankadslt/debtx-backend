@@ -12,10 +12,10 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
-import RecoveryOfficer from "../models/Recovery_officer.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
 import SystemTransaction from "../models/System_transaction.js";
+import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
@@ -25,6 +25,9 @@ import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
+import Template_Negotiation from "../models/Template_negotiation.js";
+
+
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -2699,34 +2702,6 @@ export const get_distribution_array_of_a_transaction = async (req, res) => {
 // List  All Active Mediation RO Requests from SLT
 
 
-export const ListActiveRORequestsMediation = async (req, res) => {
-  try {
-    // Fetch all RO details from MongoDB
-    const ro_requests = await RO_Request.find();
-
-    // Check if any data is found in databases
-    if (ro_requests.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No RO request found.",
-      });
-    }
-
-    // Return the retrieved data
-    return res.status(200).json({
-      status: "success",
-      message: "Ro request details retrieved successfully.",
-      data: ro_requests,
-    });
-  } catch (error) {
-    console.error("Unexpected error:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error occurred while fetching RO details.",
-      error: error.message,
-    });
-  }
-};
 
 export const Create_Task_For_case_distribution_transaction_array = async (req, res) => {
   const session = await mongoose.startSession();
@@ -2963,18 +2938,183 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 
     return res.status(200).json({
       status: "success",
-      message: "Case distribution details retrieved successfully.",
-      data: result,
+      message: "Case details retrieved successfully.",
+      data: caseDetails,
     });
-  } catch (error) {
-    // Handle errors
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
     return res.status(500).json({
       status: "error",
-      message: "An error occurred while retrieving case distribution details.",
+      message: "Failed to retrieve case details.",
       errors: {
         code: 500,
-        description: error.message,
+        description: err.message || "Internal server error occurred while fetching case details.",
       },
     });
   }
 };
+
+
+// List  All Active Mediation RO Requests from SLT
+export const ListActiveRORequestsMediation = async (req, res) => {
+  try {
+    // Get request_mode from either body (POST) or query (GET)
+    const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
+    
+    // Base query for active requests
+    let query = { end_dtm: null };
+    
+    // Add request_mode filter if provided
+    if (request_mode) {
+      query.request_mode = request_mode;
+    }
+    
+    // Fetch RO requests that match all criteria
+    const ro_requests = await RO_Request.find(query);
+
+    // Check if any matching requests are found
+    if (ro_requests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: request_mode 
+          ? `No active RO requests found with request_mode: ${request_mode}.`
+          : "No active RO requests found.",
+      });
+    }
+
+    // Return only the matching records
+    return res.status(200).json({
+      status: "success",
+      message: request_mode
+        ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
+        : "Active RO request details retrieved successfully.",
+      data: ro_requests,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active RO details.",
+      error: error.message,
+    });
+  }
+};
+
+
+// get CaseDetails for MediationBoard 
+
+export const getCaseDetailsbyMediationBoard = async (req, res) => {
+  try {
+    const { case_id, drc_id } = req.body;
+    
+    if (!case_id || !drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both Case ID and DRC ID are required.",
+        errors: {
+          code: 400,
+          description: "Please provide both case_id and drc_id in the request body.",
+        },
+      });
+    }
+
+    // Find the case that matches both case_id and has the specified drc_id in its drc array
+    const caseDetails = await Case_details.findOne(
+      {
+        case_id: case_id,
+        "drc.drc_id":drc_id,
+        'mediation_board.drc_id': drc_id, // Look for drc_id within the mediation_board array
+      },
+      {
+        case_id: 1,
+        customer_ref: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+        last_payment_date: 1,
+        mediation_board: 1, // Include the mediation_board array
+      }
+    );
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found or DRC ID doesn't match.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided Case ID and DRC ID combination.",
+        },
+      });
+    }
+
+    // Count the number of objects in the mediation_board array
+    const mediationBoardCount = caseDetails.mediation_board.length;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      data: {
+        case_id: caseDetails.case_id,
+        customer_ref: caseDetails.customer_ref,
+        account_no: caseDetails.account_no,
+        current_arrears_amount: caseDetails.current_arrears_amount,
+        last_payment_date: caseDetails.last_payment_date,
+        calling_round: mediationBoardCount, // Include the count in the response
+      },
+    });
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 500,
+        description: err.message || "Internal server error occurred while fetching case details.",
+      },
+    });
+  }
+};
+
+// List All Active Mediation Board Response
+
+export const ListActiveMediationResponse = async (req, res) => {
+  try {
+    // Fetch only negotiations where end_dtm is null
+    const activeNegotiations = await Template_Negotiation.find({ end_dtm: null });
+
+    // Check if any active negotiations are found
+    if (activeNegotiations.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active negotiations found.",
+      });
+    }
+
+    // Return the retrieved active negotiations
+    return res.status(200).json({
+      status: "success",
+      message: "Active negotiation details retrieved successfully.",
+      data: activeNegotiations,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active negotiation details.",
+      error: error.message,
+    });
+  }
+};
+
+// Create Mediation board
