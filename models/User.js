@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, required: true, enum: ["user", "admin", "superadmin"] },
   created_by: { type: String, required: true },
   created_on: { type: Date, default: Date.now },
-  user_active: { type: Boolean, required: true, default: true },
+  user_status: { type: Boolean, required: true, default: true },
   login_method: { type: String, required: true, enum: ["slt", "email", "facebook"] },
   seequance_id: { type: String }
 });
