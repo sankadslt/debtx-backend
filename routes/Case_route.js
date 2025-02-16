@@ -44,6 +44,9 @@ import {
   Create_Task_For_case_distribution_transaction_array,
   Exchange_DRC_RTOM_Cases,
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
+  List_All_Batch_Details,
+  Approve_Batch_or_Batches,
+  Create_task_for_batch_approval,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3286,6 +3289,21 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 router.post(
   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+);
+
+router.get(
+  "/List_All_Batch_Details",
+  List_All_Batch_Details
+);
+
+router.post(
+  "/Approve_Batch_or_Batches",
+  Approve_Batch_or_Batches
+);
+
+router.post(
+  "/Create_task_for_batch_approval",
+  Create_task_for_batch_approval
 );
 
 export default router;
