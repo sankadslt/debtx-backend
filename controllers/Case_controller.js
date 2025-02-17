@@ -3008,81 +3008,45 @@ export const List_All_Batch_Details = async (req, res) => {
   }
 };
 
-// Approve one or more batches
-// export const Approve_Batch_or_Batches = async (req, res) => {
-//   try {
-//       const { case_distribution_batch_ids } = req.body; // Expecting an array of IDs
-
-//       if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids)) {
-//           return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
-//       }
-
-//       const currentDate = new Date(); // Get the current date
-
-//       // Update matching records
-//       const result = await CaseDistribution.updateMany(
-//           { case_distribution_batch_id: { $in: case_distribution_batch_ids } }, // Find documents by ID array
-//           {
-//               $set: { 
-//                   approved_on: currentDate,
-//                   approved_by: "Admin"
-//               },
-//               $push: { 
-//                   status: { 
-//                       crd_distribution_status: "Complete",
-//                       created_dtm: currentDate
-//                   }
-//               }
-//           }
-//       );
-
-//       if (result.modifiedCount > 0) {
-//           res.status(200).json({ message: "Batches approved successfully", updatedCount: result.modifiedCount });
-//       } else {
-//           res.status(404).json({ message: "No matching batches found" });
-//       }
-//   } catch (error) {
-//       console.error("Error approving batches:", error);
-//       res.status(500).json({ message: "Error approving batches", error });
-//   }
-// };
-
 
 export const Approve_Batch_or_Batches = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_ids, Created_By } = req.body; // Expecting Created_By from request body
+    const { approver_references, approved_by } = req.body;
 
-    if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids)) {
+    if (!approver_references || !Array.isArray(approver_references)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
     }
 
-    if (!Created_By) {
+    if (!approved_by) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "Created_By is required for task creation" });
+      return res.status(400).json({ message: "approved_by is required" });
     }
 
-    const currentDate = new Date(); // Get current timestamp
+    const currentDate = new Date();
 
-    // Update case distribution batches
-    const result = await CaseDistribution.updateMany(
-      { case_distribution_batch_id: { $in: case_distribution_batch_ids } },
+    // Update approve_status and approved_by for matching documents
+    const result = await TmpForwardedApprover.updateMany(
+      { 
+        approver_reference: { $in: approver_references },
+        approver_type: "DRC_Distribution" 
+      },
       {
-        $set: {
-          approved_on: currentDate,
-          approved_by: "Admin",
-        },
         $push: {
-          status: {
-            crd_distribution_status: "Complete",
-            created_dtm: currentDate,
+          approve_status: {
+            status: "Approve",
+            status_date: currentDate,
+            status_edit_by: approved_by,
           },
         },
+        $set: {
+          approved_by: approved_by
+        }
       },
       { session }
     );
@@ -3090,17 +3054,17 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: "No matching batches found" });
+      return res.status(404).json({ message: "No matching approver references found" });
     }
 
-    // --- Create Task for Approved Batches ---
+    // --- Create Task for Approved Approvers ---
     const taskData = {
       Template_Task_Id: 29,
-      task_type: "Create Task for Approve Cases from Batch_ID",
-      case_distribution_batch_id: case_distribution_batch_ids, // One or more IDs
+      task_type: "Create Task for Approve Cases from Approver_Reference",
+      approver_references, // One or more approver references
       approved_on: currentDate.toISOString(),
-      approved_by: "Admin",
-      Created_By, // Ensure Created_By is passed correctly
+      approved_by,
+      Created_By: approved_by, // Ensure Created_By is the same as approved_by
       task_status: "open",
     };
 
@@ -3111,7 +3075,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     session.endSession();
 
     return res.status(200).json({
-      message: "Batches approved successfully, and task created.",
+      message: "Approvals added successfully, and task created.",
       updatedCount: result.modifiedCount,
       taskData,
     });
@@ -3132,12 +3096,18 @@ export const Create_task_for_batch_approval = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_ids } = req.body;
+    const { approver_references, Created_By } = req.body;
 
-    if (!case_distribution_batch_ids || !Array.isArray(case_distribution_batch_ids) || case_distribution_batch_ids.length === 0) {
+    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+    }
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Created_By is required" });
     }
 
     const currentDate = new Date();
@@ -3146,9 +3116,9 @@ export const Create_task_for_batch_approval = async (req, res) => {
     const taskData = {
       Template_Task_Id: 30, // Different Task ID for approval tasks
       task_type: "Letting know the batch approval",
-      case_distribution_batch_id: case_distribution_batch_ids, // List of batch IDs
+      approver_references, // List of approver references
       created_on: currentDate.toISOString(),
-      Created_By: "System", // Default creator
+      Created_By, // Assigned creator
       task_status: "open",
     };
 
