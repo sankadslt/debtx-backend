@@ -17,6 +17,11 @@ const casePaymentSchema = new Schema({
     type: String, 
     enum: ['Negotiation', 'Mediation Board', 'LOD', 'Litigation', 'WRIT'] 
   }
-}, { collation : 'Case_payments' });
+},
+{
+  collection: 'Case_payments',
+});
 
-export default model('CasePayment', casePaymentSchema);
+const CasePayment = model("CasePayment", casePaymentSchema);
+
+export default CasePayment;
