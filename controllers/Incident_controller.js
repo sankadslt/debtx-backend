@@ -2466,3 +2466,78 @@ export const Forward_CPE_Collect = async (req, res) => {
 // }
 // };
 
+
+
+
+export const List_Transaction_Logs_Upload_Files = async (req, res) => {
+  const { From_Date, To_Date, status } = req.body;
+
+  try {
+    let query = {};
+    let isFiltered = false;
+
+    if (From_Date || To_Date || status) {
+      isFiltered = true;
+      
+      if (From_Date || To_Date) {
+        query.Uploaded_Dtm = {};
+        
+        if (From_Date) {
+          const fromDate = new Date(From_Date);
+          fromDate.setHours(0, 0, 0, 0);
+          if (!isNaN(fromDate.getTime())) {
+            query.Uploaded_Dtm.$gte = fromDate;
+          }
+        }
+        
+        if (To_Date) {
+          const toDate = new Date(To_Date);
+          toDate.setHours(23, 59, 59, 999);
+          if (!isNaN(toDate.getTime())) {
+            query.Uploaded_Dtm.$lte = toDate;
+          }
+        }
+      }
+
+      if (status) {
+        query.File_Status = status;
+      }
+    }
+
+   
+    let logs;
+    if (isFiltered) {
+      logs = await FileUploadLog.find(query)
+        .sort({ Uploaded_Dtm: -1 });
+    } else {
+      
+      logs = await FileUploadLog.find(query)
+        .sort({ Uploaded_Dtm: -1 })
+        .limit(10);
+    }
+
+    if (logs.length === 0) {
+      return res.status(200).json({ 
+        status: "success",
+        message: "No file upload logs found for the given criteria.",
+        data: []
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "File upload logs retrieved successfully",
+      data: logs
+    });
+  } catch (error) {
+    console.error("Error retrieving file upload logs:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
