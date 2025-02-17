@@ -25,6 +25,7 @@ import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
+import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -2955,17 +2956,57 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
   }
 };
 
-// Fetch all batch details
+
 export const List_All_Batch_Details = async (req, res) => {
   try {
-      const batchDetails = await CaseDistribution.find(); // Retrieve all documents
-      res.status(200).json(batchDetails);
+      // Fetch documents that meet the condition
+      const approverDocs = await TmpForwardedApprover.find({
+          "approve_status.status": "Open",
+          approver_type: "DRC_Distribution"
+      });
+
+      // Filter the documents to ensure the last element in approve_status is "Open"
+      const filteredDocs = approverDocs.filter(doc => {
+          const lastStatus = doc.approve_status[doc.approve_status.length - 1];
+          return lastStatus && lastStatus.status === "Open";
+      });
+
+      // Extract approver_reference values
+      const approverReferences = filteredDocs.map(doc => doc.approver_reference);
+
+      // Fetch related data from Case_distribution_drc_transactions
+      const caseDistributions = await CaseDistribution.find({
+          case_distribution_batch_id: { $in: approverReferences }
+      }).select("case_distribution_batch_id drc_commision_rule rulebase_count rulebase_arrears_sum");
+
+      // Map results to a structured response
+      const response = filteredDocs.map(approver => {
+          const relatedCase = caseDistributions.find(caseDoc => caseDoc.case_distribution_batch_id === approver.approver_reference);
+          return {
+              _id: approver._id,
+              approver_reference: approver.approver_reference,
+              created_on: approver.created_on,
+              created_by: approver.created_by,
+              approve_status: approver.approve_status,
+              approver_type: approver.approver_type,
+              parameters: approver.parameters,
+              approved_by: approver.approved_by,
+              remark: approver.remark,
+              case_distribution_details: relatedCase ? {
+                  case_distribution_batch_id: relatedCase.case_distribution_batch_id,
+                  drc_commision_rule: relatedCase.drc_commision_rule,
+                  rulebase_count: relatedCase.rulebase_count,
+                  rulebase_arrears_sum: relatedCase.rulebase_arrears_sum
+              } : null
+          };
+      });
+
+      res.status(200).json(response);
   } catch (error) {
       console.error("Error fetching batch details:", error);
-      res.status(500).json({ message: 'Error retrieving batch details', error });
+      res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 // Approve one or more batches
 // export const Approve_Batch_or_Batches = async (req, res) => {
