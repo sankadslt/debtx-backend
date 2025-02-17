@@ -86,7 +86,7 @@ const productDetailsSchema = new Schema({
   status_Dtm: { type: Date, required: true },
   rtom: { type: String, required: true },
   product_ownership: { type: String, required: true },
-  Service_address: { type: String, required: true },
+  service_address: { type: String, required: true },
 });
 
 const RoNegotiateCpCollectSchema = new mongoose.Schema({
