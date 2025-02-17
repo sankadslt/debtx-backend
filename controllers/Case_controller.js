@@ -1736,8 +1736,6 @@ export const assignROToCase = async (req, res) => {
       });
     }
 
-    const assigned_by = "System";
-
     // Fetch the recovery officer details
     const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
     if (!recoveryOfficer) {
@@ -1751,6 +1749,7 @@ export const assignROToCase = async (req, res) => {
       });
     }
 
+    const assigned_by = "System";
     // Extract the RTOM areas assigned to the recovery officer
     const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
 
