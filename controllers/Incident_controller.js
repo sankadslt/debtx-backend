@@ -1231,20 +1231,42 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 // };
 
 export const List_incidents_Direct_LOD = async (req, res) => {
+
   try {
+    const {Source_Type, FromDate, ToDate}= req.body;
+    
     const directLODStatuses = ["Direct LOD"];
+    let incidents;
+    
+    if(!Source_Type && !FromDate && !ToDate){
+      incidents = await Incident.find({
+        Incident_Status: { $in: directLODStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+      }).sort({ Created_Dtm: -1 }) 
+      .limit(10); 
+    }else{
+      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
 
-    const incidents = await Incident.find({
-      Incident_Status: { $in: directLODStatuses },
-    });
-
+      if (Source_Type) {
+        query.Source_Type = Source_Type;
+      }
+      if (FromDate && ToDate) {
+        const from = new Date(FromDate)
+        const to = new Date(ToDate)
+        query.Created_Dtm = {
+          $gte: from,
+          $lte: to,
+        };
+      }
+      incidents = await Incident.find(query);
+    }
     return res.status(200).json({
       status: "success",
-      message: "Pending incidents retrieved successfully.",
+      message: "Direct LOD incidents retrieved successfully.",
       data: incidents,
     });
   } catch (error) {
-    console.error("Error fetching pending incidents:", error);
+    console.error("Error fetching Direct LOD incidents:", error);
     return res.status(500).json({
       status: "error",
       message: error.message || "An unexpected error occurred.",
@@ -1254,19 +1276,39 @@ export const List_incidents_Direct_LOD = async (req, res) => {
 
 export const List_F1_filted_Incidents = async (req, res) => {
   try {
+    const {Source_Type, FromDate, ToDate}= req.body;
     const rejectpendingStatuses = ["Reject Pending"];
+    let incidents;
 
-    const incidents = await Incident.find({
-      Incident_Status: { $in: rejectpendingStatuses },
-    });
+    if(!Source_Type && !FromDate && !ToDate){
+      incidents = await Incident.find({
+        Incident_Status: { $in: rejectpendingStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+      }).sort({ Created_Dtm: -1 }) 
+      .limit(10); 
+    }else{
+      const query = { Incident_Status: { $in: rejectpendingStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
 
+      if (Source_Type) {
+        query.Source_Type = Source_Type;
+      }
+      if (FromDate && ToDate) {
+        const from = new Date(FromDate)
+        const to = new Date(ToDate)
+        query.Created_Dtm = {
+          $gte: from,
+          $lte: to,
+        };
+      }
+      incidents = await Incident.find(query);
+    }
     return res.status(200).json({
       status: "success",
-      message: "Pending incidents retrieved successfully.",
+      message: "F1 filtered incidents retrieved successfully.",
       data: incidents,
     });
   } catch (error) {
-    console.error("Error fetching pending incidents:", error);
+    console.error("Error fetching F1 filtered incidents:", error);
     return res.status(500).json({
       status: "error",
       message: error.message || "An unexpected error occurred.",
@@ -1441,7 +1483,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
         message:"Incident_Id is a required field.",
         errors: {
           code: 400,
-          description: error.message,
+          description: "Incident_Id is a required field.",
         },
       });
     }
@@ -1454,7 +1496,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
            message: 'Incident not found',
            errors: {
             code: 404,
-            description: error.message,
+            description: 'Incident not found',
           }
       });
     }
@@ -1465,10 +1507,21 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
          message: 'Incident status must be "Reject Pending" to update' ,
          errors: {
           code: 400,
-          description: error.message,
+          description: 'Incident status must be "Reject Pending" to update',
         }
       });
     }
+    console.log(incident.Proceed_Dtm)
+    if (incident.Proceed_Dtm !== " " && incident.Proceed_Dtm !== null) {
+      return res.status(400).json({ 
+       status:"error",
+       message: 'Proceed Dtm must be null to update' ,
+       errors: {
+        code: 400,
+        description: 'Proceed Dtm must be null to update',
+      }
+    });
+  }
 
     await Incident.updateOne(
       { Incident_Id: Incident_Id},
@@ -1476,8 +1529,10 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
           $set: {
               Incident_Status: 'Incident Reject',
               Incident_Status_Dtm: new Date(),
+              Proceed_Dtm: new Date()
           },
-      }
+      },
+      
     );
 
     return res.status(200).json({
@@ -1485,6 +1540,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
       message: `Successfully rejected the F1 filtered incident.`
     });
   }catch(error){
+    console.log(error)
     return res.status(500).json({
       status: "error",
       message: "Failed to rejected the F1 filtered incident.",
@@ -1497,41 +1553,184 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
 }
 
 export const Forward_F1_filtered_incident = async (req, res) => {
-  const { incidentId } = req.body;
+  // const { incidentId } = req.body;
 
-  if (!incidentId) {
-      return res.status(400).json({ message: 'Incident ID is required' });
-  }
+  // if (!incidentId) {
+  //     return res.status(400).json({ message: 'Incident ID is required' });
+  // }
 
-  try {
+  // try {
     
-      const incident = await Incident.findOne({ Incident_Id: incidentId });
+  //     const incident = await Incident.findOne({ Incident_Id: incidentId });
 
-      if (!incident) {
-          return res.status(404).json({ message: 'Incident not found' });
-      }
+  //     if (!incident) {
+  //         return res.status(404).json({ message: 'Incident not found' });
+  //     }
 
      
-      if (incident.Incident_Status !== 'Reject Pending') {
-          return res.status(400).json({ message: 'Incident status must be "Reject Pending" to update' });
-      }
-
+  //     if (incident.Incident_Status !== 'Reject Pending') {
+  //         return res.status(400).json({ 
+  //           status:"error",
+  //           message: 'Incident status must be "Reject Pending" to update',
+  //           errors: {
+  //             code: 400,
+  //             description: error.message,
+  //           }
+  //         });
+  //     }
+  //     if (incident.Proceed_Dtm !== " " || incident.Proceed_Dtm !== null) {
+  //       return res.status(400).json({ 
+  //        status:"error",
+  //        message: 'Proceed Dtm must be null to update' ,
+  //        errors: {
+  //         code: 400,
+  //         description: error.message,
+  //       }
+  //     });
+  //     }
       
-      await Incident.updateOne(
-          { Incident_Id: incidentId },
-          {
-              $set: {
-                  Incident_Status: 'Open No Agent',
-                  Incident_Status_Dtm: new Date(),
-              },
-          }
-      );
+  //     await Incident.updateOne(
+  //         { Incident_Id: incidentId },
+  //         {
+  //             $set: {
+  //                 Incident_Status: 'Open No Agent',
+  //                 Incident_Status_Dtm: new Date(),
+  //             },
+  //         }
+  //     );
 
-      return res.status(200).json({ message: 'Incident status updated successfully' });
-  } catch (error) {
-      console.error('Error updating incident status:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+  //     return res.status(200).json({ message: 'Incident status updated successfully' });
+  // } catch (error) {
+  //     console.error('Error updating incident status:', error);
+  //     return res.status(500).json({ message: 'Internal server error' });
+  // }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
+  try {
+  const { Incident_Id } = req.body;
+  if (!Incident_Id) {
+    const error = new Error("Incident_Id is required.");
+    error.statusCode = 400;
+    throw error;
   }
+
+  const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+
+  if (!incidentData) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(404).json({ 
+      status: "error",
+      message: "Incident not found",
+      errors: {
+        code: 404,
+        description: "No matching incident found.",
+      },
+    });
+  }
+
+  if (incidentData.Incident_Status !== 'Reject Pending') {
+    await session.abortTransaction();
+    session.endSession();
+      return res.status(400).json({ 
+            status:"error",
+            message: 'Incident status must be "Reject Pending" to update',
+            errors: {
+              code: 400,
+              description: 'Incident status must be "Reject Pending" to update'
+            }
+      });
+  }
+  if (incidentData.Proceed_Dtm !== " " && incidentData.Proceed_Dtm !== null) {
+    await session.abortTransaction();
+    session.endSession();
+      return res.status(400).json({ 
+         status:"error",
+         message: 'Proceed Dtm must be null to update' ,
+         errors: {
+          code: 400,
+          description:'Proceed Dtm must be null to update',
+        }
+      });
+  }
+
+  const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    { _id: "case_id" },
+    { $inc: { seq: 1 } },
+    { returnDocument: "after", session, upsert: true }
+  );
+
+  const Case_Id = counterResult.seq;
+ 
+  const caseData = {
+    case_id: Case_Id,
+    incident_id: incidentData.Incident_Id,
+    account_no: incidentData.Account_Num || "Unknown", 
+    customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+    created_dtm: new Date(),
+    implemented_dtm: incidentData.Created_Dtm || new Date(),
+    area: incidentData.Region || "Unknown",
+    rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+    arrears_band: incidentData.Arrears_Band || "Default Band",
+    bss_arrears_amount: incidentData.Arrears || 0,
+    current_arrears_amount: incidentData.Arrears || 0,
+    current_arrears_band: incidentData.current_arrears_band || "Default Band",
+    action_type: "New Case",
+    drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+    last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+    monitor_months: 6,
+    last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+    commission: 0,
+    case_current_status: incidentData.Incident_Status,
+    filtered_reason: incidentData.Filtered_Reason || null,
+    ref_products: incidentData.Product_Details.map(product => ({
+      service: product.Service_Type || "Unknown",
+      product_label: product.Product_Label || "N/A",
+      product_status: product.product_status || "Active",
+      status_Dtm: product.Effective_Dtm || new Date(),
+      rtom: product.Region || "N/A",
+      product_ownership: product.Equipment_Ownership || "Unknown",
+      service_address: product.Service_Address || "N/A",
+    })) || [],
+  };
+
+  const newCase = new Case_details(caseData);
+  await newCase.save({ session });
+
+  await Incident.updateOne(
+    { Incident_Id},
+      {
+        $set: {
+          Incident_Status: 'Open No Agent',
+          Incident_Status_Dtm: new Date(),
+        },
+      },
+      {session}
+  );
+  await session.commitTransaction();
+  session.endSession();
+
+  return res.status(201).json({ 
+    status: "success",
+    message: "F1 filtered incident successfully forwarded" 
+  });
+
+} catch (error) {
+  await session.abortTransaction();
+  session.endSession();
+  
+  console.error("Error forwarding F1 filtered incident: ", error);
+  return res.status(error.statusCode || 500).json({
+    status: "error",
+    message: error.message || "Internal server error",
+    errors: {
+      code: error.statusCode || 500,
+      description: error.message || "An unexpected error occurred.",
+    },
+  });
+}
 };
 
 
@@ -1749,7 +1948,7 @@ export const Create_Case_for_incident= async (req, res) => {
               status_Dtm: product.Effective_Dtm || new Date(),
               rtom: product.Region || "N/A",
               product_ownership: product.Equipment_Ownership || "Unknown",
-              Service_address: product.Service_Address || "N/A",
+              service_address: product.Service_Address || "N/A",
             }))
           : [{
               service: "Default Service",
@@ -1778,6 +1977,108 @@ export const Create_Case_for_incident= async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   } finally {
     session.endSession();
+  }
+};
+
+
+export const Forward_Direct_LOD = async (req, res) => {
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+    const { Incident_Id } = req.body;
+    if (!Incident_Id) {
+      const error = new Error("Incident_Id is required.");
+      error.statusCode = 400;
+      throw error;
+    }
+  
+    const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+
+    if (!incidentData) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ 
+        status: "error",
+        message: "Incident not found",
+        errors: {
+          code: 404,
+          description: "No matching incident found.",
+        },
+      });
+    }
+
+    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+      { _id: "case_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", session, upsert: true }
+    );
+
+    const Case_Id = counterResult.seq;
+   
+    const caseData = {
+      case_id: Case_Id,
+      incident_id: incidentData.Incident_Id,
+      account_no: incidentData.Account_Num || "Unknown", 
+      customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+      created_dtm: new Date(),
+      implemented_dtm: incidentData.Created_Dtm || new Date(),
+      area: incidentData.Region || "Unknown",
+      rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+      arrears_band: incidentData.Arrears_Band || "Default Band",
+      bss_arrears_amount: incidentData.Arrears || 0,
+      current_arrears_amount: incidentData.Arrears || 0,
+      current_arrears_band: incidentData.current_arrears_band || "Default Band",
+      action_type: "New Case",
+      drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+      last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+      monitor_months: 6,
+      last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+      commission: 0,
+      case_current_status: incidentData.Incident_Status,
+      filtered_reason: incidentData.Filtered_Reason || null,
+      ref_products: incidentData.Product_Details.map(product => ({
+        service: product.Service_Type || "Unknown",
+        product_label: product.Product_Label || "N/A",
+        product_status: product.product_status || "Active",
+        status_Dtm: product.Effective_Dtm || new Date(),
+        rtom: product.Region || "N/A",
+        product_ownership: product.Equipment_Ownership || "Unknown",
+        service_address: product.Service_Address || "N/A",
+      })) || [],
+    };
+
+    const newCase = new Case_details(caseData);
+    await newCase.save({ session });
+
+    await Incident.updateOne(
+      { Incident_Id },
+      { $set: { Proceed_Dtm: new Date() } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({ 
+      status: "success",
+      message: "Direct LOD incident successfully forwarded" 
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    
+    console.error("Error forwarding Direct LOD incident: ", error);
+    return res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Internal server error",
+      errors: {
+        code: error.statusCode || 500,
+        description: error.message || "An unexpected error occurred.",
+      },
+    });
   }
 };
 
@@ -2028,7 +2329,7 @@ export const Forward_CPE_Collect = async (req, res) => {
               status_Dtm: product.Effective_Dtm || new Date(),
               rtom: product.Region || "N/A",
               product_ownership: product.Equipment_Ownership || "Unknown",
-              Service_address: product.Service_Address || "N/A",
+              service_address: product.Service_Address || "N/A",
             }))
           : [
               {
@@ -2064,103 +2365,104 @@ export const Forward_CPE_Collect = async (req, res) => {
   }
 };
 
-export const Foward_Direct_LOD = async (req, res) => {
+// export const Foward_Direct_LOD = async (req, res) => {
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
   
-  try {
-  const { Incident_Id } = req.body;
-  if (!Incident_Id) {
-    const error = new Error("Incident_Id is required.");
-    error.statusCode = 400;
-    throw error;
-  }
+//   try {
+//   const { Incident_Id } = req.body;
+//   if (!Incident_Id) {
+//     const error = new Error("Incident_Id is required.");
+//     error.statusCode = 400;
+//     throw error;
+//   }
 
-  const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+//   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
-  if (!incidentData) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(404).json({ 
-      status: "error",
-      message: "Incident not found",
-      errors: {
-        code: 404,
-        description: "No matching incident found.",
-      },
-    });
-  }
+//   if (!incidentData) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(404).json({ 
+//       status: "error",
+//       message: "Incident not found",
+//       errors: {
+//         code: 404,
+//         description: "No matching incident found.",
+//       },
+//     });
+//   }
 
-  const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
-    { _id: "case_id" },
-    { $inc: { seq: 1 } },
-    { returnDocument: "after", session, upsert: true }
-  );
+//   const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+//     { _id: "case_id" },
+//     { $inc: { seq: 1 } },
+//     { returnDocument: "after", session, upsert: true }
+//   );
 
-  const Case_Id = counterResult.seq;
+//   const Case_Id = counterResult.seq;
  
-  const caseData = {
-    case_id: Case_Id,
-    incident_id: incidentData.Incident_Id,
-    account_no: incidentData.Account_Num || "Unknown", 
-    customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
-    created_dtm: new Date(),
-    implemented_dtm: incidentData.Created_Dtm || new Date(),
-    area: incidentData.Region || "Unknown",
-    rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-    arrears_band: incidentData.Arrears_Band || "Default Band",
-    bss_arrears_amount: incidentData.Arrears || 0,
-    current_arrears_amount: incidentData.Arrears || 0,
-    current_arrears_band: incidentData.current_arrears_band || "Default Band",
-    action_type: "New Case",
-    drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
-    last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
-    monitor_months: 6,
-    last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
-    commission: 0,
-    case_current_status: incidentData.Incident_Status,
-    filtered_reason: incidentData.Filtered_Reason || null,
-    ref_products: incidentData.Product_Details.map(product => ({
-      service: product.Service_Type || "Unknown",
-      product_label: product.Product_Label || "N/A",
-      product_status: product.Product_Status || "Active",
-      status_Dtm: product.Effective_Dtm || new Date(),
-      rtom: product.Region || "N/A",
-      product_ownership: product.Equipment_Ownership || "Unknown",
-      Service_address: product.Service_Address || "N/A",
-    })) || [],
-  };
+//   const caseData = {
+//     case_id: Case_Id,
+//     incident_id: incidentData.Incident_Id,
+//     account_no: incidentData.Account_Num || "Unknown", 
+//     customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+//     created_dtm: new Date(),
+//     implemented_dtm: incidentData.Created_Dtm || new Date(),
+//     area: incidentData.Region || "Unknown",
+//     rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+//     arrears_band: incidentData.Arrears_Band || "Default Band",
+//     bss_arrears_amount: incidentData.Arrears || 0,
+//     current_arrears_amount: incidentData.Arrears || 0,
+//     current_arrears_band: incidentData.current_arrears_band || "Default Band",
+//     action_type: "New Case",
+//     drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+//     last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+//     monitor_months: 6,
+//     last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+//     commission: 0,
+//     case_current_status: incidentData.Incident_Status,
+//     filtered_reason: incidentData.Filtered_Reason || null,
+//     ref_products: incidentData.Product_Details.map(product => ({
+//       service: product.Service_Type || "Unknown",
+//       product_label: product.Product_Label || "N/A",
+//       product_status: product.Product_Status || "Active",
+//       status_Dtm: product.Effective_Dtm || new Date(),
+//       rtom: product.Region || "N/A",
+//       product_ownership: product.Equipment_Ownership || "Unknown",
+//       Service_address: product.Service_Address || "N/A",
+//     })) || [],
+//   };
 
-  const newCase = new Case_details(caseData);
-  await newCase.save({ session });
+//   const newCase = new Case_details(caseData);
+//   await newCase.save({ session });
 
-  await Incident.updateOne(
-    { Incident_Id },
-    { $set: { Proceed_Dtm: new Date() } },
-    { session }
-  );
+//   await Incident.updateOne(
+//     { Incident_Id },
+//     { $set: { Proceed_Dtm: new Date() } },
+//     { session }
+//   );
 
-  await session.commitTransaction();
-  session.endSession();
+//   await session.commitTransaction();
+//   session.endSession();
 
-  return res.status(201).json({ 
-    status: "success",
-    message: "Direct LOD incident successfully forwarded" 
-  });
+//   return res.status(201).json({ 
+//     status: "success",
+//     message: "Direct LOD incident successfully forwarded" 
+//   });
 
-} catch (error) {
-  await session.abortTransaction();
-  session.endSession();
+// } catch (error) {
+//   await session.abortTransaction();
+//   session.endSession();
   
-  console.error("Error forwarding Direct LOD incident: ", error);
-  return res.status(error.statusCode || 500).json({
-    status: "error",
-    message: error.message || "Internal server error",
-    errors: {
-      code: error.statusCode || 500,
-      description: error.message || "An unexpected error occurred.",
-    },
-  });
-}
-};
+//   console.error("Error forwarding Direct LOD incident: ", error);
+//   return res.status(error.statusCode || 500).json({
+//     status: "error",
+//     message: error.message || "Internal server error",
+//     errors: {
+//       code: error.statusCode || 500,
+//       description: error.message || "An unexpected error occurred.",
+//     },
+//   });
+// }
+// };
+

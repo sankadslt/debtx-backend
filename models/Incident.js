@@ -15,12 +15,15 @@ const productDetailsSchema = new Schema({
     Equipment_Ownership: { type: String, required: true },
     Product_Id: { type: String, required: true },
     Product_Name: { type: String, required: true },
+
+
     product_status: { 
         type: String, 
         enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], 
         required: true, 
         default: 'Active' 
       },
+
     Effective_Dtm: { type: Date, required: true },
     Service_Address: { type: String, required: true },
     Cat: { type: String, required: true },

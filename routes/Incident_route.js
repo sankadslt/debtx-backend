@@ -25,8 +25,10 @@ distribution_ready_incidents_group_by_arrears_band,
 Forward_F1_filtered_incident,
 Create_Case_for_incident,
 Reject_F1_filtered_Incident,
-Foward_Direct_LOD,
+
+Forward_Direct_LOD,
 Forward_CPE_Collect
+
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
@@ -1480,9 +1482,11 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 
-router.post("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
+router.patch("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
 
-router.post("/Foward_Direct_LOD", Foward_Direct_LOD);
+
+router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
 
 router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
+
 export default router;
