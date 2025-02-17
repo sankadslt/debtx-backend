@@ -1059,7 +1059,7 @@ export const openNoAgentCasesAllByServiceTypeRulebase = async (req, res) => {
   if (!Rule|| !From_Date ||!To_Date) {
     return res.status(400).json({
       status: "error",
-      message: "Failed to retrieve Open no agent case details.",
+      message: "Failed to retrieve Open No Agent case details.",
       errors: {
         code: 400,
         description: "Rule, From_Date and To_Date are required fields",
@@ -1120,7 +1120,7 @@ export const openNoAgentCountArrearsBandByServiceType = async (req, res) =>{
   if (!Rule) {
     return res.status(400).json({
       status: "error",
-      message: "Failed to retrieve Open no agent count.",
+      message: "Failed to retrieve Open No Agent count.",
       errors: {
         code: 400,
         description: "Rule is a required field",
@@ -1163,7 +1163,7 @@ export const listCases = async (req, res) =>{
   if (!From_Date ||!To_Date) {
     return res.status(400).json({
       status: "error",
-      message: "Failed to retrieve Open no agent case details.",
+      message: "Failed to retrieve Open No Agent case details.",
       errors: {
         code: 400,
         description: "From_Date and To_Date are required fields",
@@ -1196,7 +1196,7 @@ export const listCases = async (req, res) =>{
 
   return res.status(200).json({
     status: "success",
-    message: `Successfully retrieved Open No Agent cases.`,
+    message: `Successfully retrieved  cases.`,
     data:{
       mongoData: openNoAgent
   }})
@@ -1306,7 +1306,7 @@ export const Acivite_Case_Details = async (req, res) => {
 };
 
 export const get_count_by_drc_commision_rule = async (req, res) => {
-  const case_status = "Open no agent";
+  const case_status = "Open No Agent";
     try {
       const casesCount = await Case_details.aggregate([
         {
@@ -2134,7 +2134,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       });
     }
 
-    const case_status = "Open no agent";
+    const case_status = "Open No Agent";
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
@@ -2153,7 +2153,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       .map(([key, value]) => ({ key, range: value, count: 0, arrears_sum: 0 }));
 
     const cases = await Case_details.find({
-      case_current_status: case_status,
+      "case_status.case_status": case_status,
       drc_commision_rule,
     });
 
@@ -3068,7 +3068,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
       {
         $set: {
           approved_on: currentDate,
-          approved_by: Created_By,
+          approved_by: "Admin",
         },
         $push: {
           status: {
@@ -3092,7 +3092,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
       task_type: "Create Task for Approve Cases from Batch_ID",
       case_distribution_batch_id: case_distribution_batch_ids, // One or more IDs
       approved_on: currentDate.toISOString(),
-      approved_by: Created_By,
+      approved_by: "Admin",
       Created_By, // Ensure Created_By is passed correctly
       task_status: "open",
     };

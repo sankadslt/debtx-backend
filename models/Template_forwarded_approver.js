@@ -41,9 +41,15 @@ const temmplateForwardedApproverSchema = new Schema({
     enum: ['DRC_Distribution', 'DRC_ReAssign'], 
     required: true 
   }, 
+  parameters: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+      default: {},
+    },
   approved_by: { type: String, default: null },
   remark:  {type:[remarkSchema]},
-}, {
+}, { 
   collection: 'Template_forwarded_approver', 
   timestamps: true
 });
