@@ -2013,6 +2013,8 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
   }
 };
 
+
+
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 //   const { drc_commision_rule } = req.body;
 
@@ -2054,17 +2056,9 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
 //       });
 //     }
 
-//     const filteredCases = cases.filter((caseData) => {
-//       const { case_status: statuses } = caseData;
-//       const latestStatus = statuses.reduce((latest, current) =>
-//         new Date(current.created_dtm) > new Date(latest.created_dtm) ? current : latest
-//       );
-//       return latestStatus.case_status === case_status;
-//     });
+//     const totalCases = cases.length;
 
-//     const totalCases = filteredCases.length;
-
-//     filteredCases.forEach((caseData) => {
+//     cases.forEach((caseData) => {
 //       const { arrears_band, current_arrears_amount } = caseData;
 //       const band = arrearsBands.find((band) => band.key === arrears_band);
 //       if (band) {
@@ -2102,6 +2096,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
 //   }
 // };
 
+
 export const count_cases_rulebase_and_arrears_band = async (req, res) => {
   const { drc_commision_rule } = req.body;
 
@@ -2132,7 +2127,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       .map(([key, value]) => ({ key, range: value, count: 0, arrears_sum: 0 }));
 
     const cases = await Case_details.find({
-      "case_status.case_status": case_status,
+      case_current_status: case_status,
       drc_commision_rule,
     });
 
