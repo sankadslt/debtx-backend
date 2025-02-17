@@ -1692,7 +1692,7 @@ export const Create_Case_for_incident= async (req, res) => {
               status_Dtm: new Date(),
               rtom: "Default RTOM",
               product_ownership: "Unknown",
-              Service_address: "Default Address",
+              service_address: "Default Address",
             }],
       };      
 
@@ -1972,7 +1972,7 @@ export const Forward_CPE_Collect = async (req, res) => {
                 status_Dtm: new Date(),
                 rtom: "Default RTOM",
                 product_ownership: "Unknown",
-                Service_address: "Default Address",
+                service_address: "Default Address",
               },
             ],
       };
