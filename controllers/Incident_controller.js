@@ -1550,7 +1550,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
     ref_products: incidentData.Product_Details.map(product => ({
       service: product.Service_Type || "Unknown",
       product_label: product.Product_Label || "N/A",
-      product_status: product.Product_Status || "Active",
+      product_status: product.product_status || "Active",
       status_Dtm: product.Effective_Dtm || new Date(),
       rtom: product.Region || "N/A",
       product_ownership: product.Equipment_Ownership || "Unknown",
@@ -1726,7 +1726,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
         product_label: product.Product_Label || "N/A",
-        product_status: product.Product_Status || "Active",
+        product_status: product.product_status || "Active",
         status_Dtm: product.Effective_Dtm || new Date(),
         rtom: product.Region || "N/A",
         product_ownership: product.Equipment_Ownership || "Unknown",
