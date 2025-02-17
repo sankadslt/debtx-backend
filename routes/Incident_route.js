@@ -24,7 +24,8 @@ distribution_ready_incidents_group_by_arrears_band,
 
 Forward_F1_filtered_incident,
 Create_Case_for_incident,
-Forward_CPE_Collect
+Forward_CPE_Collect,
+getOpenTaskCountforCPECollect
 } from "../controllers/Incident_controller.js";
 
 const router = Router();
@@ -1477,5 +1478,7 @@ router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents
 router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
-router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
+router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
+router.get('/open-task-count-for-CPE-Collect', getOpenTaskCountforCPECollect);
+
 export default router;

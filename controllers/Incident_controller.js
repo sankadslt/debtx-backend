@@ -3,6 +3,7 @@ import db from "../config/db.js";
 import mongoose from "mongoose";
 import Incident_log from "../models/Incident_log.js";
 import Task from "../models/Task.js";
+import Task_Inprogress from "../models/Task_Inprogress.js";
 import FileUploadLog from "../models/file_upload_log.js";
 import fs from "fs";
 import path from "path";
@@ -1998,3 +1999,31 @@ export const Forward_CPE_Collect = async (req, res) => {
   }
 };
 
+export const getOpenTaskCountforCPECollect = async (req, res) => {
+  
+  const Template_Task_Id = 17;
+  const task_type = "Create Case from Incident Open CPE Collect";
+
+  try {
+    // Check existence in both models
+    const taskExists = await Task.exists({ Template_Task_Id, task_type });
+    const taskInProgressExists = await Task_Inprogress.exists({ Template_Task_Id, task_type });
+
+    if (taskExists && taskInProgressExists) {
+      // Count tasks with task_status 'open' in both models
+      const countInTask = await Task.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+      const countInTaskInProgress = await Task_Inprogress.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+
+      // Total count from both models
+      const totalCount = countInTask + countInTaskInProgress;
+
+      return res.status(200).json({ openTaskCount: totalCount });
+    }
+
+    // If records are not present in both models
+    return res.status(404).json({ message: 'Records not found in both models' });
+  } catch (error) {
+    console.error('Error fetching open task count:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
