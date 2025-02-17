@@ -168,7 +168,7 @@ export const getUserData = async (req, res) => {
       email: user.email,
       role: user.role,
       user_type: user.user_type,
-      drc_admin_id: drcAdminId, // Include DRC Admin ID
+      drc_id: drcAdminId, // Include DRC Admin ID
     });
 
   } catch (error) {
