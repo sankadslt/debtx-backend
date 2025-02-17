@@ -273,4 +273,34 @@ export const Task_for_Download_Incidents = async (req, res) => {
   }
 };
 
+export const getOpenTaskCount = async (req, res) => {
+  
+  const {Template_Task_Id ,task_type} = req.body;
+  
+  try {
+    // Check existence in both models
+    const taskExists = await Task.exists({ Template_Task_Id, task_type });
+    const taskInProgressExists = await Task_Inprogress.exists({ Template_Task_Id, task_type });
+
+    if (taskExists && taskInProgressExists) {
+      // Count tasks with task_status 'open' in both models
+      const countInTask = await Task.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+      const countInTaskInProgress = await Task_Inprogress.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+
+      // Total count from both models
+      const totalCount = countInTask + countInTaskInProgress;
+
+      return res.status(200).json({ openTaskCount: totalCount });
+    }
+
+    // If records are not present in both models
+    return res.status(404).json({ message: 'Records not found in both models' });
+  } catch (error) {
+    console.error('Error fetching open task count:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
   
