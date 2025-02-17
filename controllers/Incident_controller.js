@@ -3,6 +3,7 @@ import db from "../config/db.js";
 import mongoose from "mongoose";
 import Incident_log from "../models/Incident_log.js";
 import Task from "../models/Task.js";
+import Task_Inprogress from "../models/Task_Inprogress.js";
 import FileUploadLog from "../models/file_upload_log.js";
 import fs from "fs";
 import path from "path";
@@ -1957,7 +1958,7 @@ export const Create_Case_for_incident= async (req, res) => {
               status_Dtm: new Date(),
               rtom: "Default RTOM",
               product_ownership: "Unknown",
-              Service_address: "Default Address",
+              service_address: "Default Address",
             }],
       };      
 
@@ -2339,7 +2340,7 @@ export const Forward_CPE_Collect = async (req, res) => {
                 status_Dtm: new Date(),
                 rtom: "Default RTOM",
                 product_ownership: "Unknown",
-                Service_address: "Default Address",
+                service_address: "Default Address",
               },
             ],
       };
@@ -2466,3 +2467,132 @@ export const Forward_CPE_Collect = async (req, res) => {
 // }
 // };
 
+// export const Foward_Direct_LOD = async (req, res) => {
+
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+  
+//   try {
+//   const { Incident_Id } = req.body;
+//   if (!Incident_Id) {
+//     const error = new Error("Incident_Id is required.");
+//     error.statusCode = 400;
+//     throw error;
+//   }
+
+//   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+
+//   if (!incidentData) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(404).json({ 
+//       status: "error",
+//       message: "Incident not found",
+//       errors: {
+//         code: 404,
+//         description: "No matching incident found.",
+//       },
+//     });
+//   }
+
+//   const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+//     { _id: "case_id" },
+//     { $inc: { seq: 1 } },
+//     { returnDocument: "after", session, upsert: true }
+//   );
+
+//   const Case_Id = counterResult.seq;
+ 
+//   const caseData = {
+//     case_id: Case_Id,
+//     incident_id: incidentData.Incident_Id,
+//     account_no: incidentData.Account_Num || "Unknown", 
+//     customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+//     created_dtm: new Date(),
+//     implemented_dtm: incidentData.Created_Dtm || new Date(),
+//     area: incidentData.Region || "Unknown",
+//     rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+//     arrears_band: incidentData.Arrears_Band || "Default Band",
+//     bss_arrears_amount: incidentData.Arrears || 0,
+//     current_arrears_amount: incidentData.Arrears || 0,
+//     current_arrears_band: incidentData.current_arrears_band || "Default Band",
+//     action_type: "New Case",
+//     drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+//     last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+//     monitor_months: 6,
+//     last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+//     commission: 0,
+//     case_current_status: incidentData.Incident_Status,
+//     filtered_reason: incidentData.Filtered_Reason || null,
+//     ref_products: incidentData.Product_Details.map(product => ({
+//       service: product.Service_Type || "Unknown",
+//       product_label: product.Product_Label || "N/A",
+//       product_status: product.Product_Status || "Active",
+//       status_Dtm: product.Effective_Dtm || new Date(),
+//       rtom: product.Region || "N/A",
+//       product_ownership: product.Equipment_Ownership || "Unknown",
+//       Service_address: product.Service_Address || "N/A",
+//     })) || [],
+//   };
+
+//   const newCase = new Case_details(caseData);
+//   await newCase.save({ session });
+
+//   await Incident.updateOne(
+//     { Incident_Id },
+//     { $set: { Proceed_Dtm: new Date() } },
+//     { session }
+//   );
+
+//   await session.commitTransaction();
+//   session.endSession();
+
+//   return res.status(201).json({ 
+//     status: "success",
+//     message: "Direct LOD incident successfully forwarded" 
+//   });
+
+// } catch (error) {
+//   await session.abortTransaction();
+//   session.endSession();
+  
+//   console.error("Error forwarding Direct LOD incident: ", error);
+//   return res.status(error.statusCode || 500).json({
+//     status: "error",
+//     message: error.message || "Internal server error",
+//     errors: {
+//       code: error.statusCode || 500,
+//       description: error.message || "An unexpected error occurred.",
+//     },
+//   });
+// }
+// };
+
+export const getOpenTaskCountforCPECollect = async (req, res) => {
+  
+  const Template_Task_Id = 17;
+  const task_type = "Create Case from Incident Open CPE Collect";
+
+  try {
+    // Check existence in both models
+    const taskExists = await Task.exists({ Template_Task_Id, task_type });
+    const taskInProgressExists = await Task_Inprogress.exists({ Template_Task_Id, task_type });
+
+    if (taskExists && taskInProgressExists) {
+      // Count tasks with task_status 'open' in both models
+      const countInTask = await Task.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+      const countInTaskInProgress = await Task_Inprogress.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+
+      // Total count from both models
+      const totalCount = countInTask + countInTaskInProgress;
+
+      return res.status(200).json({ openTaskCount: totalCount });
+    }
+
+    // If records are not present in both models
+    return res.status(404).json({ message: 'Records not found in both models' });
+  } catch (error) {
+    console.error('Error fetching open task count:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
