@@ -14,7 +14,7 @@ import DRC from "../models/Debt_recovery_company.js";
 import RO from "../models/Recovery_officer.js";
 
 import moment from 'moment'; // Ensure moment is imported at the top
-
+ 
 // getRTOMDetails from Database
 export const getRTOMDetails = async (req, res) => {
   try {
@@ -105,7 +105,7 @@ export const registerRTOM = async (req, res) => {
 
   try {
     // Validate required fields
-    if (!area_name || !rtom_abbreviation || !rtom_contact_number || !rtom_fax_number ) {
+    if (!area_name || !rtom_abbreviation || !rtom_contact_number || !rtom_fax_number  ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
@@ -677,7 +677,7 @@ export const suspend_RTOM = async (req, res) => {
   const updated_by = "System"; // Set default updated_by to "System" if not provided
 
   if (!rtom_id || !reason || !rtom_end_date || !rtom_status) {
-    return res.status(400).json({
+    return res.status(400).json({ 
       status: "error",
       message: "All fields are required",
     });

@@ -212,7 +212,7 @@ const remarkSchema = new Schema({
 const roStatusSchema = new Schema({
     status: {
         type: String,
-        enum: ['Active', 'Inactive', 'Pending'],
+        enum: ['Active', 'Inactive', 'Pending','Terminate'],
         required: true,
     },
     ro_status_date: {
