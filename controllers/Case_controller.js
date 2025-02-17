@@ -2134,7 +2134,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       });
     }
 
-    const case_status = "Open No Agent";
+    const case_status = "Open no agent";
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
@@ -2153,7 +2153,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
       .map(([key, value]) => ({ key, range: value, count: 0, arrears_sum: 0 }));
 
     const cases = await Case_details.find({
-      "case_status.case_status": case_status,
+      case_current_status: case_status,
       drc_commision_rule,
     });
 
