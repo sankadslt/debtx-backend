@@ -965,8 +965,9 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
 export const total_F1_filtered_Incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
-      Incident_Status:"Reject Pending",
-      proceed_Dtm: { $ne: null }
+     
+      Incident_Status: { $in: ["Reject Pending"] },
+      Proceed_Dtm: { $eq: null }, 
     })).length
   
     return res.status(200).json({
@@ -990,8 +991,8 @@ export const total_F1_filtered_Incidents = async (req, res) => {
 export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
-      Incident_Status:"Open No Agent",
-      proceed_Dtm: { $ne: null }
+      Incident_Status: { $in: ["Open No Agent"] },
+      Proceed_Dtm: { $eq: null }, 
     })).length
   
     return res.status(200).json({
@@ -1384,8 +1385,9 @@ export const total_incidents_CPE_Collect = async (req, res) => {
   try {
     const details = (
       await Incident.find({
-        Incident_Status: "Open CPE Collect",
-        proceed_Dtm: { $ne: null }
+        Incident_Status: { $in: ["Open CPE Collect"] },
+        Proceed_Dtm: { $eq: null }, 
+       
       })
     ).length;
 
@@ -1410,8 +1412,9 @@ export const total_incidents_Direct_LOD = async (req, res) => {
   try {
     const details = (
       await Incident.find({
-        Incident_Status: "Direct LOD",
-        proceed_Dtm: { $ne: null }
+      
+        Incident_Status: { $in: ["Direct LOD"] },
+        Proceed_Dtm: { $eq: null }, 
       })
     ).length;
 
