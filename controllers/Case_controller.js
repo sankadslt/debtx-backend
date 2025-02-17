@@ -2450,7 +2450,7 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 // };
 
 export const listAllDRCMediationBoardCases = async (req, res) => {
-  const { drc_id, rtom, ro_id, action_type, from_date, to_date } = req.body;
+  const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
 
   try {
     // Validate the DRC ID
@@ -2466,13 +2466,13 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     }
 
     // Ensure at least one optional parameter is provided
-    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
+    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
         errors: {
           code: 400,
-          description: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.",
+          description: "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
         },
       });
     }
@@ -2480,17 +2480,18 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Build base query for cases with mediation board entries
     let query = {
       "drc.drc_id": drc_id,
-      "mediation_board": { $exists: true, $ne: [] } // Ensure mediation_board array exists and is not empty
+      "mediation_board": { $exists: true, $ne: [] }
     };
 
     // Initialize $and array if any optional filters are provided
-    if (rtom || action_type || ro_id || (from_date && to_date)) {
+    if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
       query.$and = [];
     }
 
     // Add optional filters dynamically
     if (rtom) query.$and.push({ area: rtom });
     if (action_type) query.$and.push({ action_type });
+    if (case_current_status) query.$and.push({ case_current_status });
     if (ro_id) {
       query.$and.push({
         "mediation_board": {
@@ -2507,6 +2508,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
       });
     }
 
+    // Execute the query with the status filter
     const cases = await Case_details.find(query);
 
     // Handle case where no matching cases are found
@@ -2573,6 +2575,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     });
   }
 };
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
 
 };

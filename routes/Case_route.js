@@ -2713,9 +2713,7 @@ router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
 router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution );
 
-router.post(
-  "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
-);
+
 
 /**
  * @swagger
@@ -3160,10 +3158,10 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *                   example: Internal server error message.
  */
 
-router.post(
-  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
-  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
-);
+// router.post(
+//   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+//   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+// );
 router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
 
 
