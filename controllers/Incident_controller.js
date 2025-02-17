@@ -1948,7 +1948,7 @@ export const Create_Case_for_incident= async (req, res) => {
               status_Dtm: product.Effective_Dtm || new Date(),
               rtom: product.Region || "N/A",
               product_ownership: product.Equipment_Ownership || "Unknown",
-              Service_address: product.Service_Address || "N/A",
+              service_address: product.Service_Address || "N/A",
             }))
           : [{
               service: "Default Service",
@@ -2329,7 +2329,7 @@ export const Forward_CPE_Collect = async (req, res) => {
               status_Dtm: product.Effective_Dtm || new Date(),
               rtom: product.Region || "N/A",
               product_ownership: product.Equipment_Ownership || "Unknown",
-              Service_address: product.Service_Address || "N/A",
+              service_address: product.Service_Address || "N/A",
             }))
           : [
               {
