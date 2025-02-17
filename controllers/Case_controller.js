@@ -3068,7 +3068,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
       {
         $set: {
           approved_on: currentDate,
-          approved_by: "Admin",
+          approved_by: Created_By,
         },
         $push: {
           status: {
@@ -3092,7 +3092,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
       task_type: "Create Task for Approve Cases from Batch_ID",
       case_distribution_batch_id: case_distribution_batch_ids, // One or more IDs
       approved_on: currentDate.toISOString(),
-      approved_by: "Admin",
+      approved_by: Created_By,
       Created_By, // Ensure Created_By is passed correctly
       task_status: "open",
     };
