@@ -1692,7 +1692,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       status_Dtm: product.Effective_Dtm || new Date(),
       rtom: product.Region || "N/A",
       product_ownership: product.Equipment_Ownership || "Unknown",
-      Service_address: product.Service_Address || "N/A",
+      service_address: product.Service_Address || "N/A",
     })) || [],
   };
 
@@ -2045,7 +2045,7 @@ export const Forward_Direct_LOD = async (req, res) => {
         status_Dtm: product.Effective_Dtm || new Date(),
         rtom: product.Region || "N/A",
         product_ownership: product.Equipment_Ownership || "Unknown",
-        Service_address: product.Service_Address || "N/A",
+        service_address: product.Service_Address || "N/A",
       })) || [],
     };
 
