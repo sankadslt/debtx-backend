@@ -4,35 +4,62 @@ import User from "../models/User.js";
 
 // Helper function to generate tokens
 const generateTokens = (user) => {
-  const accessToken = jwt.sign(
-    { id: user._id, username: user.username, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" } // Short lifespan for access tokens
-  );
+  const payload = {
+    user_id: user.user_id,
+    username: user.username,
+    email: user.email,
+    role: user.role
+  };
 
-  const refreshToken = jwt.sign(
-    { id: user._id, username: user.username, email: user.email, role: user.role },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" } // Longer lifespan for refresh tokens
-  );
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: "1d" });
 
   return { accessToken, refreshToken };
 };
 
 // Register a new user
 export const registerUser = async (req, res) => {
-  const { username, email, password, role } = req.body;
-
   try {
-    if (!username || !email || !password || !role) {
-      return res.status(400).json({ message: "Missing required fields" });
+    const { user_id, user_type, username, email, password, role, created_by, login_method, drc_id } = req.body;
+
+    if (!user_id || !user_type || !username || !email || !password || !role || !created_by || !login_method) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Validate DRC User Registration
+    if (role === "drc_user") {
+      if (!drc_id) {
+        return res.status(400).json({ message: "DRC user must have a valid drc_id" });
+      }
+
+      const drcAdmin = await User.findOne({ user_id: drc_id, role: "drc_admin" });
+      if (!drcAdmin) {
+        return res.status(400).json({ message: "Invalid drc_id. DRC Admin not found." });
+      }
+    }
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "Email already registered" });
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, password: hashedPassword, role });
+
+    const newUser = new User({
+      user_id,
+      user_type,
+      username,
+      email,
+      password: hashedPassword,
+      role,
+      created_by,
+      login_method,
+      drc_id: role === "drc_user" ? drc_id : null, // Assign drc_id only for drc_user
+    });
 
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
+
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ message: "Error registering user", error: error.message });
@@ -41,9 +68,9 @@ export const registerUser = async (req, res) => {
 
 // Login user
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
@@ -51,20 +78,38 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Check if user account is active
+    if (!user.user_status) {
+      return res.status(403).json({ message: "Account is disabled. Contact admin." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
+    // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
     // Set refresh token in HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Secure only in production
-      sameSite: "Strict", // Prevent CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    res.status(200).json({ accessToken, username: user.username });
+    // Fetch DRC Admin ID if user is a DRC User
+    let drcAdminId = null;
+    if (user.role === "drc_user" && user.drc_id) {
+      drcAdminId = user.drc_id;
+    }
+
+    res.status(200).json({
+      accessToken,
+      username: user.username,
+      role: user.role,
+      drc_admin_id: drcAdminId, // Return DRC Admin ID
+    });
+
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Error logging in", error: error.message });
@@ -73,30 +118,61 @@ export const loginUser = async (req, res) => {
 
 // Refresh tokens
 export const refreshToken = async (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
-
-  if (!refreshToken) {
-    return res.status(401).json({ message: "No refresh token provided" });
-  }
-
   try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) return res.status(401).json({ message: "No refresh token provided" });
+
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    
+    const user = await User.findOne({ user_id: decoded.user_id });
+    if (!user) return res.status(403).json({ message: "Invalid refresh token" });
 
     // Generate new tokens
-    const user = { _id: decoded.id, username: decoded.username, email: decoded.email, role: decoded.role };
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
-    // Set the new refresh token in HttpOnly cookie
+    // Set new refresh token in HttpOnly cookie
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    res.status(200).json({ accessToken, username: decoded.username });
+    res.status(200).json({ accessToken, username: user.username });
+
   } catch (error) {
     console.error("Error refreshing token:", error);
     res.status(403).json({ message: "Invalid refresh token" });
+  }
+};
+
+// Get user data by user_id
+export const getUserData = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select("-password"); // Exclude password
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch DRC Admin ID if the user is a DRC User
+    let drcAdminId = null;
+    if (user.role === "drc_user" && user.drc_id) {
+      drcAdminId = user.drc_id;
+    }
+
+    res.status(200).json({
+      user_id: user.user_id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      user_type: user.user_type,
+      drc_id: drcAdminId, // Include DRC Admin ID
+    });
+
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({ message: "Error fetching user data", error: error.message });
   }
 };

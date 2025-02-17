@@ -10,8 +10,9 @@ const installmentSchema = new Schema({
 
 const casesettlementSchema = new Schema({
   settlement_id: { type: Number, required: true, unique: true },
+  case_id: { type: Number, required: true },
   created_by: { type: String, required: true },
-  created_on: { type: Date, default: Date.now },
+  created_dtm: { type: Date, default: Date.now },
   settlement_phase: {
     type: String,
     enum: ["Negotiation", "Mediation Board", "LOD", "Litigation", "WRIT"]
@@ -28,7 +29,6 @@ const casesettlementSchema = new Schema({
   drc_id: { type: String },
   last_monitoring_dtm: { type: Date },
   array_installment: [installmentSchema],
-  case_id: { type: Number, required: true },
   expire_date: { type: Date }
 },{
     collection: 'Case_settlements',

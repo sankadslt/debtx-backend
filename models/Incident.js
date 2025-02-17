@@ -15,7 +15,15 @@ const productDetailsSchema = new Schema({
     Equipment_Ownership: { type: String, required: true },
     Product_Id: { type: String, required: true },
     Product_Name: { type: String, required: true },
-    Product_Status: { type: String, enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], required: true },
+
+
+    product_status: { 
+        type: String, 
+        enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], 
+        required: true, 
+        default: 'Active' 
+      },
+
     Effective_Dtm: { type: Date, required: true },
     Service_Address: { type: String, required: true },
     Cat: { type: String, required: true },
@@ -70,7 +78,7 @@ const incidentSchema = new Schema(
         Arrears: { type: Number, required: true },
         Created_By: { type: String, required: true },
         Created_Dtm: { type: Date, required: true },
-        Incident_Status: { type: String, enum: ['Incident Open', 'Incident Reject','Reject Pending', 'Open No Agent'], required: true },
+        Incident_Status: { type: String, enum: ['Incident Open', 'Incident Reject','Reject Pending', 'Open No Agent','Open CPE Collect'], required: true },
         Source_Type: {
             type: String,
             required: true,
@@ -99,9 +107,10 @@ const incidentSchema = new Schema(
         Customer_Details: { type: customerDetailsSchema, required: true },
         Account_Details: { type: accountDetailsSchema, required: true },
         Last_Actions: { type: lastActionsSchema, required: true },
-        current_arrears_band: { type: String, required:true },
-        drc_commision_rule:{ type: String, required:true },
-
+        current_arrears_band: { type: String, required:true,default: "Default Band"},
+        drc_commision_rule: { type: String, required: true, default: "PEO TV" },
+      
+        
     },
     {
         collection: 'Incident', 
