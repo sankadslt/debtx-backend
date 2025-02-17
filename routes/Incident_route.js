@@ -28,7 +28,8 @@ Reject_F1_filtered_Incident,
 
 Forward_Direct_LOD,
 Forward_CPE_Collect,
-getOpenTaskCountforCPECollect
+getOpenTaskCountforCPECollect,
+List_Reject_Incident
 
 } from "../controllers/Incident_controller.js";
 
@@ -1489,6 +1490,8 @@ router.patch("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
 router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
 
 router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
+
+router.post("/List_Reject_Incident", List_Reject_Incident);
 
 router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
 export default router;
