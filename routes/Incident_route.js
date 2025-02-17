@@ -27,7 +27,8 @@ Create_Case_for_incident,
 Reject_F1_filtered_Incident,
 
 Forward_Direct_LOD,
-Forward_CPE_Collect
+Forward_CPE_Collect,
+getOpenTaskCountforCPECollect
 
 } from "../controllers/Incident_controller.js";
 
@@ -1489,4 +1490,5 @@ router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
 
 router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
 
+router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
 export default router;
