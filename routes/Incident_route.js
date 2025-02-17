@@ -1479,6 +1479,6 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
-router.get('/open-task-count-for-CPE-Collect', getOpenTaskCountforCPECollect);
+router.get('/Open_Task_Count_for_CPE_Collect', getOpenTaskCountforCPECollect);
 
 export default router;
