@@ -1902,108 +1902,226 @@ export const Create_Case_for_incident= async (req, res) => {
 //   }
 // };
 
+// export const Forward_CPE_Collect = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { Incident_Ids } = req.body;
+
+//     if (!Array.isArray(Incident_Ids) || Incident_Ids.length === 0) {
+//       return res.status(400).json({ error: "Incident_Ids array is required with at least one element" });
+//     }
+
+//     const processedCases = [];
+//     const maxRounds = Math.min(Incident_Ids.length, 10); // Limit processing to 10 incidents
+
+//     for (let i = 0; i < maxRounds; i++) {
+//       const incidentId = Incident_Ids[i];
+
+//       // Fetch the incident data
+//       const incidentData = await Incident.findOne({ Incident_Id: incidentId });
+
+//       if (!incidentData) {
+//         console.warn(`Incident with ID ${incidentId} not found. Skipping.`);
+//         continue;
+//       }
+
+//       if (incidentData.Incident_Status !== "Open CPE Collect") {
+//         console.warn(`Incident ID ${incidentId} has invalid status. Skipping.`);
+//         continue;
+//       }
+
+//       // Update the status and set Proceed_Dtm
+//       incidentData.Incident_Status = "Open No Agent";
+//       incidentData.Proceed_Dtm = new Date();
+//       await incidentData.save({ session });
+
+//       // Generate a unique case ID
+//       const caseId = await generateCaseId(session);
+
+//       // Prepare case data
+//       const caseData = {
+//         case_id: caseId,
+//         incident_id: incidentData.Incident_Id,
+//         account_no: incidentData.Account_Num || "Unknown",
+//         customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+//         created_dtm: new Date(),
+//         implemented_dtm: incidentData.Created_Dtm || new Date(),
+//         area: incidentData.Region || "Unknown",
+//         rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+//         arrears_band: incidentData.Arrears_Band || "Default Band",
+//         bss_arrears_amount: incidentData.Arrears || 0,
+//         current_arrears_amount: incidentData.Arrears || 0,
+//         current_arrears_band: incidentData.current_arrears_band || "Default Band",
+//         action_type: "Forward to CPE Collect",
+//         drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+//         last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+//         monitor_months: 6,
+//         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+//         commission: 0,
+//         case_current_status: "Open No Agent", // Update case status
+//         filtered_reason: incidentData.Filtered_Reason || null,
+//         ref_products: incidentData.Product_Details.length > 0
+//           ? incidentData.Product_Details.map(product => ({
+//               service: product.Service_Type || "Unknown",
+//               product_label: product.Product_Label || "N/A",
+//               product_status: product.Product_Status || "Active",
+//               status_Dtm: product.Effective_Dtm || new Date(),
+//               rtom: product.Region || "N/A",
+//               product_ownership: product.Equipment_Ownership || "Unknown",
+//               service_address: product.Service_Address || "N/A",
+//             }))
+//           : [
+//               {
+//                 service: "Default Service",
+//                 product_label: "Default Product",
+//                 product_status: "Active",
+//                 status_Dtm: new Date(),
+//                 rtom: "Default RTOM",
+//                 product_ownership: "Unknown",
+//                 service_address: "Default Address",
+//               },
+//             ],
+//       };
+
+//       // Save the new case
+//       const newCase = new Case_details(caseData);
+//       await newCase.save({ session });
+
+//       processedCases.push(newCase);
+//     }
+
+//     await session.commitTransaction();
+//     res.status(201).json({
+//       message: `Successfully forwarded ${processedCases.length} cases to CPE Collect.`,
+//       cases: processedCases,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error("Error forwarding cases to CPE Collect:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
 export const Forward_CPE_Collect = async (req, res) => {
+
   const session = await mongoose.startSession();
   session.startTransaction();
-
+  
   try {
-    const { Incident_Ids } = req.body;
+  const { Incident_Id } = req.body;
+  if (!Incident_Id) {
+    const error = new Error("Incident_Id is required.");
+    error.statusCode = 400;
+    throw error;
+  }
 
-    if (!Array.isArray(Incident_Ids) || Incident_Ids.length === 0) {
-      return res.status(400).json({ error: "Incident_Ids array is required with at least one element" });
-    }
+  const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
-    const processedCases = [];
-    const maxRounds = Math.min(Incident_Ids.length, 10); // Limit processing to 10 incidents
+  if (!incidentData) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(404).json({ 
+      status: "error",
+      message: "Incident not found",
+      errors: {
+        code: 404,
+        description: "No matching incident found.",
+      },
+    });
+  }
 
-    for (let i = 0; i < maxRounds; i++) {
-      const incidentId = Incident_Ids[i];
+  if (incidentData.Incident_Status !== "Open CPE Collect") {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(400).json({ 
+      status: "error",
+      message: "Incident has invalid status",
+      errors: {
+        code: 400,
+        description: "Incident is not in 'Open CPE Collect' status.",
+      },
+    });
+  }
 
-      // Fetch the incident data
-      const incidentData = await Incident.findOne({ Incident_Id: incidentId });
-
-      if (!incidentData) {
-        console.warn(`Incident with ID ${incidentId} not found. Skipping.`);
-        continue;
-      }
-
-      if (incidentData.Incident_Status !== "Open CPE Collect") {
-        console.warn(`Incident ID ${incidentId} has invalid status. Skipping.`);
-        continue;
-      }
-
-      // Update the status and set Proceed_Dtm
+  const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    { _id: "case_id" },
+    { $inc: { seq: 1 } },
+    { returnDocument: "after", session, upsert: true }
+  );
+  
+      
       incidentData.Incident_Status = "Open No Agent";
       incidentData.Proceed_Dtm = new Date();
       await incidentData.save({ session });
+  const Case_Id = counterResult.seq;
 
-      // Generate a unique case ID
-      const caseId = await generateCaseId(session);
+  const caseData = {
+    case_id: Case_Id,
+    incident_id: incidentData.Incident_Id,
+    account_no: incidentData.Account_Num || "Unknown", 
+    customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+    created_dtm: new Date(),
+    implemented_dtm: incidentData.Created_Dtm || new Date(),
+    area: incidentData.Region || "Unknown",
+    rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+    arrears_band: incidentData.Arrears_Band || "Default Band",
+    bss_arrears_amount: incidentData.Arrears || 0,
+    current_arrears_amount: incidentData.Arrears || 0,
+    current_arrears_band: incidentData.current_arrears_band || "Default Band",
+    action_type: "Forward to CPE Collect",
+    drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+    last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+    monitor_months: 6,
+    last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+    commission: 0,
+    case_current_status: incidentData.Incident_Status,
+    filtered_reason: incidentData.Filtered_Reason || null,
+    ref_products: incidentData.Product_Details.map(product => ({
+      service: product.Service_Type || "Unknown",
+      product_label: product.Product_Label || "N/A",
+      product_status: product.Product_Status || "Active",
+      status_Dtm: product.Effective_Dtm || new Date(),
+      rtom: product.Region || "N/A",
+      product_ownership: product.Equipment_Ownership || "Unknown",
+      service_address: product.Service_Address || "N/A",
+    })) || [],
+  };
+  
+  const newCase = new Case_details(caseData);
+  await newCase.save({ session });
+  
+  await Incident.updateOne(
+    { Incident_Id },
+    { $set: { Proceed_Dtm: new Date() } },
+    { session }
+  );
+  
+  await session.commitTransaction();
+  session.endSession();
 
-      // Prepare case data
-      const caseData = {
-        case_id: caseId,
-        incident_id: incidentData.Incident_Id,
-        account_no: incidentData.Account_Num || "Unknown",
-        customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
-        created_dtm: new Date(),
-        implemented_dtm: incidentData.Created_Dtm || new Date(),
-        area: incidentData.Region || "Unknown",
-        rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-        arrears_band: incidentData.Arrears_Band || "Default Band",
-        bss_arrears_amount: incidentData.Arrears || 0,
-        current_arrears_amount: incidentData.Arrears || 0,
-        current_arrears_band: incidentData.current_arrears_band || "Default Band",
-        action_type: "Forward to CPE Collect",
-        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
-        last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
-        monitor_months: 6,
-        last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
-        commission: 0,
-        case_current_status: "Open No Agent", // Update case status
-        filtered_reason: incidentData.Filtered_Reason || null,
-        ref_products: incidentData.Product_Details.length > 0
-          ? incidentData.Product_Details.map(product => ({
-              service: product.Service_Type || "Unknown",
-              product_label: product.Product_Label || "N/A",
-              product_status: product.Product_Status || "Active",
-              status_Dtm: product.Effective_Dtm || new Date(),
-              rtom: product.Region || "N/A",
-              product_ownership: product.Equipment_Ownership || "Unknown",
-              service_address: product.Service_Address || "N/A",
-            }))
-          : [
-              {
-                service: "Default Service",
-                product_label: "Default Product",
-                product_status: "Active",
-                status_Dtm: new Date(),
-                rtom: "Default RTOM",
-                product_ownership: "Unknown",
-                service_address: "Default Address",
-              },
-            ],
-      };
+  return res.status(201).json({ 
+    status: "success",
+    message: "CPE Collect incident successfully forwarded"
+  });
 
-      // Save the new case
-      const newCase = new Case_details(caseData);
-      await newCase.save({ session });
-
-      processedCases.push(newCase);
+} catch (error) {
+  await session.abortTransaction();
+  session.endSession();
+  
+  console.error("Error forwarding CPE Collect incident:", error);
+  return res.status(error.statusCode || 500).json({
+    status: "error",
+    message: error.message || "Internal server error",
+    errors: {
+      code: error.statusCode || 500,
+      description: error.message || "An unexpected error occurred."
     }
-
-    await session.commitTransaction();
-    res.status(201).json({
-      message: `Successfully forwarded ${processedCases.length} cases to CPE Collect.`,
-      cases: processedCases,
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Error forwarding cases to CPE Collect:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  } finally {
-    session.endSession();
-  }
+  });
+}
 };
 
 export const getOpenTaskCountforCPECollect = async (req, res) => {

@@ -3,7 +3,7 @@ import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
 
-//Create Task Functionw
+//Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
     try {
       // Validate required parameters
@@ -300,7 +300,3 @@ export const getOpenTaskCount = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
-
-  
