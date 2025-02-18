@@ -295,7 +295,7 @@ export const getOpenTaskCount = async (req, res) => {
     }
 
     // If records are not present in both models
-    return res.status(404).json({ message: 'Records not found in both models' });
+    return res.status(200).json({ openTaskCount: 0 });
   } catch (error) {
     console.error('Error fetching open task count:', error);
     res.status(500).json({ message: 'Internal server error' });
