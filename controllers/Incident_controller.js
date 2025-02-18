@@ -1280,11 +1280,11 @@ export const List_F1_filted_Incidents = async (req, res) => {
     const {Source_Type, FromDate, ToDate}= req.body;
     const rejectpendingStatuses = ["Reject Pending"];
     let incidents;
-
+    
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
-        Incident_Status: { $in: rejectpendingStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+         Incident_Status: { $in: rejectpendingStatuses },
+         $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
@@ -1303,6 +1303,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
       }
       incidents = await Incident.find(query);
     }
+   
     return res.status(200).json({
       status: "success",
       message: "F1 filtered incidents retrieved successfully.",
