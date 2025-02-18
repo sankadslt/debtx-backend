@@ -37,20 +37,31 @@ const router = Router();
 
 /**
  * @swagger
+ * tags:
+ *   - name: Incident Management
+ *     description: Incident-related endpoints for managing and updating incidents.
+ *
  * /api/incident/Forward_F1_filtered_incident:
  *   post:
- *     summary: Update incident status to "Open No Agent"
- *     description: Updates the status of an incident with the specified ID if its current status is "Reject Pending".
+ *     summary: Forward an F1 filtered incident
+ *     description: |
+ *       This endpoint forwards an F1 filtered incident based on the provided `Incident_Id`.
+ *       The incident must have a status of `Reject Pending` and a `Proceed_Dtm` value of null.
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Feb-18| Initial version|
+ *
  *     tags:
- *       - Incident Management
+ *      - Incident Management
  *     parameters:
  *       - in: query
- *         name: incidentId
+ *         name: Incident_Id
  *         required: true
+ *         description: The unique identifier of the incident.
  *         schema:
- *           type: string
- *           example: "12345"
- *         description: The unique identifier of the incident to be updated.
+ *           type: integer
+ *           example: 1001
  *     requestBody:
  *       required: true
  *       content:
@@ -58,31 +69,46 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               incidentId:
- *                 type: string
- *                 description: The ID of the incident to be updated.
- *                 example: "12345"
+ *               Incident_Id:
+ *                 type: integer
+ *                 description: The unique identifier of the incident.
+ *                 example: 1001
  *     responses:
- *       200:
- *         description: Incident status updated successfully.
+ *       201:
+ *         description: Incident successfully forwarded.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Incident status updated successfully."
+ *                   example: F1 filtered incident successfully forwarded.
  *       400:
- *         description: Invalid input or business rule violation.
+ *         description: Bad request due to invalid status or missing parameters.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Incident status must be 'Reject Pending' to update."
+ *                   example: Incident status must be "Reject Pending" to update.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Incident status must be "Reject Pending" to update.
  *       404:
  *         description: Incident not found.
  *         content:
@@ -90,9 +116,21 @@ const router = Router();
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Incident not found."
+ *                   example: Incident not found.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No matching incident found.
  *       500:
  *         description: Internal server error.
  *         content:
@@ -100,10 +138,23 @@ const router = Router();
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Internal server error."
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: An unexpected error occurred.
  */
+
 router.post("/Forward_F1_filtered_incident", Forward_F1_filtered_incident);
 
 
@@ -1484,6 +1535,125 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Incident Management
+ *     description: Incident-related endpoints for managing and updating incidents.
+ *
+ * /api/incident/Reject_F1_filtered_Incident:
+ *   patch:
+ *     summary: Reject an F1 filtered incident
+ *     description: |
+ *       This endpoint rejects an F1 filtered incident based on the provided `Incident_Id`.
+ *       The incident must have a status of `Reject Pending` and a `Proceed_Dtm` value of null.
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Feb-18| Initial version|
+ *
+ *     tags:
+ *      - Incident Management
+ *     parameters:
+ *       - in: path
+ *         name: Incident_Id
+ *         required: true
+ *         description: The unique identifier of the incident.
+ *         schema:
+ *           type: integer
+ *           example: 1001
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Incident_Id:
+ *                 type: integer
+ *                 description: The unique identifier of the incident.
+ *                 example: 1001
+ *     responses:
+ *       200:
+ *         description: Successfully rejected the F1 filtered incident.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully rejected the F1 filtered incident.
+ *       400:
+ *         description: Bad request due to invalid status or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Incident_Id is a required field.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Incident_Id is a required field.
+ *       404:
+ *         description: Incident not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Incident not found.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No matching incident found.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to reject the F1 filtered incident.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: An unexpected error occurred.
+ */
 router.patch("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
 
 
