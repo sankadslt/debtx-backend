@@ -1098,6 +1098,63 @@ export const List_All_Incident_Case_Pending = async (req, res) => {
   }
 };
 
+// export const List_Incidents_CPE_Collect = async (req, res) => {
+//   try {
+//     const { Source_Type, From_Date, To_Date } = req.body;
+
+//     let query = { 
+//       Incident_Status: { $in: ["Open CPE Collect"] },
+//       Proceed_Dtm: { $eq: null }, // Ensure Proceed_Dtm is null
+//     };
+
+//     // Date filtering with proper boundaries
+//     if (From_Date && To_Date) {
+//       const startDate = `${From_Date} 00:00:00`;
+//       const endDate = `${To_Date} 23:59:59`;
+
+//       if (new Date(startDate) > new Date(endDate)) {
+//         return res.status(400).json({
+//           status: "error",
+//           message: "'From_Date' cannot be later than 'To_Date'.",
+//         });
+//       }
+
+//       query.Created_Dtm = {
+//         $gte: new Date(startDate),
+//         $lte: new Date(endDate),
+//       };
+//     } else if (From_Date || To_Date) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Both 'From_Date' and 'To_Date' must be provided together.",
+//       });
+//     }
+
+//     // Source Type filtering
+//     if (Source_Type) {
+//       query.Source_Type = Source_Type;
+//     }
+
+//     // Fetch incidents matching the query
+//     const incidents = await Incident.find(query);
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "CPE Collect incidents retrieved successfully.",
+//       data: incidents,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching CPE Collect incidents:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const List_Incidents_CPE_Collect = async (req, res) => {
   try {
     const { Source_Type, From_Date, To_Date } = req.body;
@@ -1135,8 +1192,10 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
       query.Source_Type = Source_Type;
     }
 
-    // Fetch incidents matching the query
-    const incidents = await Incident.find(query);
+    // Fetch incidents matching the query and limit to 10 records
+    const incidents = await Incident.find(query)
+      .sort({ Created_Dtm: -1 }) // Optional: Sort by Created_Dtm descending
+      .limit(10);
 
     return res.status(200).json({
       status: "success",
@@ -1156,80 +1215,6 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 };
 
 
-// export const List_Incidents_CPE_Collect = async (req, res) => {
-//   try {
-//     const { Source_Type, From_Date, To_Date } = req.body;
-
-//     let query = { Incident_Status: { $in: ["Open CPE Collect"] } };
-
-//     // // Date filtering
-//     // if (From_Date && To_Date) {
-//     //   const startDate = new Date(From_Date);
-//     //   const endDate = new Date(To_Date);
-
-//     //   if (startDate > endDate) {
-//     //     return res.status(400).json({
-//     //       status: "error",
-//     //       message: "'From_Date' cannot be later than 'To_Date'.",
-//     //     });
-//     //   }
-
-//     //   query.Created_Dtm = {
-//     //     $gte: startDate,
-//     //     $lte: endDate,
-//     //   };
-//     // } else if (From_Date || To_Date) {
-//     //   return res.status(400).json({
-//     //     status: "error",
-//     //     message: "Both 'From_Date' and 'To_Date' must be provided together.",
-//     //   });
-//     // }
-// // Date filtering with proper boundaries
-// if (From_Date && To_Date) {
-//   const startDate = `${From_Date} 00:00:00`;
-//       const endDate = `${To_Date} 23:59:59`;
-
-//   if (startDate > endDate) {
-//     return res.status(400).json({
-//       status: "error",
-//       message: "'From_Date' cannot be later than 'To_Date'.",
-//     });
-//   }
-
-//   query.Created_Dtm = {
-//     $gte: startDate,
-//     $lte: endDate,
-//   };
-// } else if (From_Date || To_Date) {
-//   return res.status(400).json({
-//     status: "error",
-//     message: "Both 'From_Date' and 'To_Date' must be provided together.",
-//   });
-// }
-//     // Source Type filtering
-//     if (Source_Type) {
-//       query.Source_Type = Source_Type;
-//     }
-
-//     // Fetch incidents matching the query
-//     const incidents = await Incident.find(query);
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "CPE Collect incidents retrieved successfully.",
-//       data: incidents,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching CPE Collect incidents:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
 
 export const List_incidents_Direct_LOD = async (req, res) => {
   try {
@@ -1276,15 +1261,40 @@ export const List_F1_filted_Incidents = async (req, res) => {
 };
 
 
+// export const List_distribution_ready_incidents = async (req, res) => {
+//   try {
+//     const openNoAgentStatuses = ["Open No Agent"];
+
+   
+//     const incidents = await Incident.find({
+//       Incident_Status: { $in: openNoAgentStatuses },
+//       Proceed_Dtm: { $eq: null }, 
+//     });
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Pending incidents retrieved successfully.",
+//       data: incidents,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching pending incidents:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message || "An unexpected error occurred.",
+//     });
+//   }
+// };
+
 export const List_distribution_ready_incidents = async (req, res) => {
   try {
     const openNoAgentStatuses = ["Open No Agent"];
 
-   
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
       Proceed_Dtm: { $eq: null }, 
-    });
+    })
+      .sort({ Created_Dtm: -1 }) // Optional: Sort by Created_Dtm descending
+      .limit(10); // Limit to 10 records
 
     return res.status(200).json({
       status: "success",
