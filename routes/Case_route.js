@@ -47,6 +47,10 @@ import {
   List_All_Batch_Details,
   Approve_Batch_or_Batches,
   Create_task_for_batch_approval,
+  List_DRC_Assign_Manager_Approval,
+  Approve_DRC_Assign_Manager_Approval,
+  Reject_DRC_Assign_Manager_Approval,
+  Create_task_for_DRC_Assign_Manager_Approval,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3305,5 +3309,26 @@ router.post(
   "/Create_task_for_batch_approval",
   Create_task_for_batch_approval
 );
+
+router.post(
+  "/List_DRC_Assign_Manager_Approval",
+  List_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Approve_DRC_Assign_Manager_Approval",
+  Approve_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Reject_DRC_Assign_Manager_Approval",
+  Reject_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Create_task_for_DRC_Assign_Manager_Approval",
+  Create_task_for_DRC_Assign_Manager_Approval
+);
+
 
 export default router;
