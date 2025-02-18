@@ -1476,26 +1476,47 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     });
   }
 
-  const validateDRCList = (drcList) =>  {
+  // const validateDRCList = (drcList) =>  {
+  //   if (!Array.isArray(drcList)) {
+  //     throw new Error("DRC List must be an array.");
+  //   }
+  //   let batch_seq_rulebase_count = 0;
+
+  //   return drcList.map((item, index) => {
+  //     batch_seq_rulebase_count = batch_seq_rulebase_count + item.Count;
+  //     if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
+  //       throw new Error(`Invalid structure at index ${index} in DRC List.`);
+  //     }
+  //     return {
+  //       DRC: item.DRC,
+  //       Count: item.Count,
+  //     };
+  //   });
+  // };
+  const validateDRCList = (drcList) => {
     if (!Array.isArray(drcList)) {
       throw new Error("DRC List must be an array.");
     }
+    
+    let batch_seq_rulebase_count = 0;
 
-    return drcList.map((item, index) => {
-      if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
-        throw new Error(`Invalid structure at index ${index} in DRC List.`);
-      }
-
-      return {
-        DRC: item.DRC,
-        Count: item.Count,
-      };
-    });
+    return {
+      validatedList: drcList.map((item, index) => {
+        if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
+          throw new Error(`Invalid structure at index ${index} in DRC List.`);
+        }
+        batch_seq_rulebase_count += item.Count;
+        return {
+          DRC: item.DRC,
+          Count: item.Count,
+        };
+      }),
+      batch_seq_rulebase_count,
+    };
   };
-
   try {
     // Validate the DRC list
-    const validatedDRCList = validateDRCList(drc_list);
+    const {validatedDRCList,batch_seq_rulebase_count} = validateDRCList(drc_list);
 
     const mongo = await db.connectMongoDB();
 
@@ -1534,7 +1555,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       { returnDocument: "after", upsert: true }
     );
     const case_distribution_batch_id = counter_result_of_case_distribution_batch_id.seq; // Use `value` to access the updated document
-    console.log("case_distribution_batch_id:", case_distribution_batch_id);
+    //console.log("case_distribution_batch_id:", case_distribution_batch_id);
 
     if (!case_distribution_batch_id) {
       throw new Error("Failed to generate case_distribution_batch_id.");
@@ -1548,7 +1569,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         drc: DRC,
         rulebase_count: Count,
       })),
-      batch_seq_rulebase_count: 100,
+      batch_seq_rulebase_count:batch_seq_rulebase_count
     }];
     // Prepare Case distribution drc transactions data
     const Case_distribution_drc_transactions_data = {
@@ -1557,8 +1578,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       created_dtm: new Date(),
       created_by,
       current_arrears_band,
-      rulebase_count: 100,
-      rulebase_arrears_sum: 5000,
+      rulebase_count: batch_seq_rulebase_count,
       status: [{
         crd_distribution_status: "Open",
         created_dtm: new Date(),
