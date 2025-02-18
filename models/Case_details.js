@@ -20,6 +20,7 @@ const remarkSchema = new Schema({
 const approvalSchema = new Schema({
   approved_process: { type: String, default: null },
   approved_by: { type: String, default: null },
+  rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
   remark: {type:String, required:true}
 }, { _id: false });

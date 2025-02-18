@@ -3229,3 +3229,267 @@ export const Create_task_for_batch_approval = async (req, res) => {
     });
   }
 };
+
+
+export const List_DRC_Assign_Manager_Approval = async (req, res) => {
+    try {
+        const { approver_type, date_from, date_to } = req.body;
+        let filter = {};
+
+        // Condition to exclude DRC_Distribution
+        if (approver_type === "DRC_Distribution") {
+            return res.status(400).json({ message: "DRC_Distribution approver_type is not allowed" });
+        }
+
+        // Filter based on approver_type
+        if (approver_type) {
+            filter.approver_type = approver_type;
+        }
+
+        // Filter based on date range
+        if (date_from && date_to) {
+            filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+        } else if (date_from) {
+            filter.created_on = { $gte: new Date(date_from) };
+        } else if (date_to) {
+            filter.created_on = { $lte: new Date(date_to) };
+        }
+
+        // Fetch data from Template_forwarded_approver collection
+        const approvals = await TmpForwardedApprover.find(filter);
+
+        // Process results to extract the last element of approve_status array
+        const response = approvals.map(doc => {
+            const lastApproveStatus = doc.approve_status?.length 
+                ? doc.approve_status[doc.approve_status.length - 1] 
+                : null;
+
+            return {
+                ...doc.toObject(),
+                approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Only the last approve_status
+            };
+        });
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error("Error fetching DRC Assign Manager Approvals:", error);
+        res.status(500).json({ message: "Server Error", error });
+    }
+};
+
+
+export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { approver_references, approved_by } = req.body;
+
+        if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
+        }
+
+        if (!approved_by) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "approved_by is required" });
+        }
+
+        const currentDate = new Date();
+
+        // Update approve_status and approved_by for matching documents in TmpForwardedApprover
+        const result = await TmpForwardedApprover.updateMany(
+            { 
+                approver_reference: { $in: approver_references },
+                approver_type: { $ne: "DRC_Distribution" } 
+            },
+            {
+                $push: {
+                    approve_status: {
+                        status: "Approve",
+                        status_date: currentDate,
+                        status_edit_by: approved_by,
+                    },
+                },
+                $set: {
+                    approved_by: approved_by
+                }
+            },
+            { session }
+        );
+
+        if (result.modifiedCount === 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ message: "No matching approver references found" });
+        }
+
+        // Update approve array in CaseDetails where case_id matches approver_reference
+        const caseResult = await Case_details.updateMany(
+            { case_id: { $in: approver_references } },
+            {
+                $push: {
+                    approve: {
+                        approved_process: "Approved",
+                        approved_by: approved_by,
+                        approved_on: currentDate,
+                        remark: "Approved for recovery process."
+                    }
+                }
+            },
+            { session }
+        );
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json({
+            message: "Approvals added successfully.",
+            updatedCount: result.modifiedCount + caseResult.modifiedCount,
+        });
+    } catch (error) {
+        console.error("Error approving DRC Assign Manager Approvals:", error);
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({
+            message: "Error approving DRC Assign Manager Approvals",
+            error: error.message || "Internal server error.",
+        });
+    }
+};
+
+
+export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+      const { approver_references, approved_by } = req.body;
+
+      if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
+      }
+
+      if (!approved_by) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: "approved_by is required" });
+      }
+
+      const currentDate = new Date();
+
+      // Update approve_status for matching documents in TmpForwardedApprover
+      const result = await TmpForwardedApprover.updateMany(
+          { 
+              approver_reference: { $in: approver_references },
+              approver_type: { $ne: "DRC_Distribution" } 
+          },
+          {
+              $push: {
+                  approve_status: {
+                      status: "Reject",
+                      status_date: currentDate,
+                      status_edit_by: approved_by,
+                  },
+              }
+          },
+          { session }
+      );
+
+      if (result.modifiedCount === 0) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ message: "No matching approver references found" });
+      }
+
+      // Update approve array in CaseDetails where case_id matches approver_reference
+      const caseResult = await Case_details.updateMany(
+          { case_id: { $in: approver_references } },
+          {
+              $push: {
+                  approve: {
+                      approved_process: "Reject",
+                      rejected_by: approved_by,
+                      remark: "Rejected because some reasons."
+                  }
+              }
+          },
+          { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+          message: "Rejections added successfully.",
+          updatedCount: result.modifiedCount + caseResult.modifiedCount,
+      });
+  } catch (error) {
+      console.error("Error rejecting DRC Assign Manager Approvals:", error);
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+          message: "Error rejecting DRC Assign Manager Approvals",
+          error: error.message || "Internal server error.",
+      });
+  }
+};
+
+
+export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { approver_references, Created_By } = req.body;
+
+    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+    }
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Created_By is required" });
+    }
+
+    const currentDate = new Date();
+
+    // --- Create Task ---
+    const taskData = {
+      Template_Task_Id: 31, // Different Task ID for approval tasks
+      task_type: "Letting know the DRC Assign Manager Approval",
+      approver_references, // List of approver references
+      created_on: currentDate.toISOString(),
+      Created_By, // Assigned creator
+      task_status: "open",
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: "Task for batch approval created successfully.",
+      taskData,
+    });
+  } catch (error) {
+    console.error("Error creating batch approval task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating batch approval task",
+      error: error.message || "Internal server error.",
+    });
+  }
+};
+
+
