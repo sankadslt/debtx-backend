@@ -2,7 +2,7 @@ import Task from "../models/Task.js";
 import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
-import mongoose from "mongoose";
+
 
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
