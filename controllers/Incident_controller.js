@@ -1637,7 +1637,7 @@ export const Forward_CPE_Collect = async (req, res) => {
     bss_arrears_amount: incidentData.Arrears || 0,
     current_arrears_amount: incidentData.Arrears || 0,
     current_arrears_band: incidentData.current_arrears_band || "Default Band",
-    action_type: incidentData.Actions || "Forward to CPE Collect",
+    action_type: "Forward to CPE Collect",
     drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
     last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
     monitor_months: 6,
