@@ -1648,11 +1648,21 @@ export const Forward_F1_filtered_incident = async (req, res) => {
   const newCase = new Case_details(caseData);
   await newCase.save({ session });
 
+  let incidentStatus;
+
+  if(incidentData.Arrears>=5000){
+    incidentStatus="Open No Agent"
+  }else if(incidentData.Arrears>=1000 && incidentData.Arrears <5000){
+     incidentStatus="Direct LOD"
+  }else if( incidentData.Arrears<1000){
+    incidentStatus="Open CPE Collect"
+   }
+
   await Incident.updateOne(
     { Incident_Id},
       {
         $set: {
-          Incident_Status: 'Open No Agent',
+          Incident_Status: incidentStatus,
           Incident_Status_Dtm: new Date(),
         },
       },
