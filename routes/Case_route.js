@@ -22,6 +22,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
+  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -1314,6 +1315,8 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       example: Internal server error while retrieving case behaviors.
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 

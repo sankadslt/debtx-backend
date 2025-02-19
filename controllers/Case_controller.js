@@ -2040,6 +2040,108 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
 };
 
 
+export const updateLastRoDetails = async (req, res) => {
+  const { case_id, drc_id, remark } = req.body;
+
+  try {
+    // Validate input
+    if (!case_id || !drc_id || !remark) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required.",
+      });
+    }
+
+    // Find the case to get the last recovery officer's index
+    const caseData = await Case_details.findOne({
+      case_id,
+      "drc.drc_id": drc_id,
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided case_id and drc_id.",
+        },
+      });
+    }
+
+    // Find the index of the matching drc object
+    const lastDRC = caseData.drc.findIndex((drc) => drc.drc_id === drc_id);
+
+    if (lastDRC === -1) {
+      return res.status(404).json({
+        status: "error",
+        message: "DRC not found in the case.",
+        errors: {
+          code: 404,
+          description: "No DRC found with the provided drc_id.",
+        },
+      });
+    }
+
+    // Get the last recovery officer's index
+    const recoveryOfficers = caseData.drc[lastDRC].recovery_officers;
+    const lastRecoveryOfficer = recoveryOfficers.length - 1;
+
+    if (lastRecoveryOfficer === -1) {
+      return res.status(404).json({
+        status: "error",
+        message: "No recovery officers found in the DRC.",
+        errors: {
+          code: 404,
+          description: "The recovery_officers array is empty.",
+        },
+      });
+    }
+
+    // Update the case_removal_remark of the last recovery officer
+    const updateCaseData = {
+      $set: {
+        [`drc.${lastDRC}.recovery_officers.${lastRecoveryOfficer}.case_removal_remark`]: remark,
+      },
+    };
+
+    // Update the case data
+    const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id, "drc.drc_id": drc_id },
+      updateCaseData,
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedCase) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided case_id and drc_id.",
+        },
+      });
+    } else {
+      // Return success response
+      return res.status(200).json({
+        status: "success",
+        message: "Recovery Officer details updated successfully.",
+      });
+    }
+  } catch (error) {
+    // Handle unexpected errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while updating recovery officer details.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+
 
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 //   const { drc_commision_rule } = req.body;
