@@ -2920,6 +2920,10 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         nextBatchSeq = lastBatchSeq + 1;
     }
     console.log(nextBatchSeq);
+    const batch_seq_rulebase_count = drc_list.reduce(
+      (total, { plus_rulebase_count }) => total + plus_rulebase_count,
+      0
+    );
 
     const newBatchSeqEntry = {
       batch_seq: nextBatchSeq,
@@ -2943,7 +2947,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         minus_rulebase_count,
         rtom,
       })),
-      batch_seq_rulebase_count: 100,
+      batch_seq_rulebase_count,
     };
     
     existingCase.batch_seq_details.push(newBatchSeqEntry);
