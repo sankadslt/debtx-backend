@@ -2448,7 +2448,6 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 //     });
 //   }
 // };
-
 export const listAllDRCMediationBoardCases = async (req, res) => {
   const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
 
@@ -2552,6 +2551,9 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           ro_id: latestMediationBoard.ro_id,
         });
 
+        // Get count of mediation board entries
+        const mediationBoardCount = caseData.mediation_board.length;
+
         return {
           case_id: caseData.case_id,
           status: caseData.case_current_status,
@@ -2559,6 +2561,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           area: caseData.area,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          mediation_board_count: mediationBoardCount, // Added count of mediation board entries
           mediation_details: {
             created_dtm: latestMediationBoard.created_dtm,
             mediation_board_calling_dtm: latestMediationBoard.mediation_board_calling_dtm,
