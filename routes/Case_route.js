@@ -52,6 +52,7 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
+  Assign_DRC_To_Case,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3332,6 +3333,8 @@ router.post(
   "/Create_task_for_DRC_Assign_Manager_Approval",
   Create_task_for_DRC_Assign_Manager_Approval
 );
-
-
+router.post(
+  "/Assign_DRC_To_Case",
+  Assign_DRC_To_Case
+);
 export default router;

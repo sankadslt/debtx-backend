@@ -3603,4 +3603,57 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
+export const Assign_DRC_To_Case = async (req, res) => {
+  try {
+    const { case_id, drc_id, remark, assigned_by, drc_name } = req.body;
+    if (!case_id|| !drc_id || !assigned_by || !drc_name) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_id and drc_id is required.",
+        errors: {
+          code: 400,
+          description: "case_id and drc_id is required.",
+        },
+      });
+    }
+    const drcAssignAproveRecode = {
+      approver_reference: case_id,
+      created_on: new Date(),
+      created_by: assigned_by,
+      approve_status:{
+        status:"Open",
+        status_date:new Date(),
+        status_edit_by:assigned_by,
+      },
+      approver_type:"DRC_ReAssign",
+      parameters:{
+        drc_id:drc_id,
+        drc_name:drc_name,
+      },
+      remark:{
+        remark:remark,
+        remark_date: new Date(),
+        remark_edit_by:assigned_by,
+      },
+    }
+    const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAssignAproveRecode);
+    await TmpForwardedApproverRespons.save();
 
+    res.status(200).json({
+      status: "success",
+      message: "DRC Reassining send to the Aprover.",
+      data: TmpForwardedApproverRespons,
+    }); 
+  }
+  catch (error) {
+    console.error("Error in Reassining send to the Aprover : ", error);
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while assigning the DRC.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
