@@ -2,8 +2,10 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-    Last Modified Date: 2024-01-19
-    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com) , Susinidu (susinidusachinthana@gmail.com)      
+
+    Last Modified Date: 2024-02-07
+    Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
+
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -21,6 +23,8 @@ import {
   Open_No_Agent_Cases_ALL,
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
+  listBehaviorsOfCaseDuringDRC,
+  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -28,17 +32,29 @@ import {
   openNoAgentCountArrearsBandByServiceType,
   listCases,
   Acivite_Case_Details,
+  listAllDRCMediationBoardCases,
   get_count_by_drc_commision_rule,
   getAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
   List_Case_Distribution_DRC_Summary,
-  // List_ALL_Distribution_Details_By_Batch_ID,
-  // AAA,
+  Batch_Forward_for_Proceed,
   Create_Task_For_case_distribution,
-  get_all_transaction_seq_of_batch_id,
-  drcCaseDetails,
-  updateDrcCaseDetails
+
+  List_all_transaction_seq_of_batch_id,
+  Create_Task_For_case_distribution_transaction,
+  ListActiveRORequestsMediation,
+  get_distribution_array_of_a_transaction,
+  Create_Task_For_case_distribution_transaction_array,
+  Exchange_DRC_RTOM_Cases,
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
+  List_All_Batch_Details,
+  Approve_Batch_or_Batches,
+  Create_task_for_batch_approval,
+  List_DRC_Assign_Manager_Approval,
+  Approve_DRC_Assign_Manager_Approval,
+  Reject_DRC_Assign_Manager_Approval,
+  Create_task_for_DRC_Assign_Manager_Approval,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -803,18 +819,18 @@ router.post("/Case_Current_Status", Case_Current_Status);
  * @swagger
  * tags:
  *   - name: Case Management
- *     description: Endpoints related to managing and assigning Recovery Officers to cases.
- *
+ *     description: Endpoints for managing and assigning Recovery Officers to cases.
+ * 
  * /api/case/Assign_RO_To_Case:
  *   patch:
  *     summary: Assign a Recovery Officer to cases.
  *     description: |
- *       This endpoint assigns a Recovery Officer to multiple cases. The Recovery Officer must be assigned to at least one RTOM area
- *       that matches the case's area. If a case's area does not match any of the officer's assigned RTOMs, it will not be updated.
- *
- *       | Version | Date       | Description                     | Changed By         |
- *       |---------|------------|---------------------------------|--------------------|
- *       | 01      | 2025-Jan-31| Assign Recovery Officer to cases | Sasindu Srinayaka  |
+ *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area 
+ *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
+ *       
+ *       | Version | Date       | Description                       | Changed By         |
+ *       |---------|------------|-----------------------------------|--------------------|
+ *       | 01      | 2025-Feb-02| Assign Recovery Officer to cases | Sasindu Srinayaka  |
  *     tags:
  *       - Case Management
  *     requestBody:
@@ -829,11 +845,15 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 items:
  *                   type: integer
  *                 description: List of case IDs to which the Recovery Officer will be assigned.
- *                 example: [101, 102, 103]
+ *                 example: [10]
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID who will be assigned.
- *                 example: 10
+ *                 example: 46
+ *               drc_id:
+ *                 type: integer
+ *                 description: The DRC ID to which the cases belong.
+ *                 example: 11
  *     responses:
  *       200:
  *         description: Recovery Officer assigned successfully.
@@ -888,7 +908,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: case_ids must be a non-empty array and ro_id is required.
+ *                       example: case_ids must be a non-empty array or all fields are required.
  *       404:
  *         description: Recovery Officer or cases not found.
  *         content:
@@ -910,7 +930,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No Recovery Officer found.
+ *                       example: No Recovery Officer found with provided ro_id.
  *       500:
  *         description: Internal server error occurred while assigning the Recovery Officer.
  *         content:
@@ -940,18 +960,19 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  * @swagger
  * tags:
  *   - name: Case Management
- *     description: Endpoints related to handling cases by DRC.
- *
+ *     description: Endpoints for managing and retrieving cases handled by DRC.
+ * 
  * /api/case/List_Handling_Cases_By_DRC:
  *   post:
  *     summary: Retrieve cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC).
+ *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC). 
  *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
- *
+ *       The cases must have a `case_current_status` in specific predefined statuses and belong to an active DRC.
+ *       
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
- *       | 01      | 2025-Jan-31| List handling cases by DRC        | Sasindu Srinayaka  |
+ *       | 01      | 2025-Feb-02| List handling cases by DRC        | Sasindu Srinayaka  |
  *     tags:
  *       - Case Management
  *     requestBody:
@@ -964,7 +985,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
- *                 example: 5001
+ *                 example: 11
  *               rtom:
  *                 type: string
  *                 description: Area name associated with the case.
@@ -972,11 +993,11 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID responsible for the case.
- *                 example: 5
+ *                 example: 46
  *               arrears_band:
  *                 type: string
  *                 description: Arrears category for filtering cases.
- *                 example: AB-5_10
+ *                 example: AB-10_25
  *               from_date:
  *                 type: string
  *                 format: date
@@ -986,7 +1007,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2025-01-31"
+ *                 example: "2025-07-01"
  *     responses:
  *       200:
  *         description: Cases retrieved successfully.
@@ -1009,16 +1030,20 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       case_id:
  *                         type: integer
  *                         description: Unique identifier for the case.
- *                         example: 101
+ *                         example: 10
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the case.
+ *                         example: "Negotiation Settle Active"
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
  *                         description: Case creation date.
- *                         example: "2024-06-15T08:00:00Z"
+ *                         example: 2025-01-01T12:00:00.000+00:00
  *                       current_arreas_amount:
- *                         type: number
+ *                         type: double
  *                         description: Outstanding arrears amount.
- *                         example: 25000.50
+ *                         example: 11000.00
  *                       area:
  *                         type: string
  *                         description: RTOM area related to the case.
@@ -1026,16 +1051,16 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       remark:
  *                         type: string
  *                         description: Latest remark on the case.
- *                         example: "Awaiting customer response."
+ *                         example: "Case is in negotiation."
  *                       expire_dtm:
  *                         type: string
  *                         format: date-time
  *                         description: Case expiration date.
- *                         example: "2025-01-01T00:00:00Z"
+ *                         example: 2025-05-01T12:00:00.000+00:00
  *                       ro_name:
  *                         type: string
  *                         description: Name of the assigned Recovery Officer.
- *                         example: "John Doe"
+ *                         example: "Sasindu"
  *       400:
  *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
@@ -1104,6 +1129,197 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       example: Internal server error while retrieving cases.
  */
 router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving case behavior details during a specific DRC period.
+ * 
+ * /api/case/Case_Behavior_During_DRC:
+ *   post:
+ *     summary: Retrieve case behavior details during a specific DRC period.
+ *     description: |
+ *       This endpoint retrieves detailed behavior information about a case during a specified DRC period. 
+ *       It includes settlement details, payment history, and Recovery Officer information if available.
+ *       
+ *       | Version | Date       | Description                       | Changed By         |
+ *       |---------|------------|-----------------------------------|--------------------|
+ *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC era | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier of the case.
+ *                 example: 10
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 11
+ *               ro_id:
+ *                 type: integer
+ *                 description: (Optional) Recovery Officer ID for filtering.
+ *                 example: 46
+ *     responses:
+ *       200:
+ *         description: Case behavior details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     formattedCase:
+ *                       type: object
+ *                       properties:
+ *                         case_id:
+ *                           type: integer
+ *                           description: Unique identifier of the case.
+ *                           example: 101
+ *                         customer_ref:
+ *                           type: string
+ *                           description: Customer reference for the case.
+ *                           example: "CR123456"
+ *                         account_no:
+ *                           type: string
+ *                           description: Account number associated with the case.
+ *                           example: "ACC7890"
+ *                         current_arrears_amount:
+ *                           type: number
+ *                           description: Current arrears amount for the case.
+ *                           example: 50000.75
+ *                         last_payment_date:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Date of the last payment made for the case.
+ *                           example: "2024-12-15T00:00:00Z"
+ *                         ref_products:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: Reference products associated with the case.
+ *                           example: ["Product A", "Product B"]
+ *                         ro_id:
+ *                           type: integer
+ *                           description: Recovery Officer ID assigned to the case.
+ *                           example: 10
+ *                         ro_name:
+ *                           type: string
+ *                           description: Name of the assigned Recovery Officer.
+ *                           example: "John Doe"
+ *                         ro_contact_no:
+ *                           type: string
+ *                           description: Contact number of the Recovery Officer.
+ *                           example: "0712345678"
+ *                     settlementData:
+ *                       type: object
+ *                       properties:
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Date the settlement was created.
+ *                           example: "2024-01-15T00:00:00Z"
+ *                         settlement_status:
+ *                           type: string
+ *                           description: Current status of the settlement.
+ *                           example: "Active"
+ *                         expire_date:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Expiration date of the settlement.
+ *                           example: "2024-12-31T00:00:00Z"
+ *                     paymentData:
+ *                       type: object
+ *                       properties:
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Date the payment was created.
+ *                           example: "2024-02-15T00:00:00Z"
+ *                         bill_paid_amount:
+ *                           type: number
+ *                           description: Amount paid for the bill.
+ *                           example: 15000.50
+ *                         settled_balance:
+ *                           type: number
+ *                           description: Settled balance after the payment.
+ *                           example: 35000.25
+ *       400:
+ *         description: Validation error - Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All fields are required.
+ *       404:
+ *         description: No matching cases, settlements, or payments found for the provided criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No settlements or payments found for the case.
+ *       500:
+ *         description: Internal server error occurred while retrieving case behavior details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving case behaviors.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while retrieving case behaviors.
+ */
+router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
@@ -2391,6 +2607,7 @@ router.get("/getAllArrearsBands", getAllArrearsBands);
  *                       type: string
  *                       example: Detailed error message.
  */
+
 router.post(
   "/count_cases_rulebase_and_arrears_band",
   count_cases_rulebase_and_arrears_band
@@ -2400,14 +2617,14 @@ router.post(
  * @swagger
  * /api/Case_Distribution_Among_Agents:
  *   post:
- *     summary: C-1P20 Case Distribution Among Agents
+ *     summary: C-1P20 Distribute Cases Among Agents
  *     description: |
- *       Creates a task to distribute cases among DRC agents based on commission rules and arrears bands.
+ *       Distribute Cases among Agents and case_status='Open Assign Agent'
  *
- *       | Version | Date        | Description                          | Changed By         |
- *       |---------|-------------|--------------------------------------|--------------------|
- *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Ravindu            |
- *       | 01      | 2025-Jan-28 | Case Distribution Among DRC Agents  | Sanjaya Perera     |
+ *
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-Jan-28 | Case distribution among agents        | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     requestBody:
@@ -2420,32 +2637,37 @@ router.post(
  *               - drc_commision_rule
  *               - current_arrears_band
  *               - drc_list
+ *               - created_by
  *             properties:
  *               drc_commision_rule:
  *                 type: string
- *                 description: The commission rule used for case distribution.
- *                 example: PEO TV
+ *                 description: The commission rule for distributing cases.
+ *                 example: "PEO TV"
  *               current_arrears_band:
  *                 type: string
- *                 description: The arrears band for filtering cases.
- *                 example: 5000-10000
+ *                 description: The arrears band used for filtering cases.
+ *                 example: "5000-10000"
  *               drc_list:
  *                 type: array
- *                 description: A list of DRCs with their respective case counts.
+ *                 description: List of DRCs and their case counts.
  *                 items:
  *                   type: object
  *                   properties:
  *                     DRC:
  *                       type: string
- *                       description: Name of the DRC agent.
- *                       example: Agent A
+ *                       description: The agent or DRC handling cases.
+ *                       example: "Agent_001"
  *                     Count:
  *                       type: integer
- *                       description: Number of cases to be assigned.
- *                       example: 10
+ *                       description: The number of cases assigned.
+ *                       example: 5
+ *               created_by:
+ *                 type: string
+ *                 description: The user who initiated the distribution.
+ *                 example: "admin_user"
  *     responses:
  *       200:
- *         description: Task created successfully.
+ *         description: Task successfully created for case distribution.
  *         content:
  *           application/json:
  *             schema:
@@ -2456,12 +2678,20 @@ router.post(
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Task created successfully.
+ *                   example: Task successfully created.
  *                 data:
  *                   type: object
- *                   description: Details of the created task.
+ *                   properties:
+ *                     task_id:
+ *                       type: string
+ *                       description: Unique identifier for the created task.
+ *                       example: "task_12345"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: Unique batch ID for case distribution.
+ *                       example: 1001
  *       400:
- *         description: Validation error - Missing required parameters or invalid input, or task conflict.
+ *         description: Validation error - Missing or incorrect required parameters.
  *         content:
  *           application/json:
  *             schema:
@@ -2472,11 +2702,9 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: >
- *                     DRC commission rule, current arrears band, and DRC list fields are required,
- *                     or already has tasks with this commission rule and arrears band.
+ *                   example: DRC commission rule, current arrears band, created by and DRC list fields are required.
  *       500:
- *         description: Internal server error - Failed to create the task.
+ *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:
@@ -2487,21 +2715,38 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "An error occurred while creating the task: {error_message}"
+ *                   example: An error occurred while creating the task.
  */
+
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
+
+router.post(
+  "/List_Case_Distribution_DRC_Summary",
+  List_Case_Distribution_DRC_Summary
+);
+
+router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
+
+router.post(
+  "/Create_Task_For_case_distribution",
+  Create_Task_For_case_distribution
+);
+
+router.post(
+  "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
+);
 
 /**
  * @swagger
- * /api/List_Case_Distribution_DRC_Summary:
+ * /api/List_all_transaction_seq_of_batch_id:
  *   post:
- *     summary: C-1P21 List Case Distribution DRC Summary
+ *     summary: C-1P062 List All Transactions of a Batch
  *     description: |
- *       Retrieves a summary of case distributions based on date range, arrears band, and commission rule.
+ *      this function for get the all the sequence data of the batch and pass the case_distribution_batch_id
  *
- *       | Version | Date        | Description                                | Changed By       |
- *       |---------|------------|--------------------------------------------|------------------|
- *       | 01      | 2025-Jan-28 | List Case Distribution DRC Summary        | Sanjaya Perera   |
+ *       | Version | Date        | Description                            | Changed By       |
+ *       |---------|------------|----------------------------------------|------------------|
+ *       | 01      | 2025-feb-06 | List all transactions by batch ID     | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     requestBody:
@@ -2511,62 +2756,53 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *           schema:
  *             type: object
  *             properties:
- *               date_from:
+ *               case_distribution_batch_id:
  *                 type: string
- *                 format: date
- *                 description: Start date for filtering case distributions.
- *                 example: "2025-01-01"
- *               date_to:
- *                 type: string
- *                 format: date
- *                 description: End date for filtering case distributions.
- *                 example: "2025-01-31"
- *               arrears_band:
- *                 type: string
- *                 description: The arrears band to filter cases.
- *                 example: "5000-10000"
- *               drc_commision_rule:
- *                 type: string
- *                 description: The commission rule for filtering cases.
- *                 example: "PEO TV"
+ *                 description: The batch ID for which transactions should be retrieved.
+ *                 example: "65a1b2c3d4e5f67890123456"
  *     responses:
  *       200:
- *         description: Case distribution summary retrieved successfully.
+ *         description: Transactions retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                     description: Unique identifier for the record.
- *                     example: "65a1b2c3d4e5f67890123456"
- *                   created_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date and time of case distribution creation.
- *                     example: "2025-01-15T10:30:00Z"
- *                   arrears_band:
- *                     type: string
- *                     description: The arrears band associated with the case distribution.
- *                     example: "5000-10000"
- *                   drc_commision_rule:
- *                     type: string
- *                     description: The commission rule applied to the case distribution.
- *                     example: "PEO TV"
- *                   total_case_count:
- *                     type: integer
- *                     description: Total number of cases distributed.
- *                     example: 15
- *                   total_sum_of_arrears:
- *                     type: number
- *                     format: float
- *                     description: Total sum of arrears for distributed cases.
- *                     example: 250000.75
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully retrieved 5 records.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Unique identifier for the transaction.
+ *                         example: "65b2c3d4e5f6789012345678"
+ *                       case_distribution_batch_id:
+ *                         type: string
+ *                         description: Batch ID associated with the transaction.
+ *                         example: "65a1b2c3d4e5f67890123456"
+ *                       transaction_type:
+ *                         type: string
+ *                         description: Type of transaction.
+ *                         example: "Allocation"
+ *                       transaction_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time of the transaction.
+ *                         example: "2025-01-28T14:30:00Z"
+ *                       transaction_amount:
+ *                         type: number
+ *                         format: float
+ *                         description: Amount associated with the transaction.
+ *                         example: 1000.50
  *       400:
- *         description: Validation error - Missing required parameters or invalid input.
+ *         description: Validation error - Missing required parameters.
  *         content:
  *           application/json:
  *             schema:
@@ -2577,9 +2813,9 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Invalid date range provided.
+ *                   example: case_distribution_batch_id is a required parameter.
  *       404:
- *         description: No case distributions found matching the criteria.
+ *         description: No transactions found for the given batch ID.
  *         content:
  *           application/json:
  *             schema:
@@ -2590,9 +2826,9 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No case distributions found for the provided criteria.
+ *                   example: No data found for this batch ID.
  *       500:
- *         description: Internal server error - Failed to fetch data.
+ *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:
@@ -2603,26 +2839,502 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Server Error.
+ *                   example: Server error. Please try again later.
+ */
+
+router.post(
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);
+
+/**
+ * @swagger
+ * /api/Create_Task_For_case_distribution_transaction:
+ *   post:
+ *     summary: xxxx Create Task for Case Distribution Transaction
+ *     description: |
+ *       Creates a task for case distribution transactions based on the provided batch ID.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-10 | Initial creation of task for case distribution     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *
+ *
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *     responses:
+ *       201:
+ *         description: Task successfully created for case distribution transaction.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Create Case distribution DRC Transaction_1_Batch List for Download
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template ID for the created task.
+ *                       example: 27
+ *                     task_type:
+ *                       type: string
+ *                       description: The type of task created.
+ *                       example: "Create Case distribution DRC Transaction_1 _Batch List for Download"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: The batch ID associated with the task.
+ *                       example: 1001
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id is a required parameter.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
  *                 errors:
  *                   type: object
  *                   properties:
  *                     exception:
  *                       type: string
- *                       example: Detailed error message.
+ *                       example: Error message details.
  */
 
 router.post(
-  "/List_Case_Distribution_DRC_Summary",
-  List_Case_Distribution_DRC_Summary
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
 );
 
+router.post(
+  "/get_distribution_array_of_a_transaction",
+  get_distribution_array_of_a_transaction
+);
 
-// router.post("/AAA", AAA);  //List_ALL_Distribution_Details_By_Batch_ID
+/**
+ * @swagger
+ * /api/Create_Task_For_case_distribution_transaction_array:
+ *   post:
+ *     summary: xxxx Create Task for Case Distribution Transaction Array
+ *     description: |
+ *       Creates a task for case distribution transactions with batch sequence details.
+ *
+ *       | Version | Date        | Description                                                   | Changed By       |
+ *       |---------|------------|---------------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-10 | Initial creation of task for batch list distribution array  | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - batch_seq
+ *               - Created_By
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               batch_seq:
+ *                 type: integer
+ *                 description: The batch sequence number.
+ *                 example: 1
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: Task successfully created for case distribution transaction array.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Create Case distribution DRC Transaction_1_Batch List distribution array for Download
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       description: The template ID for the created task.
+ *                       example: 28
+ *                     task_type:
+ *                       type: string
+ *                       description: The type of task created.
+ *                       example: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: The batch ID associated with the task.
+ *                       example: 1001
+ *                     batch_seq:
+ *                       type: integer
+ *                       description: The batch sequence number.
+ *                       example: 1
+ *                     Created_By:
+ *                       type: string
+ *                       description: The user who created the task.
+ *                       example: "admin_user"
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case_distribution_batch_id, batch_seq, and Created_By are required parameters.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Error message details.
+ */
 
-router.post("/get_all_transaction_seq_of_batch_id", get_all_transaction_seq_of_batch_id);
+router.post(
+  "/Create_Task_For_case_distribution_transaction_array",
+  Create_Task_For_case_distribution_transaction_array
+);
 
-router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
+/**
+ * @swagger
+ * /Exchange_DRC_RTOM_Cases:
+ *   post:
+ *     summary: C-1P24 Exchange Case Distribution Planning among DRC
+ *     description: |
+ *       Creates a task to exchange case distribution planning among DRCs.
+ *
+ *       | Version | Date        | Description                                     | Changed By       |
+ *       |---------|------------|-------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Exchange DRC cases API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - drc_list
+ *               - created_by
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               drc_list:
+ *                 type: array
+ *                 description: List of DRC exchange details.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - plus_drc_id
+ *                     - plus_drc
+ *                     - plus_rulebase_count
+ *                     - minus_drc_id
+ *                     - minus_drc
+ *                     - minus_rulebase_count
+ *                   properties:
+ *                     plus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC gaining cases.
+ *                       example: 2
+ *                     plus_drc:
+ *                       type: string
+ *                       description: Name of the DRC gaining cases.
+ *                       example: "DRC A"
+ *                     plus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases added to the DRC.
+ *                       example: 50
+ *                     minus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC losing cases.
+ *                       example: 3
+ *                     minus_drc:
+ *                       type: string
+ *                       description: Name of the DRC losing cases.
+ *                       example: "DRC B"
+ *                     minus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases removed from the DRC.
+ *                       example: 50
+ *                     rtom:
+ *                       type: string
+ *                       description: Additional RTOM information.
+ *                       example: "RTOM1234"
+ *               created_by:
+ *                 type: string
+ *                 description: User who initiated the request.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Successfully exchanged case distributions among DRCs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "New batch sequence 2 added successfully."
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "case distribution batch id, created by, and DRC list fields are required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while creating the task."
+ */
+
+router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
+
+/**
+ * @swagger
+ * /Case_Distribution_Details_With_Drc_Rtom_ByBatchId:
+ *   post:
+ *     summary: xxxx Retrieve Case Distribution Details by Batch ID
+ *     description: |
+ *       Fetches case distribution details including DRC and RTOM information for a given batch ID.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Case Distribution API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved case distribution details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Case distribution details retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: integer
+ *                         example: 1001
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 2
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM1234"
+ *                       case_count:
+ *                         type: integer
+ *                         example: 50
+ *                       drc_name:
+ *                         type: string
+ *                         example: "Debt Recovery Corp"
+ *       400:
+ *         description: Validation error - Missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case_Distribution_Batch_ID is required."
+ *       404:
+ *         description: No records found for the provided batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "No case distribution details found for the given batch ID."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: "No records match the provided Case_Distribution_Batch_ID."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving case distribution details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Error message details."
+ */
+
+router.post(
+  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+);
+
+router.get(
+  "/List_All_Batch_Details",
+  List_All_Batch_Details
+);
+
+router.post(
+  "/Approve_Batch_or_Batches",
+  Approve_Batch_or_Batches
+);
+
+router.post(
+  "/Create_task_for_batch_approval",
+  Create_task_for_batch_approval
+);
+
+router.post(
+  "/List_DRC_Assign_Manager_Approval",
+  List_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Approve_DRC_Assign_Manager_Approval",
+  Approve_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Reject_DRC_Assign_Manager_Approval",
+  Reject_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Create_task_for_DRC_Assign_Manager_Approval",
+  Create_task_for_DRC_Assign_Manager_Approval
+);
 
 
 /**
