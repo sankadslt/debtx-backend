@@ -14,7 +14,9 @@ import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
+
 import CaseDetails from "../models/CaseMode.js";
+
 
 
 // Update Recovery Officer Status by ID
@@ -2873,6 +2875,7 @@ export const EditRO = async (req, res) => {
   }
 };
 
+
 export const listDRCAllCases = async (req, res) => {
   try {
     const { drc_id, ro_id, From_DAT, TO_DAT, case_current_status } = req.body; // Correct extraction from body
@@ -2912,3 +2915,4 @@ export const listDRCAllCases = async (req, res) => {
     });
   }
 };
+

@@ -2,8 +2,10 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
+
     Last Modified Date: 2024-02-07
     Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
+
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -38,6 +40,7 @@ import {
   List_Case_Distribution_DRC_Summary,
   Batch_Forward_for_Proceed,
   Create_Task_For_case_distribution,
+
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
   ListActiveRORequestsMediation,
@@ -3333,5 +3336,316 @@ router.post(
   Create_task_for_DRC_Assign_Manager_Approval
 );
 
+
+/**
+ * @swagger
+ * /api/Case_Details_for_DRC:
+ *   post:
+ *     summary: Fetch and Edit Case Details for DRC
+ *     description: |
+ *       Fetches or displays case details including Case ID, Customer Reference, Account Number, Arrears Amount, Last Payment Date, and the most recently added customer details such as Contact number, NIC/PP/Driving License, Email, and Address for editing on the customer profile page.
+ *
+ *       | Version | Date        | Description                                                                                      | Changed By             |
+ *       |---------|-------------|--------------------------------------------------------------------------------------------------|------------------------|
+ *       | 01      | 2025-Feb-13 | Fetch and display detailed case and customer information for editing in the DRC profile page.   | Susinidu Sachinthana  |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - account_no
+ *               - customer_ref
+ *               - current_arrears_amount
+ *               - last_payment_date
+ *               - current_contact
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 description: Unique identifier for the case.
+ *                 example: 123
+ *               account_no:
+ *                 type: string
+ *                 description: The account number associated with the case.
+ *                 example: "456"
+ *               customer_ref:
+ *                 type: string
+ *                 description: Reference name of the customer.
+ *                 example: "John Doe"
+ *               current_arrears_amount:
+ *                 type: number
+ *                 description: Current arrears amount for the case.
+ *                 example: 27000
+ *               last_payment_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date of the last payment made by the customer.
+ *                 example: "2024-12-03"
+ *               current_contact:
+ *                 type: array
+ *                 description: A list of customer contact details.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     mob:
+ *                       type: string
+ *                       description: Mobile number of the customer.
+ *                       example: "0743564765"
+ *                     email:
+ *                       type: string
+ *                       description: Email address of the customer.
+ *                       example: "example@gmail.com"
+ *                     nic:
+ *                       type: string
+ *                       description: NIC or identification number of the customer.
+ *                       example: "200546376548"
+ *                     lan:
+ *                       type: string
+ *                       description: Landline phone number of the customer.
+ *                       example: "0378564356"
+ *                     address:
+ *                       type: string
+ *                       description: Address of the customer.
+ *                       example: "Koswatta, Kiribathgoda"
+ *     responses:
+ *       200:
+ *         description: Case details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: number
+ *                       example: 123
+ *                     account_no:
+ *                       type: string
+ *                       example: "456"
+ *                     customer_ref:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     current_arrears_amount:
+ *                       type: number
+ *                       example: 27000
+ *                     last_payment_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2024-12-03"
+ *                     current_contact:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           mob:
+ *                             type: string
+ *                             example: "0743564765"
+ *                           email:
+ *                             type: string
+ *                             example: "example@gmail.com"
+ *                           nic:
+ *                             type: string
+ *                             example: "200546376548"
+ *                           lan:
+ *                             type: string
+ *                             example: "0378564356"
+ *                           address:
+ *                             type: string
+ *                             example: "Koswatta, Kiribathgoda"
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Invalid input data provided.
+ *       404:
+ *         description: Case details not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No case details found matching the provided criteria.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An unexpected error occurred while fetching case details.
+ */
+
+// Define the POST route for fetching case details
+router.post("/Case_Details_for_DRC", drcCaseDetails);
+
+
+/**
+ * @swagger
+ * /api/Update_Customer_Contacts:
+ *   post:
+ *     summary: Updates specific customer profile details
+ *     description: |
+ *       Updates specific customer profile details, including Contact Numbers, NIC/PP/Driving License, Email, Address, and Remark.
+ *
+ *       | Version | Date        | Description                                | Changed By             |
+ *       |---------|-------------|--------------------------------------------|------------------------|
+ *       | 01      | 2025-Feb-13 | Updates specific customer profile details  | Susinidu Sachinthana   |
+ *
+ *     tags: [Customer Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ro_edited_customer_details
+ *               - current_contact
+ *             properties:
+ *               current_contact:
+ *                 type: array
+ *                 description: A list of current contact details of the customer.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     mob:
+ *                       type: string
+ *                       description: Mobile number of the customer.
+ *                       example: "0743564765"
+ *                     email:
+ *                       type: string
+ *                       description: Email of the customer.
+ *                       example: "example@gmail.com"
+ *                     nic:
+ *                       type: string
+ *                       description: NIC of the customer.
+ *                       example: "200546376548"
+ *                     lan:
+ *                       type: string
+ *                       description: Land phone number of the customer.
+ *                       example: "0378564356"
+ *                     address:
+ *                       type: string
+ *                       description: Address of the customer.
+ *                       example: "Koswatta, Kiribathgoda"
+ *               ro_edited_customer_details:
+ *                 type: array
+ *                 description: Details edited by the logged-in RO.
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     ro_id:
+ *                       type: number
+ *                       description: Logged-in RO's ID.
+ *                       example: 123
+ *                     drc_id:
+ *                       type: number
+ *                       description: Logged-in RO's DRC.
+ *                       example: 123
+ *                     mob:
+ *                       type: string
+ *                       description: Mobile number of the customer.
+ *                       example: "0743564765"
+ *                     email:
+ *                       type: string
+ *                       description: Email of the customer.
+ *                       example: "example@gmail.com"
+ *                     nic:
+ *                       type: string
+ *                       description: NIC of the customer.
+ *                       example: "200546376548"
+ *                     lan:
+ *                       type: string
+ *                       description: Land phone number of the customer.
+ *                       example: "0378564356"
+ *                     address:
+ *                       type: string
+ *                       description: Address of the customer.
+ *                       example: "Koswatta, Kiribathgoda"
+ *                     geo_location:
+ *                       type: string
+ *                       description: The location where customer details are edited (not required - NULL).
+ *                       example: ""
+ *                     remarks:
+ *                       type: string
+ *                       description: Remarks regarding the customer.
+ *                       example: ""
+ *     responses:
+ *       200:
+ *         description: Customer details updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Customer details updated successfully.
+ *       400:
+ *         description: Validation error - Missing or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Validation error - Invalid input.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Detailed server error message.
+ */
+
+// POST route to update customer contacts or remarks for a specific case.
+router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
 export default router;
