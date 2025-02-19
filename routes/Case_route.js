@@ -55,6 +55,8 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
+  drcCaseDetails,
+  updateDrcCaseDetails
 } from "../controllers/Case_controller.js";
 
 const router = Router();
