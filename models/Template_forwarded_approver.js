@@ -32,7 +32,7 @@ const statusSchema = new Schema({
     },
 });
 const temmplateForwardedApproverSchema = new Schema({
-  approver_reference: { type: String, required: true },
+  approver_reference: { type: Number, required: true },
   created_on: { type: Date, required: true, default: Date.now },
   created_by: { type: String, required: true },
   approve_status: { type: [statusSchema]},
@@ -41,9 +41,15 @@ const temmplateForwardedApproverSchema = new Schema({
     enum: ['DRC_Distribution', 'DRC_ReAssign'], 
     required: true 
   }, 
+  parameters: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+      default: {},
+    },
   approved_by: { type: String, default: null },
   remark:  {type:[remarkSchema]},
-}, {
+}, { 
   collection: 'Template_forwarded_approver', 
   timestamps: true
 });
