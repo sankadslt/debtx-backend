@@ -2445,7 +2445,6 @@ export const updateDrcCaseDetails = async (req, res) => {
       return res.status(404).json({ error: "Case not found" });
     }
 
-
     // Schema for edited contact details
     const editedcontactsSchema = {
       ro_id:  "125" ,
