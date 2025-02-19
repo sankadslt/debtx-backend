@@ -2480,8 +2480,23 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Build base query for cases with mediation board entries
     let query = {
       "drc.drc_id": drc_id,
-      "mediation_board": { $exists: true, $ne: [] }
+      "mediation_board": { $exists: true, $ne: [] },
+      $and: [],
     };
+
+    // If the ro_id condition to the query if provided
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
+      });
+    }
 
     // Initialize $and array if any optional filters are provided
     if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
