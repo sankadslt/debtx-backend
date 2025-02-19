@@ -1579,7 +1579,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       },
     });
   }
-  console.log(incidentData.Incident_Status , "stat")
+  
   if (incidentData.Incident_Status !== 'Reject Pending') {
     await session.abortTransaction();
     session.endSession();
