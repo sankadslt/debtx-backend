@@ -19,7 +19,8 @@ import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
-import RO_Request from "../models/Template_RO_Request .js"
+import Template_RO_Request from "../models/Template_RO_Request .js";
+import Template_Mediation_Board from "../models/Template_mediation_board.js";
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -2970,18 +2971,14 @@ export const ListActiveRORequestsMediation = async (req, res) => {
     // Get request_mode from either body (POST) or query (GET)
     const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
     
-    // Base query for active requests
     let query = { end_dtm: null };
     
-    // Add request_mode filter if provided
     if (request_mode) {
       query.request_mode = request_mode;
     }
-    
-    // Fetch RO requests that match all criteria
-    const ro_requests = await RO_Request.find(query);
 
-    // Check if any matching requests are found
+    const ro_requests = await Template_RO_Request.find(query);
+
     if (ro_requests.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -2992,6 +2989,7 @@ export const ListActiveRORequestsMediation = async (req, res) => {
     }
 
     // Return only the matching records
+
     return res.status(200).json({
       status: "success",
       message: request_mode
@@ -3157,21 +3155,21 @@ export const getCaseDetailsbyMediationBoard = async (req, res) => {
 export const ListActiveMediationResponse = async (req, res) => {
   try {
     // Fetch only negotiations where end_dtm is null
-    const activeNegotiations = await Template_Negotiation.find({ end_dtm: null });
+    const activeMediation = await Template_Mediation_Board.find({ end_dtm: null });
 
     // Check if any active negotiations are found
-    if (activeNegotiations.length === 0) {
+    if (activeMediation.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "No active negotiations found.",
+        message: "No active Mediation response found.",
       });
     }
 
     // Return the retrieved active negotiations
     return res.status(200).json({
       status: "success",
-      message: "Active negotiation details retrieved successfully.",
-      data: activeNegotiations,
+      message: "Active mediation details retrieved successfully.",
+      data: activeMediation,
     });
   } catch (error) {
     console.error("Unexpected error:", error.message);
@@ -3183,13 +3181,3 @@ export const ListActiveMediationResponse = async (req, res) => {
   }
 };
 
-
-// Create Mediation board
-
-// export const MediationBoard = async (req, res) => {
-//   try {
-//     const { case_id, drc_id, ro_id,  } = req.body;
-//   } catch (error){
-
-//   }
-// }

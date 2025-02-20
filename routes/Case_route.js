@@ -3064,18 +3064,18 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  * @swagger
  * tags:
  *   - name: Recovery Officer Requests
- *     description: Endpoints related to active mediation requests by Recovery Officers.
+ *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
  * 
  * /api/case/List_Active_RO_Requests_Mediation:
  *   get:
- *     summary: Retrieve all active RO mediation requests.
+ *     summary: Retrieve active RO mediation requests.
  *     description: |
- *       This endpoint retrieves all active Recovery Officer (RO) mediation requests where `end_dtm` is null, 
- *       indicating that the request is still open. It optionally filters requests based on `request_mode`.
- *       
- *       | Version | Date       | Description                                 | Changed By         |
- *       |---------|------------|---------------------------------------------|--------------------|
- *       | 01      | 2025-Feb-13| List all active RO mediation requests      | U.H.Nandali Linara  |
+ *       This endpoint retrieves all active Recovery Officer (RO) mediation requests where `end_dtm` is null.
+ *       Optionally, you can filter the requests by providing a `request_mode` as a query parameter.
+ *
+ *       | Version | Date       | Description                             | Changed By         |
+ *       |---------|------------|-----------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| List active RO mediation requests       | U.H.Nandali Linara |
  *     tags:
  *       - Recovery Officer Requests
  *     parameters:
@@ -3083,9 +3083,8 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *         name: request_mode
  *         schema:
  *           type: string
- *         required: false
- *         description: Filter by specific request mode.
- *         example: "urgent"
+ *         description: Optional filter for the request mode (e.g., "manual", "automatic").
+ *         example: manual
  *     responses:
  *       200:
  *         description: Active RO mediation requests retrieved successfully.
@@ -3105,30 +3104,30 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *                   items:
  *                     type: object
  *                     properties:
- *                       request_id:
+ *                       ro_request_id:
  *                         type: integer
- *                         description: Unique identifier for the request.
- *                         example: 101
- *                       ro_id:
- *                         type: integer
- *                         description: ID of the Recovery Officer making the request.
- *                         example: 1001
+ *                         description: Unique identifier for the RO request.
+ *                         example: 301
  *                       request_mode:
  *                         type: string
- *                         description: Mode of the request (e.g., urgent, standard).
- *                         example: "urgent"
+ *                         description: Mode of the request (e.g., "manual" or "automatic").
+ *                         example: manual
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
- *                         description: The date and time the request was made.
- *                         example: "2025-01-15T08:00:00Z"
+ *                         description: Timestamp when the request was created.
+ *                         example: "2025-02-15T14:00:00Z"
  *                       end_dtm:
  *                         type: string
  *                         nullable: true
- *                         description: The date and time the request ended, if applicable.
+ *                         description: End date and time of the request (null if active).
  *                         example: null
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the request.
+ *                         example: active
  *       404:
- *         description: No active RO mediation requests found.
+ *         description: No active RO requests found.
  *         content:
  *           application/json:
  *             schema:
@@ -3155,37 +3154,57 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *                   example: Internal server error occurred while fetching active RO details.
  *                 error:
  *                   type: string
- *                   example: Internal server error message.
+ *                   example: Error message describing the issue.
+ * 
+ *   post:
+ *     summary: Retrieve active RO mediation requests (via POST with body).
+ *     description: |
+ *       Similar to the GET endpoint, this retrieves active RO mediation requests, but allows you to pass `request_mode` in the request body.
+ *     tags:
+ *       - Recovery Officer Requests
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               request_mode:
+ *                 type: string
+ *                 description: Optional filter for request mode.
+ *                 example: automatic
+ *     responses:
+ *       200:
+ *         $ref: '#/components/responses/200'
+ *       404:
+ *         $ref: '#/components/responses/404'
+ *       500:
+ *         $ref: '#/components/responses/500'
  */
-
-// router.post(
-//   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
-//   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
-// );
 router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
-
+ 
 
 /**
  * @swagger
  * tags:
  *   - name: Mediation
- *     description: Endpoints related to active mediation and negotiations.
+ *     description: Endpoints related to active mediation and board sessions.
  * 
  * /api/case/List_Active_Mediation_Response:
  *   get:
- *     summary: Retrieve all active mediation negotiations.
+ *     summary: Retrieve all active mediation board sessions.
  *     description: |
- *       This endpoint retrieves all active mediation negotiations where the `end_dtm` field is null, 
- *       indicating that the negotiation is still ongoing.
+ *       This endpoint retrieves all active mediation board responses where the `end_dtm` field is null, 
+ *       indicating that the mediation session is still ongoing.
  *       
- *       | Version | Date       | Description                      | Changed By         |
- *       |---------|------------|----------------------------------|--------------------|
- *       | 01      | 2025-Feb-13| List all active negotiations     | U.H.Nandali Linara  |
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
  *     tags:
  *       - Mediation
  *     responses:
  *       200:
- *         description: Active mediation negotiations retrieved successfully.
+ *         description: Active mediation board sessions retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -3196,36 +3215,36 @@ router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Active negotiation details retrieved successfully.
+ *                   example: Active mediation details retrieved successfully.
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       negotiation_id:
+ *                       mediation_id:
  *                         type: integer
- *                         description: Unique identifier for the negotiation.
- *                         example: 101
+ *                         description: Unique identifier for the mediation session.
+ *                         example: 501
  *                       case_id:
  *                         type: integer
  *                         description: ID of the related case.
  *                         example: 1001
  *                       status:
  *                         type: string
- *                         description: Status of the negotiation.
+ *                         description: Current status of the mediation session.
  *                         example: "Ongoing"
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
- *                         description: The date and time the negotiation started.
- *                         example: "2025-01-15T08:00:00Z"
+ *                         description: The date and time the mediation session started.
+ *                         example: "2025-02-10T09:30:00Z"
  *                       end_dtm:
  *                         type: string
  *                         nullable: true
- *                         description: The date and time the negotiation ended, if applicable.
+ *                         description: The date and time the mediation session ended, if applicable.
  *                         example: null
  *       404:
- *         description: No active negotiations found.
+ *         description: No active mediation sessions found.
  *         content:
  *           application/json:
  *             schema:
@@ -3236,9 +3255,9 @@ router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No active negotiations found.
+ *                   example: No active Mediation response found.
  *       500:
- *         description: Internal server error occurred while fetching active negotiations.
+ *         description: Internal server error occurred while fetching active mediation sessions.
  *         content:
  *           application/json:
  *             schema:
@@ -3252,9 +3271,10 @@ router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
  *                   example: Internal server error occurred while fetching active negotiation details.
  *                 error:
  *                   type: string
- *                   example: Internal server error message.
+ *                   example: Error message describing the issue.
  */
-
 router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
 
 export default router;
+
+
