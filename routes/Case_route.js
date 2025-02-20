@@ -53,6 +53,8 @@ import {
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
   Assign_DRC_To_Case,
+  List_Case_Distribution_Details,
+  Create_Task_For_case_distribution_drc_summery,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3337,4 +3339,15 @@ router.post(
   "/Assign_DRC_To_Case",
   Assign_DRC_To_Case
 );
+
+router.post(
+  "/List_Case_Distribution_Details",
+  List_Case_Distribution_Details
+);
+
+router.post(
+  "/Create_Task_For_case_distribution_drc_summery",
+  Create_Task_For_case_distribution_drc_summery
+);
+
 export default router;
