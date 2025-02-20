@@ -3586,45 +3586,39 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
 
 
 export const List_Case_Distribution_Details = async (req, res) => {
-    try {
-        const { drc, date_from, date_to } = req.body;
+  try {
+      const { drc } = req.body;
 
-        if (!drc || !date_from || !date_to) {
-            return res.status(400).json({ message: "Missing required fields: drc, date_from, date_to" });
-        }
+      if (!drc) {
+          return res.status(400).json({ message: "Missing required field: drc" });
+      }
 
-        const startDate = new Date(date_from);
-        const endDate = new Date(date_to);
-        endDate.setHours(23, 59, 59, 999);
+      const results = await caseDistributionDRCSummary.find({ drc });
 
-        const results = await caseDistributionDRCSummary.find({
-            drc,
-            created_dtm: { $gte: startDate, $lte: endDate }
-        });
+      if (results.length === 0) {
+          return res.status(404).json({ message: "No records found for the given DRC" });
+      }
 
-        if (results.length === 0) {
-            return res.status(404).json({ message: "No records found for the given criteria" });
-        }
+      const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
 
-        const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+      const transactions = await CaseDistribution.find({
+          case_distribution_batch_id: { $in: case_distribution_batch_ids }
+      }, 'case_distribution_batch_id proceed_on');
 
-        const transactions = await CaseDistribution.find({
-            case_distribution_batch_id: { $in: case_distribution_batch_ids }
-        }, 'case_distribution_batch_id proceed_on');
+      const response = results.map(doc => {
+          const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+          return {
+              ...doc.toObject(),
+              proceed_on: transaction ? transaction.proceed_on : null
+          };
+      });
 
-        const response = results.map(doc => {
-            const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
-            return {
-                ...doc.toObject(),
-                proceed_on: transaction ? transaction.proceed_on : null
-            };
-        });
-
-        res.status(200).json(response);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
+      res.status(200).json(response);
+  } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
+
 
 
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
@@ -3632,12 +3626,12 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
   session.startTransaction();
 
   try {
-      const { Created_By } = req.body;
+      const { drc, Created_By } = req.body;
 
-      if (!Created_By) {
+      if (!drc || !Created_By) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(400).json({ message: "Missing required field: Created_By" });
+          return res.status(400).json({ message: "Missing required fields: drc, Created_By" });
       }
 
       const currentDate = new Date();
@@ -3646,6 +3640,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       const taskData = {
           Template_Task_Id: 32, // Different Task ID for approval tasks
           task_type: "Letting know the Case Distribution DRC Summery",
+          drc,
           created_on: currentDate.toISOString(),
           Created_By, // Assigned creator
           task_status: "open",
@@ -3669,6 +3664,26 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
           message: "Error creating batch approval task",
           error: error.message || "Internal server error.",
       });
+  }
+};
+
+export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
+  try {
+      const { case_distribution_batch_id } = req.body;
+
+      if (!case_distribution_batch_id) {
+          return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
+      }
+
+      const results = await caseDistributionDRCSummary.find({ case_distribution_batch_id });
+
+      if (results.length === 0) {
+          return res.status(404).json({ message: "No records found for the given batch ID" });
+      }
+
+      res.status(200).json(results);
+  } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
