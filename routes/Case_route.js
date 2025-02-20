@@ -55,6 +55,7 @@ import {
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
+  List_Case_Distribution_Details_With_Rtoms,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3349,5 +3350,11 @@ router.post(
   "/Create_Task_For_case_distribution_drc_summery",
   Create_Task_For_case_distribution_drc_summery
 );
+
+router.post(
+  "/List_Case_Distribution_Details_With_Rtoms",
+  List_Case_Distribution_Details_With_Rtoms
+);
+
 
 export default router;
