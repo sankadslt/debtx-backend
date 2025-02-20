@@ -2675,12 +2675,83 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
   }
 };
 
+// export const Batch_Forward_for_Proceed = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { case_distribution_batch_id, Proceed_by } = req.body;
+
+//     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+//     }
+
+//     if (!Proceed_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Proceed_by is required" });
+//     }
+
+//     const currentDate = new Date();
+
+//     // Update proceed_on date in Case_distribution_drc_transactions
+//     const result = await CaseDistribution.updateMany(
+//       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
+//       {
+//         $set: {
+//           proceed_on: currentDate,
+//         },
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching batch IDs found" });
+//     }
+
+//     // --- Create Task for Proceed Action ---
+//     const taskData = {
+//       Template_Task_Id: 31, // Unique Task ID for proceed tasks
+//       task_type: "Create Task for Proceed Cases from Batch_ID",
+//       case_distribution_batch_id, // One or more batch IDs
+//       proceed_on: currentDate.toISOString(),
+//       Proceed_by,
+//       Created_By: Proceed_by, // Ensure Created_By is the same as Proceed_by
+//       task_status: "open",
+//     };
+
+//     // Call createTaskFunction
+//     await createTaskFunction(taskData, session);
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       message: "Batches forwarded for proceed successfully, and task created.",
+//       updatedCount: result.modifiedCount,
+//       taskData,
+//     });
+//   } catch (error) {
+//     console.error("Error forwarding batches for proceed:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error forwarding batches for proceed",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_id, Proceed_by } = req.body;
+    const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id } = req.body;
 
     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
       await session.abortTransaction();
@@ -2696,12 +2767,13 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     const currentDate = new Date();
 
-    // Update proceed_on date in Case_distribution_drc_transactions
+    // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
     const result = await CaseDistribution.updateMany(
       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
       {
         $set: {
           proceed_on: currentDate,
+          forward_for_approvals_on: currentDate, // New field update
         },
       },
       { session }
@@ -2715,25 +2787,42 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     // --- Create Task for Proceed Action ---
     const taskData = {
-      Template_Task_Id: 31, // Unique Task ID for proceed tasks
+      Template_Task_Id: 31,
       task_type: "Create Task for Proceed Cases from Batch_ID",
-      case_distribution_batch_id, // One or more batch IDs
+      case_distribution_batch_id,
       proceed_on: currentDate.toISOString(),
       Proceed_by,
-      Created_By: Proceed_by, // Ensure Created_By is the same as Proceed_by
+      Created_By: Proceed_by,
       task_status: "open",
     };
 
-    // Call createTaskFunction
     await createTaskFunction(taskData, session);
+
+    // --- Create Entry in Template_forwarded_approver ---
+    const approvalEntry = new TmpForwardedApprover({
+      approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
+      created_by: Proceed_by,
+      approver_type: "DRC_Distribution",
+      approve_status: [{
+        status: "Open",
+        status_date: currentDate,
+        status_edit_by: Proceed_by,
+      }],
+      parameters: {
+        plus_drc, plus_drc_id, minus_drc, minus_drc_id,
+      },
+    });
+
+    await approvalEntry.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
-      message: "Batches forwarded for proceed successfully, and task created.",
+      message: "Batches forwarded for proceed successfully, task created, and approval recorded.",
       updatedCount: result.modifiedCount,
       taskData,
+      approvalEntry,
     });
   } catch (error) {
     console.error("Error forwarding batches for proceed:", error);
@@ -2745,6 +2834,8 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     });
   }
 };
+
+
 export const Create_Task_For_case_distribution_transaction = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
