@@ -2449,7 +2449,6 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 //     });
 //   }
 // };
-
 export const listAllDRCMediationBoardCases = async (req, res) => {
   const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
 
@@ -2481,8 +2480,23 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Build base query for cases with mediation board entries
     let query = {
       "drc.drc_id": drc_id,
-      "mediation_board": { $exists: true, $ne: [] }
+      "mediation_board": { $exists: true, $ne: [] },
+      $and: [],
     };
+
+    // If the ro_id condition to the query if provided
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
+      });
+    }
 
     // Initialize $and array if any optional filters are provided
     if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
@@ -2538,6 +2552,9 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           ro_id: latestMediationBoard.ro_id,
         });
 
+        // Get count of mediation board entries
+        const mediationBoardCount = caseData.mediation_board.length;
+
         return {
           case_id: caseData.case_id,
           status: caseData.case_current_status,
@@ -2545,6 +2562,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
           area: caseData.area,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          mediation_board_count: mediationBoardCount, // Added count of mediation board entries
           mediation_details: {
             created_dtm: latestMediationBoard.created_dtm,
             mediation_board_calling_dtm: latestMediationBoard.mediation_board_calling_dtm,

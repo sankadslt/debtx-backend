@@ -2702,6 +2702,218 @@ router.post(
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Mediation Board Cases
+ *     description: Endpoints for retrieving DRC mediation board cases.
+ * 
+ * /api/case/List_All_DRC_Mediation_Board_Cases:
+ *   post:
+ *     summary: Retrieve mediation board cases for a given DRC.
+ *     description: |
+ *       This endpoint retrieves mediation board cases for a given DRC, allowing filters such as RTOM, RO ID, case status, action type, and date range.
+ *
+ *       | Version | Date       | Description                                       | Changed By         |
+ *       |---------|-----------|---------------------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| Fetch mediation board cases with filters         | K.K.Chathundi Sakumini  |
+ *
+ *     tags:
+ *       - Mediation Board Cases
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 description: The unique identifier for the DRC.
+ *                 example: "DRC123"
+ *               rtom:
+ *                 type: string
+ *                 description: The RTOM area to filter cases.
+ *                 example: "Colombo"
+ *               ro_id:
+ *                 type: string
+ *                 description: Filter by Recovery Officer ID.
+ *                 example: "RO456"
+ *               action_type:
+ *                 type: string
+ *                 description: Type of action performed.
+ *                 example: "follow_up"
+ *               case_current_status:
+ *                 type: string
+ *                 description: The current status of the case.
+ *                 example: "Pending"
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 description: The start date for filtering cases.
+ *                 example: "2025-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 description: The end date for filtering cases.
+ *                 example: "2025-02-15"
+ *     responses:
+ *       200:
+ *         description: Mediation board cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Mediation board cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: string
+ *                         description: Unique case identifier.
+ *                         example: "CASE789"
+ *                       status:
+ *                         type: string
+ *                         description: Current case status.
+ *                         example: "Active"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Timestamp when the case was created.
+ *                         example: "2025-02-10T14:00:00Z"
+ *                       area:
+ *                         type: string
+ *                         description: Area associated with the case.
+ *                         example: "Kandy"
+ *                       expire_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                         description: Expiry date of the case.
+ *                         example: null
+ *                       ro_name:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Name of the assigned Recovery Officer.
+ *                         example: "John Doe"
+ *                       mediation_board_count:
+ *                         type: integer
+ *                         description: Number of mediation board entries for the case.
+ *                         example: 3
+ *                       mediation_details:
+ *                         type: object
+ *                         properties:
+ *                           created_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Date of mediation board entry creation.
+ *                             example: "2025-02-12T09:00:00Z"
+ *                           mediation_board_calling_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: Scheduled mediation board calling date.
+ *                             example: "2025-02-20T10:30:00Z"
+ *                           customer_available:
+ *                             type: boolean
+ *                             description: Indicates if the customer attended the mediation.
+ *                             example: true
+ *                           comment:
+ *                             type: string
+ *                             description: Comments on the mediation session.
+ *                             example: "Customer requested additional time for settlement."
+ *                           settlement_id:
+ *                             type: string
+ *                             nullable: true
+ *                             description: Settlement ID if applicable.
+ *                             example: "SETT001"
+ *                           customer_response:
+ *                             type: string
+ *                             description: Customer's response to mediation.
+ *                             example: "Accepted settlement offer"
+ *                           next_calling_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: Scheduled date for the next mediation call.
+ *                             example: "2025-03-01T15:00:00Z"
+ *       400:
+ *         description: Bad request due to missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve DRC details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: DRC ID is required.
+ *       404:
+ *         description: No mediation board cases found for the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching mediation board cases found.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error occurred while retrieving mediation board cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving mediation board cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Error message describing the issue.
+ */
 
 router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
 
