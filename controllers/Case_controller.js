@@ -1476,24 +1476,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       message: "DRC List should not be empty.",
     });
   }
-
-  // const validateDRCList = (drcList) =>  {
-  //   if (!Array.isArray(drcList)) {
-  //     throw new Error("DRC List must be an array.");
-  //   }
-  //   let batch_seq_rulebase_count = 0;
-
-  //   return drcList.map((item, index) => {
-  //     batch_seq_rulebase_count = batch_seq_rulebase_count + item.Count;
-  //     if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
-  //       throw new Error(`Invalid structure at index ${index} in DRC List.`);
-  //     }
-  //     return {
-  //       DRC: item.DRC,
-  //       Count: item.Count,
-  //     };
-  //   });
-  // };
   const validateDRCList = (drcList) => {
     if (!Array.isArray(drcList)) {
       throw new Error("DRC List must be an array.");
@@ -1503,12 +1485,13 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 
     return {
       validatedList: drcList.map((item, index) => {
-        if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
+        if (typeof item.DRC !== "string" || typeof item.Count !== "number" || typeof item.DRC_Id !== "number") {
           throw new Error(`Invalid structure at index ${index} in DRC List.`);
         }
         batch_seq_rulebase_count += item.Count;
         return {
           DRC: item.DRC,
+          DRC_Id: item.DRC_Id,
           Count: item.Count,
         };
       }),
@@ -1517,8 +1500,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
   };
   try {
     // Validate the DRC list
-    const {validatedDRCList,batch_seq_rulebase_count} = validateDRCList(drc_list);
-
+    const { validatedList, batch_seq_rulebase_count } = validateDRCList(drc_list);
     const mongo = await db.connectMongoDB();
 
     // Validation for existing tasks with task_status and specific parameters
@@ -1527,19 +1509,18 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       "parameters.drc_commision_rule": drc_commision_rule,
       "parameters.current_arrears_band": current_arrears_band,
     });
-    // console.log(existingTask);
     if (existingTask) {
       return res.status(400).json({
         status: "error",
         message: "Already has tasks with this commision rule and arrears band ",
       });
     }
-
     // Prepare dynamic parameters for the task
     const dynamicParams = {
       drc_commision_rule,
       current_arrears_band,
-      distributed_Amounts: validatedDRCList,
+      distributed_Amounts_array:validatedList,
+      batch_seq_rulebase_count
     };
 
     // Call createTaskFunction
@@ -1556,7 +1537,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       { returnDocument: "after", upsert: true }
     );
     const case_distribution_batch_id = counter_result_of_case_distribution_batch_id.seq; // Use `value` to access the updated document
-    //console.log("case_distribution_batch_id:", case_distribution_batch_id);
 
     if (!case_distribution_batch_id) {
       throw new Error("Failed to generate case_distribution_batch_id.");
@@ -1566,8 +1546,9 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       created_dtm: new Date(),
       created_by,
       action_type: "distribution",
-      array_of_distributions: drc_list.map(({ DRC, Count }) => ({
+      array_of_distributions: drc_list.map(({ DRC, Count,DRC_Id }) => ({
         drc: DRC,
+        drc_id: DRC_Id,
         rulebase_count: Count,
       })),
       batch_seq_rulebase_count:batch_seq_rulebase_count
