@@ -855,6 +855,10 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 type: integer
  *                 description: The DRC ID to which the cases belong.
  *                 example: 11
+ *               assigned_by:
+ *                 type: String
+ *                 description: The user assigning the Recovery Officer.
+ *                 example: "AdminUser"
  *     responses:
  *       200:
  *         description: Recovery Officer assigned successfully.
