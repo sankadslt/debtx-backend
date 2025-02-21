@@ -14,6 +14,15 @@ const taskListSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    user_id: {
+      type: String,
+      required: true,
+    },
+    created_by: {
+      type: String,
+      required: true,
+    },
+    
   },
   { timestamps: true }
 );
@@ -21,4 +30,3 @@ const taskListSchema = new mongoose.Schema(
 const TaskList = mongoose.model("TaskList", taskListSchema);
 
 export default TaskList;
-
