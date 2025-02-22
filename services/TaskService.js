@@ -161,7 +161,7 @@ export const createTask = async (req, res) => {
     // Task object
     const taskData = {
       Task_Id,
-      Template_Task_Id: 21,
+      Template_Task_Id: 20,
       task_type: "Create Incident list for download",
       parameters: {
         DRC_Action,
