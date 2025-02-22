@@ -2,7 +2,10 @@ import Task from "../models/Task.js";
 import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
+import { getUserData } from "../auth/authService";
 
+const BASE_URL = import.meta.env.VITE_BASE_URL ; // Base URL from environment variables
+const AUTH_URL = `${BASE_URL}/auth`; // Auth endpoint
 
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
@@ -104,6 +107,8 @@ export const createTask = async (req, res) => {
       if (!Task_Id) {
         return res.status(500).json({ message: "Failed to generate Task_Id" });
       }
+
+      const user = await getUserData();
   
       // Prepare task data
       const taskData = {
@@ -111,7 +116,7 @@ export const createTask = async (req, res) => {
         Template_Task_Id,
         task_type,
         parameters: dynamicParams, // Accept dynamic parameters
-        Created_By,
+        Created_By: user.user_id,
         Execute_By: "SYS",
         task_status,  // Use task_status directly here
       };
@@ -221,6 +226,8 @@ export const Task_for_Download_Incidents = async (req, res) => {
 
       const Task_Id = counterResult.seq;
 
+      const user = await getUserData();
+
       // Task object
       const taskData = {
           Task_Id,
@@ -233,7 +240,7 @@ export const Task_for_Download_Incidents = async (req, res) => {
               From_Date,
               To_Date,
           },
-          Created_By,
+          Created_By: user.user_id,
           Execute_By: "SYS",
           task_status: "open",
           created_dtm: new Date(),
