@@ -120,7 +120,7 @@ const arrayOfDistributionSchema = new Schema(
     minus_drc_id: { type: Number }, 
     minus_rulebase_count: { type: Number }, 
     rtom: { type: String },
-    rulebase_arrears_sum: { type: Number }
+    // rulebase_arrears_sum: { type: Number }
   },
   { _id: false }
 );
@@ -151,7 +151,7 @@ const caseDistributionSchema = new Schema({
     created_by: { type: String, required: true},
     current_arrears_band: { type: String, required: true},
     rulebase_count: { type: Number, required: true},
-    rulebase_arrears_sum: { type: Number, required: true},
+    // rulebase_arrears_sum: { type: Number, required: true},
     status: [crdDistributionStatusSchema],
     drc_commision_rule: { type: String, required: true },
     forward_for_approvals_on: { type: Date, default:null},

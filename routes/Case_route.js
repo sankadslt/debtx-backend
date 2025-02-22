@@ -22,6 +22,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
+  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -47,6 +48,14 @@ import {
   List_All_Batch_Details,
   Approve_Batch_or_Batches,
   Create_task_for_batch_approval,
+  List_DRC_Assign_Manager_Approval,
+  Approve_DRC_Assign_Manager_Approval,
+  Reject_DRC_Assign_Manager_Approval,
+  Create_task_for_DRC_Assign_Manager_Approval,
+  Assign_DRC_To_Case,
+  List_Case_Distribution_Details,
+  Create_Task_For_case_distribution_drc_summery,
+  List_Case_Distribution_Details_With_Rtoms,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -846,6 +855,10 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 type: integer
  *                 description: The DRC ID to which the cases belong.
  *                 example: 11
+ *               assigned_by:
+ *                 type: String
+ *                 description: The user assigning the Recovery Officer.
+ *                 example: "AdminUser"
  *     responses:
  *       200:
  *         description: Recovery Officer assigned successfully.
@@ -1310,6 +1323,8 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       example: Internal server error while retrieving case behaviors.
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
@@ -3305,5 +3320,45 @@ router.post(
   "/Create_task_for_batch_approval",
   Create_task_for_batch_approval
 );
+
+router.post(
+  "/List_DRC_Assign_Manager_Approval",
+  List_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Approve_DRC_Assign_Manager_Approval",
+  Approve_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Reject_DRC_Assign_Manager_Approval",
+  Reject_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Create_task_for_DRC_Assign_Manager_Approval",
+  Create_task_for_DRC_Assign_Manager_Approval
+);
+router.post(
+  "/Assign_DRC_To_Case",
+  Assign_DRC_To_Case
+);
+
+router.post(
+  "/List_Case_Distribution_Details",
+  List_Case_Distribution_Details
+);
+
+router.post(
+  "/Create_Task_For_case_distribution_drc_summery",
+  Create_Task_For_case_distribution_drc_summery
+);
+
+router.post(
+  "/List_Case_Distribution_Details_With_Rtoms",
+  List_Case_Distribution_Details_With_Rtoms
+);
+
 
 export default router;
