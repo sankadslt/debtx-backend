@@ -28,8 +28,12 @@ Reject_F1_filtered_Incident,
 
 Forward_Direct_LOD,
 Forward_CPE_Collect,
+
+List_Transaction_Logs_Upload_Files
+
 getOpenTaskCountforCPECollect,
 List_Reject_Incident
+
 
 } from "../controllers/Incident_controller.js";
 
@@ -1532,6 +1536,102 @@ router.post("/F1_filtered_Incidents_group_by_arrears_band",F1_filtered_Incidents
  *                       example: "An unexpected error occurred while processing the request."
  */
 router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_ready_incidents_group_by_arrears_band);
+
+
+/**
+ * @swagger
+ * /api/transaction/List_Transaction_Logs_Upload_Files:
+ *   post:
+ *     summary: Retrieve transaction log upload files
+ *     description: Fetches transaction log upload files based on date range and status. Returns the latest 10 records if no filters are provided.
+ *     tags:
+ *       - Transaction Logs
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               From_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering logs (YYYY-MM-DD).
+ *                 example: "2025-01-01"
+ *               To_Date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering logs (YYYY-MM-DD).
+ *                 example: "2025-01-31"
+ *               status:
+ *                 type: string
+ *                 description: Status of the uploaded file.
+ *                 example: "Completed"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved file upload logs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "File upload logs retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Uploaded_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time when the file was uploaded.
+ *                         example: "2025-02-14T12:00:00.000Z"
+ *                       File_Status:
+ *                         type: string
+ *                         description: Status of the file upload.
+ *                         example: "Completed"
+ *       400:
+ *         description: Invalid input or missing fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid request body."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Detailed error message."
+ */
+router.post("/List_Transaction_Logs_Upload_Files", List_Transaction_Logs_Upload_Files);
 
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 
