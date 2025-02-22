@@ -29,7 +29,7 @@ Reject_F1_filtered_Incident,
 Forward_Direct_LOD,
 Forward_CPE_Collect,
 
-List_Transaction_Logs_Upload_Files
+List_Transaction_Logs_Upload_Files,
 
 getOpenTaskCountforCPECollect,
 List_Reject_Incident
@@ -1540,12 +1540,12 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
 
 /**
  * @swagger
- * /api/transaction/List_Transaction_Logs_Upload_Files:
+ * /api/incident/List_Transaction_Logs_Upload_Files:
  *   post:
  *     summary: Retrieve transaction log upload files
  *     description: Fetches transaction log upload files based on date range and status. Returns the latest 10 records if no filters are provided.
  *     tags:
- *       - Transaction Logs
+ *       - Incident Management
  *     requestBody:
  *       required: true
  *       content:
