@@ -20,9 +20,13 @@ const RORequestSchema = new Schema(
       enum: ['Negotiation', 'Mediation Board'],
       required: true 
     }, // Request mode
+    intraction_id: { 
+      type: Number, 
+      required: true
+    }, // ID for interaction
   },
   {
-    collection: 'RO_Request',
+    collection: 'Template_RO_Request',
   }
 );
 

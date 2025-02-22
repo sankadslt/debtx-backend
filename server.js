@@ -29,6 +29,8 @@ import incidentRouter from "./routes/Incident_route.js";
 import caseRouter from "./routes/Case_route.js"
 import authRouter from "./routes/Auth.js";
 import taskRouter from "./routes/Task_route.js";
+import taskListRouter from "./routes/TaskList_route.js";
+import chartRouter from "./routes/chart.js";
 
 // Load environment variables
 config();
@@ -55,6 +57,8 @@ app.use("/api/incident", incidentRouter);
 app.use("/api/case", caseRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/task", taskRouter);
+app.use("/api/taskList", taskListRouter);
+app.use("/api", chartRouter);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
