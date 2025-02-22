@@ -3933,6 +3933,100 @@ export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
   }
 };
 
+export const Mediation_Board = async (req, res) => {
+  try {
+    const {
+      case_id,
+      drc_id,
+      ro_id,
+      next_calling_date,
+      request_id,
+      request_type,
+      user_interaction_id,
+      customer_available,
+      comment,
+      settle,
+      settlement_count,
+      initial_amount,
+      calendar_month,
+      duration,
+      remark,
+      fail_reason
+    } = req.body;
 
+    if (!case_id || !drc_id || !customer_available) {
+      return res.status(400).json({ message: "Missing required fields: case id, drc id, customer available" });
+    };
+    if (request_id && request_type) {
+      const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id }, 
+        {
+          $push: {
+            mediation_board: {
+              drc_id,
+              ro_id,
+              created_dtm: new Date(),
+              mediation_board_calling_dtm:new Date(),
+              customer_available,
+              comment,
+              settlement_id:1,
+              customer_response:"we should insert something for this",
+              next_calling_dtm:next_calling_date
+            },
+            ro_requests: {
+              drc_id,
+              ro_id,
+              created_dtm: new Date(),
+              ro_request_id:request_id,
+              ro_request:request_type,
+              intraction_id:user_interaction_id,
+              todo_dtm: new Date(), //this should be change
+              completed_dtm: new Date(), // this should be change
+            }
+          }
+        },
+        { new: true }
+      );
+      if (!updatedCase) {
+        return { success: false, message: 'Case not found this case id' };
+      }
+    }else{
+      const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id }, 
+        {
+          $push: {
+            mediation_board: {
+              drc_id,
+              ro_id,
+              created_dtm: new Date(),
+              mediation_board_calling_dtm:new Date(),
+              customer_available,
+              comment,
+              settlement_id:1,
+              customer_response:"we should insert something for this",
+              next_calling_dtm:next_calling_date
+            },
+          }
+        },
+        { new: true }
+      );
+      if (!updatedMediationBoardCase) {
+        return { success: false, message: 'Case not found this case id' };
+      }
+    }
+    
+    if (!request_id || !request_type || !user_interaction_id){
+      // add the field to the user interaction table
+    };
+    if(settle){
+      if(!settlement_count || !initial_amount || !calendar_month || !duration){
+        return res.status(400).json({ message: "Missing required fields: settlement count , initial amount, calendar months, duration" });
+      };
+      // add the field to the case settlement 
+    };
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
 
 
