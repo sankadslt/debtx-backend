@@ -1218,6 +1218,7 @@ export const listCases = async (req, res) =>{
   
 }
 
+
 export const Acivite_Case_Details = async (req, res) => {
   const { account_no } = req.body;
 
@@ -1585,6 +1586,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
   }
 };
 
+
 export const listHandlingCasesByDRC = async (req, res) => {
   const { drc_id, rtom, ro_id, arrears_band, from_date, to_date } = req.body;
 
@@ -1721,18 +1723,19 @@ export const listHandlingCasesByDRC = async (req, res) => {
   }
 };
 
+
 export const assignROToCase = async (req, res) => {
   try {
-    const { case_ids, ro_id, drc_id } = req.body;
+    const { case_ids, ro_id } = req.body;
 
     // Validate input
-    if (!Array.isArray(case_ids) || case_ids.length === 0 , !ro_id, !drc_id) {
+    if (!Array.isArray(case_ids) || case_ids.length === 0 || !ro_id) {
       return res.status(400).json({
         status: "error",
         message: "Failed to assign Recovery Officer.",
         errors: {
           code: 400,
-          description: "case_ids must be a non-empty array or all fields are required.",
+          description: "case_ids must be a non-empty array and ro_id is required.",
         },
       });
     }
@@ -1759,14 +1762,7 @@ export const assignROToCase = async (req, res) => {
     const updates = [];
 
     // Fetch all cases with the provided case IDs
-    const cases = await Case_details.find(
-      {
-        $and: [
-          { case_id: { $in: case_ids } },
-          { "drc.drc_id": drc_id}
-        ],
-      }
-    );
+    const cases = await Case_details.find({ case_id: { $in: case_ids } });
 
     if (cases.length === 0) {
       return res.status(404).json({
@@ -1856,6 +1852,7 @@ export const assignROToCase = async (req, res) => {
   }
 };
 
+
 export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
   try {
     const { case_id, drc_id, ro_id } = req.body;
@@ -1868,12 +1865,20 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Prepare query
+    // Fetch the case details (use find() to get an array of documents)
     let query = {
       "drc.drc_id": drc_id,
       case_id,
       $and: [],
     };
+
+    // let query = {
+    //   $or: [
+    //     { "drc.drc_id": drc_id },
+    //     { "drc.recovery_officers.ro_id": ro_id },
+    //   ],
+    //   case_id,
+    // };
 
     // Add the ro_id condition to the query if provided
     if (ro_id) {
@@ -1889,10 +1894,28 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Fetch the case details
     const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
+      
+      // {
+      //   case_id: 1,
+      //   customer_ref: 1,
+      //   account_no: 1,
+      //   current_arrears_amount: 1,
+      //   last_payment_date: 1,
+      //   "ref_products.product_label": 1,
+      //   "ref_products.service": 1,
+      //   "ref_products.product_status": 1,
+      //   "ref_products.service_address": 1,
+      //   "ro_negotiation.created_dtm": 1,
+      //   "ro_negotiation.feild_reason": 1,
+      //   "ro_negotiation.remark": 1,
+      //   "ro_requests.created_dtm": 1,
+      //   "ro_requests.ro_request": 1,
+      //   "ro_requests.todo_dtm": 1,
+      //   "ro_requests.completed_dtm": 1,
+      // }
 
-    // Check if any case exists
+    // Check if any cases exist
     if (!caseData) {
       return res.status(404).json({
         status: "error",
@@ -1904,13 +1927,13 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Fetch settlement data
+    // Fetch settlement data (use find() to get an array of documents)
     const settlementData = await CaseSettlement.findOne(
       { case_id },
       {
         created_dtm: 1,
         settlement_status: 1,
-        expire_date: 1,
+        expire_date: 1
       }
     ).collation({ locale: 'en', strength: 2 });
 
@@ -1926,17 +1949,16 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Fetch payment data
+    // Fetch payment data (use find() to get an array of documents)
     const paymentData = await CasePayments.findOne(
       { case_id },
       {
         created_dtm: 1,
         bill_paid_amount: 1,
-        settled_balance: 1,
+        settled_balance: 1
       }
     ).collation({ locale: 'en', strength: 2 });
 
-    // Check if the case has any payments
     if (!paymentData) {
       return res.status(404).json({
         status: "error",
@@ -1948,17 +1970,19 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       });
     }
 
-    // Process the last DRC and recovery officer details
-    const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+    // Use Promise.all to handle asynchronous operations
+    const findDrc = { "drc.drc_id": drc_id}
     const lastRecoveryOfficer =
-      lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+      caseData.findDrc?.recovery_officers?.[caseData.findDrc.recovery_officers.length - 1];
 
-    // Fetch matching recovery officer
-    const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-      ro_id: lastRecoveryOfficer.ro_id,
-    });
+    let matchingRecoveryOfficer = null;
+    if (lastRecoveryOfficer?.ro_id) {
+      matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+        ro_id: lastRecoveryOfficer.ro_id,
+      });
+    }
 
-    const formattedCase = {
+    const formattedCaseDetails = {
       case_id: caseData.case_id,
       customer_ref: caseData.customer_ref,
       account_no: caseData.account_no,
@@ -1967,21 +1991,20 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ref_products: caseData.ref_products || null,
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
-      ro_id: lastRecoveryOfficer.ro_id || null,
-      ro_name: matchingRecoveryOfficer?.ro_name || null,
-      ro_contact_no: matchingRecoveryOfficer?.ro_contact_no || null,
-      ro_nic: matchingRecoveryOfficer?.ro_nic || null,
+      ro_id: lastRecoveryOfficer?.ro_id || null,
+      
     };
+
 
     // Return success response
     return res.status(200).json({
       status: "success",
-      message: "Case retrieved successfully.",
+      message: "Cases retrieved successfully.",
       data: {
-        formattedCase,
+        formattedCaseDetails,
         settlementData,
         paymentData,
-      },
+      }
     });
   } catch (error) {
     // Handle unexpected errors
@@ -1995,7 +2018,6 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     });
   }
 };
-
 
 // export const count_cases_rulebase_and_arrears_band = async (req, res) => {
 //   const { drc_commision_rule } = req.body;
@@ -2194,6 +2216,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
     });
   }
 };
+
 
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     try {
@@ -2509,18 +2532,19 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     if (case_current_status) query.$and.push({ case_current_status });
     if (ro_id) {
       query.$and.push({
-        "mediation_board": {
-          $elemMatch: { ro_id: ro_id }
-        }
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
       });
     }
     if (from_date && to_date) {
-      query.$and.push({ 
-        "mediation_board.created_dtm": { 
-          $gte: new Date(from_date),
-          $lte: new Date(to_date)
-        }
-      });
+      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
     }
 
     // Execute the query with the status filter
@@ -2530,7 +2554,7 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     if (cases.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "No matching mediation board cases found for the given criteria.",
+        message: "No matching cases found for the given criteria.",
         errors: {
           code: 404,
           description: "No cases satisfy the provided criteria.",
@@ -2541,15 +2565,13 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
       cases.map(async (caseData) => {
-        const lastDrc = caseData.drc[caseData.drc.length - 1];
-        
-        // Get the latest mediation board entry
-        const latestMediationBoard = caseData.mediation_board
-          .sort((a, b) => b.created_dtm - a.created_dtm)[0];
+        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastRecoveryOfficer =
+          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
 
         // Fetch matching recovery officer asynchronously
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-          ro_id: latestMediationBoard.ro_id,
+          ro_id: lastRecoveryOfficer.ro_id,
         });
 
         // Get count of mediation board entries
@@ -2579,14 +2601,14 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
     // Return success response
     return res.status(200).json({
       status: "success",
-      message: "Mediation board cases retrieved successfully.",
+      message: "Cases retrieved successfully.",
       data: formattedCases,
     });
   } catch (error) {
     // Handle errors
     return res.status(500).json({
       status: "error",
-      message: "An error occurred while retrieving mediation board cases.",
+      message: "An error occurred while retrieving cases.",
       errors: {
         code: 500,
         description: error.message,

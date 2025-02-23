@@ -20,6 +20,7 @@ const remarkSchema = new Schema({
 const approvalSchema = new Schema({
   approved_process: { type: String, default: null },
   approved_by: { type: String, default: null },
+  rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
   remark: {type:String, required:true}
 }, { _id: false });
@@ -155,6 +156,7 @@ const caseDetailsSchema = new Schema({
   commission: { type: Number, required: true },
   case_current_status: { type: String, required: true },
   filtered_reason: { type: String, default: null }, 
+  proceed_dtm: { type: Date, required: null },
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
