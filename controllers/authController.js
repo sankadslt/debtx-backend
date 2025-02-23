@@ -105,7 +105,7 @@ export const refreshToken = async (req, res) => {
 export const getUserData = async (req, res) => {
   try {
     const user = await User.findOne({ user_id: req.user.user_id }).select("-password"); // Exclude password for security
-
+    console.log(user)
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
