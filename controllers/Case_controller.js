@@ -4104,7 +4104,43 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
   }
 };
 
+export const listDRCAllCases = async (req, res) => {
+  try {
+    const { drc_id, ro_id, From_DAT, TO_DAT, case_current_status } = req.body; 
 
+    // Validate required parameters
+    if (!drc_id || !ro_id || !From_DAT || !TO_DAT) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID, RO ID, From_DAT, and TO_DAT are required.",
+      });
+    }
 
+    // Define the query with the required filters
+    let query = {
+      drc_id, 
+      assigned_date: { $gte: new Date(From_DAT), $lte: new Date(TO_DAT) },
+    };
 
+    // Handle case status correctly if it's an array
+    if (case_current_status) {
+      query.case_status = { $elemMatch: { status: case_current_status } };
+    }
 
+    // Fetch cases from the database
+    const cases = await Case_details.find(query);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: cases,
+    });
+  } catch (error) {
+    console.error("Error fetching cases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve cases.",
+      errors: error.message,
+    });
+  }
+};
