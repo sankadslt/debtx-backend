@@ -3846,10 +3846,6 @@ export const List_Case_Distribution_Details = async (req, res) => {
 };
 
 
-
-
-
-
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
