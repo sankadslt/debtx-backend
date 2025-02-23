@@ -4,9 +4,6 @@ import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
 
 
-const BASE_URL = import.meta.env.VITE_BASE_URL ; // Base URL from environment variables
-const AUTH_URL = `${BASE_URL}/auth`; // Auth endpoint
-
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
     try {
