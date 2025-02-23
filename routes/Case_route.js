@@ -57,6 +57,7 @@ import {
   Create_Task_For_case_distribution_drc_summery,
   List_Case_Distribution_Details_With_Rtoms,
   List_CasesOwened_By_DRC,
+  listDRCAllCases,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3366,5 +3367,88 @@ router.post(
   List_CasesOwened_By_DRC
 );
 
+/**
+ * @swagger
+ * /api/case/List_All_DRC_Negotiation_Cases:
+ *   post:
+ *     summary: Retrieve all cases assigned to a specific DRC
+ *     description: |
+ *       Fetches all cases assigned to a DRC within a given date range and optional status filter.
+ *
+ *       | Version | Date        | Description                        | Changed By            |
+ *       |---------|-------------|------------------------------------|-----------------------|
+ *       | 01      | 2024-Feb-03 | Initial API for listing cases     | Vishmi Wijewardana    |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - ro_id
+ *               - From_DAT
+ *               - TO_DAT
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 description: Unique ID of the DRC.
+ *                 example: "DRC123"
+ *               ro_id:
+ *                 type: string
+ *                 description: Unique ID of the Recovery Officer.
+ *                 example: "RO456"
+ *               From_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering cases.
+ *                 example: "2024-01-01"
+ *               TO_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering cases.
+ *                 example: "2024-01-31"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Case status filter (e.g., Open, Closed, Pending).
+ *                 example: "Open"
+ *     responses:
+ *       200:
+ *         description: List of cases owned by the DRC.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   case_id:
+ *                     type: integer
+ *                     example: 1001
+ *                   drc_id:
+ *                     type: string
+ *                     example: "DRC123"
+ *                   ro_id:
+ *                     type: string
+ *                     example: "RO456"
+ *                   case_details:
+ *                     type: string
+ *                     example: "Loan default case"
+ *                   case_status:
+ *                     type: string
+ *                     example: "Open"
+ *                   assigned_date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2024-01-15T10:30:00.000Z"
+ *       400:
+ *         description: Bad request - required fields missing or invalid format.
+ *       500:
+ *         description: Internal server error.
+ */
+
+router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
 
 export default router;
