@@ -2984,7 +2984,7 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 
 
 // List  All Active Mediation RO Requests from SLT
-export const ListActiveRORequestsMediation = async (req, res) => {
+export const ListActiveRORequests = async (req, res) => {
   try {
     // Get request_mode from either body (POST) or query (GET)
     const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;

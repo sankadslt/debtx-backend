@@ -35,7 +35,7 @@ import { drcExtendValidityPeriod,
         List_all_transaction_seq_of_batch_id,
         Create_Task_For_case_distribution_transaction,
         getCaseDetailsbyMediationBoard,
-        ListActiveRORequestsMediation,
+        ListActiveRORequests,
         ListActiveMediationResponse
 
  } from "../controllers/Case_controller.js";
@@ -3278,7 +3278,7 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *   - name: Recovery Officer Requests
  *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
  * 
- * /api/case/List_Active_RO_Requests_Mediation:
+ * /api/case/List_Active_RO_Request:
  *   get:
  *     summary: Retrieve active RO mediation requests.
  *     description: |
@@ -3398,7 +3398,7 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
 //   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
 //   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
 // );
-router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+router.post("/List_Active_RO_Requests",ListActiveRORequests);
  
 
 /**
