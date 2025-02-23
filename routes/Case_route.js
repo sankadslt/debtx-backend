@@ -56,6 +56,7 @@ import {
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
   List_Case_Distribution_Details_With_Rtoms,
+  List_CasesOwened_By_DRC,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3358,6 +3359,11 @@ router.post(
 router.post(
   "/List_Case_Distribution_Details_With_Rtoms",
   List_Case_Distribution_Details_With_Rtoms
+);
+
+router.post(
+  "/List_CasesOwened_By_DRC",
+  List_CasesOwened_By_DRC
 );
 
 

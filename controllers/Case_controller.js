@@ -4029,4 +4029,82 @@ export const Mediation_Board = async (req, res) => {
   }
 }
 
+export const List_CasesOwened_By_DRC = async (req, res) => {
+  let { drc_id, case_id, account_no, from_date, to_date } = req.body;
+
+  if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
+    return res.status(400).json({
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 400,
+        description:
+          "At least one of drc_id, case_id, or account_no is required.",
+      },
+    });
+  }
+
+  try {
+    let query = { "drc.removed_dtm": null };
+
+    if (drc_id) query["drc.drc_id"] = Number(drc_id);
+    if (case_id) query["case_id"] = Number(case_id);
+    if (account_no) query["account_no"] = Number(account_no);
+
+    const caseDetails = await Case_details.find(query, {
+      case_id: 1,
+      case_current_status: 1,
+      account_no: 1,
+      current_arrears_amount: 1,
+      created_dtm: 1,
+      expire_dtm: 1,
+      _id: 0,
+    });
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "No Case Details Found.",
+        errors: {
+          code: 404,
+          description: "No data available for the provided parameters.",
+        },
+      });
+    }
+
+    //console.log(caseDetails)
+    let filteredCaseDetails =(from_date && to_date) ?[]:caseDetails;
+    const fromDate = new Date(from_date);
+
+    const endDate = new Date(to_date);
+
+    const formatedFromDate = new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate())
+    const formatedEndDate = new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate())
+    for (var detail of caseDetails) {
+      const filterDate =new Date(detail['created_dtm'])
+      const formatedFilterDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getDate())
+      //console.log(filterDate)
+      if (formatedFilterDate>=formatedFromDate && formatedFilterDate<=formatedEndDate) {
+        filteredCaseDetails.push(detail);
+      }
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      Cases: filteredCaseDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error Fetching Case Details.",
+      errors: { code: 500, description: error.message },
+    });
+  }
+};
+
+
+
+
 
