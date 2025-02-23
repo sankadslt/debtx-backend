@@ -2449,7 +2449,7 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 //     });
 //   }
 // };
-export const listAllDRCMediationBoardCases = async (req, res) => {
+export const  ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
   const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
 
   try {

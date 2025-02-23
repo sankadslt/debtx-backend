@@ -24,7 +24,7 @@ import { drcExtendValidityPeriod,
         openNoAgentCountArrearsBandByServiceType,
         listCases,
         Acivite_Case_Details,
-        listAllDRCMediationBoardCases,
+        ListALLMediationCasesownnedbyDRCRO,
         get_count_by_drc_commision_rule,
         getAllArrearsBands,
         count_cases_rulebase_and_arrears_band,
@@ -2915,7 +2915,7 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                       example: Error message describing the issue.
  */
 
-router.post("/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases);
+router.post("/List_All_DRC_Mediation_Board_Cases",ListALLMediationCasesownnedbyDRCRO);
 
 
 
