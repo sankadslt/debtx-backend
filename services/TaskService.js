@@ -3,6 +3,7 @@ import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
 
+
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
     try {
@@ -103,6 +104,7 @@ export const createTask = async (req, res) => {
       if (!Task_Id) {
         return res.status(500).json({ message: "Failed to generate Task_Id" });
       }
+
   
       // Prepare task data
       const taskData = {
@@ -160,7 +162,7 @@ export const createTask = async (req, res) => {
     // Task object
     const taskData = {
       Task_Id,
-      Template_Task_Id: 21,
+      Template_Task_Id: 20,
       task_type: "Create Incident list for download",
       parameters: {
         DRC_Action,
@@ -294,9 +296,13 @@ export const getOpenTaskCount = async (req, res) => {
     }
 
     // If records are not present in both models
-    return res.status(404).json({ message: 'Records not found in both models' });
+    return res.status(200).json({ openTaskCount: 0 });
   } catch (error) {
     console.error('Error fetching open task count:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+
+  

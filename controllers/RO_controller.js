@@ -142,9 +142,9 @@ export const Change_RO_Status = async (req, res) => {
 //Suspend RTOM From RO Officer Profile details
 
 export const Suspend_Ro = async (req, res) => {
-  const { ro_id, remark, remark_edit_by } = req.body;
+  const { ro_id, remark, remark_edit_by, ro_end_date } = req.body;
   const ro_status = "Terminate";
-  const ro_end_date = new Date();
+  // const ro_end_date = new Date();
 
   if (!ro_id || !remark) {
     return res.status(400).json({ 

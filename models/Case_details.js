@@ -20,6 +20,7 @@ const remarkSchema = new Schema({
 const approvalSchema = new Schema({
   approved_process: { type: String, default: null },
   approved_by: { type: String, default: null },
+  rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
   remark: {type:String, required:true}
 }, { _id: false });
@@ -89,9 +90,9 @@ const productDetailsSchema = new Schema({
   service_address: { type: String, required: true },
 });
 
-const RoNegotiateCpCollectSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
+const RoNegotiateCpeCollectSchema = new mongoose.Schema({
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
   serial_no: { type: String, required: true },
   order_id: { type: String, required: true },
   service_type: { type: String, required: true },
@@ -100,6 +101,46 @@ const RoNegotiateCpCollectSchema = new mongoose.Schema({
   rcmp_submit_dtm: { type: Date },
   rcmp_status: { type: String },
   rcmp_date: { type: Date },
+});
+
+const roNegotiationSchema = new mongoose.Schema({
+  drc_id: { type: String, required: true },
+  ro_id: { type: String, required: true },
+  created_dtm: { type: Date, required: true },
+  feild_reason: { type: String, required: true },
+  remark: { type: String },
+});
+
+const roRequestsSchema = new mongoose.Schema({
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
+  created_dtm: { type: Date, required: true },
+  ro_request_id: { type: Number, required: true },
+  ro_request: { type: String, required: true },
+  intraction_id: { type: Number, required: true },
+  todo_dtm: { type: Date, required: true },
+  completed_dtm: { type: Date, default:null },
+});
+
+const mediationBoardSchema = new mongoose.Schema({
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
+  created_dtm: { type: Date, required: true },
+  mediation_board_calling_dtm: { type: Date, required: true },
+  customer_available: { type: String, required: true, enum: ['yes','no'] },
+  comment: { type: String, default:null },
+  settlement_id: { type: Number},
+  customer_response: { type: String, default:null },
+  next_calling_dtm: { type: Date, default:null },
+
+});
+
+const settlementschema = new Schema({
+  settlement_id: {type: Number, required: true, unique: true},
+  settlement_created_dtm: {type: Date, required:true},
+  settlment_status: {type: String, required:true},
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
 });
 
 // Define the main case details schema
@@ -117,13 +158,15 @@ const caseDetailsSchema = new Schema({
   current_arrears_amount: { type: Number, required: true },
   current_arrears_band: {type:String, required:true},
   action_type: { type: String, required: true },
-  drc_commision_rule: { type: String, required: true,enum: ['PEO TV', 'BB', 'VOICE'], },
+  drc_commision_rule: { type: String, required: true, enum: ['PEO TV', 'BB', 'VOICE'], },
   last_payment_date: { type: Date, required: true },
   monitor_months: { type: Number, required: true },
   last_bss_reading_date: { type: Date, required: true },
   commission: { type: Number, required: true },
   case_current_status: { type: String, required: true },
   filtered_reason: { type: String, default: null }, 
+  proceed_dtm: { type: Date, required: null },
+  Proceed_By: { type: String, required: null },
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
@@ -132,12 +175,15 @@ const caseDetailsSchema = new Schema({
   drc: [drcSchema],
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 
-  ro_nagotiate_cp_collect: [RoNegotiateCpCollectSchema],
-  
+  ro_negotiation: [roNegotiationSchema],
+  ro_requests: [roRequestsSchema],
+  ro_negotiate_cpe_collect: [RoNegotiateCpeCollectSchema],
+  mediation_board: [mediationBoardSchema],
+  settlement : [settlementschema],
 },
 {
-    collection: 'Case_details', 
-    timestamps: true,
+  collection: 'Case_details', 
+  timestamps: true,
 }
 );
 
