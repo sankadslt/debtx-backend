@@ -1707,16 +1707,21 @@ export const Create_Case_for_incident= async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { Incident_Ids } = req.body;
+    const { Incident_Ids ,Proceed_By} = req.body;
 
     
     if (!Array.isArray(Incident_Ids) || Incident_Ids.length === 0) {
       return res.status(400).json({ error: 'Incident_Ids array is required with at least one element' });
     }
 
+    if (!Proceed_By) {
+      const error = new Error("Proceed_By is required.");
+      error.statusCode = 400;
+      throw error;
+    }
     const createdCases = [];
     
-    //10 rounds
+    //10 
     const maxRounds = Math.min(Incident_Ids.length, 10);
 
     for (let i = 0; i < maxRounds; i++) {
@@ -1727,7 +1732,7 @@ export const Create_Case_for_incident= async (req, res) => {
         continue; 
       }
 
-      
+      incidentData.Proceed_By = Proceed_By;
       incidentData.Proceed_Dtm = new Date();
       await incidentData.save({ session });
      
@@ -1752,7 +1757,7 @@ export const Create_Case_for_incident= async (req, res) => {
         monitor_months: 6,
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
         commission: 0,
-        Proceed_By: incidentData.Proceed_By,
+        Proceed_By: incidentData.Proceed_By || "user",
        
         case_current_status: incidentData.Incident_Status || "Open",
         filtered_reason: incidentData.Filtered_Reason || null,
