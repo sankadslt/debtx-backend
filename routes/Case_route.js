@@ -3449,6 +3449,114 @@ router.post(
  *         description: Internal server error.
  */
 
+<<<<<<< Updated upstream
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
+=======
+router.post("/List_Active_RO_Requests",ListActiveRORequests);
+
+// router.post(
+//   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+//   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+// );
+ 
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Mediation
+ *     description: Endpoints related to active mediation and board sessions.
+ * 
+ * /api/case/List_Active_Mediation_Response:
+ *   get:
+ *     summary: Retrieve all active mediation board sessions.
+ *     description: |
+ *       This endpoint retrieves all active mediation board responses where the `end_dtm` field is null, 
+ *       indicating that the mediation session is still ongoing.
+ *       
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
+ *     tags:
+ *       - Mediation
+ *     responses:
+ *       200:
+ *         description: Active mediation board sessions retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active mediation details retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       mediation_id:
+ *                         type: integer
+ *                         description: Unique identifier for the mediation session.
+ *                         example: 501
+ *                       case_id:
+ *                         type: integer
+ *                         description: ID of the related case.
+ *                         example: 1001
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the mediation session.
+ *                         example: "Ongoing"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the mediation session started.
+ *                         example: "2025-02-10T09:30:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the mediation session ended, if applicable.
+ *                         example: null
+ *       404:
+ *         description: No active mediation sessions found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active Mediation response found.
+ *       500:
+ *         description: Internal server error occurred while fetching active mediation sessions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active negotiation details.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
+ */
+
+router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+
+// router.post(
+//   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+//   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+// );
+
+>>>>>>> Stashed changes
 
 export default router;
