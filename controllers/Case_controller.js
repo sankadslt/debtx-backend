@@ -3050,51 +3050,117 @@ export const ListActiveRORequests = async (req, res) => {
 
 // get CaseDetails for MediationBoard 
 
+// export const getCaseDetailsbyMediationBoard = async (req, res) => {
+//   try {
+//     const { approver_references, Created_By } = req.body;
+
+//     if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+//     }
+
+//     if (!Created_By) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Created_By is required" });
+//     }
+
+//     const currentDate = new Date();
+
+//     // --- Create Task ---
+//     const taskData = {
+//       Template_Task_Id: 30, // Different Task ID for approval tasks
+//       task_type: "Letting know the batch approval",
+//       approver_references, // List of approver references
+//       created_on: currentDate.toISOString(),
+//       Created_By, // Assigned creator
+//       task_status: "open",
+//     };
+
+//     // Call createTaskFunction
+//     await createTaskFunction(taskData, session);
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(201).json({
+//       message: "Task for batch approval created successfully.",
+//       taskData,
+//     });
+//   } catch (error) {
+//     console.error("Error creating batch approval task:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error creating batch approval task",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
+
+// get CaseDetails for MediationBoard 
+
 export const getCaseDetailsbyMediationBoard = async (req, res) => {
   try {
-    const { approver_references, Created_By } = req.body;
-
-    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+    const { case_id, drc_id } = req.body;
+    
+    if (!case_id || !drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both Case ID and DRC ID are required.",
+        errors: {
+          code: 400,
+          description: "Please provide both case_id and drc_id in the request body.",
+        },
+      });
     }
 
-    if (!Created_By) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "Created_By is required" });
+    // Find the case that matches both case_id and has the specified drc_id in its drc array
+    const caseDetails = await Case_details.findOne({
+      case_id: case_id,
+      "drc.drc_id": drc_id,
+      'mediation_board.drc_id': drc_id,
+    }).lean();  // Using lean() for better performance
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found or DRC ID doesn't match.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided Case ID and DRC ID combination.",
+        },
+      });
     }
 
-    const currentDate = new Date();
+    // Count the number of objects in the mediation_board array
+    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
-    // --- Create Task ---
-    const taskData = {
-      Template_Task_Id: 30, // Different Task ID for approval tasks
-      task_type: "Letting know the batch approval",
-      approver_references, // List of approver references
-      created_on: currentDate.toISOString(),
-      Created_By, // Assigned creator
-      task_status: "open",
-    };
-
-    // Call createTaskFunction
-    await createTaskFunction(taskData, session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(201).json({
-      message: "Task for batch approval created successfully.",
-      taskData,
+    return res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      data: {
+        ...caseDetails,  // All fields from the case details
+        calling_round: mediationBoardCount, // Include the count in the response
+      },
     });
-  } catch (error) {
-    console.error("Error creating batch approval task:", error);
-    await session.abortTransaction();
-    session.endSession();
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
     return res.status(500).json({
-      message: "Error creating batch approval task",
-      error: error.message || "Internal server error.",
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 500,
+        description: err.message || "Internal server error occurred while fetching case details.",
+      },
     });
   }
 };
@@ -3813,3 +3879,4 @@ export const listDRCAllCases = async (req, res) => {
     });
   }
 };
+
