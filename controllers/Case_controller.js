@@ -27,6 +27,8 @@ import Case_distribution_drc_transactions from "../models/Case_distribution_drc_
 
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
 import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
+import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
+import DRC from "../models/Debt_recovery_company.js";
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -1476,24 +1478,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       message: "DRC List should not be empty.",
     });
   }
-
-  // const validateDRCList = (drcList) =>  {
-  //   if (!Array.isArray(drcList)) {
-  //     throw new Error("DRC List must be an array.");
-  //   }
-  //   let batch_seq_rulebase_count = 0;
-
-  //   return drcList.map((item, index) => {
-  //     batch_seq_rulebase_count = batch_seq_rulebase_count + item.Count;
-  //     if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
-  //       throw new Error(`Invalid structure at index ${index} in DRC List.`);
-  //     }
-  //     return {
-  //       DRC: item.DRC,
-  //       Count: item.Count,
-  //     };
-  //   });
-  // };
   const validateDRCList = (drcList) => {
     if (!Array.isArray(drcList)) {
       throw new Error("DRC List must be an array.");
@@ -1503,12 +1487,13 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 
     return {
       validatedList: drcList.map((item, index) => {
-        if (typeof item.DRC !== "string" || typeof item.Count !== "number") {
+        if (typeof item.DRC !== "string" || typeof item.Count !== "number" || typeof item.DRC_Id !== "number") {
           throw new Error(`Invalid structure at index ${index} in DRC List.`);
         }
         batch_seq_rulebase_count += item.Count;
         return {
           DRC: item.DRC,
+          DRC_Id: item.DRC_Id,
           Count: item.Count,
         };
       }),
@@ -1517,8 +1502,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
   };
   try {
     // Validate the DRC list
-    const {validatedDRCList,batch_seq_rulebase_count} = validateDRCList(drc_list);
-
+    const { validatedList, batch_seq_rulebase_count } = validateDRCList(drc_list);
     const mongo = await db.connectMongoDB();
 
     // Validation for existing tasks with task_status and specific parameters
@@ -1527,19 +1511,18 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       "parameters.drc_commision_rule": drc_commision_rule,
       "parameters.current_arrears_band": current_arrears_band,
     });
-    // console.log(existingTask);
     if (existingTask) {
       return res.status(400).json({
         status: "error",
         message: "Already has tasks with this commision rule and arrears band ",
       });
     }
-
     // Prepare dynamic parameters for the task
     const dynamicParams = {
       drc_commision_rule,
       current_arrears_band,
-      distributed_Amounts: validatedDRCList,
+      distributed_Amounts_array:validatedList,
+      batch_seq_rulebase_count
     };
 
     // Call createTaskFunction
@@ -1556,7 +1539,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       { returnDocument: "after", upsert: true }
     );
     const case_distribution_batch_id = counter_result_of_case_distribution_batch_id.seq; // Use `value` to access the updated document
-    //console.log("case_distribution_batch_id:", case_distribution_batch_id);
 
     if (!case_distribution_batch_id) {
       throw new Error("Failed to generate case_distribution_batch_id.");
@@ -1566,8 +1548,9 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       created_dtm: new Date(),
       created_by,
       action_type: "distribution",
-      array_of_distributions: drc_list.map(({ DRC, Count }) => ({
+      array_of_distributions: drc_list.map(({ DRC, Count,DRC_Id }) => ({
         drc: DRC,
+        drc_id: DRC_Id,
         rulebase_count: Count,
       })),
       batch_seq_rulebase_count:batch_seq_rulebase_count
@@ -2675,12 +2658,83 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
   }
 };
 
+// export const Batch_Forward_for_Proceed = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { case_distribution_batch_id, Proceed_by } = req.body;
+
+//     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+//     }
+
+//     if (!Proceed_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Proceed_by is required" });
+//     }
+
+//     const currentDate = new Date();
+
+//     // Update proceed_on date in Case_distribution_drc_transactions
+//     const result = await CaseDistribution.updateMany(
+//       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
+//       {
+//         $set: {
+//           proceed_on: currentDate,
+//         },
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching batch IDs found" });
+//     }
+
+//     // --- Create Task for Proceed Action ---
+//     const taskData = {
+//       Template_Task_Id: 31, // Unique Task ID for proceed tasks
+//       task_type: "Create Task for Proceed Cases from Batch_ID",
+//       case_distribution_batch_id, // One or more batch IDs
+//       proceed_on: currentDate.toISOString(),
+//       Proceed_by,
+//       Created_By: Proceed_by, // Ensure Created_By is the same as Proceed_by
+//       task_status: "open",
+//     };
+
+//     // Call createTaskFunction
+//     await createTaskFunction(taskData, session);
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       message: "Batches forwarded for proceed successfully, and task created.",
+//       updatedCount: result.modifiedCount,
+//       taskData,
+//     });
+//   } catch (error) {
+//     console.error("Error forwarding batches for proceed:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error forwarding batches for proceed",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_id, Proceed_by } = req.body;
+    const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id } = req.body;
 
     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
       await session.abortTransaction();
@@ -2696,12 +2750,13 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     const currentDate = new Date();
 
-    // Update proceed_on date in Case_distribution_drc_transactions
+    // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
     const result = await CaseDistribution.updateMany(
       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
       {
         $set: {
           proceed_on: currentDate,
+          forward_for_approvals_on: currentDate, // New field update
         },
       },
       { session }
@@ -2715,25 +2770,42 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     // --- Create Task for Proceed Action ---
     const taskData = {
-      Template_Task_Id: 31, // Unique Task ID for proceed tasks
+      Template_Task_Id: 31,
       task_type: "Create Task for Proceed Cases from Batch_ID",
-      case_distribution_batch_id, // One or more batch IDs
+      case_distribution_batch_id,
       proceed_on: currentDate.toISOString(),
       Proceed_by,
-      Created_By: Proceed_by, // Ensure Created_By is the same as Proceed_by
+      Created_By: Proceed_by,
       task_status: "open",
     };
 
-    // Call createTaskFunction
     await createTaskFunction(taskData, session);
+
+    // --- Create Entry in Template_forwarded_approver ---
+    const approvalEntry = new TmpForwardedApprover({
+      approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
+      created_by: Proceed_by,
+      approver_type: "DRC_Distribution",
+      approve_status: [{
+        status: "Open",
+        status_date: currentDate,
+        status_edit_by: Proceed_by,
+      }],
+      parameters: {
+        plus_drc, plus_drc_id, minus_drc, minus_drc_id,
+      },
+    });
+
+    await approvalEntry.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
-      message: "Batches forwarded for proceed successfully, and task created.",
+      message: "Batches forwarded for proceed successfully, task created, and approval recorded.",
       updatedCount: result.modifiedCount,
       taskData,
+      approvalEntry,
     });
   } catch (error) {
     console.error("Error forwarding batches for proceed:", error);
@@ -2745,6 +2817,8 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     });
   }
 };
+
+
 export const Create_Task_For_case_distribution_transaction = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3343,51 +3417,93 @@ export const Create_task_for_batch_approval = async (req, res) => {
 };
 
 
+// export const List_DRC_Assign_Manager_Approval = async (req, res) => {
+//     try {
+//         const { approver_type, date_from, date_to } = req.body;
+//         let filter = {};
+
+//         // Condition to exclude DRC_Distribution
+//         if (approver_type === "DRC_Distribution") {
+//             return res.status(400).json({ message: "DRC_Distribution approver_type is not allowed" });
+//         }
+
+//         // Filter based on approver_type
+//         if (approver_type) {
+//             filter.approver_type = approver_type;
+//         }
+
+//         // Filter based on date range
+//         if (date_from && date_to) {
+//             filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//         } else if (date_from) {
+//             filter.created_on = { $gte: new Date(date_from) };
+//         } else if (date_to) {
+//             filter.created_on = { $lte: new Date(date_to) };
+//         }
+
+//         // Fetch data from Template_forwarded_approver collection
+//         const approvals = await TmpForwardedApprover.find(filter);
+
+//         // Process results to extract the last element of approve_status array
+//         const response = approvals.map(doc => {
+//             const lastApproveStatus = doc.approve_status?.length 
+//                 ? doc.approve_status[doc.approve_status.length - 1] 
+//                 : null;
+
+//             return {
+//                 ...doc.toObject(),
+//                 approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Only the last approve_status
+//             };
+//         });
+
+//         res.status(200).json(response);
+//     } catch (error) {
+//         console.error("Error fetching DRC Assign Manager Approvals:", error);
+//         res.status(500).json({ message: "Server Error", error });
+//     }
+// };
+
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
-    try {
-        const { approver_type, date_from, date_to } = req.body;
-        let filter = {};
+  try {
+      const { approver_type, date_from, date_to } = req.body;
+      let filter = { approver_type: { $ne: "DRC_Distribution" } }; // Exclude DRC_Distribution
 
-        // Condition to exclude DRC_Distribution
-        if (approver_type === "DRC_Distribution") {
-            return res.status(400).json({ message: "DRC_Distribution approver_type is not allowed" });
-        }
+      // Filter based on approver_type (except "DRC_Distribution")
+      if (approver_type && approver_type !== "DRC_Distribution") {
+          filter.approver_type = approver_type;
+      }
 
-        // Filter based on approver_type
-        if (approver_type) {
-            filter.approver_type = approver_type;
-        }
+      // Filter based on date range
+      if (date_from && date_to) {
+          filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      } else if (date_from) {
+          filter.created_on = { $gte: new Date(date_from) };
+      } else if (date_to) {
+          filter.created_on = { $lte: new Date(date_to) };
+      }
 
-        // Filter based on date range
-        if (date_from && date_to) {
-            filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
-        } else if (date_from) {
-            filter.created_on = { $gte: new Date(date_from) };
-        } else if (date_to) {
-            filter.created_on = { $lte: new Date(date_to) };
-        }
+      // Fetch data from Template_forwarded_approver collection
+      const approvals = await TmpForwardedApprover.find(filter);
 
-        // Fetch data from Template_forwarded_approver collection
-        const approvals = await TmpForwardedApprover.find(filter);
+      // Process results to extract only the last element of approve_status array
+      const response = approvals.map(doc => {
+          const lastApproveStatus = doc.approve_status?.length 
+              ? doc.approve_status[doc.approve_status.length - 1] 
+              : null;
 
-        // Process results to extract the last element of approve_status array
-        const response = approvals.map(doc => {
-            const lastApproveStatus = doc.approve_status?.length 
-                ? doc.approve_status[doc.approve_status.length - 1] 
-                : null;
+          return {
+              ...doc.toObject(),
+              approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Keep only the last approve_status
+          };
+      });
 
-            return {
-                ...doc.toObject(),
-                approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Only the last approve_status
-            };
-        });
-
-        res.status(200).json(response);
-    } catch (error) {
-        console.error("Error fetching DRC Assign Manager Approvals:", error);
-        res.status(500).json({ message: "Server Error", error });
-    }
+      res.status(200).json(response);
+  } catch (error) {
+      console.error("Error fetching DRC Assign Manager Approvals:", error);
+      res.status(500).json({ message: "Server Error", error });
+  }
 };
+
 
 
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
@@ -3603,6 +3719,222 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     });
   }
 };
+
+export const Assign_DRC_To_Case = async (req, res) => {
+  try {
+    const { case_id, drc_id, remark, assigned_by, drc_name } = req.body;
+    if (!case_id|| !drc_id || !assigned_by || !drc_name) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_id and drc_id is required.",
+        errors: {
+          code: 400,
+          description: "case_id and drc_id is required.",
+        },
+      });
+    }
+    const drcAssignAproveRecode = {
+      approver_reference: case_id,
+      created_on: new Date(),
+      created_by: assigned_by,
+      approve_status:{
+        status:"Open",
+        status_date:new Date(),
+        status_edit_by:assigned_by,
+      },
+      approver_type:"DRC_ReAssign",
+      parameters:{
+        drc_id:drc_id,
+        drc_name:drc_name,
+      },
+      remark:{
+        remark:remark,
+        remark_date: new Date(),
+        remark_edit_by:assigned_by,
+      },
+    }
+    const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAssignAproveRecode);
+    await TmpForwardedApproverRespons.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "DRC Reassining send to the Aprover.",
+      data: TmpForwardedApproverRespons,
+    }); 
+  }
+  catch (error) {
+    console.error("Error in Reassining send to the Aprover : ", error);
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while assigning the DRC.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+// export const List_Case_Distribution_Details = async (req, res) => {
+//   try {
+//       const { drc_id } = req.body;
+
+//       if (!drc_id) {
+//           return res.status(400).json({ message: "Missing required field: drc_id" });
+//       }
+
+//       const results = await caseDistributionDRCSummary.find({ drc_id });
+
+//       if (results.length === 0) {
+//           return res.status(404).json({ message: "No records found for the given DRC ID" });
+//       }
+
+//       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+
+//       const transactions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: case_distribution_batch_ids }
+//       }, 'case_distribution_batch_id proceed_on');
+
+//       const response = results.map(doc => {
+//           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+//           return {
+//               ...doc.toObject(),
+//               proceed_on: transaction ? transaction.proceed_on : null
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+export const List_Case_Distribution_Details = async (req, res) => {
+  try {
+      const { drc_id } = req.body;
+
+      if (!drc_id) {
+          return res.status(400).json({ message: "Missing required field: drc_id" });
+      }
+
+      const results = await caseDistributionDRCSummary.find({ drc_id });
+
+      if (results.length === 0) {
+          return res.status(404).json({ message: "No records found for the given DRC ID" });
+      }
+
+      const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+
+      const transactions = await CaseDistribution.find({
+          case_distribution_batch_id: { $in: case_distribution_batch_ids }
+      }, 'case_distribution_batch_id proceed_on');
+
+      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+      const drc_name = drcDetails ? drcDetails.drc_name : null;
+
+      const response = results.map(doc => {
+          const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+          return {
+              ...doc.toObject(),
+              proceed_on: transaction ? transaction.proceed_on : null,
+              drc_name
+          };
+      });
+
+      res.status(200).json(response);
+  } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+
+export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+      const { drc_id, Created_By } = req.body;
+
+      if (!drc_id || !Created_By) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: "Missing required fields: drc_id, Created_By" });
+      }
+
+      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+      if (!drcDetails) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ message: "DRC not found for the given drc_id" });
+      }
+
+      const currentDate = new Date();
+
+      // --- Create Task ---
+      const taskData = {
+          Template_Task_Id: 32, // Different Task ID for approval tasks
+          task_type: "Letting know the Case Distribution DRC Summary",
+          drc_id,
+          drc_name: drcDetails.drc_name, // Include DRC name
+          created_on: currentDate.toISOString(),
+          Created_By, // Assigned creator
+          task_status: "open",
+      };
+
+      // Call createTaskFunction
+      await createTaskFunction(taskData, session);
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(201).json({
+          message: "Task for batch approval created successfully.",
+          taskData,
+      });
+  } catch (error) {
+      console.error("Error creating batch approval task:", error);
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+          message: "Error creating batch approval task",
+          error: error.message || "Internal server error.",
+      });
+  }
+};
+
+
+export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
+  try {
+      const { case_distribution_batch_id, drc_id } = req.body;
+
+      if (!case_distribution_batch_id || !drc_id) {
+          return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
+      }
+
+      const results = await caseDistributionDRCSummary.find({ case_distribution_batch_id, drc_id });
+
+      if (results.length === 0) {
+          return res.status(404).json({ message: "No records found for the given batch ID and DRC ID" });
+      }
+
+      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+      const drc_name = drcDetails ? drcDetails.drc_name : null;
+
+      const response = results.map(doc => ({
+          ...doc.toObject(),
+          drc_name
+      }));
+
+      res.status(200).json(response);
+  } catch (error) {
+      res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 
 
 // Fetches detailed information about a case.
