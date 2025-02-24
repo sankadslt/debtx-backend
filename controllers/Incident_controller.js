@@ -1707,16 +1707,21 @@ export const Create_Case_for_incident= async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { Incident_Ids } = req.body;
+    const { Incident_Ids ,Proceed_By} = req.body;
 
     
     if (!Array.isArray(Incident_Ids) || Incident_Ids.length === 0) {
       return res.status(400).json({ error: 'Incident_Ids array is required with at least one element' });
     }
 
+    if (!Proceed_By) {
+      const error = new Error("Proceed_By is required.");
+      error.statusCode = 400;
+      throw error;
+    }
     const createdCases = [];
     
-    //10 rounds
+    //10 
     const maxRounds = Math.min(Incident_Ids.length, 10);
 
     for (let i = 0; i < maxRounds; i++) {
@@ -1727,7 +1732,7 @@ export const Create_Case_for_incident= async (req, res) => {
         continue; 
       }
 
-      
+      incidentData.Proceed_By = Proceed_By;
       incidentData.Proceed_Dtm = new Date();
       await incidentData.save({ session });
      
@@ -1752,6 +1757,8 @@ export const Create_Case_for_incident= async (req, res) => {
         monitor_months: 6,
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
         commission: 0,
+        Proceed_By: incidentData.Proceed_By || "user",
+       
         case_current_status: incidentData.Incident_Status || "Open",
         filtered_reason: incidentData.Filtered_Reason || null,
         ref_products: incidentData.Product_Details.length > 0
@@ -1846,7 +1853,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       bss_arrears_amount: incidentData.Arrears || 0,
       current_arrears_amount: incidentData.Arrears || 0,
       current_arrears_band: incidentData.current_arrears_band || "Default Band",
-      action_type: "New Case",
+      action_type: "Forward to CPE Collect",
       drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
       last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
       monitor_months: 6,
@@ -1857,13 +1864,14 @@ export const Forward_Direct_LOD = async (req, res) => {
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
         product_label: product.Product_Label || "N/A",
-        product_status: product.product_status || "Active",
+        product_status: product.Product_Status || "Active",
         status_Dtm: product.Effective_Dtm || new Date(),
         rtom: product.Region || "N/A",
         product_ownership: product.Equipment_Ownership || "Unknown",
         service_address: product.Service_Address || "N/A",
       })) || [],
     };
+    
 
     const newCase = new Case_details(caseData);
     await newCase.save({ session });
@@ -1905,13 +1913,18 @@ export const Forward_CPE_Collect = async (req, res) => {
   session.startTransaction();
   
   try {
-  const { Incident_Id } = req.body;
+  const { Incident_Id,Proceed_By } = req.body;
   if (!Incident_Id) {
     const error = new Error("Incident_Id is required.");
     error.statusCode = 400;
     throw error;
   }
 
+  if (!Proceed_By) {
+    const error = new Error("Proceed_By is required.");
+    error.statusCode = 400;
+    throw error;
+  }
   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
   if (!incidentData) {
@@ -1949,6 +1962,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       
       incidentData.Incident_Status = "Open No Agent";
       incidentData.Proceed_Dtm = new Date();
+      incidentData.Proceed_By = Proceed_By;  
       await incidentData.save({ session });
   const Case_Id = counterResult.seq;
 
@@ -1969,6 +1983,7 @@ export const Forward_CPE_Collect = async (req, res) => {
     drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
     last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
     monitor_months: 6,
+    Proceed_By: incidentData.Proceed_By || "user",
     last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
     commission: 0,
     case_current_status: incidentData.Incident_Status,
@@ -1982,6 +1997,8 @@ export const Forward_CPE_Collect = async (req, res) => {
       product_ownership: product.Equipment_Ownership || "Unknown",
       service_address: product.Service_Address || "N/A",
     })) || [],
+    
+    
   };
   
   const newCase = new Case_details(caseData);

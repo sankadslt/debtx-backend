@@ -166,6 +166,7 @@ const caseDetailsSchema = new Schema({
   case_current_status: { type: String, required: true },
   filtered_reason: { type: String, default: null }, 
   proceed_dtm: { type: Date, required: null },
+  Proceed_By: { type: String, required: null },
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
