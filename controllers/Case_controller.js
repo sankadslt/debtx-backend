@@ -1622,7 +1622,6 @@ export const listHandlingCasesByDRC = async (req, res) => {
         {
           case_current_status: {
             $in: [
-              "Open No Agent",
               "Open with Agent",
               "Negotiation Settle pending",
               "Negotiation Settle Open Pending",
