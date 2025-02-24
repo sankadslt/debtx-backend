@@ -3050,59 +3050,59 @@ export const ListActiveRORequests = async (req, res) => {
 
 // get CaseDetails for MediationBoard 
 
-// export const getCaseDetailsbyMediationBoard = async (req, res) => {
-//   try {
-//     const { approver_references, Created_By } = req.body;
+export const getCaseDetailsbyMediationBoard = async (req, res) => {
+  try {
+    const { approver_references, Created_By } = req.body;
 
-//     if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
-//     }
+    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+    }
 
-//     if (!Created_By) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: "Created_By is required" });
-//     }
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Created_By is required" });
+    }
 
-//     const currentDate = new Date();
+    const currentDate = new Date();
 
-//     // --- Create Task ---
-//     const taskData = {
-//       Template_Task_Id: 30, // Different Task ID for approval tasks
-//       task_type: "Letting know the batch approval",
-//       approver_references, // List of approver references
-//       created_on: currentDate.toISOString(),
-//       Created_By, // Assigned creator
-//       task_status: "open",
-//     };
+    // --- Create Task ---
+    const taskData = {
+      Template_Task_Id: 30, // Different Task ID for approval tasks
+      task_type: "Letting know the batch approval",
+      approver_references, // List of approver references
+      created_on: currentDate.toISOString(),
+      Created_By, // Assigned creator
+      task_status: "open",
+    };
 
-//     // Call createTaskFunction
-//     await createTaskFunction(taskData, session);
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
 
-//     await session.commitTransaction();
-//     session.endSession();
+    await session.commitTransaction();
+    session.endSession();
 
-//     return res.status(201).json({
-//       message: "Task for batch approval created successfully.",
-//       taskData,
-//     });
-//   } catch (error) {
-//     console.error("Error creating batch approval task:", error);
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({
-//       message: "Error creating batch approval task",
-//       error: error.message || "Internal server error.",
-//     });
-//   }
-// };
+    return res.status(201).json({
+      message: "Task for batch approval created successfully.",
+      taskData,
+    });
+  } catch (error) {
+    console.error("Error creating batch approval task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating batch approval task",
+      error: error.message || "Internal server error.",
+    });
+  }
+};
 
 
 // get CaseDetails for MediationBoard 
 
-export const getCaseDetailsbyMediationBoard = async (req, res) => {
+export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
     

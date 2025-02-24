@@ -37,6 +37,7 @@ import { drcExtendValidityPeriod,
         getCaseDetailsbyMediationBoard,
         ListActiveRORequests,
         ListActiveMediationResponse,
+        CaseDetailsforDRC
         
 
  } from "../controllers/Case_controller.js";
@@ -3280,7 +3281,7 @@ router.post(
  *                       type: string
  *                       example: Internal server error occurred while fetching case details.
  */
-router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
+router.post("/Case_Details_for_DRC",CaseDetailsforDRC);
 
 
 /**
