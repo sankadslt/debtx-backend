@@ -3522,6 +3522,99 @@ router.get("/List_All_Batch_Details", List_All_Batch_Details);
 
 router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
 
+/**
+ * @swagger
+ * /Create_task_for_batch_approval:
+ *   post:
+ *     summary: Create a Task for Batch Approval
+ *     description: |
+ *       Creates a task to notify about batch approval using approver references.
+ *
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Batch Approval Task API | Sanjaya Perera   |
+ *
+ *     tags: [Task Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - approver_references
+ *               - Created_By
+ *             properties:
+ *               approver_references:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of approver reference IDs for batch approval.
+ *                 example: ["BATCH_202502", "BATCH_202503"]
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Task for batch approval created successfully."
+ *                 taskData:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 30
+ *                     task_type:
+ *                       type: string
+ *                       example: "Letting know the batch approval"
+ *                     approver_references:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["BATCH_202502", "BATCH_202503"]
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-11T12:00:00.000Z"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide an array of approver references"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating batch approval task"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+
 router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
 
 router.post(
