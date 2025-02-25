@@ -2449,12 +2449,13 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 //     });
 //   }
 // };
+
 export const  ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
   const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
 
   try {
     // Validate the DRC ID
-    if (!drc_id) {
+    if (!drc_id || ro_id) {
       return res.status(400).json({
         status: "error",
         message: "Failed to retrieve DRC details.",
