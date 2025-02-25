@@ -3806,18 +3806,61 @@ export const Assign_DRC_To_Case = async (req, res) => {
 //   }
 // };
 
+// export const List_Case_Distribution_Details = async (req, res) => {
+//   try {
+//       const { drc_id } = req.body;
+
+//       if (!drc_id) {
+//           return res.status(400).json({ message: "Missing required field: drc_id" });
+//       }
+
+//       const results = await caseDistributionDRCSummary.find({ drc_id });
+
+//       if (results.length === 0) {
+//           return res.status(404).json({ message: "No records found for the given DRC ID" });
+//       }
+
+//       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+
+//       const transactions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: case_distribution_batch_ids }
+//       }, 'case_distribution_batch_id proceed_on');
+
+//       const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+//       const drc_name = drcDetails ? drcDetails.drc_name : null;
+
+//       const response = results.map(doc => {
+//           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+//           return {
+//               ...doc.toObject(),
+//               proceed_on: transaction ? transaction.proceed_on : null,
+//               drc_name
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 export const List_Case_Distribution_Details = async (req, res) => {
   try {
-      const { drc_id } = req.body;
+      const { case_distribution_batch_id, drc_id } = req.body;
 
-      if (!drc_id) {
-          return res.status(400).json({ message: "Missing required field: drc_id" });
+      if (!case_distribution_batch_id) {
+          return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
       }
 
-      const results = await caseDistributionDRCSummary.find({ drc_id });
+      const query = { case_distribution_batch_id };
+      if (drc_id) {
+          query.drc_id = drc_id;
+      }
+
+      const results = await caseDistributionDRCSummary.find(query);
 
       if (results.length === 0) {
-          return res.status(404).json({ message: "No records found for the given DRC ID" });
+          return res.status(404).json({ message: "No records found for the given batch ID" });
       }
 
       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
@@ -3826,15 +3869,19 @@ export const List_Case_Distribution_Details = async (req, res) => {
           case_distribution_batch_id: { $in: case_distribution_batch_ids }
       }, 'case_distribution_batch_id proceed_on');
 
-      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
-      const drc_name = drcDetails ? drcDetails.drc_name : null;
+      const drcIds = [...new Set(results.map(doc => doc.drc_id))];
+      const drcDetailsMap = await DRC.find({ drc_id: { $in: drcIds } }, 'drc_id drc_name')
+          .then(drcs => drcs.reduce((acc, drc) => {
+              acc[drc.drc_id] = drc.drc_name;
+              return acc;
+          }, {}));
 
       const response = results.map(doc => {
           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
           return {
               ...doc.toObject(),
               proceed_on: transaction ? transaction.proceed_on : null,
-              drc_name
+              drc_name: drcDetailsMap[doc.drc_id] || null
           };
       });
 
@@ -3843,6 +3890,7 @@ export const List_Case_Distribution_Details = async (req, res) => {
       res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
@@ -4271,6 +4319,65 @@ export const ListActiveMediationResponse = async (req, res) => {
       status: "error",
       message: "Internal server error occurred while fetching active negotiation details.",
       error: error.message,
+    });
+  }
+};
+
+export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { drc_id, case_id, account_no, from_date, to_date, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      drc_id,
+      case_id,
+      account_no,
+      from_date: from_date && !isNaN(new Date(from_date)) ? new Date(from_date).toISOString() : null,
+      to_date: to_date && !isNaN(new Date(to_date)) ? new Date(to_date).toISOString() : null,
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 34,
+      task_type: "Create task for download the Assigned DRC's case list when selected date range is higher that one month",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_Assigned_drc_case_list_download:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
     });
   }
 };
