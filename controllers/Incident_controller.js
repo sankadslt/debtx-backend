@@ -1803,7 +1803,7 @@ export const Forward_Direct_LOD = async (req, res) => {
     session.startTransaction();
     
     try {
-    const { Incident_Id } = req.body;
+    const { Incident_Id, user } = req.body;
     if (!Incident_Id) {
       const error = new Error("Incident_Id is required.");
       error.statusCode = 400;
@@ -1870,7 +1870,7 @@ export const Forward_Direct_LOD = async (req, res) => {
 
     await Incident.updateOne(
       { Incident_Id },
-      { $set: { Proceed_Dtm: new Date() } },
+      { $set:{ Proceed_Dtm: new Date(), Proceed_By: user } },
       { session }
     );
 
