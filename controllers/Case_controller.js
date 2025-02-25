@@ -4098,7 +4098,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
-    if (account_no) query["account_no"] = Number(account_no);
+    if (account_no) query["account_no"] = String(account_no);
 
     const caseDetails = await Case_details.find(query, {
       case_id: 1,
