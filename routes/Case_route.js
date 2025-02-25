@@ -3031,6 +3031,124 @@ router.post(
 
 router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
+/**
+ * @swagger
+ * /Create_Task_For_case_distribution:
+ *   post:
+ *     summary: Create a task for case distribution
+ *     description: Creates a task to generate a case distribution DRC transaction list for download.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of task creation API               | Sanjaya Perera   |
+ *
+ *     tags: [Task Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               current_arrears_band:
+ *                 type: string
+ *                 description: The current arrears band for filtering.
+ *                 example: "Band_3"
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering the case distribution.
+ *                 example: "2025-02-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering the case distribution.
+ *                 example: "2025-02-10"
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: The commission rule for filtering the cases.
+ *                 example: "Rule_5"
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who is creating the task.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Task created successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 26
+ *                     task_type:
+ *                       type: string
+ *                       example: "Create Case distribution DRC Transaction List for Downloard"
+ *                     current_arrears_band:
+ *                       type: string
+ *                       example: "Band_3"
+ *                     date_from:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-01T00:00:00Z"
+ *                     date_to:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-10T00:00:00Z"
+ *                     drc_commision_rule:
+ *                       type: string
+ *                       example: "Rule_5"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Invalid request parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Created_By is a required parameter."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: "Error details here."
+ */
+
 router.post(
   "/Create_Task_For_case_distribution",
   Create_Task_For_case_distribution
