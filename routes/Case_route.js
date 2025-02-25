@@ -3989,6 +3989,157 @@ router.post(
   "/Create_task_for_DRC_Assign_Manager_Approval",
   Create_task_for_DRC_Assign_Manager_Approval
 );
+
+/**
+ * @swagger
+ * /Assign_DRC_To_Case:
+ *   post:
+ *     summary: Assign a DRC to a case
+ *     description: Assigns a Debt Recovery Coordinator (DRC) to a specific case and records the assignment details for approval.
+ *
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Assign DRC API       | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: string
+ *                 description: The unique ID of the case to assign a DRC.
+ *                 example: "CASE_12345"
+ *               drc_id:
+ *                 type: string
+ *                 description: The unique ID of the DRC being assigned.
+ *                 example: "DRC_67890"
+ *               drc_name:
+ *                 type: string
+ *                 description: The name of the DRC being assigned.
+ *                 example: "John Doe"
+ *               assigned_by:
+ *                 type: string
+ *                 description: The user who is assigning the DRC.
+ *                 example: "admin_user"
+ *               remark:
+ *                 type: string
+ *                 description: Any additional remarks regarding the assignment.
+ *                 example: "Reassigning due to workload redistribution."
+ *     responses:
+ *       200:
+ *         description: DRC reassignment sent to the approver successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "DRC Reassigning sent to the Approver."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     approver_reference:
+ *                       type: string
+ *                       example: "CASE_12345"
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-11T12:00:00Z"
+ *                     created_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     approve_status:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           example: "Open"
+ *                         status_date:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-11T12:00:00Z"
+ *                         status_edit_by:
+ *                           type: string
+ *                           example: "admin_user"
+ *                     approver_type:
+ *                       type: string
+ *                       example: "DRC_ReAssign"
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         drc_id:
+ *                           type: string
+ *                           example: "DRC_67890"
+ *                         drc_name:
+ *                           type: string
+ *                           example: "John Doe"
+ *                     remark:
+ *                       type: object
+ *                       properties:
+ *                         remark:
+ *                           type: string
+ *                           example: "Reassigning due to workload redistribution."
+ *                         remark_date:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-11T12:00:00Z"
+ *                         remark_edit_by:
+ *                           type: string
+ *                           example: "admin_user"
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "case_id and drc_id is required."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "case_id and drc_id is required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while assigning the DRC."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Internal server error details."
+ */
+
 router.post("/Assign_DRC_To_Case", Assign_DRC_To_Case);
 
 router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
