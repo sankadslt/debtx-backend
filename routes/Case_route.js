@@ -2735,7 +2735,7 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  * @swagger
  * /List_Case_Distribution_DRC_Summary:
  *   post:
- *     summary: List case distribution summary for DRC
+ *     summary: C-1P21 List case distribution summary for DRC
  *     description: Fetches a filtered summary of case distributions based on date range, arrears band, and DRC commission rule.
  *
  *       | Version | Date        | Description                                | Changed By       |
@@ -2870,7 +2870,7 @@ router.post(
  * @swagger
  * /Batch_Forward_for_Proceed:
  *   post:
- *     summary: Forward batches for proceed
+ *     summary: xxxx Forward batches for proceed
  *     description: Updates the proceed status of batch cases, creates tasks, and records approval details.
  *
  *       | Version | Date        | Description                                | Changed By       |
@@ -3035,7 +3035,7 @@ router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
  * @swagger
  * /Create_Task_For_case_distribution:
  *   post:
- *     summary: Create a task for case distribution
+ *     summary: xxxx Create a task for case distribution
  *     description: Creates a task to generate a case distribution DRC transaction list for download.
  *
  *       | Version | Date        | Description                                          | Changed By       |
@@ -3158,7 +3158,7 @@ router.post(
  * @swagger
  * /List_All_DRC_Mediation_Board_Cases:
  *   post:
- *     summary: Retrieve all DRC Mediation Board cases
+ *     summary:  C-1P46 Retrieve all DRC Mediation Board cases
  *     description: Fetches a list of mediation board cases filtered by various parameters.
  *
  *       | Version | Date        | Description                                  | Changed By       |
@@ -3882,7 +3882,7 @@ router.post(
  * @swagger
  * /List_All_Batch_Details:
  *   get:
- *     summary: Retrieve All Batch Details with Approver Information
+ *     summary: xxxx Retrieve All Batch Details with Approver Information
  *     description: |
  *       Fetches batch details including approver status, reference, and case distribution details.
  *
