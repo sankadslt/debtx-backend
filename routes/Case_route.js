@@ -2866,6 +2866,169 @@ router.post(
   List_Case_Distribution_DRC_Summary
 );
 
+/**
+ * @swagger
+ * /Batch_Forward_for_Proceed:
+ *   post:
+ *     summary: Forward batches for proceed
+ *     description: Updates the proceed status of batch cases, creates tasks, and records approval details.
+ *
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Batch Forward API     | Sanjaya Perera   |
+ *
+ *     tags: [Batch Processing]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of batch IDs to be forwarded for proceeding.
+ *                 example: ["BATCH_001", "BATCH_002"]
+ *               Proceed_by:
+ *                 type: string
+ *                 description: The user who is proceeding the batch.
+ *                 example: "admin_user"
+ *               plus_drc:
+ *                 type: string
+ *                 description: Additional DRC name.
+ *                 example: "DRC_Name_1"
+ *               plus_drc_id:
+ *                 type: string
+ *                 description: Additional DRC ID.
+ *                 example: "DRC_001"
+ *               minus_drc:
+ *                 type: string
+ *                 description: Removed DRC name.
+ *                 example: "DRC_Name_2"
+ *               minus_drc_id:
+ *                 type: string
+ *                 description: Removed DRC ID.
+ *                 example: "DRC_002"
+ *     responses:
+ *       200:
+ *         description: Batches forwarded successfully, task created, and approval recorded.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Batches forwarded for proceed successfully, task created, and approval recorded."
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *                 taskData:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 31
+ *                     task_type:
+ *                       type: string
+ *                       example: "Create Task for Proceed Cases from Batch_ID"
+ *                     case_distribution_batch_id:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["BATCH_001", "BATCH_002"]
+ *                     proceed_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-11T10:00:00Z"
+ *                     Proceed_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *                 approvalEntry:
+ *                   type: object
+ *                   properties:
+ *                     approver_reference:
+ *                       type: string
+ *                       example: "BATCH_001"
+ *                     created_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     approver_type:
+ *                       type: string
+ *                       example: "DRC_Distribution"
+ *                     approve_status:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             example: "Open"
+ *                           status_date:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-02-11T10:00:00Z"
+ *                           status_edit_by:
+ *                             type: string
+ *                             example: "admin_user"
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         plus_drc:
+ *                           type: string
+ *                           example: "DRC_Name_1"
+ *                         plus_drc_id:
+ *                           type: string
+ *                           example: "DRC_001"
+ *                         minus_drc:
+ *                           type: string
+ *                           example: "DRC_Name_2"
+ *                         minus_drc_id:
+ *                           type: string
+ *                           example: "DRC_002"
+ *       400:
+ *         description: Invalid input provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide an array of batch IDs"
+ *       404:
+ *         description: No matching batch IDs found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching batch IDs found"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error forwarding batches for proceed"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
+
 router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
 router.post(
