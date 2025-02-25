@@ -3961,18 +3961,61 @@ export const Assign_DRC_To_Case = async (req, res) => {
 //   }
 // };
 
+// export const List_Case_Distribution_Details = async (req, res) => {
+//   try {
+//       const { drc_id } = req.body;
+
+//       if (!drc_id) {
+//           return res.status(400).json({ message: "Missing required field: drc_id" });
+//       }
+
+//       const results = await caseDistributionDRCSummary.find({ drc_id });
+
+//       if (results.length === 0) {
+//           return res.status(404).json({ message: "No records found for the given DRC ID" });
+//       }
+
+//       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+
+//       const transactions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: case_distribution_batch_ids }
+//       }, 'case_distribution_batch_id proceed_on');
+
+//       const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+//       const drc_name = drcDetails ? drcDetails.drc_name : null;
+
+//       const response = results.map(doc => {
+//           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+//           return {
+//               ...doc.toObject(),
+//               proceed_on: transaction ? transaction.proceed_on : null,
+//               drc_name
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 export const List_Case_Distribution_Details = async (req, res) => {
   try {
-      const { drc_id } = req.body;
+      const { case_distribution_batch_id, drc_id } = req.body;
 
-      if (!drc_id) {
-          return res.status(400).json({ message: "Missing required field: drc_id" });
+      if (!case_distribution_batch_id) {
+          return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
       }
 
-      const results = await caseDistributionDRCSummary.find({ drc_id });
+      const query = { case_distribution_batch_id };
+      if (drc_id) {
+          query.drc_id = drc_id;
+      }
+
+      const results = await caseDistributionDRCSummary.find(query);
 
       if (results.length === 0) {
-          return res.status(404).json({ message: "No records found for the given DRC ID" });
+          return res.status(404).json({ message: "No records found for the given batch ID" });
       }
 
       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
@@ -3981,15 +4024,19 @@ export const List_Case_Distribution_Details = async (req, res) => {
           case_distribution_batch_id: { $in: case_distribution_batch_ids }
       }, 'case_distribution_batch_id proceed_on');
 
-      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
-      const drc_name = drcDetails ? drcDetails.drc_name : null;
+      const drcIds = [...new Set(results.map(doc => doc.drc_id))];
+      const drcDetailsMap = await DRC.find({ drc_id: { $in: drcIds } }, 'drc_id drc_name')
+          .then(drcs => drcs.reduce((acc, drc) => {
+              acc[drc.drc_id] = drc.drc_name;
+              return acc;
+          }, {}));
 
       const response = results.map(doc => {
           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
           return {
               ...doc.toObject(),
               proceed_on: transaction ? transaction.proceed_on : null,
-              drc_name
+              drc_name: drcDetailsMap[doc.drc_id] || null
           };
       });
 
@@ -3998,6 +4045,7 @@ export const List_Case_Distribution_Details = async (req, res) => {
       res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
@@ -4291,6 +4339,200 @@ export const listDRCAllCases = async (req, res) => {
       status: "error",
       message: "Failed to retrieve cases.",
       errors: error.message,
+    });
+  }
+};
+
+// get CaseDetails for MediationBoard 
+export const CaseDetailsforDRC = async (req, res) => {
+  try {
+    const { case_id, drc_id } = req.body;
+    
+    if (!case_id || !drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both Case ID and DRC ID are required.",
+        errors: {
+          code: 400,
+          description: "Please provide both case_id and drc_id in the request body.",
+        },
+      });
+    }
+
+    // Find the case that matches both case_id and has the specified drc_id in its drc array
+    const caseDetails = await Case_details.findOne({
+      case_id: case_id,
+      "drc.drc_id": drc_id,
+      'mediation_board.drc_id': drc_id,
+    }).lean();  // Using lean() for better performance
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found or DRC ID doesn't match.",
+        errors: {
+          code: 404,
+          description: "No case found with the provided Case ID and DRC ID combination.",
+        },
+      });
+    }
+
+    // Count the number of objects in the mediation_board array
+    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      data: {
+        ...caseDetails,  // All fields from the case details
+        calling_round: mediationBoardCount, // Include the count in the response
+      },
+    });
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 500,
+        description: err.message || "Internal server error occurred while fetching case details.",
+      },
+    });
+  }
+};
+
+// List  All Active Mediation RO Requests from SLT
+export const ListActiveRORequests = async (req, res) => {
+  try {
+    // Get request_mode from either body (POST) or query (GET)
+    const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
+    
+    let query = { end_dtm: null };
+    
+    if (request_mode) {
+      query.request_mode = request_mode;
+    }
+
+    const ro_requests = await Template_RO_Request.find(query);
+
+    if (ro_requests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: request_mode 
+          ? `No active RO requests found with request_mode: ${request_mode}.`
+          : "No active RO requests found.",
+      });
+    }
+
+    // Return only the matching records
+
+    return res.status(200).json({
+      status: "success",
+      message: request_mode
+        ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
+        : "Active RO request details retrieved successfully.",
+      data: ro_requests,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active RO details.",
+      error: error.message,
+    });
+  }
+};
+
+export const ListActiveMediationResponse = async (req, res) => {
+  try {
+    // Fetch only negotiations where end_dtm is null
+    const activeMediation = await Template_Mediation_Board.find({ end_dtm: null });
+
+    // Check if any active negotiations are found
+    if (activeMediation.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No active Mediation response found.",
+      });
+    }
+
+    // Return the retrieved active negotiations
+    return res.status(200).json({
+      status: "success",
+      message: "Active mediation details retrieved successfully.",
+      data: activeMediation,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active negotiation details.",
+      error: error.message,
+    });
+  }
+};
+
+export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { drc_id, case_id, account_no, from_date, to_date, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      drc_id,
+      case_id,
+      account_no,
+      from_date: from_date && !isNaN(new Date(from_date)) ? new Date(from_date).toISOString() : null,
+      to_date: to_date && !isNaN(new Date(to_date)) ? new Date(to_date).toISOString() : null,
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 34,
+      task_type: "Create task for download the Assigned DRC's case list when selected date range is higher that one month",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_Assigned_drc_case_list_download:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
     });
   }
 };

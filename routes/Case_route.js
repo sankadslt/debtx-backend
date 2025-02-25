@@ -58,6 +58,11 @@ import {
   List_Case_Distribution_Details_With_Rtoms,
   List_CasesOwened_By_DRC,
   listDRCAllCases,
+  ListActiveMediationResponse,
+  ListActiveRORequests,
+  CaseDetailsforDRC,
+  Create_Task_For_Assigned_drc_case_list_download,
+  listAllDRCMediationBoardCases,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -823,14 +828,14 @@ router.post("/Case_Current_Status", Case_Current_Status);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for managing and assigning Recovery Officers to cases.
- * 
+ *
  * /api/case/Assign_RO_To_Case:
  *   patch:
  *     summary: Assign a Recovery Officer to cases.
  *     description: |
- *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area 
+ *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area
  *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| Assign Recovery Officer to cases | Sasindu Srinayaka  |
@@ -968,15 +973,15 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for managing and retrieving cases handled by DRC.
- * 
+ *
  * /api/case/List_Handling_Cases_By_DRC:
  *   post:
  *     summary: Retrieve cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC). 
+ *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC).
  *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
  *       The cases must have a `case_current_status` in specific predefined statuses and belong to an active DRC.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| List handling cases by DRC        | Sasindu Srinayaka  |
@@ -1142,14 +1147,14 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving case behavior details during a specific DRC period.
- * 
+ *
  * /api/case/Case_Behavior_During_DRC:
  *   post:
  *     summary: Retrieve case behavior details during a specific DRC period.
  *     description: |
- *       This endpoint retrieves detailed behavior information about a case during a specified DRC period. 
+ *       This endpoint retrieves detailed behavior information about a case during a specified DRC period.
  *       It includes settlement details, payment history, and Recovery Officer information if available.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC era | Sasindu Srinayaka  |
@@ -2724,7 +2729,6 @@ router.post(
  *                   type: string
  *                   example: An error occurred while creating the task.
  */
-
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
 /**
@@ -2945,7 +2949,11 @@ router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Sum
 
 router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
-router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution );
+router.post(
+  "/Create_Task_For_case_distribution",
+  Create_Task_For_case_distribution
+);
+
 
 /**
  * @swagger
@@ -3523,6 +3531,9 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 //  */
 // router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
 
+router.post(
+  "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
+);
 
 /**
  * @swagger
@@ -3651,114 +3662,107 @@ router.post(
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
 );
 
-// router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
- 
+/**
+ * @swagger
+ * /List_All_Batch_Details:
+ *   get:
+ *     summary: Retrieve All Batch Details with Approver Information
+ *     description: |
+ *       Fetches batch details including approver status, reference, and case distribution details.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Batch Details API         | Sanjaya Perera   |
+ *
+ *     tags: [Batch Management]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved batch details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     example: "65ef1234abcd56789ef01234"
+ *                   approver_reference:
+ *                     type: string
+ *                     example: "BATCH_202502"
+ *                   created_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-11T10:00:00.000Z"
+ *                   created_by:
+ *                     type: string
+ *                     example: "admin_user"
+ *                   approve_status:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           example: "Open"
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-11T10:05:00.000Z"
+ *                   approver_type:
+ *                     type: string
+ *                     example: "DRC_Distribution"
+ *                   parameters:
+ *                     type: object
+ *                     example:
+ *                       key1: "value1"
+ *                       key2: "value2"
+ *                   approved_by:
+ *                     type: string
+ *                     nullable: true
+ *                     example: null
+ *                   remark:
+ *                     type: string
+ *                     nullable: true
+ *                     example: null
+ *                   case_distribution_details:
+ *                     type: object
+ *                     nullable: true
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: string
+ *                         example: "BATCH_202502"
+ *                       drc_commision_rule:
+ *                         type: string
+ *                         example: "Rule_A"
+ *                       rulebase_count:
+ *                         type: integer
+ *                         example: 50
+ *                       rulebase_arrears_sum:
+ *                         type: number
+ *                         format: float
+ *                         example: 120000.50
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error."
+ */
 
-// /**
-//  * @swagger
-//  * tags:
-//  *   - name: Mediation
-//  *     description: Endpoints related to active mediation and board sessions.
-//  * 
-//  * /api/case/List_Active_Mediation_Response:
-//  *   get:
-//  *     summary: Retrieve all active mediation board sessions.
-//  *     description: |
-//  *       This endpoint retrieves all active mediation board responses where the `end_dtm` field is null, 
-//  *       indicating that the mediation session is still ongoing.
-//  *       
-//  *       | Version | Date       | Description                         | Changed By         |
-//  *       |---------|------------|-------------------------------------|--------------------|
-//  *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
-//  *     tags:
-//  *       - Mediation
-//  *     responses:
-//  *       200:
-//  *         description: Active mediation board sessions retrieved successfully.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: success
-//  *                 message:
-//  *                   type: string
-//  *                   example: Active mediation details retrieved successfully.
-//  *                 data:
-//  *                   type: array
-//  *                   items:
-//  *                     type: object
-//  *                     properties:
-//  *                       mediation_id:
-//  *                         type: integer
-//  *                         description: Unique identifier for the mediation session.
-//  *                         example: 501
-//  *                       case_id:
-//  *                         type: integer
-//  *                         description: ID of the related case.
-//  *                         example: 1001
-//  *                       status:
-//  *                         type: string
-//  *                         description: Current status of the mediation session.
-//  *                         example: "Ongoing"
-//  *                       created_dtm:
-//  *                         type: string
-//  *                         format: date-time
-//  *                         description: The date and time the mediation session started.
-//  *                         example: "2025-02-10T09:30:00Z"
-//  *                       end_dtm:
-//  *                         type: string
-//  *                         nullable: true
-//  *                         description: The date and time the mediation session ended, if applicable.
-//  *                         example: null
-//  *       404:
-//  *         description: No active mediation sessions found.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: No active Mediation response found.
-//  *       500:
-//  *         description: Internal server error occurred while fetching active mediation sessions.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Internal server error occurred while fetching active negotiation details.
-//  *                 error:
-//  *                   type: string
-//  *                   example: Error message describing the issue.
-//  */
-// router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+router.get("/List_All_Batch_Details", List_All_Batch_Details);
 
-router.get(
-  "/List_All_Batch_Details",
-  List_All_Batch_Details
-);
+router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
 
-router.post(
-  "/Approve_Batch_or_Batches",
-  Approve_Batch_or_Batches
-);
-
-router.post(
-  "/Create_task_for_batch_approval",
-  Create_task_for_batch_approval
-);
+router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
 
 router.post(
   "/List_DRC_Assign_Manager_Approval",
@@ -3779,15 +3783,9 @@ router.post(
   "/Create_task_for_DRC_Assign_Manager_Approval",
   Create_task_for_DRC_Assign_Manager_Approval
 );
-router.post(
-  "/Assign_DRC_To_Case",
-  Assign_DRC_To_Case
-);
+router.post("/Assign_DRC_To_Case", Assign_DRC_To_Case);
 
-router.post(
-  "/List_Case_Distribution_Details",
-  List_Case_Distribution_Details
-);
+router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
 
 router.post(
   "/Create_Task_For_case_distribution_drc_summery",
@@ -3799,10 +3797,7 @@ router.post(
   List_Case_Distribution_Details_With_Rtoms
 );
 
-router.post(
-  "/List_CasesOwened_By_DRC",
-  List_CasesOwened_By_DRC
-);
+router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
 
 /**
  * @swagger
@@ -3887,6 +3882,342 @@ router.post(
  */
 
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to retrieving case details based on mediation board requests.
+ *
+ * /api/case/Case_Details_for_DRC:
+ *   post:
+ *     summary: Retrieve case details by Case ID and DRC ID.
+ *     description: |
+ *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
+ *       If a case with the specified Case ID exists and is associated with the given DRC ID,
+ *       the system returns relevant case details.
+ *
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier for the case.
+ *                 example: 101
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier for the Debt Recovery Company (DRC).
+ *                 example: 5
+ *     responses:
+ *       200:
+ *         description: Case details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case details retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       description: Case ID.
+ *                       example: 101
+ *                     customer_ref:
+ *                       type: string
+ *                       description: Customer reference number.
+ *                       example: CUST-2024-001
+ *                     account_no:
+ *                       type: string
+ *                       description: Customer's account number.
+ *                       example: ACC-56789
+ *                     current_arrears_amount:
+ *                       type: number
+ *                       description: The amount of arrears on the case.
+ *                       example: 15000.75
+ *                     last_payment_date:
+ *                       type: string
+ *                       format: date
+ *                       description: Last payment date associated with the case.
+ *                       example: "2025-01-15"
+ *       400:
+ *         description: Validation error - Case ID and DRC ID are required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Both Case ID and DRC ID are required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Please provide both case_id and drc_id in the request body.
+ *       404:
+ *         description: Case not found or DRC ID doesn't match.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case not found or DRC ID doesn't match.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No case found with the provided Case ID and DRC ID combination.
+ *       500:
+ *         description: Internal server error occurred while fetching case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve case details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error occurred while fetching case details.
+ */
+router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Recovery Officer Requests
+ *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
+ *
+ * /api/case/List_Active_RO_Request:
+ *   get:
+ *     summary: Retrieve active RO mediation requests.
+ *     description: |
+ *       This endpoint retrieves all active Recovery Officer (RO) mediation requests where end_dtm is null.
+ *       Optionally, you can filter the requests by providing a request_mode as a query parameter.
+ *
+ *       | Version | Date       | Description                             | Changed By         |
+ *       |---------|------------|-----------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| List active RO mediation requests       | U.H.Nandali Linara |
+ *     tags:
+ *       - Recovery Officer Requests
+ *     parameters:
+ *       - in: query
+ *         name: request_mode
+ *         schema:
+ *           type: string
+ *         description: Optional filter for the request mode (e.g., "manual", "automatic").
+ *         example: manual
+ *     responses:
+ *       200:
+ *         description: Active RO mediation requests retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active RO request details retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ro_request_id:
+ *                         type: integer
+ *                         description: Unique identifier for the RO request.
+ *                         example: 301
+ *                       request_mode:
+ *                         type: string
+ *                         description: Mode of the request (e.g., "manual" or "automatic").
+ *                         example: manual
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Timestamp when the request was created.
+ *                         example: "2025-02-15T14:00:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: End date and time of the request (null if active).
+ *                         example: null
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the request.
+ *                         example: active
+ *       404:
+ *         description: No active RO requests found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active RO requests found.
+ *       500:
+ *         description: Internal server error occurred while fetching active RO requests.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active RO details.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
+ */
+
+router.post("/List_Active_RO_Requests", ListActiveRORequests);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Mediation
+ *     description: Endpoints related to active mediation and board sessions.
+ *
+ * /api/case/List_Active_Mediation_Response:
+ *   get:
+ *     summary: Retrieve all active mediation board sessions.
+ *     description: |
+ *       This endpoint retrieves all active mediation board responses where the end_dtm field is null,
+ *       indicating that the mediation session is still ongoing.
+ *
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
+ *     tags:
+ *       - Mediation
+ *     responses:
+ *       200:
+ *         description: Active mediation board sessions retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active mediation details retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       mediation_id:
+ *                         type: integer
+ *                         description: Unique identifier for the mediation session.
+ *                         example: 501
+ *                       case_id:
+ *                         type: integer
+ *                         description: ID of the related case.
+ *                         example: 1001
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the mediation session.
+ *                         example: "Ongoing"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the mediation session started.
+ *                         example: "2025-02-10T09:30:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the mediation session ended, if applicable.
+ *                         example: null
+ *       404:
+ *         description: No active mediation sessions found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active Mediation response found.
+ *       500:
+ *         description: Internal server error occurred while fetching active mediation sessions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active negotiation details.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
+ */
+
+router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
+router.post(
+  "/Create_Task_For_Assigned_drc_case_list_download",
+  Create_Task_For_Assigned_drc_case_list_download
+);
 
 export default router;
 
