@@ -3411,6 +3411,115 @@ router.post(
 
 router.get("/List_All_Batch_Details", List_All_Batch_Details);
 
+/**
+ * @swagger
+ * /Approve_Batch_or_Batches:
+ *   post:
+ *     summary: Approve a Batch or Multiple Batches
+ *     description: |
+ *       Approves one or more batches by updating the approval status and creating a task for the approved cases.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Approve Batches API       | Sanjaya Perera   |
+ *
+ *     tags: [Batch Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - approver_references
+ *               - approved_by
+ *             properties:
+ *               approver_references:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of approver reference IDs to be approved.
+ *                 example: ["BATCH_202502", "BATCH_202503"]
+ *               approved_by:
+ *                 type: string
+ *                 description: User who is approving the batches.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Successfully approved batches and created a task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Approvals added successfully, and task created."
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *                 taskData:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 29
+ *                     task_type:
+ *                       type: string
+ *                       example: "Create Task for Approve Cases from Approver_Reference"
+ *                     approver_references:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["BATCH_202502", "BATCH_202503"]
+ *                     approved_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-11T12:00:00.000Z"
+ *                     approved_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide an array of approver references"
+ *       404:
+ *         description: No matching approver references found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching approver references found"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error approving batches"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+
 router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
 
 router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
