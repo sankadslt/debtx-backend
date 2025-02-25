@@ -2731,6 +2731,136 @@ router.post(
 
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
+/**
+ * @swagger
+ * /List_Case_Distribution_DRC_Summary:
+ *   post:
+ *     summary: List case distribution summary for DRC
+ *     description: Fetches a filtered summary of case distributions based on date range, arrears band, and DRC commission rule.
+ *
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|-------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Case Distribution API | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Filter results from this date (YYYY-MM-DD).
+ *                 example: "2025-02-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 description: Filter results up to this date (YYYY-MM-DD).
+ *                 example: "2025-02-10"
+ *               current_arrears_band:
+ *                 type: string
+ *                 description: Filter results by arrears band.
+ *                 example: "High"
+ *               drc_commision_rule:
+ *                 type: string
+ *                 description: Filter results by DRC commission rule.
+ *                 example: "Rule_1"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved case distribution summary.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     example: "65f0c9d3e4b0a93d4b9b12a3"
+ *                   case_distribution_batch_id:
+ *                     type: string
+ *                     example: "BATCH_001"
+ *                   batch_seq_details:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         batch_seq:
+ *                           type: integer
+ *                           example: 3
+ *                         other_details:
+ *                           type: string
+ *                           example: "Batch details here"
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-10T08:30:00Z"
+ *                   created_by:
+ *                     type: string
+ *                     example: "admin_user"
+ *                   current_arrears_band:
+ *                     type: string
+ *                     example: "High"
+ *                   rulebase_count:
+ *                     type: integer
+ *                     example: 5
+ *                   rulebase_arrears_sum:
+ *                     type: number
+ *                     format: float
+ *                     example: 50000.75
+ *                   status:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         status_name:
+ *                           type: string
+ *                           example: "Approved"
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-11T09:00:00Z"
+ *                   drc_commision_rule:
+ *                     type: string
+ *                     example: "Rule_1"
+ *                   forward_for_approvals_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-10T12:00:00Z"
+ *                   approved_by:
+ *                     type: string
+ *                     example: "manager_user"
+ *                   approved_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-11T14:00:00Z"
+ *                   proceed_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-12T10:00:00Z"
+ *                   tmp_record_remove_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-13T15:00:00Z"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
+
 router.post(
   "/List_Case_Distribution_DRC_Summary",
   List_Case_Distribution_DRC_Summary
