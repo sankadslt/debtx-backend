@@ -4100,11 +4100,12 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       account_no: 1,
       current_arrears_amount: 1,
       created_dtm: 1,
-      expire_dtm: 1,
+      end_dtm: 1,
+      case_status: 1,
       _id: 0,
-    });
+    }).lean();
 
-    if (!caseDetails) {
+    if (!caseDetails || caseDetails.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No Case Details Found.",
@@ -4115,27 +4116,46 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       });
     }
 
-    //console.log(caseDetails)
-    let filteredCaseDetails =(from_date && to_date) ?[]:caseDetails;
-    const fromDate = new Date(from_date);
+    const invalidStatuses = ["MB Fail with Non-Settlement"];
+    const expireStatuses = ["Abandoned", "Withdraw", "Case Close", "Pending Write-Off", "Write-Off"];
 
-    const endDate = new Date(to_date);
-
-    const formatedFromDate = new Date(fromDate.getFullYear(),fromDate.getMonth(),fromDate.getDate())
-    const formatedEndDate = new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate())
-    for (var detail of caseDetails) {
-      const filterDate =new Date(detail['created_dtm'])
-      const formatedFilterDate = new Date(filterDate.getFullYear(),filterDate.getMonth(),filterDate.getDate())
-      //console.log(filterDate)
-      if (formatedFilterDate>=formatedFromDate && formatedFilterDate<=formatedEndDate) {
-        filteredCaseDetails.push(detail);
+    let filteredCaseDetails = caseDetails.map((detail) => {
+      if (Array.isArray(detail.case_status) && detail.case_status.length > 0) {
+        let lastStatus = detail.case_status.at(-1);
+        if (lastStatus) {
+          if (invalidStatuses.includes(lastStatus.case_status)) {
+            return null; // Filter out cases with invalid statuses
+          }
+          if (expireStatuses.includes(lastStatus.case_status)) {
+            detail.end_dtm = lastStatus.created_dtm;
+          }
+        }
       }
+      return detail;
+    }).filter(Boolean);
+
+    console.log("Filtered cases:", filteredCaseDetails);
+
+    // Apply date range filter if from_date and to_date are provided
+    if (from_date && to_date) {
+      const fromDate = new Date(from_date);
+      const endDate = new Date(to_date);
+      filteredCaseDetails = filteredCaseDetails.filter((detail) => {
+        if (detail.created_dtm) {
+          const createdDate = new Date(detail.created_dtm);
+          return createdDate >= fromDate && createdDate <= endDate;
+        }
+        return false;
+      });
     }
 
     res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      Cases: filteredCaseDetails,
+      Cases: filteredCaseDetails.map(detail => ({
+        ...detail,
+        end_dtm: detail.end_dtm || " "
+      })),
     });
   } catch (error) {
     console.error("Error fetching case details:", error);
