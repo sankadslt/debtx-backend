@@ -11,34 +11,54 @@
 */
 
 import { Router } from "express";
-import { drcExtendValidityPeriod,
-        listHandlingCasesByDRC, Case_Abandant, Approve_Case_abandant, Open_No_Agent_Cases_F1_Filter, Case_Current_Status,
-        Open_No_Agent_Cases_ALL,
-        Open_No_Agent_Cases_Direct_LD,
-        assignROToCase,
-        listBehaviorsOfCaseDuringDRC,
-        // listAllActiveRosByDRCID,
-        Case_Status,
-        Case_List,
-        openNoAgentCasesAllByServiceTypeRulebase,
-        openNoAgentCountArrearsBandByServiceType,
-        listCases,
-        Acivite_Case_Details,
-        ListALLMediationCasesownnedbyDRCRO,
-        get_count_by_drc_commision_rule,
-        getAllArrearsBands,
-        count_cases_rulebase_and_arrears_band,
-        Case_Distribution_Among_Agents,
-        List_Case_Distribution_DRC_Summary,
-        Batch_Forward_for_Proceed,
-        Create_Task_For_case_distribution,
-        List_all_transaction_seq_of_batch_id,
-        Create_Task_For_case_distribution_transaction,
-        getCaseDetailsbyMediationBoard,
-        ListActiveRORequestsMediation,
-        ListActiveMediationResponse
-
- } from "../controllers/Case_controller.js";
+import {
+  drcExtendValidityPeriod,
+  listHandlingCasesByDRC,
+  Case_Abandant,
+  Approve_Case_abandant,
+  Open_No_Agent_Cases_F1_Filter,
+  Case_Current_Status,
+  Open_No_Agent_Cases_ALL,
+  Open_No_Agent_Cases_Direct_LD,
+  assignROToCase,
+  listBehaviorsOfCaseDuringDRC,
+  updateLastRoDetails,
+  // listAllActiveRosByDRCID,
+  Case_Status,
+  Case_List,
+  openNoAgentCasesAllByServiceTypeRulebase,
+  openNoAgentCountArrearsBandByServiceType,
+  listCases,
+  Acivite_Case_Details,
+  ListALLMediationCasesownnedbyDRCRO,
+  get_count_by_drc_commision_rule,
+  getAllArrearsBands,
+  count_cases_rulebase_and_arrears_band,
+  Case_Distribution_Among_Agents,
+  List_Case_Distribution_DRC_Summary,
+  Batch_Forward_for_Proceed,
+  Create_Task_For_case_distribution,
+  List_all_transaction_seq_of_batch_id,
+  Create_Task_For_case_distribution_transaction,
+  ListActiveRORequestsMediation,
+  get_distribution_array_of_a_transaction,
+  Create_Task_For_case_distribution_transaction_array,
+  Exchange_DRC_RTOM_Cases,
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
+  List_All_Batch_Details,
+  Approve_Batch_or_Batches,
+  Create_task_for_batch_approval,
+  List_DRC_Assign_Manager_Approval,
+  Approve_DRC_Assign_Manager_Approval,
+  Reject_DRC_Assign_Manager_Approval,
+  Create_task_for_DRC_Assign_Manager_Approval,
+  Assign_DRC_To_Case,
+  List_Case_Distribution_Details,
+  Create_Task_For_case_distribution_drc_summery,
+  List_Case_Distribution_Details_With_Rtoms,
+  List_CasesOwened_By_DRC,
+  listDRCAllCases,
+} from "../controllers/Case_controller.js";
 
 const router = Router();
 
@@ -455,7 +475,7 @@ router.post("/Open_No_Agent_Cases_Direct_LD", Open_No_Agent_Cases_Direct_LD);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-// router.patch("/Drc_Extend_Validity_Period", drcExtendValidityPeriod);
+router.patch("/Drc_Extend_Validity_Period", drcExtendValidityPeriod);
 
 /**
  * @swagger
@@ -804,8 +824,8 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *   - name: Case Management
  *     description: Endpoints for managing and assigning Recovery Officers to cases.
  * 
- * /api/case/Assign_RO:
- *   post:
+ * /api/case/Assign_RO_To_Case:
+ *   patch:
  *     summary: Assign a Recovery Officer to cases.
  *     description: |
  *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area 
@@ -828,15 +848,19 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 items:
  *                   type: integer
  *                 description: List of case IDs to which the Recovery Officer will be assigned.
- *                 example: [101, 102, 103]
+ *                 example: [10]
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID who will be assigned.
- *                 example: 10
+ *                 example: 46
  *               drc_id:
  *                 type: integer
  *                 description: The DRC ID to which the cases belong.
- *                 example: 5001
+ *                 example: 11
+ *               assigned_by:
+ *                 type: String
+ *                 description: The user assigning the Recovery Officer.
+ *                 example: "AdminUser"
  *     responses:
  *       200:
  *         description: Recovery Officer assigned successfully.
@@ -968,7 +992,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
- *                 example: 5001
+ *                 example: 11
  *               rtom:
  *                 type: string
  *                 description: Area name associated with the case.
@@ -976,11 +1000,11 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID responsible for the case.
- *                 example: 5
+ *                 example: 46
  *               arrears_band:
  *                 type: string
  *                 description: Arrears category for filtering cases.
- *                 example: AB-5_10
+ *                 example: AB-10_25
  *               from_date:
  *                 type: string
  *                 format: date
@@ -990,7 +1014,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2025-01-31"
+ *                 example: "2025-07-01"
  *     responses:
  *       200:
  *         description: Cases retrieved successfully.
@@ -1013,20 +1037,20 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       case_id:
  *                         type: integer
  *                         description: Unique identifier for the case.
- *                         example: 101
+ *                         example: 10
  *                       status:
  *                         type: string
  *                         description: Current status of the case.
- *                         example: "Open with Agent"
+ *                         example: "Negotiation Settle Active"
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
  *                         description: Case creation date.
- *                         example: "2024-06-15T08:00:00Z"
+ *                         example: 2025-01-01T12:00:00.000+00:00
  *                       current_arreas_amount:
- *                         type: number
+ *                         type: double
  *                         description: Outstanding arrears amount.
- *                         example: 25000.50
+ *                         example: 11000.00
  *                       area:
  *                         type: string
  *                         description: RTOM area related to the case.
@@ -1034,16 +1058,16 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       remark:
  *                         type: string
  *                         description: Latest remark on the case.
- *                         example: "Awaiting customer response."
+ *                         example: "Case is in negotiation."
  *                       expire_dtm:
  *                         type: string
  *                         format: date-time
  *                         description: Case expiration date.
- *                         example: "2025-01-01T00:00:00Z"
+ *                         example: 2025-05-01T12:00:00.000+00:00
  *                       ro_name:
  *                         type: string
  *                         description: Name of the assigned Recovery Officer.
- *                         example: "John Doe"
+ *                         example: "Sasindu"
  *       400:
  *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
@@ -1116,7 +1140,7 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
 /**
  * @swagger
  * tags:
- *   - name: Case Behavior
+ *   - name: Case Management
  *     description: Endpoints for retrieving case behavior details during a specific DRC period.
  * 
  * /api/case/Case_Behavior_During_DRC:
@@ -1128,9 +1152,9 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *       
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
- *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC | Sasindu Srinayaka  |
+ *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC era | Sasindu Srinayaka  |
  *     tags:
- *       - Case Behavior
+ *       - Case Management
  *     requestBody:
  *       required: true
  *       content:
@@ -1141,15 +1165,15 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier of the case.
- *                 example: 101
+ *                 example: 10
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
- *                 example: 5001
+ *                 example: 11
  *               ro_id:
  *                 type: integer
  *                 description: (Optional) Recovery Officer ID for filtering.
- *                 example: 10
+ *                 example: 46
  *     responses:
  *       200:
  *         description: Case behavior details retrieved successfully.
@@ -1301,6 +1325,8 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       example: Internal server error while retrieving case behaviors.
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
 
@@ -2701,7 +2727,6 @@ router.post(
 
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
-
 /**
  * @swagger
  * tags:
@@ -2914,18 +2939,13 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                       type: string
  *                       example: Error message describing the issue.
  */
-
 router.post("/List_All_DRC_Mediation_Board_Cases",ListALLMediationCasesownnedbyDRCRO);
-
-
 
 router.post("/List_Case_Distribution_DRC_Summary",List_Case_Distribution_DRC_Summary);
 
 router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
 router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution );
-
-
 
 /**
  * @swagger
@@ -3032,7 +3052,6 @@ router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distributi
  *                   type: string
  *                   example: Server error. Please try again later.
  */
-
 router.post(
   "/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id );
 
@@ -3130,43 +3149,50 @@ router.post(
 router.post(
     "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
 
+router.post(
+  "/get_distribution_array_of_a_transaction",
+  get_distribution_array_of_a_transaction
+);
+
 /**
  * @swagger
- * tags:
- *   - name: Case Management
- *     description: Endpoints related to retrieving case details based on mediation board requests.
- * 
- * /api/case/Case_Details_for_DRC:
+ * /api/Create_Task_For_case_distribution_transaction_array:
  *   post:
- *     summary: Retrieve case details by Case ID and DRC ID.
+ *     summary: xxxx Create Task for Case Distribution Transaction Array
  *     description: |
- *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
- *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
- *       the system returns relevant case details.
- *       
- *       | Version | Date       | Description                     | Changed By         |
- *       |---------|------------|---------------------------------|--------------------|
- *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
- *     tags:
- *       - Case Management
+ *       Creates a task for case distribution transactions with batch sequence details.
+ *
+ *       | Version | Date        | Description                                                   | Changed By       |
+ *       |---------|------------|---------------------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-10 | Initial creation of task for batch list distribution array  | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - batch_seq
+ *               - Created_By
  *             properties:
- *               case_id:
+ *               case_distribution_batch_id:
  *                 type: integer
- *                 description: Unique identifier for the case.
- *                 example: 101
- *               drc_id:
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               batch_seq:
  *                 type: integer
- *                 description: Unique identifier for the Debt Recovery Company (DRC).
- *                 example: 5
+ *                 description: The batch sequence number.
+ *                 example: 1
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "admin_user"
  *     responses:
- *       200:
- *         description: Case details retrieved successfully.
+ *       201:
+ *         description: Task successfully created for case distribution transaction array.
  *         content:
  *           application/json:
  *             schema:
@@ -3177,33 +3203,32 @@ router.post(
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Case details retrieved successfully.
+ *                   example: Create Case distribution DRC Transaction_1_Batch List distribution array for Download
  *                 data:
  *                   type: object
  *                   properties:
- *                     case_id:
+ *                     Template_Task_Id:
  *                       type: integer
- *                       description: Case ID.
- *                       example: 101
- *                     customer_ref:
+ *                       description: The template ID for the created task.
+ *                       example: 28
+ *                     task_type:
  *                       type: string
- *                       description: Customer reference number.
- *                       example: CUST-2024-001
- *                     account_no:
+ *                       description: The type of task created.
+ *                       example: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download"
+ *                     case_distribution_batch_id:
+ *                       type: integer
+ *                       description: The batch ID associated with the task.
+ *                       example: 1001
+ *                     batch_seq:
+ *                       type: integer
+ *                       description: The batch sequence number.
+ *                       example: 1
+ *                     Created_By:
  *                       type: string
- *                       description: Customer's account number.
- *                       example: ACC-56789
- *                     current_arrears_amount:
- *                       type: number
- *                       description: The amount of arrears on the case.
- *                       example: 15000.75
- *                     last_payment_date:
- *                       type: string
- *                       format: date
- *                       description: Last payment date associated with the case.
- *                       example: "2025-01-15"
+ *                       description: The user who created the task.
+ *                       example: "admin_user"
  *       400:
- *         description: Validation error - Case ID and DRC ID are required.
+ *         description: Validation error - Missing required parameters.
  *         content:
  *           application/json:
  *             schema:
@@ -3214,40 +3239,9 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Both Case ID and DRC ID are required.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 400
- *                     description:
- *                       type: string
- *                       example: Please provide both case_id and drc_id in the request body.
- *       404:
- *         description: Case not found or DRC ID doesn't match.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Case not found or DRC ID doesn't match.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 404
- *                     description:
- *                       type: string
- *                       example: No case found with the provided Case ID and DRC ID combination.
+ *                   example: case_distribution_batch_id, batch_seq, and Created_By are required parameters.
  *       500:
- *         description: Internal server error occurred while fetching case details.
+ *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:
@@ -3258,18 +3252,276 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Failed to retrieve case details.
+ *                   example: Internal server error.
  *                 errors:
  *                   type: object
  *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 500
- *                     description:
+ *                     exception:
  *                       type: string
- *                       example: Internal server error occurred while fetching case details.
+ *                       example: Error message details.
  */
-router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
+router.post(
+  "/Create_Task_For_case_distribution_transaction_array",
+  Create_Task_For_case_distribution_transaction_array
+);
+
+/**
+ * @swagger
+ * /Exchange_DRC_RTOM_Cases:
+ *   post:
+ *     summary: C-1P24 Exchange Case Distribution Planning among DRC
+ *     description: |
+ *       Creates a task to exchange case distribution planning among DRCs.
+ *
+ *       | Version | Date        | Description                                     | Changed By       |
+ *       |---------|------------|-------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-11 | Initial creation of Exchange DRC cases API     | Sanjaya Perera   |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - drc_list
+ *               - created_by
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 description: Unique batch ID for case distribution.
+ *                 example: 1001
+ *               drc_list:
+ *                 type: array
+ *                 description: List of DRC exchange details.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - plus_drc_id
+ *                     - plus_drc
+ *                     - plus_rulebase_count
+ *                     - minus_drc_id
+ *                     - minus_drc
+ *                     - minus_rulebase_count
+ *                   properties:
+ *                     plus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC gaining cases.
+ *                       example: 2
+ *                     plus_drc:
+ *                       type: string
+ *                       description: Name of the DRC gaining cases.
+ *                       example: "DRC A"
+ *                     plus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases added to the DRC.
+ *                       example: 50
+ *                     minus_drc_id:
+ *                       type: integer
+ *                       description: ID of the DRC losing cases.
+ *                       example: 3
+ *                     minus_drc:
+ *                       type: string
+ *                       description: Name of the DRC losing cases.
+ *                       example: "DRC B"
+ *                     minus_rulebase_count:
+ *                       type: integer
+ *                       description: Number of cases removed from the DRC.
+ *                       example: 50
+ *                     rtom:
+ *                       type: string
+ *                       description: Additional RTOM information.
+ *                       example: "RTOM1234"
+ *               created_by:
+ *                 type: string
+ *                 description: User who initiated the request.
+ *                 example: "admin_user"
+ *     responses:
+ *       200:
+ *         description: Successfully exchanged case distributions among DRCs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "New batch sequence 2 added successfully."
+ *       400:
+ *         description: Validation error - Missing required parameters or invalid data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "case distribution batch id, created by, and DRC list fields are required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while creating the task."
+ */
+router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
+
+
+// /**
+//  * @swagger
+//  * tags:
+//  *   - name: Case Management
+//  *     description: Endpoints related to retrieving case details based on mediation board requests.
+//  * 
+//  * /api/case/Case_Details_for_DRC:
+//  *   post:
+//  *     summary: Retrieve case details by Case ID and DRC ID.
+//  *     description: |
+//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
+//  *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+//  *       the system returns relevant case details.
+//  *       
+//  *       | Version | Date       | Description                     | Changed By         |
+//  *       |---------|------------|---------------------------------|--------------------|
+//  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
+//  *     tags:
+//  *       - Case Management
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               case_id:
+//  *                 type: integer
+//  *                 description: Unique identifier for the case.
+//  *                 example: 101
+//  *               drc_id:
+//  *                 type: integer
+//  *                 description: Unique identifier for the Debt Recovery Company (DRC).
+//  *                 example: 5
+//  *     responses:
+//  *       200:
+//  *         description: Case details retrieved successfully.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: success
+//  *                 message:
+//  *                   type: string
+//  *                   example: Case details retrieved successfully.
+//  *                 data:
+//  *                   type: object
+//  *                   properties:
+//  *                     case_id:
+//  *                       type: integer
+//  *                       description: Case ID.
+//  *                       example: 101
+//  *                     customer_ref:
+//  *                       type: string
+//  *                       description: Customer reference number.
+//  *                       example: CUST-2024-001
+//  *                     account_no:
+//  *                       type: string
+//  *                       description: Customer's account number.
+//  *                       example: ACC-56789
+//  *                     current_arrears_amount:
+//  *                       type: number
+//  *                       description: The amount of arrears on the case.
+//  *                       example: 15000.75
+//  *                     last_payment_date:
+//  *                       type: string
+//  *                       format: date
+//  *                       description: Last payment date associated with the case.
+//  *                       example: "2025-01-15"
+//  *       400:
+//  *         description: Validation error - Case ID and DRC ID are required.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: error
+//  *                 message:
+//  *                   type: string
+//  *                   example: Both Case ID and DRC ID are required.
+//  *                 errors:
+//  *                   type: object
+//  *                   properties:
+//  *                     code:
+//  *                       type: integer
+//  *                       example: 400
+//  *                     description:
+//  *                       type: string
+//  *                       example: Please provide both case_id and drc_id in the request body.
+//  *       404:
+//  *         description: Case not found or DRC ID doesn't match.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: error
+//  *                 message:
+//  *                   type: string
+//  *                   example: Case not found or DRC ID doesn't match.
+//  *                 errors:
+//  *                   type: object
+//  *                   properties:
+//  *                     code:
+//  *                       type: integer
+//  *                       example: 404
+//  *                     description:
+//  *                       type: string
+//  *                       example: No case found with the provided Case ID and DRC ID combination.
+//  *       500:
+//  *         description: Internal server error occurred while fetching case details.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: error
+//  *                 message:
+//  *                   type: string
+//  *                   example: Failed to retrieve case details.
+//  *                 errors:
+//  *                   type: object
+//  *                   properties:
+//  *                     code:
+//  *                       type: integer
+//  *                       example: 500
+//  *                     description:
+//  *                       type: string
+//  *                       example: Internal server error occurred while fetching case details.
+//  */
+// router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
 
 
 /**
@@ -3394,103 +3646,247 @@ router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
  *         $ref: '#/components/responses/500'
  */
 
-// router.post(
-//   "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
-//   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
-// );
-router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
+router.post(
+  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+);
+
+// router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation);
  
+
+// /**
+//  * @swagger
+//  * tags:
+//  *   - name: Mediation
+//  *     description: Endpoints related to active mediation and board sessions.
+//  * 
+//  * /api/case/List_Active_Mediation_Response:
+//  *   get:
+//  *     summary: Retrieve all active mediation board sessions.
+//  *     description: |
+//  *       This endpoint retrieves all active mediation board responses where the `end_dtm` field is null, 
+//  *       indicating that the mediation session is still ongoing.
+//  *       
+//  *       | Version | Date       | Description                         | Changed By         |
+//  *       |---------|------------|-------------------------------------|--------------------|
+//  *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
+//  *     tags:
+//  *       - Mediation
+//  *     responses:
+//  *       200:
+//  *         description: Active mediation board sessions retrieved successfully.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: success
+//  *                 message:
+//  *                   type: string
+//  *                   example: Active mediation details retrieved successfully.
+//  *                 data:
+//  *                   type: array
+//  *                   items:
+//  *                     type: object
+//  *                     properties:
+//  *                       mediation_id:
+//  *                         type: integer
+//  *                         description: Unique identifier for the mediation session.
+//  *                         example: 501
+//  *                       case_id:
+//  *                         type: integer
+//  *                         description: ID of the related case.
+//  *                         example: 1001
+//  *                       status:
+//  *                         type: string
+//  *                         description: Current status of the mediation session.
+//  *                         example: "Ongoing"
+//  *                       created_dtm:
+//  *                         type: string
+//  *                         format: date-time
+//  *                         description: The date and time the mediation session started.
+//  *                         example: "2025-02-10T09:30:00Z"
+//  *                       end_dtm:
+//  *                         type: string
+//  *                         nullable: true
+//  *                         description: The date and time the mediation session ended, if applicable.
+//  *                         example: null
+//  *       404:
+//  *         description: No active mediation sessions found.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: error
+//  *                 message:
+//  *                   type: string
+//  *                   example: No active Mediation response found.
+//  *       500:
+//  *         description: Internal server error occurred while fetching active mediation sessions.
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: string
+//  *                   example: error
+//  *                 message:
+//  *                   type: string
+//  *                   example: Internal server error occurred while fetching active negotiation details.
+//  *                 error:
+//  *                   type: string
+//  *                   example: Error message describing the issue.
+//  */
+// router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+
+router.get(
+  "/List_All_Batch_Details",
+  List_All_Batch_Details
+);
+
+router.post(
+  "/Approve_Batch_or_Batches",
+  Approve_Batch_or_Batches
+);
+
+router.post(
+  "/Create_task_for_batch_approval",
+  Create_task_for_batch_approval
+);
+
+router.post(
+  "/List_DRC_Assign_Manager_Approval",
+  List_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Approve_DRC_Assign_Manager_Approval",
+  Approve_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Reject_DRC_Assign_Manager_Approval",
+  Reject_DRC_Assign_Manager_Approval
+);
+
+router.post(
+  "/Create_task_for_DRC_Assign_Manager_Approval",
+  Create_task_for_DRC_Assign_Manager_Approval
+);
+router.post(
+  "/Assign_DRC_To_Case",
+  Assign_DRC_To_Case
+);
+
+router.post(
+  "/List_Case_Distribution_Details",
+  List_Case_Distribution_Details
+);
+
+router.post(
+  "/Create_Task_For_case_distribution_drc_summery",
+  Create_Task_For_case_distribution_drc_summery
+);
+
+router.post(
+  "/List_Case_Distribution_Details_With_Rtoms",
+  List_Case_Distribution_Details_With_Rtoms
+);
+
+router.post(
+  "/List_CasesOwened_By_DRC",
+  List_CasesOwened_By_DRC
+);
 
 /**
  * @swagger
- * tags:
- *   - name: Mediation
- *     description: Endpoints related to active mediation and board sessions.
- * 
- * /api/case/List_Active_Mediation_Response:
- *   get:
- *     summary: Retrieve all active mediation board sessions.
+ * /api/case/List_All_DRC_Negotiation_Cases:
+ *   post:
+ *     summary: Retrieve all cases assigned to a specific DRC
  *     description: |
- *       This endpoint retrieves all active mediation board responses where the `end_dtm` field is null, 
- *       indicating that the mediation session is still ongoing.
- *       
- *       | Version | Date       | Description                         | Changed By         |
- *       |---------|------------|-------------------------------------|--------------------|
- *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
- *     tags:
- *       - Mediation
+ *       Fetches all cases assigned to a DRC within a given date range and optional status filter.
+ *
+ *       | Version | Date        | Description                        | Changed By            |
+ *       |---------|-------------|------------------------------------|-----------------------|
+ *       | 01      | 2024-Feb-03 | Initial API for listing cases     | Vishmi Wijewardana    |
+ *
+ *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - ro_id
+ *               - From_DAT
+ *               - TO_DAT
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 description: Unique ID of the DRC.
+ *                 example: "DRC123"
+ *               ro_id:
+ *                 type: string
+ *                 description: Unique ID of the Recovery Officer.
+ *                 example: "RO456"
+ *               From_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering cases.
+ *                 example: "2024-01-01"
+ *               TO_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering cases.
+ *                 example: "2024-01-31"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Case status filter (e.g., Open, Closed, Pending).
+ *                 example: "Open"
  *     responses:
  *       200:
- *         description: Active mediation board sessions retrieved successfully.
+ *         description: List of cases owned by the DRC.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Active mediation details retrieved successfully.
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       mediation_id:
- *                         type: integer
- *                         description: Unique identifier for the mediation session.
- *                         example: 501
- *                       case_id:
- *                         type: integer
- *                         description: ID of the related case.
- *                         example: 1001
- *                       status:
- *                         type: string
- *                         description: Current status of the mediation session.
- *                         example: "Ongoing"
- *                       created_dtm:
- *                         type: string
- *                         format: date-time
- *                         description: The date and time the mediation session started.
- *                         example: "2025-02-10T09:30:00Z"
- *                       end_dtm:
- *                         type: string
- *                         nullable: true
- *                         description: The date and time the mediation session ended, if applicable.
- *                         example: null
- *       404:
- *         description: No active mediation sessions found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: No active Mediation response found.
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   case_id:
+ *                     type: integer
+ *                     example: 1001
+ *                   drc_id:
+ *                     type: string
+ *                     example: "DRC123"
+ *                   ro_id:
+ *                     type: string
+ *                     example: "RO456"
+ *                   case_details:
+ *                     type: string
+ *                     example: "Loan default case"
+ *                   case_status:
+ *                     type: string
+ *                     example: "Open"
+ *                   assigned_date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2024-01-15T10:30:00.000Z"
+ *       400:
+ *         description: Bad request - required fields missing or invalid format.
  *       500:
- *         description: Internal server error occurred while fetching active mediation sessions.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Internal server error occurred while fetching active negotiation details.
- *                 error:
- *                   type: string
- *                   example: Error message describing the issue.
+ *         description: Internal server error.
  */
-router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+
+router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
 
 export default router;
 
