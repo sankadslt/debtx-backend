@@ -1272,7 +1272,10 @@ export const List_F1_filted_Incidents = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
          Incident_Status: { $in: rejectpendingStatuses },
-         $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+         $and: [
+          { Proceed_Dtm: { $exists: true } },
+          { Proceed_Dtm: { $in: [null, ""] } }
+        ]
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
@@ -1474,7 +1477,7 @@ export const total_incidents_Direct_LOD = async (req, res) => {
 
 export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
-    const { Incident_Id } = req.body;
+    const { Incident_Id, user } = req.body;
 
     if (!Incident_Id) {
       return res.status(400).json({
@@ -1510,7 +1513,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
         }
       });
     }
-    console.log(incident.Proceed_Dtm)
+    
     if (incident.Proceed_Dtm !== " " && incident.Proceed_Dtm !== null) {
       return res.status(400).json({ 
        status:"error",
@@ -1528,7 +1531,8 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
           $set: {
               Incident_Status: 'Incident Reject',
               Incident_Status_Dtm: new Date(),
-              Proceed_Dtm: new Date()
+              Proceed_Dtm: new Date(),
+              Proceed_By: user
           },
       },
       
