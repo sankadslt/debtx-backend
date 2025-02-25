@@ -147,7 +147,7 @@ const settlementschema = new Schema({
 const caseDetailsSchema = new Schema({
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
-  account_no: { type: Number, required: true },
+  account_no: { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
