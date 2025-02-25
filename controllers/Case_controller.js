@@ -3937,7 +3937,7 @@ export const Mediation_Board = async (req, res) => {
       next_calling_date,
       request_id,
       request_type,
-      user_interaction_id,
+      intraction_id,
       customer_available,
       comment,
       settle,
@@ -3946,42 +3946,51 @@ export const Mediation_Board = async (req, res) => {
       calendar_month,
       duration,
       remark,
-      fail_reason
+      fail_reason,
+      created_by,
     } = req.body;
 
     if (!case_id || !drc_id || !customer_available) {
       return res.status(400).json({ message: "Missing required fields: case id, drc id, customer available" });
     };
     if (request_id && request_type) {
+      //interaction api should be call
+      intraction_log_id = 1
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
-        {
-          $push: {
-            mediation_board: {
-              drc_id,
-              ro_id,
-              created_dtm: new Date(),
-              mediation_board_calling_dtm:new Date(),
-              customer_available,
-              comment,
-              settlement_id:1,
-              customer_response:"we should insert something for this",
-              next_calling_dtm:next_calling_date
+        { 
+            $push: { 
+                mediation_board: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    mediation_board_calling_dtm: next_calling_date,
+                    customer_available,
+                    comment,
+                    customer_response: fail_reason,
+                    agree_to_settle: settle,
+                },
+                ro_requests: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    ro_request_id: request_id,
+                    ro_request: request_type,
+                    intraction_id: intraction_id,
+                    intraction_log_id,
+                },
+                case_status: {
+                    case_status: "MB Fail with Pending Non-Settlement", 
+                    created_dtm: new Date(),
+                    created_by,
+                }
             },
-            ro_requests: {
-              drc_id,
-              ro_id,
-              created_dtm: new Date(),
-              ro_request_id:request_id,
-              ro_request:request_type,
-              intraction_id:user_interaction_id,
-              todo_dtm: new Date(), //this should be change
-              completed_dtm: new Date(), // this should be change
+            $set: { 
+                case_current_status: "MB Fail with Pending Non-Settlement"
             }
-          }
         },
-        { new: true }
-      );
+        { new: true } // Correct placement of options
+    );
       if (!updatedCase) {
         return { success: false, message: 'Case not found this case id' };
       }
@@ -3994,12 +4003,11 @@ export const Mediation_Board = async (req, res) => {
               drc_id,
               ro_id,
               created_dtm: new Date(),
-              mediation_board_calling_dtm:new Date(),
+              mediation_board_calling_dtm:next_calling_date,
               customer_available,
               comment,
-              settlement_id:1,
-              customer_response:"we should insert something for this",
-              next_calling_dtm:next_calling_date
+              customer_response:fail_reason,
+              agree_to_settle:settle,
             },
           }
         },
@@ -4009,15 +4017,11 @@ export const Mediation_Board = async (req, res) => {
         return { success: false, message: 'Case not found this case id' };
       }
     }
-    
-    if (!request_id || !request_type || !user_interaction_id){
-      // add the field to the user interaction table
-    };
     if(settle){
       if(!settlement_count || !initial_amount || !calendar_month || !duration){
         return res.status(400).json({ message: "Missing required fields: settlement count , initial amount, calendar months, duration" });
       };
-      // add the field to the case settlement 
+      // call settlement APi
     };
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

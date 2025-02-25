@@ -30,9 +30,9 @@ const caseStatusSchema = new Schema({
   case_status: { type: String, required: true },
   status_reason: { type: String, default: null },
   created_dtm: { type: Date, required: true },
-  created_by: { type: String, default: null },
-  notified_dtm: { type: Date, required: true },
-  expire_dtm: { type: Date, required: true },
+  created_by: { type: String, required: true },
+  notified_dtm: { type: Date,default: null },
+  expire_dtm: { type: Date, default: null },
 }, { _id: false });
 
 // Define the contact 
@@ -118,7 +118,8 @@ const roRequestsSchema = new mongoose.Schema({
   ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
   intraction_id: { type: Number, required: true },
-  todo_dtm: { type: Date, required: true },
+  intraction_log_id: { type: Number, required: true },
+  todo_dtm: { type: Date, default:null  },
   completed_dtm: { type: Date, default:null },
 });
 
@@ -129,10 +130,9 @@ const mediationBoardSchema = new mongoose.Schema({
   mediation_board_calling_dtm: { type: Date, required: true },
   customer_available: { type: String, required: true, enum: ['yes','no'] },
   comment: { type: String, default:null },
-  settlement_id: { type: Number},
+  agree_to_settle: { type: String},
   customer_response: { type: String, default:null },
   next_calling_dtm: { type: Date, default:null },
-
 });
 
 const settlementschema = new Schema({
