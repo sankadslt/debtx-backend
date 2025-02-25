@@ -3689,7 +3689,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
 
     // --- Create Task ---
     const taskData = {
-      Template_Task_Id: 31, // Different Task ID for approval tasks
+      Template_Task_Id: 33, // Different Task ID for approval tasks
       task_type: "Letting know the DRC Assign Manager Approval",
       approver_references, // List of approver references
       created_on: currentDate.toISOString(),
