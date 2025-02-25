@@ -58,6 +58,7 @@ import {
   List_Case_Distribution_Details_With_Rtoms,
   List_CasesOwened_By_DRC,
   listDRCAllCases,
+  Create_Task_For_Assigned_drc_case_list_download,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3450,5 +3451,10 @@ router.post(
  */
 
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
+
+router.post(
+  "/Create_Task_For_Assigned_drc_case_list_download",
+  Create_Task_For_Assigned_drc_case_list_download
+);
 
 export default router;
