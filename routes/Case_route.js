@@ -3617,6 +3617,109 @@ router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
 
 router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
 
+/**
+ * @swagger
+ * /List_DRC_Assign_Manager_Approval:
+ *   post:
+ *     summary: Retrieve DRC Assign Manager Approvals
+ *     description: |
+ *       Fetches approval details excluding "DRC_Distribution", with optional filtering by approver type and date range.
+ *
+ *       | Version | Date        | Description                                  | Changed By       |
+ *       |---------|------------|----------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of DRC Assign Manager API  | Sanjaya Perera   |
+ *
+ *     tags: [Approval Management]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approver_type:
+ *                 type: string
+ *                 description: Filter by approver type (excluding "DRC_Distribution").
+ *                 example: "Manager_Approval"
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering (YYYY-MM-DD).
+ *                 example: "2025-01-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering (YYYY-MM-DD).
+ *                 example: "2025-02-10"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved approval details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     example: "65f2a3d9e8b4f51234abcd12"
+ *                   approver_reference:
+ *                     type: string
+ *                     example: "APPROVER_1001"
+ *                   created_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-10T12:30:00.000Z"
+ *                   created_by:
+ *                     type: string
+ *                     example: "admin_user"
+ *                   approver_type:
+ *                     type: string
+ *                     example: "Manager_Approval"
+ *                   parameters:
+ *                     type: object
+ *                     additionalProperties: true
+ *                   approve_status:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           example: "Approved"
+ *                         status_date:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-10T15:00:00.000Z"
+ *                         status_edit_by:
+ *                           type: string
+ *                           example: "manager_user"
+ *       400:
+ *         description: Validation error - Incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid request parameters."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
+
 router.post(
   "/List_DRC_Assign_Manager_Approval",
   List_DRC_Assign_Manager_Approval
