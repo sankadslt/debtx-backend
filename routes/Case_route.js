@@ -65,6 +65,8 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
+  drcCaseDetails,
+  updateDrcCaseDetails,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
