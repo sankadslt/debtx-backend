@@ -827,14 +827,14 @@ router.post("/Case_Current_Status", Case_Current_Status);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for managing and assigning Recovery Officers to cases.
- * 
+ *
  * /api/case/Assign_RO_To_Case:
  *   patch:
  *     summary: Assign a Recovery Officer to cases.
  *     description: |
- *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area 
+ *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area
  *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| Assign Recovery Officer to cases | Sasindu Srinayaka  |
@@ -972,15 +972,15 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for managing and retrieving cases handled by DRC.
- * 
+ *
  * /api/case/List_Handling_Cases_By_DRC:
  *   post:
  *     summary: Retrieve cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC). 
+ *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC).
  *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
  *       The cases must have a `case_current_status` in specific predefined statuses and belong to an active DRC.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| List handling cases by DRC        | Sasindu Srinayaka  |
@@ -1146,14 +1146,14 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving case behavior details during a specific DRC period.
- * 
+ *
  * /api/case/Case_Behavior_During_DRC:
  *   post:
  *     summary: Retrieve case behavior details during a specific DRC period.
  *     description: |
- *       This endpoint retrieves detailed behavior information about a case during a specified DRC period. 
+ *       This endpoint retrieves detailed behavior information about a case during a specified DRC period.
  *       It includes settlement details, payment history, and Recovery Officer information if available.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC era | Sasindu Srinayaka  |
@@ -2744,7 +2744,8 @@ router.post(
 );
 
 router.post(
-  "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
+  "/List_All_DRC_Mediation_Board_Cases",
+  listAllDRCMediationBoardCases
 );
 
 /**
@@ -3312,20 +3313,107 @@ router.post(
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId
 );
 
-router.get(
-  "/List_All_Batch_Details",
-  List_All_Batch_Details
-);
+/**
+ * @swagger
+ * /List_All_Batch_Details:
+ *   get:
+ *     summary: Retrieve All Batch Details with Approver Information
+ *     description: |
+ *       Fetches batch details including approver status, reference, and case distribution details.
+ *
+ *       | Version | Date        | Description                                    | Changed By       |
+ *       |---------|------------|------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of Batch Details API         | Sanjaya Perera   |
+ *
+ *     tags: [Batch Management]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved batch details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     example: "65ef1234abcd56789ef01234"
+ *                   approver_reference:
+ *                     type: string
+ *                     example: "BATCH_202502"
+ *                   created_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-02-11T10:00:00.000Z"
+ *                   created_by:
+ *                     type: string
+ *                     example: "admin_user"
+ *                   approve_status:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           example: "Open"
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-02-11T10:05:00.000Z"
+ *                   approver_type:
+ *                     type: string
+ *                     example: "DRC_Distribution"
+ *                   parameters:
+ *                     type: object
+ *                     example:
+ *                       key1: "value1"
+ *                       key2: "value2"
+ *                   approved_by:
+ *                     type: string
+ *                     nullable: true
+ *                     example: null
+ *                   remark:
+ *                     type: string
+ *                     nullable: true
+ *                     example: null
+ *                   case_distribution_details:
+ *                     type: object
+ *                     nullable: true
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: string
+ *                         example: "BATCH_202502"
+ *                       drc_commision_rule:
+ *                         type: string
+ *                         example: "Rule_A"
+ *                       rulebase_count:
+ *                         type: integer
+ *                         example: 50
+ *                       rulebase_arrears_sum:
+ *                         type: number
+ *                         format: float
+ *                         example: 120000.50
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error."
+ */
 
-router.post(
-  "/Approve_Batch_or_Batches",
-  Approve_Batch_or_Batches
-);
+router.get("/List_All_Batch_Details", List_All_Batch_Details);
 
-router.post(
-  "/Create_task_for_batch_approval",
-  Create_task_for_batch_approval
-);
+router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
+
+router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
 
 router.post(
   "/List_DRC_Assign_Manager_Approval",
@@ -3346,15 +3434,9 @@ router.post(
   "/Create_task_for_DRC_Assign_Manager_Approval",
   Create_task_for_DRC_Assign_Manager_Approval
 );
-router.post(
-  "/Assign_DRC_To_Case",
-  Assign_DRC_To_Case
-);
+router.post("/Assign_DRC_To_Case", Assign_DRC_To_Case);
 
-router.post(
-  "/List_Case_Distribution_Details",
-  List_Case_Distribution_Details
-);
+router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
 
 router.post(
   "/Create_Task_For_case_distribution_drc_summery",
@@ -3366,10 +3448,7 @@ router.post(
   List_Case_Distribution_Details_With_Rtoms
 );
 
-router.post(
-  "/List_CasesOwened_By_DRC",
-  List_CasesOwened_By_DRC
-);
+router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
 
 /**
  * @swagger
@@ -3460,15 +3539,15 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  * tags:
  *   - name: Case Management
  *     description: Endpoints related to retrieving case details based on mediation board requests.
- * 
+ *
  * /api/case/Case_Details_for_DRC:
  *   post:
  *     summary: Retrieve case details by Case ID and DRC ID.
  *     description: |
- *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
- *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+ *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
+ *       If a case with the specified Case ID exists and is associated with the given DRC ID,
  *       the system returns relevant case details.
- *       
+ *
  *       | Version | Date       | Description                     | Changed By         |
  *       |---------|------------|---------------------------------|--------------------|
  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
@@ -3594,14 +3673,14 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *                       type: string
  *                       example: Internal server error occurred while fetching case details.
  */
-router.post("/Case_Details_for_DRC",CaseDetailsforDRC);
+router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
 
 /**
  * @swagger
  * tags:
  *   - name: Recovery Officer Requests
  *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
- * 
+ *
  * /api/case/List_Active_RO_Request:
  *   get:
  *     summary: Retrieve active RO mediation requests.
@@ -3693,21 +3772,21 @@ router.post("/Case_Details_for_DRC",CaseDetailsforDRC);
  *                   example: Internal server error message.
  */
 
-router.post("/List_Active_RO_Requests",ListActiveRORequests);
+router.post("/List_Active_RO_Requests", ListActiveRORequests);
 
 /**
  * @swagger
  * tags:
  *   - name: Mediation
  *     description: Endpoints related to active mediation and board sessions.
- * 
+ *
  * /api/case/List_Active_Mediation_Response:
  *   get:
  *     summary: Retrieve all active mediation board sessions.
  *     description: |
- *       This endpoint retrieves all active mediation board responses where the end_dtm field is null, 
+ *       This endpoint retrieves all active mediation board responses where the end_dtm field is null,
  *       indicating that the mediation session is still ongoing.
- *       
+ *
  *       | Version | Date       | Description                         | Changed By         |
  *       |---------|------------|-------------------------------------|--------------------|
  *       | 01      | 2025-Feb-19| List all active mediation responses | U.H.Nandali Linara  |
@@ -3785,7 +3864,7 @@ router.post("/List_Active_RO_Requests",ListActiveRORequests);
  *                   example: Internal server error message.
  */
 
-router.get("/List_Active_Mediation_Response",ListActiveMediationResponse);
+router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
 router.post(
   "/Create_Task_For_Assigned_drc_case_list_download",
   Create_Task_For_Assigned_drc_case_list_download
