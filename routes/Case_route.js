@@ -3725,15 +3725,265 @@ router.post(
   List_DRC_Assign_Manager_Approval
 );
 
+/**
+ * @swagger
+ * /Approve_DRC_Assign_Manager_Approval:
+ *   post:
+ *     summary: Approve DRC Assign Manager Approvals
+ *     description: Approves one or more DRC Assign Manager approval requests (excluding "DRC_Distribution") and updates case details accordingly.
+ *
+ *       | Version | Date        | Description                                      | Changed By       |
+ *       |---------|------------|--------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of DRC Assign Manager Approval API | Sanjaya Perera   |
+ *
+ *     tags: [Approval Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approver_references:
+ *                 type: array
+ *                 description: List of approver references to be approved (max 5).
+ *                 minItems: 1
+ *                 maxItems: 5
+ *                 items:
+ *                   type: string
+ *                   example: "APPROVER_1001"
+ *               approved_by:
+ *                 type: string
+ *                 description: The user who approves the cases.
+ *                 example: "manager_user"
+ *     responses:
+ *       200:
+ *         description: Successfully approved the cases and updated related details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Approvals added successfully."
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide between 1 to 5 approver references"
+ *       404:
+ *         description: No matching approver references found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching approver references found"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error approving DRC Assign Manager Approvals"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
+
 router.post(
   "/Approve_DRC_Assign_Manager_Approval",
   Approve_DRC_Assign_Manager_Approval
 );
 
+/**
+ * @swagger
+ * /Reject_DRC_Assign_Manager_Approval:
+ *   post:
+ *     summary: Reject DRC Assign Manager Approvals
+ *     description: Rejects one or more DRC Assign Manager approval requests (excluding "DRC_Distribution") and updates case details accordingly.
+ *
+ *       | Version | Date        | Description                                      | Changed By       |
+ *       |---------|------------|--------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of DRC Assign Manager Rejection API | Sanjaya Perera   |
+ *
+ *     tags: [Approval Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approver_references:
+ *                 type: array
+ *                 description: List of approver references to be rejected (max 5).
+ *                 minItems: 1
+ *                 maxItems: 5
+ *                 items:
+ *                   type: string
+ *                   example: "APPROVER_1002"
+ *               approved_by:
+ *                 type: string
+ *                 description: The user who rejects the cases.
+ *                 example: "manager_user"
+ *     responses:
+ *       200:
+ *         description: Successfully rejected the cases and updated related details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Rejections added successfully."
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide between 1 to 5 approver references"
+ *       404:
+ *         description: No matching approver references found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching approver references found"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error rejecting DRC Assign Manager Approvals"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
+
 router.post(
   "/Reject_DRC_Assign_Manager_Approval",
   Reject_DRC_Assign_Manager_Approval
 );
+
+/**
+ * @swagger
+ * /Create_task_for_DRC_Assign_Manager_Approval:
+ *   post:
+ *     summary: Create Task for DRC Assign Manager Approval
+ *     description: Creates a task to notify about the DRC Assign Manager Approval process.
+ *
+ *       | Version | Date        | Description                                       | Changed By       |
+ *       |---------|------------|---------------------------------------------------|------------------|
+ *       | 01      | 2025-Feb-25 | Initial creation of DRC Assign Manager Task API | Sanjaya Perera   |
+ *
+ *     tags: [Task Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approver_references:
+ *                 type: array
+ *                 description: List of approver references for which the task is created.
+ *                 minItems: 1
+ *                 items:
+ *                   type: string
+ *                   example: "APPROVER_1003"
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: Task for batch approval created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Task for batch approval created successfully."
+ *                 taskData:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 33
+ *                     task_type:
+ *                       type: string
+ *                       example: "Letting know the DRC Assign Manager Approval"
+ *                     approver_references:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: "APPROVER_1003"
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-11T12:00:00Z"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, provide an array of approver references"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating batch approval task"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error details."
+ */
 
 router.post(
   "/Create_task_for_DRC_Assign_Manager_Approval",
