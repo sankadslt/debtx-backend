@@ -12,14 +12,15 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
-import RecoveryOfficer from "../models/Recovery_officer.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
 import SystemTransaction from "../models/System_transaction.js";
+import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
-import RO_Request from "../models/Template_RO_Request .js"
+import Template_RO_Request from "../models/Template_RO_Request .js";
+import Template_Mediation_Board from "../models/Template_mediation_board.js";
 import moment from "moment";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -2657,6 +2658,155 @@ export const listAllDRCMediationBoardCases = async (req, res) => {
   }
 };
 
+
+export const  ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
+  const { drc_id, rtom, case_current_status, ro_id, action_type, from_date, to_date } = req.body;
+
+  try {
+    // Validate the DRC ID
+    if (!drc_id || ro_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve DRC details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
+    }
+
+    // Ensure at least one optional parameter is provided
+    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+        },
+      });
+    }
+
+    // // Build base query for cases with mediation board entries
+    // let query = {
+    //   "drc.drc_id": drc_id,
+    //   "mediation_board": { $exists: true, $ne: [] },
+    //   $and: [],
+    // };
+
+    // Build query dynamically based on provided parameters
+    let query = { "drc.drc_id": drc_id };
+
+    // If the ro_id condition to the query if provided
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
+      });
+    }
+
+    // Initialize $and array if any optional filters are provided
+    if (rtom || action_type || ro_id || case_current_status || (from_date && to_date)) {
+      query.$and = [];
+    }
+
+    // Add optional filters dynamically
+    if (rtom) query.$and.push({ area: rtom });
+    if (action_type) query.$and.push({ action_type });
+    if (case_current_status) query.$and.push({ case_current_status });
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            {
+              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+            },
+          ],
+        },
+      });
+    }
+    if (from_date && to_date) {
+      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+    }
+
+    // Execute the query with the status filter
+    const cases = await Case_details.find(query);
+
+    // Handle case where no matching cases are found
+    if (cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching cases found for the given criteria.",
+        errors: {
+          code: 404,
+          description: "No cases satisfy the provided criteria.",
+        },
+      });
+    }
+
+    // Use Promise.all to handle asynchronous operations
+    const formattedCases = await Promise.all(
+      cases.map(async (caseData) => {
+        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        const lastRecoveryOfficer =
+          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+
+        // Fetch matching recovery officer asynchronously
+        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+          ro_id: lastRecoveryOfficer.ro_id,
+        });
+
+        // Get count of mediation board entries
+        const mediationBoardCount = caseData.mediation_board.length;
+
+        return {
+          case_id: caseData.case_id,
+          status: caseData.case_current_status,
+          created_dtm: lastDrc.created_dtm,
+          area: caseData.area,
+          expire_dtm: lastDrc.expire_dtm,
+          ro_name: matchingRecoveryOfficer?.ro_name || null,
+          mediation_board_count: mediationBoardCount, // Added count of mediation board entries
+          mediation_details: {
+            created_dtm: latestMediationBoard.created_dtm,
+            mediation_board_calling_dtm: latestMediationBoard.mediation_board_calling_dtm,
+            customer_available: latestMediationBoard.customer_available,
+            comment: latestMediationBoard.comment,
+            settlement_id: latestMediationBoard.settlement_id,
+            customer_response: latestMediationBoard.customer_response,
+            next_calling_dtm: latestMediationBoard.next_calling_dtm
+          }
+        };
+      })
+    );
+
+    // Return success response
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: formattedCases,
+    });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving cases.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
 // export const Batch_Forward_for_Proceed = async (req, res) => {
 //   const session = await mongoose.startSession();
 //   session.startTransaction();
@@ -2947,7 +3097,7 @@ export const get_distribution_array_of_a_transaction = async (req, res) => {
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
     // Fetch all RO details from MongoDB
-    const ro_requests = await RO_Request.find();
+    const ro_requests = await RecoveryOfficer_Request.find();
 
     // Check if any data is found in databases
     if (ro_requests.length === 0) {
@@ -3212,17 +3362,23 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 
     return res.status(200).json({
       status: "success",
-      message: "Case distribution details retrieved successfully.",
-      data: result,
+      message: "Case details retrieved successfully.",
+      data: caseDetails,
     });
-  } catch (error) {
-    // Handle errors
+
+  } catch (err) {
+    console.error("Detailed error:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+
     return res.status(500).json({
       status: "error",
-      message: "An error occurred while retrieving case distribution details.",
+      message: "Failed to retrieve case details.",
       errors: {
         code: 500,
-        description: error.message,
+        description: err.message || "Internal server error occurred while fetching case details.",
       },
     });
   }
@@ -4098,7 +4254,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
-    if (account_no) query["account_no"] = Number(account_no);
+    if (account_no) query["account_no"] = String(account_no);
 
     const caseDetails = await Case_details.find(query, {
       case_id: 1,

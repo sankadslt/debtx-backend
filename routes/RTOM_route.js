@@ -1329,6 +1329,6 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
  */
 // Route to retrieve all active RTOMs by DRC ID
 router.post('/List_ALL_Active_RTOM_Ownned_By_DRC',getAllActiveRTOMsByDRCID);
-router.post('/active-rtoms',getAllActiveRTOMsByDRCID);
+
 
 export default router;
