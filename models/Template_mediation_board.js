@@ -47,6 +47,6 @@ const TemplateMediationBoardSchema = new mongoose.Schema(
   }
 );
 
-const TemplateMediationBoard = model("Template_Mediation_Board", TemplateMediationBoardSchema);
+const TemplateMediationBoard = mongoose.model("Template_Mediation_Board", TemplateMediationBoardSchema);
 
 export default TemplateMediationBoard;

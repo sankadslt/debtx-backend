@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   login_method: { type: String, required: true, enum: ["slt", "email", "facebook"] },
   sequence_id: { type: String },
   drc_id: { type: String, default: null },
+  drc_sequence_id: { type: String, default: null },
+  ro_sequence_id: { type: String, default: null },
 });
 
 // Create the User model
