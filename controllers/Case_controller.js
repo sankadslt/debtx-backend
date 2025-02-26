@@ -4612,6 +4612,42 @@ export const updateDrcCaseDetails = async (req, res) => {
       return res.status(404).json({ error: "Case not found" });
     }
 
+    // Check for duplicate mobile in ro_edited_customer_details array
+    const isDuplicateMobile = caseDetails.ro_edited_customer_details.some(
+      (contact) => contact.mob === mob
+    );
+    
+    if (isDuplicateMobile) {
+      return res.status(400).json({ error: "Duplicate data detected: Mobile already exists" });
+    }
+
+    // Check for duplicate email in ro_edited_customer_details array
+    const isDuplicateEmail = caseDetails.ro_edited_customer_details.some(
+      (contact) => contact.email === email
+    );
+    
+    if (isDuplicateEmail) {
+      return res.status(400).json({ error: "Duplicate data detected: Email already exists" });
+    }
+
+    // Check for duplicate nic in ro_edited_customer_details array
+    const isDuplicateNIC = caseDetails.ro_edited_customer_details.some(
+      (contact) => contact.nic === nic
+    );
+    
+    if (isDuplicateNIC) {
+      return res.status(400).json({ error: "Duplicate data detected: NIC already exists" });
+    }
+
+    // Check for duplicate address in ro_edited_customer_details array
+    const isDuplicateAddress = caseDetails.ro_edited_customer_details.some(
+      (contact) => contact.address === address
+    );
+    
+    if (isDuplicateAddress) {
+      return res.status(400).json({ error: "Duplicate data detected: address already exists" });
+    }
+    
     // Schema for edited contact details
     const editedcontactsSchema = {
       ro_id:  "125" ,
