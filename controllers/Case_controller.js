@@ -22,6 +22,7 @@ import CasePayments from "../models/Case_payments.js";
 import RO_Request from "../models/Template_RO_Request .js"
 import moment from "moment";
 import mongoose from "mongoose";
+import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
@@ -4002,8 +4003,22 @@ export const Mediation_Board = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields: case id, drc id, customer available" });
     };
     if (request_id && request_type) {
-      //interaction api should be call
-      intraction_log_id = 1
+      const dynamicParams = {
+        case_id,
+        drc_id,
+        ro_id,
+        request_id,
+        request_type,
+      };
+      const result = await createUserInteractionFunction({
+        Interaction_ID:intraction_id,
+        User_Interaction_Type:request_type,
+        delegate_user_id:"Nishantha Alwis",
+        Created_By:created_by,
+        User_Interaction_Status: "Open",
+        ...dynamicParams
+      });
+      const intraction_log_id = 1
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
         { 
@@ -4040,7 +4055,7 @@ export const Mediation_Board = async (req, res) => {
         { new: true } // Correct placement of options
     );
       if (!updatedCase) {
-        return { success: false, message: 'Case not found this case id' };
+        return { success: "error", message: 'Case not found this case id' };
       }
     }else{
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
@@ -4071,6 +4086,7 @@ export const Mediation_Board = async (req, res) => {
       };
       // call settlement APi
     };
+    return res.status(200).json({ status:"success", message: "Missing required fields: settlement count , initial amount, calendar months, duration" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

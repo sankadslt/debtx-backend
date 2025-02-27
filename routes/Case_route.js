@@ -62,6 +62,7 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
+  Mediation_Board,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -4072,4 +4073,5 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
+router.post("/Mediation_Board",Mediation_Board);
 export default router;
