@@ -119,7 +119,7 @@ const roRequestsSchema = new mongoose.Schema({
   created_dtm: { type: Date, required: true },
   ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
-  intraction_id: { type: Number, required: true },
+  intraction_id: { type: Number, required: true }, 
   intraction_log_id: { type: Number, required: true },
   todo_dtm: { type: Date, default:null  },
   completed_dtm: { type: Date, default:null },

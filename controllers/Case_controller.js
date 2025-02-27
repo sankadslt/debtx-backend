@@ -4168,7 +4168,15 @@ export const Mediation_Board = async (req, res) => {
       });
     }
 
-    if (request_id && request_type) {
+    if (request_id || request_type  || intraction_id) {
+      if (!request_id || !request_type || !intraction_id) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: request_id, request_type, intraction_id" 
+        });
+      }
       const dynamicParams = {
         case_id,
         drc_id,
