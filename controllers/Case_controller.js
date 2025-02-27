@@ -4171,12 +4171,12 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:"Nishantha Alwis",
+        delegate_user_id:1,
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams
       });
-      const intraction_log_id = 1
+      const intraction_log_id = result.Interaction_Log_ID;
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
         { 
