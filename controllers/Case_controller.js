@@ -4136,7 +4136,9 @@ export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
 };
 
 export const Mediation_Board = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
+    session.startTransaction();
     const {
       case_id,
       drc_id,
@@ -4158,8 +4160,14 @@ export const Mediation_Board = async (req, res) => {
     } = req.body;
 
     if (!case_id || !drc_id || !customer_available) {
-      return res.status(400).json({ message: "Missing required fields: case id, drc id, customer available" });
-    };
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: case_id, drc_id, customer_available" 
+      });
+    }
+
     if (request_id && request_type) {
       const dynamicParams = {
         case_id,
@@ -4171,11 +4179,20 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:1,
+        delegate_user_id:1,   // should be change this 
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams
       });
+
+      if (!result || !result.Interaction_Log_ID) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({ 
+          status: "error", 
+          message: "Failed to create user interaction" 
+        });
+      }
       const intraction_log_id = result.Interaction_Log_ID;
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
@@ -4210,11 +4227,16 @@ export const Mediation_Board = async (req, res) => {
                 case_current_status: "MB Fail with Pending Non-Settlement"
             }
         },
-        { new: true } // Correct placement of options
+        { new: true, session } // Correct placement of options
     );
-      if (!updatedCase) {
-        return { success: "error", message: 'Case not found this case id' };
-      }
+    if (!updatedCase) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ 
+        status: "error",
+        message: 'Case not found this case id' 
+      });
+    }
     }else{
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
@@ -4232,22 +4254,43 @@ export const Mediation_Board = async (req, res) => {
             },
           }
         },
-        { new: true }
+        { new: true, session }
       );
       if (!updatedMediationBoardCase) {
-        return { success: false, message: 'Case not found this case id' };
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Case not found for this case id' 
+        });
       }
     }
     if(settle){
       if(!settlement_count || !initial_amount || !calendar_month || !duration){
-        return res.status(400).json({ message: "Missing required fields: settlement count , initial amount, calendar months, duration" });
-      };
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
+        });      };
       // call settlement APi
     };
-    return res.status(200).json({ status:"success", message: "Missing required fields: settlement count , initial amount, calendar months, duration" });
+
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(200).json({ 
+      status: "success", 
+      message: "Operation completed successfully" 
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ 
+      status:"error",
+      message: "Server error", 
+      error: error.message 
+    }); 
+ }
 }
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
