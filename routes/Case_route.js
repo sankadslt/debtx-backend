@@ -68,7 +68,7 @@ import {
   Create_Task_For_Assigned_drc_case_list_download,
 
   // listAllDRCMediationBoardCases,
-  drcCaseDetails,
+  // drcCaseDetails,
   updateDrcCaseDetails,
 
 } from "../controllers/Case_controller.js";
@@ -5453,7 +5453,7 @@ router.post(
  */
 
 // Define the POST route for fetching case details
-router.post("/Case_Details_for_DRC", drcCaseDetails);
+// router.post("/Case_Details_for_DRC", drcCaseDetails);
 
 
 /**
