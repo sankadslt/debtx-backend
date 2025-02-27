@@ -3386,7 +3386,7 @@ export const Create_task_for_batch_approval = async (req, res) => {
     // --- Create Task ---
     const taskData = {
       Template_Task_Id: 30, // Different Task ID for approval tasks
-      task_type: "Letting know the batch approval",
+      task_type: "Create batch approval List for Downloard",
       approver_references, // List of approver references
       created_on: currentDate.toISOString(),
       Created_By, // Assigned creator
@@ -3690,7 +3690,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     // --- Create Task ---
     const taskData = {
       Template_Task_Id: 33, // Different Task ID for approval tasks
-      task_type: "Letting know the DRC Assign Manager Approval",
+      task_type: "Create DRC Assign maneger approval List for Downloard",
       approver_references, // List of approver references
       created_on: currentDate.toISOString(),
       Created_By, // Assigned creator
@@ -3918,7 +3918,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       // --- Create Task ---
       const taskData = {
           Template_Task_Id: 32, // Different Task ID for approval tasks
-          task_type: "Letting know the Case Distribution DRC Summary",
+          task_type: "Create Case Distribution DRC Summary List for Downloard",
           drc_id,
           drc_name: drcDetails.drc_name, // Include DRC name
           created_on: currentDate.toISOString(),
