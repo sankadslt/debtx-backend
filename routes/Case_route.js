@@ -69,7 +69,7 @@ import {
   Mediation_Board,
   drcCaseDetails,
   updateDrcCaseDetails,
-
+  AssignDRCToCaseDetails,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5599,6 +5599,7 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
 // POST route to update customer contacts or remarks for a specific case.
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
+router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
 export default router;
 
 

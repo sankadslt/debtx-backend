@@ -108,6 +108,8 @@ const RoNegotiateCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: String, required: true },
   ro_id: { type: String, required: true },
+  drc: {type: String, required: true},
+  ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
   feild_reason: { type: String, required: true },
   remark: { type: String },

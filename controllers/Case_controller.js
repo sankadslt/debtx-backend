@@ -4769,4 +4769,48 @@ export const updateDrcCaseDetails = async (req, res) => {
   }
 };
 
+export const AssignDRCToCaseDetails = async (req, res) => {
+  let { case_id,} = req.body;
+  if (!case_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "Failed to retrieve case details.",
+      errors: { code: 400, description: "case_id is required" },
+    });
+  }
+  try {
+    const query = { "case_id": case_id};
+
+    const caseDetails = await Case_details.findOne(query, {
+      case_id: 1,
+      customer_ref: 1,
+      account_no: 1,
+      current_arrears_amount: 1,
+      last_payment_date: 1,
+      drc:1,
+      ro_negotiation:1,
+      _id: 0,
+    });
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "No Case Details Found.",
+        errors: { code: 404, description: "No data available for the provided DRC_Id" },
+      });
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Case details retrieved successfully.",
+      data: caseDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error Fetching Case Details.",
+      errors: { code: 500, description: error.message },
+    });
+  }
+};
 
