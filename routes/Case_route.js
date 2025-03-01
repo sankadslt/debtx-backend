@@ -24,7 +24,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
-  updateLastRoDetails,
+  // updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -69,6 +69,7 @@ import {
   Mediation_Board,
   drcCaseDetails,
   updateDrcCaseDetails,
+  listAllDRCMediationBoardCases
 
 } from "../controllers/Case_controller.js";
 
@@ -3325,10 +3326,10 @@ router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
 router.post("/Create_Task_For_case_distribution",Create_Task_For_case_distribution );
 
-router.post(
-  "/List_All_DRC_Mediation_Board_Cases",
-  listAllDRCMediationBoardCases
-);
+// router.post(
+//   "/List_All_DRC_Mediation_Board_Cases",
+//   listAllDRCMediationBoardCases
+// );
 
 
 /**
