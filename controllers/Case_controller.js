@@ -3186,7 +3186,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
           ro_name: matchingRecoveryOfficer?.ro_name || null,
           area: caseData.area,
           mediation_board_count: mediationBoardCount,
-          next_calling_date: caseData.mediation_board?.[mediationBoardCount - 1]?.next_calling_dtm || null,
+          next_calling_date: caseData.mediation_board?.[mediationBoardCount - 1]?.mediation_board_calling_dtm || null,
         };
       })
     );
