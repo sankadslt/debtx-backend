@@ -22,7 +22,9 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
-  remark: {type:String, required:true}
+  remark: {type:String, required:true},
+  requested_by: {type: String, required: true},
+  requested_on :{ type: Date, required: true },
 }, { _id: false });
 
 // Define the schema for case status
@@ -92,7 +94,7 @@ const productDetailsSchema = new Schema({
   service_address: { type: String, required: true },
 });
 
-const RoNegotiateCpeCollectSchema = new mongoose.Schema({
+const RoCpeCollectSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   serial_no: { type: String, required: true },
@@ -180,7 +182,7 @@ const caseDetailsSchema = new Schema({
   ref_products: [productDetailsSchema], 
   ro_negotiation: [roNegotiationSchema],
   ro_requests: [roRequestsSchema],
-  ro_negotiate_cpe_collect: [RoNegotiateCpeCollectSchema],
+  ro_negotiate_cpe_collect: [RoCpeCollectSchema],
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
 },
