@@ -3122,14 +3122,14 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
         {
           case_current_status: {
             $in: [
-              "Forward to Mediation Board",
-              "MB Negotiation",
-              "MB Request Customer-Info",
-              "MB Handover Customer-Info",
-              "MB Settle Pending",
-              "MB Settle Open-Pending",
-              "MB Settle Active",
-              "MB Fail with Pending Non-Settlement",
+              "Forward_to_Mediation_Board",
+              "MB_Negotiation",
+              "MB_Request_Customer_Info",
+              "MB_Handed_Customer_Info",
+              "MB_Settle_pending",
+              "MB_Settle_open_pending",
+              "MB_Settle_Active",
+              "MB_fail_with_pending_non_settlement",
             ],
           },
         },

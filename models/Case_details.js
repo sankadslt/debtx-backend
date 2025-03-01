@@ -138,7 +138,6 @@ const mediationBoardSchema = new mongoose.Schema({
   comment: { type: String, default:null },
   agree_to_settle: { type: String},
   customer_response: { type: String, default:null },
-  next_calling_dtm: { type: Date, default:null },
 });
 
 const settlementschema = new Schema({
