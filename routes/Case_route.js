@@ -54,6 +54,7 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
+
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
@@ -64,9 +65,10 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
-  // listAllDRCMediationBoardCases,
+  Mediation_Board,
   drcCaseDetails,
   updateDrcCaseDetails,
+  AssignDRCToCaseDetails,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5283,6 +5285,8 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
+router.post("/Mediation_Board",Mediation_Board);
+
 /**
  * @swagger
  * /api/Case_Details_for_DRC:
@@ -5594,6 +5598,7 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
 // POST route to update customer contacts or remarks for a specific case.
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
+router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
 export default router;
 
 
