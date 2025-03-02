@@ -30,6 +30,7 @@ router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
 
+// User Data Route
 router.get("/user", verifyToken, getUserData);
 
 export default router;

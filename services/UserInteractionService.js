@@ -1,6 +1,6 @@
 import User_Interaction_Log from "../models/User_Interaction_Log.js";
 import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
-import db from "../config/db.js"; // MongoDB connection config
+import db from "../config/db.js"; 
 
 // Create User Interaction Function
 export const createUserInteractionFunction = async ({
@@ -12,35 +12,34 @@ export const createUserInteractionFunction = async ({
   ...dynamicParams
 }) => {
   try {
-    // Validate required parameters
+   
     if (!Interaction_ID || !Created_By || !delegate_user_id) {
       throw new Error("Interaction_ID, Created_By, and delegate_user_id are required.");
     }
 
-    // Connect to MongoDB
+  
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed.");
     }
 
-    // Generate a unique Interaction_Log_ID
+    // Generate a ID
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "interaction_log_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
-
-    const Interaction_Log_ID = counterResult.value.seq;
+    const Interaction_Log_ID = counterResult.seq;
     if (!Interaction_Log_ID) {
       throw new Error("Failed to generate Interaction_Log_ID.");
     }
 
-    // Prepare interaction data
+  
     const interactionData = {
       Interaction_Log_ID,
       Interaction_ID,
       User_Interaction_Type,
-      parameters: dynamicParams, // Accept dynamic parameters
+      parameters: dynamicParams, 
       delegate_user_id,
       Created_By,
       User_Interaction_Status,
@@ -54,11 +53,11 @@ export const createUserInteractionFunction = async ({
     const newInteractionInProgress = new User_Interaction_Progress_Log(interactionData);
     await newInteractionInProgress.save();
 
-    // Return success response
+   
     return {
       status: "success",
       message: "User interaction created successfully",
-      data: interactionData,
+      Interaction_Log_ID,
     };
   } catch (error) {
     console.error("Error creating user interaction:", error);
@@ -82,13 +81,13 @@ export const createUserInteraction = async (req, res) => {
       return res.status(400).json({ message: "Interaction_ID, Created_By, and delegate_user_id are required." });
     }
 
-    // Connect to MongoDB
+  
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed.");
     }
 
-    // Generate a unique Interaction_Log_ID
+    // Generate a unique ID
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "interaction_log_id" },
       { $inc: { seq: 1 } },
@@ -100,12 +99,11 @@ export const createUserInteraction = async (req, res) => {
       return res.status(500).json({ message: "Failed to generate Interaction_Log_ID." });
     }
 
-    // Prepare interaction data
     const interactionData = {
       Interaction_Log_ID,
       Interaction_ID,
       User_Interaction_Type,
-      parameters: dynamicParams, // Accept dynamic parameters
+      parameters: dynamicParams, 
       delegate_user_id,
       Created_By,
       User_Interaction_Status,
@@ -121,6 +119,7 @@ export const createUserInteraction = async (req, res) => {
 
     return res.status(201).json({
       message: "User interaction created successfully",
+      Interaction_Log_ID,  
       data: interactionData,
     });
   } catch (error) {
