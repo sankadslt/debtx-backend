@@ -4825,9 +4825,9 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         const newDocument = new TmpForwardedApprover({
             approver_reference,
             created_by,
-            approver_type: "Case_Withdrawal_Approval",
+            approver_type: "Case Withdrawal Approval",
             approve_status: [{
-                status: "Pending_Case_Withdrawal",
+                status: "Pending Case Withdrawal",
                 status_date: new Date(),
                 status_edit_by: created_by,
             }],
