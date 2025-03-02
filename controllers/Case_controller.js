@@ -4814,3 +4814,35 @@ export const AssignDRCToCaseDetails = async (req, res) => {
   }
 };
 
+export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+    try {
+        const { approver_reference, remark, remark_edit_by, created_by } = req.body;
+
+        if (!approver_reference || !remark || !remark_edit_by || !created_by) {
+            return res.status(400).json({ message: "All required fields must be provided." });
+        }
+
+        const newDocument = new TmpForwardedApprover({
+            approver_reference,
+            created_by,
+            approver_type: "Case_Withdrawal_Approval",
+            approve_status: [{
+                status: "Pending_Case_Withdrawal",
+                status_date: new Date(),
+                status_edit_by: created_by,
+            }],
+            remark: [{
+                remark,
+                remark_date: new Date(),
+                remark_edit_by,
+            }]
+        });
+
+        await newDocument.save();
+        return res.status(201).json({ message: "Case withdrawal request added successfully", data: newDocument });
+    } catch (error) {
+        console.error("Error withdrawing case:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
