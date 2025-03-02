@@ -40,7 +40,6 @@ import {
   List_Case_Distribution_DRC_Summary,
   Batch_Forward_for_Proceed,
   Create_Task_For_case_distribution,
-
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
   // ListActiveRORequestsMediation,
@@ -66,11 +65,11 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
-
-  // listAllDRCMediationBoardCases,
+  Mediation_Board,
   // drcCaseDetails,
   updateDrcCaseDetails,
-
+  AssignDRCToCaseDetails,
+  Withdraw_CasesOwened_By_DRC,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5287,6 +5286,8 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
+router.post("/Mediation_Board",Mediation_Board);
+
 /**
  * @swagger
  * /api/Case_Details_for_DRC:
@@ -5597,6 +5598,10 @@ router.post(
 
 // POST route to update customer contacts or remarks for a specific case.
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
+
+router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+
+router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
 
 export default router;
 
