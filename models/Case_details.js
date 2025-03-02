@@ -22,7 +22,9 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
-  remark: {type:String, required:true}
+  remark: {type:String, required:true},
+  requested_by: {type: String, required: true},
+  requested_on :{ type: Date, required: true },
 }, { _id: false });
 
 // Define the schema for case status
@@ -30,9 +32,9 @@ const caseStatusSchema = new Schema({
   case_status: { type: String, required: true },
   status_reason: { type: String, default: null },
   created_dtm: { type: Date, required: true },
-  created_by: { type: String, default: null },
-  notified_dtm: { type: Date, required: true },
-  expire_dtm: { type: Date, required: true },
+  created_by: { type: String, required: true },
+  notified_dtm: { type: Date,default: null },
+  expire_dtm: { type: Date, default: null },
 }, { _id: false });
 
 // Define the contact 
@@ -92,7 +94,7 @@ const productDetailsSchema = new Schema({
   service_address: { type: String, required: true },
 });
 
-const RoNegotiateCpeCollectSchema = new mongoose.Schema({
+const RoCpeCollectSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   serial_no: { type: String, required: true },
@@ -108,6 +110,8 @@ const RoNegotiateCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: String, required: true },
   ro_id: { type: String, required: true },
+  drc: {type: String, required: true},
+  ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
   feild_reason: { type: String, required: true },
   remark: { type: String },
@@ -119,8 +123,9 @@ const roRequestsSchema = new mongoose.Schema({
   created_dtm: { type: Date, required: true },
   ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
-  intraction_id: { type: Number, required: true },
-  todo_dtm: { type: Date, required: true },
+  intraction_id: { type: Number, required: true }, 
+  intraction_log_id: { type: Number, required: true },
+  todo_dtm: { type: Date, default:null  },
   completed_dtm: { type: Date, default:null },
 });
 
@@ -131,10 +136,8 @@ const mediationBoardSchema = new mongoose.Schema({
   mediation_board_calling_dtm: { type: Date, required: true },
   customer_available: { type: String, required: true, enum: ['yes','no'] },
   comment: { type: String, default:null },
-  settlement_id: { type: Number},
+  agree_to_settle: { type: String},
   customer_response: { type: String, default:null },
-  next_calling_dtm: { type: Date, default:null },
-
 });
 
 const settlementschema = new Schema({
@@ -179,7 +182,7 @@ const caseDetailsSchema = new Schema({
   ref_products: [productDetailsSchema], 
   ro_negotiation: [roNegotiationSchema],
   ro_requests: [roRequestsSchema],
-  ro_negotiate_cpe_collect: [RoNegotiateCpeCollectSchema],
+  ro_negotiate_cpe_collect: [RoCpeCollectSchema],
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
 },
