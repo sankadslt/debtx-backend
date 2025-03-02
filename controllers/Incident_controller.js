@@ -1387,10 +1387,16 @@ export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
 
 export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Open No Agent"
-    }))
-
+    // const details = (await Incident.find({
+    //   Incident_Status:"Open No Agent"
+    // }))
+    const details = (
+      await Incident.find({
+        Incident_Status: { $in: ["Open No Agent"] },
+        Proceed_Dtm: { $eq: null }, 
+       
+      })
+    ).length;
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
       counts[band] = (counts[band] || 0) + 1; 
