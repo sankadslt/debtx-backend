@@ -3986,89 +3986,106 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
-
-
-
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    try {
-        const { approver_references, approved_by } = req.body;
+  try {
+      const { approver_reference, approved_by } = req.body;
 
-        if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
-        }
+      if (!approver_reference) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: "Invalid input, approver_reference is required" });
+      }
 
-        if (!approved_by) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({ message: "approved_by is required" });
-        }
+      if (!approved_by) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: "approved_by is required" });
+      }
 
-        const currentDate = new Date();
+      const currentDate = new Date();
 
-        // Update approve_status and approved_by for matching documents in TmpForwardedApprover
-        const result = await TmpForwardedApprover.updateMany(
-            { 
-                approver_reference: { $in: approver_references },
-                approver_type: { $ne: "DRC_Distribution" } 
-            },
-            {
-                $push: {
-                    approve_status: {
-                        status: "Approve",
-                        status_date: currentDate,
-                        status_edit_by: approved_by,
-                    },
-                },
-                $set: {
-                    approved_by: approved_by
-                }
-            },
-            { session }
-        );
+      // Fetch the document to get the approver_type, created_on, and created_by
+      const approvalDoc = await TmpForwardedApprover.findOne({ approver_reference }).session(session);
 
-        if (result.modifiedCount === 0) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(404).json({ message: "No matching approver references found" });
-        }
+      if (!approvalDoc) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ message: "No matching approver reference found" });
+      }
 
-        // Update approve array in CaseDetails where case_id matches approver_reference
-        const caseResult = await Case_details.updateMany(
-            { case_id: { $in: approver_references } },
-            {
-                $push: {
-                    approve: {
-                        approved_process: "Approved",
-                        approved_by: approved_by,
-                        approved_on: currentDate,
-                        remark: "Approved for recovery process."
-                    }
-                }
-            },
-            { session }
-        );
+      // Determine status based on approver_type
+      const statusMap = {
+          "DRC Re-Assign Approval": "Open assign agent",
+          "DRC Assign Approval": "Open assign agent",
+          "Case Withdrawal Approval": "Case Withdrawed",
+          "Case Abandoned Approval": "Case Abandoned",
+          "Case Write-Off Approval": "Pending Write Off",
+          "Commission Approval": "Commissioned"
+      };
 
-        await session.commitTransaction();
-        session.endSession();
+      const newStatus = statusMap[approvalDoc.approver_type] || "Pending";
 
-        return res.status(200).json({
-            message: "Approvals added successfully.",
-            updatedCount: result.modifiedCount + caseResult.modifiedCount,
-        });
-    } catch (error) {
-        console.error("Error approving DRC Assign Manager Approvals:", error);
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(500).json({
-            message: "Error approving DRC Assign Manager Approvals",
-            error: error.message || "Internal server error.",
-        });
-    }
+      // Update approve_status and approved_by
+      const result = await TmpForwardedApprover.updateOne(
+          { approver_reference },
+          {
+              $push: {
+                  approve_status: {
+                      status: newStatus,
+                      status_date: currentDate,
+                      status_edit_by: approved_by,
+                  },
+              },
+              $set: {
+                  approved_by: approved_by
+              }
+          },
+          { session }
+      );
+
+      if (result.modifiedCount === 0) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ message: "Approval update failed" });
+      }
+
+      // Update approve array in CaseDetails with requested_on and requested_by
+      const caseResult = await Case_details.updateOne(
+          { case_id: approver_reference },
+          {
+              $push: {
+                  approve: {
+                      approved_process: newStatus,
+                      approved_by: approved_by,
+                      approved_on: currentDate,
+                      remark: " ",
+                      requested_on: approvalDoc.created_on,
+                      requested_by: approvalDoc.created_by
+                  }
+              }
+          },
+          { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+          message: "Approval added successfully.",
+          updatedCount: result.modifiedCount + caseResult.modifiedCount,
+      });
+  } catch (error) {
+      console.error("Error approving DRC Assign Manager Approvals:", error);
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+          message: "Error approving DRC Assign Manager Approvals",
+          error: error.message || "Internal server error.",
+      });
+  }
 };
 
 
