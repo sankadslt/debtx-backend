@@ -4220,7 +4220,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
         status_date:new Date(),
         status_edit_by:assigned_by,
       },
-      approver_type:"DRC_ReAssign",
+      approver_type:"DRC Re-Assign Approval",
       parameters:{
         drc_id:drc_id,
         drc_name:drc_name,
@@ -4991,7 +4991,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
-      Template_Task_Id: 34,
+      Template_Task_Id: 35,
       task_type: "Create task for download the Assigned DRC's case list when selected date range is higher that one month",
       ...parameters, // Spreads parameters directly into taskData
     };
@@ -5202,5 +5202,37 @@ export const AssignDRCToCaseDetails = async (req, res) => {
       errors: { code: 500, description: error.message },
     });
   }
+};
+
+export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+    try {
+        const { approver_reference, remark, remark_edit_by, created_by } = req.body;
+
+        if (!approver_reference || !remark || !remark_edit_by || !created_by) {
+            return res.status(400).json({ message: "All required fields must be provided." });
+        }
+
+        const newDocument = new TmpForwardedApprover({
+            approver_reference,
+            created_by,
+            approver_type: "Case Withdrawal Approval",
+            approve_status: [{
+                status: "Pending Case Withdrawal",
+                status_date: new Date(),
+                status_edit_by: created_by,
+            }],
+            remark: [{
+                remark,
+                remark_date: new Date(),
+                remark_edit_by,
+            }]
+        });
+
+        await newDocument.save();
+        return res.status(201).json({ message: "Case withdrawal request added successfully", data: newDocument });
+    } catch (error) {
+        console.error("Error withdrawing case:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 };
 

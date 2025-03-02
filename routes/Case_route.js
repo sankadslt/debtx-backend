@@ -69,6 +69,7 @@ import {
   drcCaseDetails,
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
+  Withdraw_CasesOwened_By_DRC,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5599,6 +5600,9 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
 router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+
+router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
+
 export default router;
 
 
