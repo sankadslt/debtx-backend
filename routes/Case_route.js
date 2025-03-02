@@ -2,10 +2,8 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-
     Last Modified Date: 2024-02-07
     Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
-
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -54,7 +52,6 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
-
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
@@ -65,10 +62,12 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
+  // listAllDRCMediationBoardCases,
+  // drcCaseDetails,
   Mediation_Board,
-  drcCaseDetails,
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
+  Withdraw_CasesOwened_By_DRC,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5453,7 +5452,7 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // Define the POST route for fetching case details
-router.post("/Case_Details_for_DRC", drcCaseDetails);
+// router.post("/Case_Details_for_DRC", drcCaseDetails);
 
 
 /**
@@ -5599,6 +5598,9 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
 router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+
+router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
+
 export default router;
 
 

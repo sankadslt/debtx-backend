@@ -9,8 +9,8 @@ const generateTokens = (user) => {
     username: user.username,
     email: user.email,
     role: user.role,
-    drc_sequence_id: user.drc_sequence_id,
-    ro_sequence_id: user.ro_sequence_id,
+    drc_id: user.drc_id,
+    ro_id: user.ro_id,
   };
 
   const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -145,8 +145,7 @@ export const getUserData = async (req, res) => {
       login_method: user.login_method,
       sequence_id: user.sequence_id,
       drc_id: user.drc_id,
-      drc_sequence_id: user.drc_sequence_id,
-      ro_sequence_id: user.ro_sequence_id,
+      ro_id: user.ro_id,
     });
   } catch (error) {
     console.error("Error fetching user data:", error);
