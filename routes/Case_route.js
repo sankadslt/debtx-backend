@@ -63,7 +63,7 @@ import {
   List_CasesOwened_By_DRC,
   listDRCAllCases,
   ListActiveMediationResponse,
-  ListActiveRORequests,
+  ListActiveRORequestsMediation,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
   Mediation_Board,
@@ -5201,7 +5201,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *                   example: Internal server error message.
  */
 
-router.post("/List_Active_RO_Requests", ListActiveRORequests);
+router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
 
 /**
  * @swagger
