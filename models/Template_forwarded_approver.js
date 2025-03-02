@@ -38,7 +38,7 @@ const temmplateForwardedApproverSchema = new Schema({
   approve_status: { type: [statusSchema]},
   approver_type: { 
     type: String, 
-    enum: ['DRC_Distribution', 'DRC ReAssign Approval','DRC Assign Approval', 'Case Withdrawal Approval','Case Abandoned Approval','Case Write-Off Approval','Commission Approval' ], 
+    enum: ['DRC_Distribution', 'DRC Re-Assign Approval','DRC Assign Approval', 'Case Withdrawal Approval','Case Abandoned Approval','Case Write-Off Approval','Commission Approval' ], 
     required: true 
   }, 
   parameters: {
