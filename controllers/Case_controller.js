@@ -5263,3 +5263,131 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 };
 
+
+export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
+  try {
+    const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
+
+    const allowedStatuses = [
+      "Forward to Mediation Board",
+      "MB Negotiation",
+      "MB Request Customer-Info",
+      "MB Handover Customer-Info",
+      "MB Settle Pending",
+      "MB Settle Open-Pending",
+      "MB Settle Active",
+      "MB Fail with Pending Non-Settlement"
+    ];
+
+    let query = {};
+
+    // If request body is not empty, apply filters
+    if (Object.keys(req.body).length > 0) {
+      query.case_current_status = { $in: allowedStatuses };
+
+      if (From_DAT && To_DAT) {
+        const from = new Date(From_DAT);
+        from.setUTCHours(0, 0, 0, 0);
+        const to = new Date(To_DAT);
+        to.setUTCHours(23, 59, 59, 999);
+        query.created_dtm = { $gte: from, $lte: to };
+      }
+      if (rtom) {
+        query.rtom = rtom;
+      }
+      if (drc) {
+        query.drc = drc;
+      }
+    }
+
+   // Fetch cases based on the query (if request body is empty, return all cases)
+   let cases = await Case_details.find(query)
+   .populate("drc") // Populate DRC details
+   .sort({ created_dtm: -1 });
+
+    // Process each case to get mediation board details
+    const processedCases = cases.map((caseItem) => {
+      const mediationBoardEntries = caseItem.mediation_board || [];
+
+      // Get the last object in the mediation_board array (if exists)
+      const lastMediationBoardEntry =
+        mediationBoardEntries.length > 0
+          ? mediationBoardEntries[mediationBoardEntries.length - 1]
+          : null;
+
+      return {
+        ...caseItem._doc,
+        latest_next_calling_dtm: lastMediationBoardEntry
+          ? lastMediationBoardEntry.next_calling_dtm
+          : null,
+        mediation_board_call_count: mediationBoardEntries.length, 
+        drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
+      };
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Mediation Board cases retrieved successfully.",
+      data: processedCases,
+    });
+  } catch (error) {
+    console.error("Error fetching Mediation Board cases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
+try {
+    const { case_id } = req.body;
+
+    if (!case_id) {
+        return res.status(400).json({ message: 'case_id is required' });
+    }
+
+    const caseRecord = await Case_details.findOne({ case_id });
+
+    if (!caseRecord) {
+        return res.status(404).json({ message: 'Case not found' });
+    }
+
+    if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
+        return res.status(400).json({ message: 'Case status does not match the required condition' });
+    }
+
+   
+    if (caseRecord.ro_requests) {
+        caseRecord.ro_requests.forEach((request) => {
+            if (!request.todo_dtm) request.todo_dtm = new Date();
+        });
+    }
+
+  
+    if (caseRecord.mediation_board) {
+        caseRecord.mediation_board.forEach((entry) => {
+            if (entry.customer_available === true) entry.customer_available = "yes";
+            if (entry.customer_available === false) entry.customer_available = "no";
+        });
+    }
+
+   
+    caseRecord.case_status.push({
+        case_status: 'Updated',
+        status_reason: 'Non-settlement case update',
+        created_dtm: new Date(),
+        created_by: 'System',
+        notified_dtm: new Date(),
+        expire_dtm: new Date(new Date().setMonth(new Date().getMonth() + 1)), 
+    });
+
+    caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+
+    await caseRecord.save();
+    return res.status(200).json({ message: 'Case status updated successfully', caseRecord });
+
+} catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+}
+};
