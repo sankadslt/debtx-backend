@@ -226,7 +226,6 @@ export const changeDRCStatus = async (req, res) => {
 };
 
 
-
 export const getDRCDetails = async (req, res) => {
   //let mysqlData = null;
   let mongoData = null;
@@ -281,8 +280,6 @@ export const getDRCDetails = async (req, res) => {
     },
   });
 };
-
-
 
 
 export const getDRCDetailsById = async(req, res) => {
@@ -410,7 +407,6 @@ export const getActiveDRCDetails= async(req, res) => {
 };
 
 
-
 export const getDRCWithServicesByDRCId = async(req, res) => {
 
 
@@ -508,7 +504,6 @@ export const getDRCWithServicesByDRCId = async(req, res) => {
 };  
   
 
-
 export const getDRCWithServices = async (req, res) => {
  
   //let mysqlData = null;
@@ -593,7 +588,6 @@ export const getDRCWithServices = async (req, res) => {
 };           
                   
 
-
 export const endDRC = async (req, res) => {
   try {
     const { drc_id, drc_end_dat, remark, remark_edit_by } = req.body;
@@ -653,7 +647,6 @@ export const endDRC = async (req, res) => {
     });
   }
 };
-
 
 
 export const DRCRemarkDetailsById = async (req, res) => {
