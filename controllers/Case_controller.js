@@ -3898,7 +3898,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
         status_date:new Date(),
         status_edit_by:assigned_by,
       },
-      approver_type:"DRC_ReAssign",
+      approver_type:"DRC Re-Assign Approval",
       parameters:{
         drc_id:drc_id,
         drc_name:drc_name,
