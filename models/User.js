@@ -14,8 +14,6 @@ const userSchema = new mongoose.Schema({
   sequence_id: { type: Number },
   drc_id: { type: Number, default: null },
   ro_id: { type: Number, default: null },
-  // drc_sequence_id: { type: String, default: null },
-  // ro_sequence_id: { type: String, default: null },
 });
 
 // Create the User model

@@ -9,8 +9,8 @@ const generateTokens = (user) => {
     username: user.username,
     email: user.email,
     role: user.role,
-    drc_sequence_id: user.drc_sequence_id,
-    ro_sequence_id: user.ro_sequence_id,
+    drc_id: user.drc_id,
+    ro_id: user.ro_id,
   };
 
   const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
