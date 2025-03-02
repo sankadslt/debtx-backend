@@ -4742,7 +4742,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 };
 
 export const listDRCAllCases = async (req, res) => {
-  const { drc_id, ro_id, rtom, case_current_status, action_type, from_date, to_date } = req.body;
+  const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
 
   try {
     // Validate input parameters
@@ -4757,7 +4757,7 @@ export const listDRCAllCases = async (req, res) => {
       });
     }
 
-    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
@@ -4792,7 +4792,6 @@ export const listDRCAllCases = async (req, res) => {
     if (rtom) query.$and.push({ area: rtom });
     if (ro_id) query.$and.push({ "drc.recovery_officers.ro_id": ro_id });
     if (action_type) query.$and.push({ action_type });
-    if (case_current_status) query.$and.push({ case_current_status });
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
       query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
@@ -4829,7 +4828,7 @@ export const listDRCAllCases = async (req, res) => {
           ro_name: matchingRecoveryOfficer?.ro_name || null,
           contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.mob || null,
           area: caseData.area,
-          action: caseData.action_type,
+          action_type: caseData.action_type,
         };
       })
     );
