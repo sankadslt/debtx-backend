@@ -3574,58 +3574,62 @@ export const Create_task_for_batch_approval = async (req, res) => {
 
 
 // export const List_DRC_Assign_Manager_Approval = async (req, res) => {
-//     try {
-//         const { approver_type, date_from, date_to } = req.body;
-//         let filter = {};
+//   try {
+//       const { approver_type, date_from, date_to } = req.body;
+//       let filter = { approver_type: { $ne: "DRC_Distribution" } }; // Exclude DRC_Distribution
 
-//         // Condition to exclude DRC_Distribution
-//         if (approver_type === "DRC_Distribution") {
-//             return res.status(400).json({ message: "DRC_Distribution approver_type is not allowed" });
-//         }
+//       // Filter based on approver_type (except "DRC_Distribution")
+//       if (approver_type && approver_type !== "DRC_Distribution") {
+//           filter.approver_type = approver_type;
+//       }
 
-//         // Filter based on approver_type
-//         if (approver_type) {
-//             filter.approver_type = approver_type;
-//         }
+//       // Filter based on date range
+//       if (date_from && date_to) {
+//           filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//       } else if (date_from) {
+//           filter.created_on = { $gte: new Date(date_from) };
+//       } else if (date_to) {
+//           filter.created_on = { $lte: new Date(date_to) };
+//       }
 
-//         // Filter based on date range
-//         if (date_from && date_to) {
-//             filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
-//         } else if (date_from) {
-//             filter.created_on = { $gte: new Date(date_from) };
-//         } else if (date_to) {
-//             filter.created_on = { $lte: new Date(date_to) };
-//         }
+//       // Fetch data from Template_forwarded_approver collection
+//       const approvals = await TmpForwardedApprover.find(filter);
 
-//         // Fetch data from Template_forwarded_approver collection
-//         const approvals = await TmpForwardedApprover.find(filter);
+//       // Process results to extract only the last element of approve_status array
+//       const response = approvals.map(doc => {
+//           const lastApproveStatus = doc.approve_status?.length 
+//               ? doc.approve_status[doc.approve_status.length - 1] 
+//               : null;
 
-//         // Process results to extract the last element of approve_status array
-//         const response = approvals.map(doc => {
-//             const lastApproveStatus = doc.approve_status?.length 
-//                 ? doc.approve_status[doc.approve_status.length - 1] 
-//                 : null;
+//           return {
+//               ...doc.toObject(),
+//               approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Keep only the last approve_status
+//           };
+//       });
 
-//             return {
-//                 ...doc.toObject(),
-//                 approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Only the last approve_status
-//             };
-//         });
-
-//         res.status(200).json(response);
-//     } catch (error) {
-//         console.error("Error fetching DRC Assign Manager Approvals:", error);
-//         res.status(500).json({ message: "Server Error", error });
-//     }
+//       res.status(200).json(response);
+//   } catch (error) {
+//       console.error("Error fetching DRC Assign Manager Approvals:", error);
+//       res.status(500).json({ message: "Server Error", error });
+//   }
 // };
 
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
       const { approver_type, date_from, date_to } = req.body;
-      let filter = { approver_type: { $ne: "DRC_Distribution" } }; // Exclude DRC_Distribution
+      const allowedApproverTypes = [
+          "DRC Re-Assign Approval",
+          "DRC Assign Approval",
+          "Case Withdrawal Approval",
+          "Case Abandoned Approval",
+          "Case Write-Off Approval",
+          "Commission Approval"
+      ];
 
-      // Filter based on approver_type (except "DRC_Distribution")
-      if (approver_type && approver_type !== "DRC_Distribution") {
+      let filter = { approver_type: { $in: allowedApproverTypes } }; // Filter only allowed approver types
+
+      // Filter based on approver_type
+      if (approver_type && allowedApproverTypes.includes(approver_type)) {
           filter.approver_type = approver_type;
       }
 
@@ -3659,6 +3663,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       res.status(500).json({ message: "Server Error", error });
   }
 };
+
 
 
 
