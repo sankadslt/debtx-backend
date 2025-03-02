@@ -15,12 +15,15 @@ const productDetailsSchema = new Schema({
     Equipment_Ownership: { type: String, required: true },
     Product_Id: { type: String, required: true },
     Product_Name: { type: String, required: true },
+
+
     product_status: { 
         type: String, 
         enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], 
         required: true, 
         default: 'Active' 
       },
+
     Effective_Dtm: { type: Date, required: true },
     Service_Address: { type: String, required: true },
     Cat: { type: String, required: true },
@@ -95,10 +98,15 @@ const incidentSchema = new Schema(
         Rejected_Dtm: { type: Date, required: null },
         Incident_Forwarded_By: { type: String, required: true },
         Incident_Forwarded_On: { type: Date, required: true },
-        Actions: {type: String},
+        Actions: {
+            type: String,
+            required: true,
+            enum: ["collect arrears", "collect arrears and CPE", "collect CPE"], // Enum validation
+        },
         Incident_Remark: { type: [String] },
         Validity_period:{type:Number},
         Proceed_Dtm: { type: Date, required: null },
+        Proceed_By: { type: String, required: null },
         Contact_Details: { type: [contactDetailsSchema], required: true },
         Product_Details: { type: [productDetailsSchema], required: true },
         Customer_Details: { type: customerDetailsSchema, required: true },
