@@ -1860,7 +1860,7 @@ export const assignROToCase = async (req, res) => {
 };
 
 
-export const listBehaviorsOfCaseDuringDRC = async (req, res) => {fz
+export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
 
