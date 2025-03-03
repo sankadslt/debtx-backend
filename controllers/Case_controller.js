@@ -4303,15 +4303,11 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
           });
       }
 
-     
       caseRecord.case_status.push({
-          case_status: 'Updated',
-          status_reason: 'Non-settlement case update',
-          created_dtm: new Date(),
-          created_by: 'System',
-          notified_dtm: new Date(),
-          expire_dtm: new Date(new Date().setMonth(new Date().getMonth() + 1)), 
-      });
+        case_status: 'Updated',
+        recieved_by: 'System',
+        received_on: new Date(new Date().setMonth(new Date().getMonth() + 1)), 
+    });
 
       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
 
