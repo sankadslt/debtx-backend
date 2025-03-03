@@ -4631,8 +4631,10 @@ export const Mediation_Board = async (req, res) => {
         return res.status(400).json({ 
           status: "error",
           message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
-        });      };
+        });
+      };
       // call settlement APi
+      console.log("call settlement APi");
     };
     await session.commitTransaction();
     session.endSession();
