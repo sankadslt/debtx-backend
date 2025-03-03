@@ -1332,6 +1332,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
 // };
 
 export const List_distribution_ready_incidents = async (req, res) => {
+  
   try {
     const openNoAgentStatuses = ["Open No Agent"];
 
@@ -1387,16 +1388,11 @@ export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
 
 export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
   try {
-    // const details = (await Incident.find({
-    //   Incident_Status:"Open No Agent"
-    // }))
-    const details = (
-      await Incident.find({
-        Incident_Status: { $in: ["Open No Agent"] },
-        Proceed_Dtm: { $eq: null }, 
-       
-      })
-    ).length;
+    const details = (await Incident.find({
+      Incident_Status:"Open No Agent",
+      Proceed_Dtm: { $eq: null }, 
+    }))
+    
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
       counts[band] = (counts[band] || 0) + 1; 
