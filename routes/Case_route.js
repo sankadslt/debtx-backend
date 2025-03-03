@@ -2,10 +2,8 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-
     Last Modified Date: 2024-02-07
     Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
-
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -40,7 +38,6 @@ import {
   List_Case_Distribution_DRC_Summary,
   Batch_Forward_for_Proceed,
   Create_Task_For_case_distribution,
-
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
   // ListActiveRORequestsMediation,
@@ -55,7 +52,6 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
-
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
@@ -66,10 +62,14 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
+  // listAllDRCMediationBoardCases,
+  // drcCaseDetails,
   Mediation_Board,
-  drcCaseDetails,
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
+  Withdraw_CasesOwened_By_DRC,
+  List_All_DRCs_Mediation_Board_Cases,
+  Accept_Non_Settlement_Request_from_Mediation_Board
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5454,7 +5454,7 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // Define the POST route for fetching case details
-router.post("/Case_Details_for_DRC", drcCaseDetails);
+// router.post("/Case_Details_for_DRC", drcCaseDetails);
 
 
 /**
@@ -5600,6 +5600,194 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
 router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
 
 router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+
+router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
+
+/**
+ * @swagger
+ * /api/case/List_All_DRCs_Mediation_Board_Cases:
+ *   post:
+ *     summary: Retrieve Mediation Board cases based on filters, excluding "MB Fail with Non-Settlement".
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: body
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Case status to filter cases.
+ *       - in: body
+ *         name: From_DAT
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: Start date of the case creation range.
+ *       - in: body
+ *         name: To_DAT
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-31"
+ *         description: End date of the case creation range.
+ *       - in: body
+ *         name: rtom
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter by RTOM.
+ *       - in: body
+ *         name: drc
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter by DRC.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 description: Case status to filter cases.
+ *               From_DAT:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *                 description: Start date of the case creation range.
+ *               To_DAT:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-31"
+ *                 description: End date of the case creation range.
+ *               rtom:
+ *                 type: string
+ *                 description: Filter by RTOM.
+ *               drc:
+ *                 type: string
+ *                 description: Filter by DRC.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved Mediation Board cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Mediation Board cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: string
+ *                         example: "12345"
+ *                       case_current_status:
+ *                         type: string
+ *                         example: "MB Negotiation"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:00:00Z"
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM123"
+ *                       drc:
+ *                         type: string
+ *                         example: "DRC456"
+ *       400:
+ *         description: Invalid input, missing required fields, or incorrect date format.
+ *       404:
+ *         description: No cases found matching the criteria.
+ *       500:
+ *         description: Internal server error. Failed to retrieve cases.
+ */
+router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+
+/**
+ * @swagger
+ * /api/case/Accept_Non_Settlement_Request_from_Mediation_Board:
+ *   put:
+ *     summary: Accept Non-Settlement Request from Mediation Board
+ *     description: Updates the case_current_status and case_status based on case_id.
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: body
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: object
+ *           required:
+ *             - case_id
+ *           properties:
+ *             case_id:
+ *               type: integer
+ *               description: The unique case ID to update the status.
+ *               example: 1001
+ *     responses:
+ *       200:
+ *         description: Case status updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Case status updated successfully.
+ *                 updatedCase:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1001
+ *                     case_current_status:
+ *                       type: string
+ *                       example: MB Fail with Non-Settlement
+ *       400:
+ *         description: Validation error - Case ID not provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: case_id is required.
+ *       404:
+ *         description: Case not found or not eligible for update.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Case not found or not eligible for update.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error.
+ */
+router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
+
 export default router;
 
 
