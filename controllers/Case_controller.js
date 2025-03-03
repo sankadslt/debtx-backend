@@ -6127,54 +6127,49 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
 };
 
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
-try {
-    const { case_id } = req.body;
+  try {
+      const { case_id, recieved_by } = req.body;  
 
-    if (!case_id) {
-        return res.status(400).json({ message: 'case_id is required' });
-    }
+      
+      if (!case_id) {
+          return res.status(400).json({ message: 'case_id is required' });
+      }
+      if (!recieved_by) {
+          return res.status(400).json({ message: 'recieved_by is required' });
+      }
 
-    const caseRecord = await Case_details.findOne({ case_id });
+      
+      const caseRecord = await Case_details.findOne({ case_id });
 
-    if (!caseRecord) {
-        return res.status(404).json({ message: 'Case not found' });
-    }
+      if (!caseRecord) {
+          return res.status(404).json({ message: 'Case not found' });
+      }
 
-    if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
-        return res.status(400).json({ message: 'Case status does not match the required condition' });
-    }
+    
+      if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
+          return res.status(400).json({ message: 'Case status does not match the required condition' });
+      }
 
-   
-    if (caseRecord.ro_requests) {
-        caseRecord.ro_requests.forEach((request) => {
-            if (!request.todo_dtm) request.todo_dtm = new Date();
-        });
-    }
+      
+      const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
 
-  
-    if (caseRecord.mediation_board) {
-        caseRecord.mediation_board.forEach((entry) => {
-            if (entry.customer_available === true) entry.customer_available = "yes";
-            if (entry.customer_available === false) entry.customer_available = "no";
-        });
-    }
+      if (mediationBoardEntry) {
+          mediationBoardEntry.received_on = new Date();
+          mediationBoardEntry.received_by = recieved_by;
+          
+      } else {
+          return res.status(400).json({ message: 'No mediation board entry found for this case' });
+      }
 
-   
-    caseRecord.case_status.push({
-        case_status: 'Updated',
-        status_reason: 'Non-settlement case update',
-        created_dtm: new Date(),
-        created_by: 'System',
-        notified_dtm: new Date(),
-        expire_dtm: new Date(new Date().setMonth(new Date().getMonth() + 1)), 
-    });
+     
+      caseRecord.case_current_status = 'MB Fail with Non-Settlement';
 
-    caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+      
+      await caseRecord.save();
 
-    await caseRecord.save();
-    return res.status(200).json({ message: 'Case status updated successfully', caseRecord });
+      return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
 
-} catch (error) {
-    return res.status(500).json({ message: 'Server error', error: error.message });
-}
+  } catch (error) {
+      return res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
