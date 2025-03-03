@@ -3686,7 +3686,7 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: caseDetails,
+      data: Case_details,
     });
 
   } catch (err) {
