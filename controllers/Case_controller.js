@@ -4491,6 +4491,8 @@ export const Mediation_Board = async (req, res) => {
       next_calling_date,
       request_id,
       request_type,
+      request_comment,
+      handed_over_non_settlemet,
       intraction_id,
       customer_available,
       comment,
@@ -4512,8 +4514,19 @@ export const Mediation_Board = async (req, res) => {
         message: "Missing required fields: case_id, drc_id, customer_available" 
       });
     }
-
-    if (request_id || request_type  || intraction_id) {
+    const mediationBoardData = {
+      drc_id, 
+      ro_id, 
+      created_dtm: new Date(), 
+      mediation_board_calling_dtm: next_calling_date,
+      customer_available: customer_available, // Optional field (must be 'yes' or 'no' if provided)
+      comment: handed_over_non_settlemet === "no" ? comment : null, // Optional field (default: null)
+      agree_to_settle: settle, // Optional field (no default)
+      customer_response: fail_reason, // Optional field (default: null)
+      handed_over_non_settlemet_on: handed_over_non_settlemet === "yes" ? new Date() : null,
+      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, // Optional field (default: null)
+    };
+    if (request_id !=="") {
       if (!request_id || !request_type || !intraction_id) {
         await session.abortTransaction();
         session.endSession();
@@ -4528,6 +4541,7 @@ export const Mediation_Board = async (req, res) => {
         ro_id,
         request_id,
         request_type,
+        request_comment,
       };
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
@@ -4551,60 +4565,52 @@ export const Mediation_Board = async (req, res) => {
         { case_id: case_id }, 
         { 
             $push: { 
-                mediation_board: {
-                    drc_id,
-                    ro_id,
-                    created_dtm: new Date(),
-                    mediation_board_calling_dtm: next_calling_date,
-                    customer_available,
-                    comment,
-                    customer_response: fail_reason,
-                    agree_to_settle: settle,
-                },
+                mediation_board: mediationBoardData,
                 ro_requests: {
                     drc_id,
                     ro_id,
                     created_dtm: new Date(),
                     ro_request_id: request_id,
                     ro_request: request_type,
+                    request_remark:request_comment,
                     intraction_id: intraction_id,
                     intraction_log_id,
                 },
                 case_status: {
-                    case_status: "MB Fail with Pending Non-Settlement", 
+                    case_status: "Should be change and add the conditions", 
                     created_dtm: new Date(),
                     created_by,
                 }
             },
             $set: { 
-                case_current_status: "MB Fail with Pending Non-Settlement"
+                case_current_status: "Should be change and add the conditions"
             }
         },
         { new: true, session } // Correct placement of options
-    );
-    if (!updatedCase) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ 
-        status: "error",
-        message: 'Case not found this case id' 
-      });
+      );
+      if (!updatedCase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ 
+          status: "error",
+          message: 'Case not found this case id' 
+        });
+      }
     }
-    }else{
+    else{
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
         {
           $push: {
-            mediation_board: {
-              drc_id,
-              ro_id,
+            mediation_board: mediationBoardData,
+            case_status: {
+              case_status: "Should be change and add the conditions", 
               created_dtm: new Date(),
-              mediation_board_calling_dtm:next_calling_date,
-              customer_available,
-              comment,
-              customer_response:fail_reason,
-              agree_to_settle:settle,
-            },
+              created_by,
+            }
+          },
+          $set: { 
+            case_current_status: "Should be change and add the conditions"
           }
         },
         { new: true, session }
@@ -4628,7 +4634,6 @@ export const Mediation_Board = async (req, res) => {
         });      };
       // call settlement APi
     };
-
     await session.commitTransaction();
     session.endSession();
     return res.status(200).json({ 
@@ -4645,6 +4650,7 @@ export const Mediation_Board = async (req, res) => {
     }); 
  }
 }
+
 export const Mediation_Board2 = async (req, res) => {
   const session = await mongoose.startSession();
   try {
