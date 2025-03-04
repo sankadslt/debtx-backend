@@ -31,6 +31,8 @@ import tempCaseDistribution from "../models/Template_case_distribution_drc_detai
 import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
 import DRC from "../models/Debt_recovery_company.js";
+import User_Interaction_Log from "../models/User_Interaction_Log.js";
+import Request from "../models/Request.js";
 import { ro } from "date-fns/locale";
 
 export const getAllArrearsBands = async (req, res) => {
@@ -2357,28 +2359,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
 };
 
-const validateTaskParameters = (parameters) => {
-  const { current_arrears_band, date_from, date_to, drc_commision_rule } = parameters;
-
-  if (!current_arrears_band || typeof current_arrears_band !== "string") {
-    throw new Error("current_arrears_band is required and must be a string.");
-  }
-
-  // Only validate dates if they are not null
-  if (date_from !== null && date_from !== undefined && isNaN(new Date(date_from).getTime())) {
-    throw new Error("date_from must be a valid date string or null.");
-  }
-
-  if (date_to !== null && date_to !== undefined && isNaN(new Date(date_to).getTime())) {
-    throw new Error("date_to must be a valid date string or null.");
-  }
-
-  if (!drc_commision_rule || typeof drc_commision_rule !== "string") {
-    throw new Error("drc_commision_rule is required and must be a string.");
-  }
-
-  return true;
-};
 
 export const Create_Task_For_case_distribution = async (req, res) => {
   const session = await mongoose.startSession();
@@ -2405,8 +2385,6 @@ export const Create_Task_For_case_distribution = async (req, res) => {
       Created_By,
       task_status: "open"
     };
-
-    validateTaskParameters(parameters);
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
@@ -4182,13 +4160,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { approver_references, Created_By } = req.body;
-
-    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
-    }
+    const { approver_references, date_from, date_to, Created_By } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -4203,6 +4175,8 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
       Template_Task_Id: 33, // Different Task ID for approval tasks
       task_type: "Create DRC Assign maneger approval List for Downloard",
       approver_references, // List of approver references
+      date_from,
+      date_to,
       created_on: currentDate.toISOString(),
       Created_By, // Assigned creator
       task_status: "open",
@@ -4500,6 +4474,8 @@ export const Mediation_Board = async (req, res) => {
       next_calling_date,
       request_id,
       request_type,
+      request_comment,
+      handed_over_non_settlemet,
       intraction_id,
       customer_available,
       comment,
@@ -4521,8 +4497,19 @@ export const Mediation_Board = async (req, res) => {
         message: "Missing required fields: case_id, drc_id, customer_available" 
       });
     }
-
-    if (request_id || request_type  || intraction_id) {
+    const mediationBoardData = {
+      drc_id, 
+      ro_id, 
+      created_dtm: new Date(), 
+      mediation_board_calling_dtm: next_calling_date,
+      customer_available: customer_available, // Optional field (must be 'yes' or 'no' if provided)
+      comment: handed_over_non_settlemet === "no" ? comment : null, // Optional field (default: null)
+      agree_to_settle: settle, // Optional field (no default)
+      customer_response: fail_reason, // Optional field (default: null)
+      handed_over_non_settlemet_on: handed_over_non_settlemet === "yes" ? new Date() : null,
+      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, // Optional field (default: null)
+    };
+    if (request_id !=="") {
       if (!request_id || !request_type || !intraction_id) {
         await session.abortTransaction();
         session.endSession();
@@ -4537,6 +4524,7 @@ export const Mediation_Board = async (req, res) => {
         ro_id,
         request_id,
         request_type,
+        request_comment,
       };
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
@@ -4560,60 +4548,52 @@ export const Mediation_Board = async (req, res) => {
         { case_id: case_id }, 
         { 
             $push: { 
-                mediation_board: {
-                    drc_id,
-                    ro_id,
-                    created_dtm: new Date(),
-                    mediation_board_calling_dtm: next_calling_date,
-                    customer_available,
-                    comment,
-                    customer_response: fail_reason,
-                    agree_to_settle: settle,
-                },
+                mediation_board: mediationBoardData,
                 ro_requests: {
                     drc_id,
                     ro_id,
                     created_dtm: new Date(),
                     ro_request_id: request_id,
                     ro_request: request_type,
+                    request_remark:request_comment,
                     intraction_id: intraction_id,
                     intraction_log_id,
                 },
                 case_status: {
-                    case_status: "MB Fail with Pending Non-Settlement", 
+                    case_status: "Should be change and add the conditions", 
                     created_dtm: new Date(),
                     created_by,
                 }
             },
             $set: { 
-                case_current_status: "MB Fail with Pending Non-Settlement"
+                case_current_status: "Should be change and add the conditions"
             }
         },
         { new: true, session } // Correct placement of options
-    );
-    if (!updatedCase) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ 
-        status: "error",
-        message: 'Case not found this case id' 
-      });
+      );
+      if (!updatedCase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ 
+          status: "error",
+          message: 'Case not found this case id' 
+        });
+      }
     }
-    }else{
+    else{
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
         { case_id: case_id }, 
         {
           $push: {
-            mediation_board: {
-              drc_id,
-              ro_id,
+            mediation_board: mediationBoardData,
+            case_status: {
+              case_status: "Should be change and add the conditions", 
               created_dtm: new Date(),
-              mediation_board_calling_dtm:next_calling_date,
-              customer_available,
-              comment,
-              customer_response:fail_reason,
-              agree_to_settle:settle,
-            },
+              created_by,
+            }
+          },
+          $set: { 
+            case_current_status: "Should be change and add the conditions"
           }
         },
         { new: true, session }
@@ -4634,10 +4614,11 @@ export const Mediation_Board = async (req, res) => {
         return res.status(400).json({ 
           status: "error",
           message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
-        });      };
+        });
+      };
       // call settlement APi
+      console.log("call settlement APi");
     };
-
     await session.commitTransaction();
     session.endSession();
     return res.status(200).json({ 
@@ -4653,6 +4634,794 @@ export const Mediation_Board = async (req, res) => {
       error: error.message 
     }); 
  }
+}
+
+export const Mediation_Board2 = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const {
+      case_id,
+      drc_id,
+      ro_id,
+      next_calling_date,
+      handover_non_settlement,
+      calling_round,
+      request_id,
+      request_type,
+      request_comment,
+      intraction_id,
+      customer_available,
+      comment,
+      settle,
+      settlement_count,
+      initial_amount,
+      calendar_month,
+      duration,
+      remark,
+      fail_reason,
+      created_by,
+    } = req.body;
+
+    if (!case_id || !drc_id || !customer_available) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: case_id, drc_id, customer_available" 
+      });
+    }
+    if( calling_round >= 3 ){
+      if (!handover_non_settlement) {
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: handover non settlement" 
+        });
+      };
+      if (handover_non_settlement == "yes") {
+        const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
+          { case_id: case_id }, 
+          {
+            $push: { 
+              mediation_board: {
+                drc_id,
+                ro_id,
+                created_dtm: new Date(),
+                handed_over_non_settlemet_on: new Date(),
+                non_settlement_comment: comment
+              }
+            },
+            $push: { 
+              case_status: {
+                case_status: "Hand over non settlement", 
+                created_dtm: new Date(),
+                created_by,
+              }
+            },
+            $set: { 
+              case_current_status: "Hand over non settlement"
+            }
+          },
+          { new: true, session }
+        );
+        if (!updatedMediationBoardCase) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ 
+            success: false, 
+            message: 'Case not found for this case id' 
+          });
+        }
+      }
+      else if(handover_non_settlement == "no"){
+        if ((request_id || request_type  || intraction_id) || (request_id != "" || request_type != "" || intraction_id != "")) {
+          if (!request_id || !request_type || !intraction_id) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ 
+              status: "error",
+              message: "Missing required fields: request_id, request_type, intraction_id" 
+            });
+          }
+          if (customer_available == "no") {
+            const dynamicParams = {
+              case_id,
+              drc_id,
+              ro_id,
+              request_id,
+              request_type,
+              request_comment,
+            };
+            const result = await createUserInteractionFunction({
+              Interaction_ID:intraction_id,
+              User_Interaction_Type:request_type,
+              delegate_user_id:1,   // should be change this 
+              Created_By:created_by,
+              User_Interaction_Status: "Open",
+              ...dynamicParams
+            });
+            if (!result || !result.Interaction_Log_ID) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(500).json({ 
+                status: "error", 
+                message: "Failed to create user interaction" 
+              });
+            }
+            const intraction_log_id = result.Interaction_Log_ID;
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                  },
+                  ro_requests: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      ro_request_id: request_id,
+                      ro_request: request_type,
+                      intraction_id: intraction_id,
+                      intraction_log_id,
+                  },
+                  case_status: {
+                      case_status: "rrrrrrrr", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "rrrrrrr"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }
+          }
+          else if(customer_available == "yes"){
+            if(!settle){
+              return res.status(400).json({ 
+                status: "error",
+                message: "Missing required fields: customer settle" 
+              });
+            };
+            if(settle == "no"){
+              const dynamicParams = {
+                case_id,
+                drc_id,
+                ro_id,
+                request_id,
+                request_type,
+                request_comment,
+              };
+              const result = await createUserInteractionFunction({
+                Interaction_ID:intraction_id,
+                User_Interaction_Type:request_type,
+                delegate_user_id:1,   // should be change this 
+                Created_By:created_by,
+                User_Interaction_Status: "Open",
+                ...dynamicParams
+              });
+              if (!result || !result.Interaction_Log_ID) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(500).json({ 
+                  status: "error", 
+                  message: "Failed to create user interaction" 
+                });
+              }
+              const intraction_log_id = result.Interaction_Log_ID;
+              const updatedCase = await Case_details.findOneAndUpdate(
+                { case_id: case_id }, 
+                { 
+                  $push: { 
+                    mediation_board: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        mediation_board_calling_dtm: next_calling_date,
+                        customer_available,
+                        comment,
+                        agree_to_settle:settle,
+                        customer_response:fail_reason,
+                    },
+                    ro_requests: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        ro_request_id: request_id,
+                        ro_request: request_type,
+                        intraction_id: intraction_id,
+                        intraction_log_id,
+                    },
+                    case_status: {
+                        case_status: "zzzzzzzz", 
+                        created_dtm: new Date(),
+                        created_by,
+                    }
+                  },
+                  $set: { 
+                      case_current_status: "zzzzzzzz"
+                  }
+                },
+                { new: true, session }
+              );
+              if (!updatedCase) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ 
+                  status: "error",
+                  message: 'Case not found this case id' 
+                });
+              }
+            }
+            else{
+              const dynamicParams = {
+                case_id,
+                drc_id,
+                ro_id,
+                request_id,
+                request_type,
+                request_comment,
+              };
+              const result = await createUserInteractionFunction({
+                Interaction_ID:intraction_id,
+                User_Interaction_Type:request_type,
+                delegate_user_id:1,   // should be change this 
+                Created_By:created_by,
+                User_Interaction_Status: "Open",
+                ...dynamicParams
+              });
+              if (!result || !result.Interaction_Log_ID) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(500).json({ 
+                  status: "error", 
+                  message: "Failed to create user interaction" 
+                });
+              }
+              const intraction_log_id = result.Interaction_Log_ID;
+              const updatedCase = await Case_details.findOneAndUpdate(
+                { case_id: case_id }, 
+                { 
+                  $push: { 
+                    mediation_board: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        mediation_board_calling_dtm: next_calling_date,
+                        customer_available,
+                        comment,
+                        agree_to_settle:settle,
+                    },
+                    ro_requests: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        ro_request_id: request_id,
+                        ro_request: request_type,
+                        intraction_id: intraction_id,
+                        intraction_log_id,
+                    },
+                    case_status: {
+                        case_status: "yyyyyyy", 
+                        created_dtm: new Date(),
+                        created_by,
+                    }
+                  },
+                  $set: { 
+                      case_current_status: "yyyyyyy"
+                  }
+                },
+                { new: true, session }
+              );
+              if (!updatedCase) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ 
+                  status: "error",
+                  message: 'Case not found this case id' 
+                });
+              }else{
+                // call the setlement API
+              };
+            }
+          }
+        }
+        else{
+          if (customer_available == "no") {
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                  },
+                  case_status: {
+                      case_status: "ttttt", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "ttttt"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }
+          }
+          else if(customer_available == "yes"){
+            if(!settle){
+              return res.status(400).json({ 
+                status: "error",
+                message: "Missing required fields: customer settle" 
+              });
+            };
+            if(settle == "no"){
+              const updatedCase = await Case_details.findOneAndUpdate(
+                { case_id: case_id }, 
+                { 
+                  $push: { 
+                    mediation_board: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        mediation_board_calling_dtm: next_calling_date,
+                        customer_available,
+                        comment,
+                        agree_to_settle:settle,
+                        customer_response:fail_reason,
+                    },
+                    case_status: {
+                        case_status: "bbbbb", 
+                        created_dtm: new Date(),
+                        created_by,
+                    }
+                  },
+                  $set: { 
+                      case_current_status: "bbbbb"
+                  }
+                },
+                { new: true, session }
+              );
+              if (!updatedCase) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ 
+                  status: "error",
+                  message: 'Case not found this case id' 
+                });
+              }
+            }
+            else{
+              const updatedCase = await Case_details.findOneAndUpdate(
+                { case_id: case_id }, 
+                { 
+                  $push: { 
+                    mediation_board: {
+                        drc_id,
+                        ro_id,
+                        created_dtm: new Date(),
+                        mediation_board_calling_dtm: next_calling_date,
+                        customer_available,
+                        comment,
+                        agree_to_settle:settle,
+                    },
+                    case_status: {
+                        case_status: "ccccc", 
+                        created_dtm: new Date(),
+                        created_by,
+                    }
+                  },
+                  $set: { 
+                      case_current_status: "ccccc"
+                  }
+                },
+                { new: true, session }
+              );
+              if (!updatedCase) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ 
+                  status: "error",
+                  message: 'Case not found this case id' 
+                });
+              }else{
+                // call the setlement API
+              };
+            }
+          }
+        }
+      }
+      else{
+        return res.status(400).json({ 
+          status: "error",
+          message: "handover non settlement value is not valid" 
+        });
+      }
+    }
+    else{
+      if ((request_id || request_type  || intraction_id) || (request_id != "" || request_type != "" || intraction_id != "")) {
+        if (!request_id || !request_type || !intraction_id) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ 
+            status: "error",
+            message: "Missing required fields: request_id, request_type, intraction_id" 
+          });
+        }
+        if (customer_available == "no") {
+          const dynamicParams = {
+            case_id,
+            drc_id,
+            ro_id,
+            request_id,
+            request_type,
+            request_comment,
+          };
+          const result = await createUserInteractionFunction({
+            Interaction_ID:intraction_id,
+            User_Interaction_Type:request_type,
+            delegate_user_id:1,   // should be change this 
+            Created_By:created_by,
+            User_Interaction_Status: "Open",
+            ...dynamicParams
+          });
+          if (!result || !result.Interaction_Log_ID) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(500).json({ 
+              status: "error", 
+              message: "Failed to create user interaction" 
+            });
+          }
+          const intraction_log_id = result.Interaction_Log_ID;
+          const updatedCase = await Case_details.findOneAndUpdate(
+            { case_id: case_id }, 
+            { 
+              $push: { 
+                mediation_board: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    mediation_board_calling_dtm: next_calling_date,
+                    customer_available,
+                    comment,
+                },
+                ro_requests: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    ro_request_id: request_id,
+                    ro_request: request_type,
+                    intraction_id: intraction_id,
+                    intraction_log_id,
+                },
+                case_status: {
+                    case_status: "rrrrrrrr", 
+                    created_dtm: new Date(),
+                    created_by,
+                }
+              },
+              $set: { 
+                  case_current_status: "rrrrrrr"
+              }
+            },
+            { new: true, session }
+          );
+          if (!updatedCase) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ 
+              status: "error",
+              message: 'Case not found this case id' 
+            });
+          }
+        }
+        else if(customer_available == "yes"){
+          if(!settle){
+            return res.status(400).json({ 
+              status: "error",
+              message: "Missing required fields: customer settle" 
+            });
+          };
+          if(settle == "no"){
+            const dynamicParams = {
+              case_id,
+              drc_id,
+              ro_id,
+              request_id,
+              request_type,
+              request_comment,
+            };
+            const result = await createUserInteractionFunction({
+              Interaction_ID:intraction_id,
+              User_Interaction_Type:request_type,
+              delegate_user_id:1,   // should be change this 
+              Created_By:created_by,
+              User_Interaction_Status: "Open",
+              ...dynamicParams
+            });
+            if (!result || !result.Interaction_Log_ID) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(500).json({ 
+                status: "error", 
+                message: "Failed to create user interaction" 
+              });
+            }
+            const intraction_log_id = result.Interaction_Log_ID;
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                      agree_to_settle:settle,
+                      customer_response:fail_reason,
+                  },
+                  ro_requests: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      ro_request_id: request_id,
+                      ro_request: request_type,
+                      intraction_id: intraction_id,
+                      intraction_log_id,
+                  },
+                  case_status: {
+                      case_status: "zzzzzzzz", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "zzzzzzzz"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }
+          }
+          else{
+            const dynamicParams = {
+              case_id,
+              drc_id,
+              ro_id,
+              request_id,
+              request_type,
+              request_comment,
+            };
+            const result = await createUserInteractionFunction({
+              Interaction_ID:intraction_id,
+              User_Interaction_Type:request_type,
+              delegate_user_id:1,   // should be change this 
+              Created_By:created_by,
+              User_Interaction_Status: "Open",
+              ...dynamicParams
+            });
+            if (!result || !result.Interaction_Log_ID) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(500).json({ 
+                status: "error", 
+                message: "Failed to create user interaction" 
+              });
+            }
+            const intraction_log_id = result.Interaction_Log_ID;
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                      agree_to_settle:settle,
+                  },
+                  ro_requests: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      ro_request_id: request_id,
+                      ro_request: request_type,
+                      intraction_id: intraction_id,
+                      intraction_log_id,
+                  },
+                  case_status: {
+                      case_status: "yyyyyyy", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "yyyyyyy"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }else{
+              // call the setlement API
+            };
+          }
+        }
+      }
+      else{
+        if (customer_available == "no") {
+          const updatedCase = await Case_details.findOneAndUpdate(
+            { case_id: case_id }, 
+            { 
+              $push: { 
+                mediation_board: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    mediation_board_calling_dtm: next_calling_date,
+                    customer_available,
+                    comment,
+                },
+                case_status: {
+                    case_status: "ttttt", 
+                    created_dtm: new Date(),
+                    created_by,
+                }
+              },
+              $set: { 
+                  case_current_status: "ttttt"
+              }
+            },
+            { new: true, session }
+          );
+          if (!updatedCase) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ 
+              status: "error",
+              message: 'Case not found this case id' 
+            });
+          }
+        }
+        else if(customer_available == "yes"){
+          if(!settle){
+            return res.status(400).json({ 
+              status: "error",
+              message: "Missing required fields: customer settle" 
+            });
+          };
+          if(settle == "no"){
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                      agree_to_settle:settle,
+                      customer_response:fail_reason,
+                  },
+                  case_status: {
+                      case_status: "bbbbb", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "bbbbb"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }
+          }
+          else{
+            const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id: case_id }, 
+              { 
+                $push: { 
+                  mediation_board: {
+                      drc_id,
+                      ro_id,
+                      created_dtm: new Date(),
+                      mediation_board_calling_dtm: next_calling_date,
+                      customer_available,
+                      comment,
+                      agree_to_settle:settle,
+                  },
+                  case_status: {
+                      case_status: "ccccc", 
+                      created_dtm: new Date(),
+                      created_by,
+                  }
+                },
+                $set: { 
+                    case_current_status: "ccccc"
+                }
+              },
+              { new: true, session }
+            );
+            if (!updatedCase) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(404).json({ 
+                status: "error",
+                message: 'Case not found this case id' 
+              });
+            }else{
+              // call the setlement API
+            };
+          }
+        }
+      }
+    }
+  }
+  catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ 
+      status:"error",
+      message: "Server error", 
+      error: error.message 
+    }); 
+  }
 }
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
@@ -5349,54 +6118,169 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
 };
 
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
-try {
-    const { case_id } = req.body;
+  try {
+      const { case_id, recieved_by } = req.body;  
 
-    if (!case_id) {
-        return res.status(400).json({ message: 'case_id is required' });
-    }
+      
+      if (!case_id) {
+          return res.status(400).json({ message: 'case_id is required' });
+      }
+      if (!recieved_by) {
+          return res.status(400).json({ message: 'recieved_by is required' });
+      }
 
-    const caseRecord = await Case_details.findOne({ case_id });
+      
+      const caseRecord = await Case_details.findOne({ case_id });
 
-    if (!caseRecord) {
-        return res.status(404).json({ message: 'Case not found' });
-    }
+      if (!caseRecord) {
+          return res.status(404).json({ message: 'Case not found' });
+      }
 
-    if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
-        return res.status(400).json({ message: 'Case status does not match the required condition' });
-    }
+    
+      if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
+          return res.status(400).json({ message: 'Case status does not match the required condition' });
+      }
 
-   
-    if (caseRecord.ro_requests) {
-        caseRecord.ro_requests.forEach((request) => {
-            if (!request.todo_dtm) request.todo_dtm = new Date();
-        });
-    }
+      
+      const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
 
-  
-    if (caseRecord.mediation_board) {
-        caseRecord.mediation_board.forEach((entry) => {
-            if (entry.customer_available === true) entry.customer_available = "yes";
-            if (entry.customer_available === false) entry.customer_available = "no";
-        });
-    }
+      if (mediationBoardEntry) {
+          mediationBoardEntry.received_on = new Date();
+          mediationBoardEntry.received_by = recieved_by;
+          
+      } else {
+          return res.status(400).json({ message: 'No mediation board entry found for this case' });
+      }
 
-   
-    caseRecord.case_status.push({
-        case_status: 'Updated',
-        status_reason: 'Non-settlement case update',
-        created_dtm: new Date(),
-        created_by: 'System',
-        notified_dtm: new Date(),
-        expire_dtm: new Date(new Date().setMonth(new Date().getMonth() + 1)), 
-    });
+     
+      caseRecord.case_current_status = 'MB Fail with Non-Settlement';
 
-    caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+      
+      await caseRecord.save();
 
-    await caseRecord.save();
-    return res.status(200).json({ message: 'Case status updated successfully', caseRecord });
+      return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
 
-} catch (error) {
-    return res.status(500).json({ message: 'Server error', error: error.message });
-}
+  } catch (error) {
+      return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
+  try {
+      const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+      
+      if (!delegate_user_id) {
+          return res.status(400).json({ message: "delegate_user_id is required" });
+      }
+      
+      let filter = { delegate_user_id };
+      
+      if (User_Interaction_Type) {
+          filter.User_Interaction_Type = User_Interaction_Type;
+      }
+      
+      if (date_from && date_to) {
+          filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      }
+      
+      // Step 1: Fetch documents from User_Interaction_Log
+      const interactionLogs = await User_Interaction_Log.find(filter);
+      
+      if (!interactionLogs.length) {
+          return res.status(404).json({ message: "No matching interactions found." });
+      }
+      
+      // Step 2: Fetch matching Request records based on Interaction_Log_ID
+      const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+      const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+      
+      // Step 3: Filter User_Interaction_Log based on Request Accept status
+      let filteredInteractionLogs = interactionLogs;
+      
+      if (requestAccept) {
+          filteredInteractionLogs = interactionLogs.filter(log => {
+              const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+              if (!matchingRequest) return false;
+              
+              const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+              return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+                     (requestAccept === "Reject" && requestAcceptStatus === "No");
+          });
+      }
+      
+      if (!filteredInteractionLogs.length) {
+          return res.status(404).json({ message: "No matching approved/rejected requests found." });
+      }
+      
+      // Step 4: Fetch related case details
+      const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+      const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+          case_id: 1,
+          case_current_status: 1,
+          current_arrears_amount: 1,
+          drc: 1,
+          created_dtm: 1,
+          monitor_months: 1
+      });
+      
+      // Step 5: Prepare the final response with separate entries per DRC
+      let responseData = [];
+      
+      filteredInteractionLogs.forEach(log => {
+          const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+          
+          let validityPeriod = "";
+          if (relatedCase) {
+              const createdDtm = new Date(relatedCase.created_dtm);
+              if (relatedCase.monitor_months) {
+                  const endDtm = new Date(createdDtm);
+                  endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+                  validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+              } else {
+                  validityPeriod = createdDtm.toISOString();
+              }
+          }
+          
+          const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+          const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+          
+          if (relatedCase?.drc?.length) {
+              relatedCase.drc.forEach(drc => {
+                  responseData.push({
+                      ...log.toObject(),
+                      case_details: {
+                          case_id: relatedCase.case_id,
+                          case_current_status: relatedCase.case_current_status,
+                          current_arrears_amount: relatedCase.current_arrears_amount,
+                          drc: {
+                              drc_id: drc.drc_id,
+                              drc_name: drc.drc_name,
+                              drc_status: drc.drc_status
+                          },
+                          Validity_Period: validityPeriod
+                      },
+                      Approve_Status: approveStatus
+                  });
+              });
+          } else {
+              responseData.push({
+                  ...log.toObject(),
+                  case_details: {
+                      case_id: relatedCase?.case_id,
+                      case_current_status: relatedCase?.case_current_status,
+                      current_arrears_amount: relatedCase?.current_arrears_amount,
+                      drc: []
+                  },
+                  Validity_Period: validityPeriod,
+                  Approve_Status: approveStatus
+              });
+          }
+      });
+      
+      return res.json(responseData);
+  } catch (error) {
+      console.error("Error fetching request logs:", error);
+      return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
 };

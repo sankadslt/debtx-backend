@@ -123,9 +123,10 @@ const roRequestsSchema = new mongoose.Schema({
   created_dtm: { type: Date, required: true },
   ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
+  request_remark: { type: String, default:null  },
   intraction_id: { type: Number, required: true }, 
   intraction_log_id: { type: Number, required: true },
-  todo_dtm: { type: Date, default:null  },
+  todo_dtm: { type: Date,default:null  },
   completed_dtm: { type: Date, default:null },
 });
 
@@ -133,11 +134,15 @@ const mediationBoardSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   created_dtm: { type: Date, required: true },
-  mediation_board_calling_dtm: { type: Date, required: true },
-  customer_available: { type: String, required: true, enum: ['yes','no'] },
+  mediation_board_calling_dtm: { type: Date, default:null },
+  customer_available: { type: String, default:null, enum: ['yes','no'] },
   comment: { type: String, default:null },
   agree_to_settle: { type: String},
   customer_response: { type: String, default:null },
+  handed_over_non_settlemet_on: { type: String, default:null },
+  non_settlement_comment: { type: String, default:null },
+  received_on: { type: Date, default:null },
+  received_by: { type: String, default:null },
 });
 
 const settlementschema = new Schema({
@@ -149,7 +154,7 @@ const settlementschema = new Schema({
 });
 
 // Define the main case details schema
-const caseDetailsSchema = new Schema({
+const caseDetailsSchema = new Schema({ 
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
   account_no: { type: String, required: true },
