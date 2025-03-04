@@ -1,4 +1,5 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { model } from 'mongoose';
+const { Schema } = mongoose;
 
 const requestSchema = new Schema({
   RO_Request_Id: { type: Number, required: true, unique: true },
