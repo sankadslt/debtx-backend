@@ -4151,13 +4151,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { approver_references, Created_By } = req.body;
-
-    if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
-    }
+    const { approver_references, date_from, date_to, Created_By } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -4172,6 +4166,8 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
       Template_Task_Id: 33, // Different Task ID for approval tasks
       task_type: "Create DRC Assign maneger approval List for Downloard",
       approver_references, // List of approver references
+      date_from,
+      date_to,
       created_on: currentDate.toISOString(),
       Created_By, // Assigned creator
       task_status: "open",
