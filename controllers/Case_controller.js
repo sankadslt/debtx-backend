@@ -2359,28 +2359,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
 };
 
-const validateTaskParameters = (parameters) => {
-  const { current_arrears_band, date_from, date_to, drc_commision_rule } = parameters;
-
-  if (!current_arrears_band || typeof current_arrears_band !== "string") {
-    throw new Error("current_arrears_band is required and must be a string.");
-  }
-
-  // Only validate dates if they are not null
-  if (date_from !== null && date_from !== undefined && isNaN(new Date(date_from).getTime())) {
-    throw new Error("date_from must be a valid date string or null.");
-  }
-
-  if (date_to !== null && date_to !== undefined && isNaN(new Date(date_to).getTime())) {
-    throw new Error("date_to must be a valid date string or null.");
-  }
-
-  if (!drc_commision_rule || typeof drc_commision_rule !== "string") {
-    throw new Error("drc_commision_rule is required and must be a string.");
-  }
-
-  return true;
-};
 
 export const Create_Task_For_case_distribution = async (req, res) => {
   const session = await mongoose.startSession();
@@ -2407,8 +2385,6 @@ export const Create_Task_For_case_distribution = async (req, res) => {
       Created_By,
       task_status: "open"
     };
-
-    validateTaskParameters(parameters);
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
