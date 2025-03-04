@@ -4500,7 +4500,8 @@ export const Mediation_Board = async (req, res) => {
       settlement_count,
       initial_amount,
       calendar_month,
-      duration,
+      duration_start_date,
+      duration_end_date,
       remark,
       fail_reason,
       created_by,
@@ -4520,9 +4521,9 @@ export const Mediation_Board = async (req, res) => {
       created_dtm: new Date(), 
       mediation_board_calling_dtm: next_calling_date,
       customer_available: customer_available, // Optional field (must be 'yes' or 'no' if provided)
-      comment: handed_over_non_settlemet === "no" ? comment : null, // Optional field (default: null)
+      comment: fail_reason === "" ? null : comment, // Optional field (default: null)
       agree_to_settle: settle, // Optional field (no default)
-      customer_response: fail_reason, // Optional field (default: null)
+      customer_response: settle === "no" ? fail_reason : null, // Optional field (default: null)
       handed_over_non_settlemet_on: handed_over_non_settlemet === "yes" ? new Date() : null,
       non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, // Optional field (default: null)
     };
@@ -4624,8 +4625,8 @@ export const Mediation_Board = async (req, res) => {
         });
       }
     }
-    if(settle){
-      if(!settlement_count || !initial_amount || !calendar_month || !duration){
+    if(settle === "yes"){
+      if(!settlement_count || !initial_amount || !calendar_month || !duration_start_date || !duration_end_date){
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ 
