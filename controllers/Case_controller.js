@@ -1997,7 +1997,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ref_products: caseData.ref_products || null,
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
-      ro_id: lastRecoveryOfficer?.ro_id || null,
+      ro_id: matchingRecoveryOfficer?.ro_id || null,
     };
 
 
@@ -3134,12 +3134,21 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
 
     // Add optional filters dynamically
     if (rtom) query.$and.push({ area: rtom });
-    if (ro_id) query.$and.push({ "drc.recovery_officers.ro_id": ro_id });
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            { $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ], },
+          ],
+        },
+      });
+    };    
     if (action_type) query.$and.push({ action_type });
     if (case_current_status) query.$and.push({ case_current_status });
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     // Fetch cases based on the query
