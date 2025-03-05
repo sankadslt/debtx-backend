@@ -1558,7 +1558,8 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         drc_id: DRC_Id,
         rulebase_count: Count,
       })),
-      batch_seq_rulebase_count:batch_seq_rulebase_count
+      batch_seq_rulebase_count:batch_seq_rulebase_count,
+      crd_distribution_status:"Open",
     }];
     // Prepare Case distribution drc transactions data
     const Case_distribution_drc_transactions_data = {
@@ -1574,6 +1575,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       }],
       drc_commision_rule,  
       crd_distribution_status: {crd_distribution_status:"Open",created_dtm:new Date()},
+      crd_distribution_status:"Open",
     };
 
     // Insert into Case_distribution_drc_transactions collection
@@ -3530,7 +3532,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
 
     // Call createTaskFunction
     const result = await createTaskFunction({
-      Template_Task_Id: 29,
+      Template_Task_Id: 36,
       task_type: "Exchange Case Distribution Planning among DRC",
       Created_By: created_by,
       ...dynamicParams,
@@ -3580,10 +3582,20 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         rtom,
       })),
       batch_seq_rulebase_count,
+      crd_distribution_status:"Open",
     };
     
-    existingCase.batch_seq_details.push(newBatchSeqEntry);
-    await existingCase.save();
+    // existingCase.batch_seq_details.push(newBatchSeqEntry);
+    const updatedexistingCase = await CaseDistribution.findOneAndUpdate(
+      {case_distribution_batch_id}, 
+      {
+        $push: { batch_seq_details: newBatchSeqEntry },
+        $set: { crd_distribution_status: "Open", crd_distribution_status_on: new Date() } 
+      },
+      { new: true } 
+    );
+    await updatedexistingCase.save();
+    // await existingCase.save();
     
     return res.status(200).json({
       status: "success",
@@ -4220,6 +4232,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
       parameters:{
         drc_id:drc_id,
         drc_name:drc_name,
+        case_id:case_id,
       },
       remark:{
         remark:remark,

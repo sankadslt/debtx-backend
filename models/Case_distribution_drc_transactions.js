@@ -132,6 +132,8 @@ const batchseqSchema = new Schema({
     action_type: { type: String, required: true, enum: ['distribution', 'amend'],},
     array_of_distributions: [arrayOfDistributionSchema] ,
     batch_seq_rulebase_count: { type: Number, required: true},
+    crd_distribution_status: { type: String, default:null},
+    crd_distribution_status_on: { type: Date, default:null },
     // batch_seq_rulebase_arrears_sum: { type: Number, required: true},
 }, { _id: false });
 
@@ -158,7 +160,9 @@ const caseDistributionSchema = new Schema({
     approved_by: { type: String, default:null},
     approved_on: { type: Date, default:null},
     proceed_on: { type: Date, default:null},
-    tmp_record_remove_on: { type: Date, default:null}
+    tmp_record_remove_on: { type: Date, default:null},
+    crd_distribution_status: { type: String, default:null },
+    crd_distribution_status_on: { type: Date, default:null},
 },{
   collection: 'Case_distribution_drc_transactions',
   timestamps: true
