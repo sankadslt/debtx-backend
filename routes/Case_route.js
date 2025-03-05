@@ -69,7 +69,8 @@ import {
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
   List_All_DRCs_Mediation_Board_Cases,
-  Accept_Non_Settlement_Request_from_Mediation_Board
+  Accept_Non_Settlement_Request_from_Mediation_Board,
+  ListRequestLogFromRecoveryOfficers,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5787,6 +5788,8 @@ router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Boar
  *                   example: Internal server error.
  */
 router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
+
+router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
 
 export default router;
 
