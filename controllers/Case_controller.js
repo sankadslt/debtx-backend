@@ -4577,15 +4577,19 @@ export const Mediation_Board = async (req, res) => {
                     intraction_id: intraction_id,
                     intraction_log_id,
                 },
-                case_status: {
-                    case_status: "Should be change and add the conditions", 
+                ...(handed_over_non_settlemet === "yes" && {
+                  case_status: {
+                    case_status: "MB Fail with Pending Non-Settlement",
                     created_dtm: new Date(),
-                    created_by,
-                }
+                    created_by: created_by,
+                  },
+                }),
             },
-            $set: { 
-                case_current_status: "Should be change and add the conditions"
-            }
+            ...(handed_over_non_settlemet === "yes" && {
+              $set: {
+                case_current_status: "MB Fail with Pending Non-Settlement",
+              },
+            }),
         },
         { new: true, session } // Correct placement of options
       );
@@ -4604,15 +4608,19 @@ export const Mediation_Board = async (req, res) => {
         {
           $push: {
             mediation_board: mediationBoardData,
-            case_status: {
-              case_status: "Should be change and add the conditions", 
-              created_dtm: new Date(),
-              created_by,
-            }
+            ...(handed_over_non_settlemet === "yes" && {
+              case_status: {
+                case_status: "MB Fail with Pending Non-Settlement",
+                created_dtm: new Date(),
+                created_by: created_by,
+              },
+            }),
           },
-          $set: { 
-            case_current_status: "Should be change and add the conditions"
-          }
+          ...(handed_over_non_settlemet === "yes" && {
+            $set: {
+              case_current_status: "MB Fail with Pending Non-Settlement",
+            },
+          }),
         },
         { new: true, session }
       );
