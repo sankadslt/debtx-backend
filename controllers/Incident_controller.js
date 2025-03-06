@@ -1749,12 +1749,12 @@ export const Create_Case_for_incident= async (req, res) => {
         implemented_dtm: incidentData.Created_Dtm || new Date(),
         area: incidentData.Region || "Unknown",
         rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-        current_arrears_band: incidentData.current_arrears_band || "Default Band",  // Fallback value
+        current_arrears_band: incidentData.current_arrears_band || "Default Band",  
         arrears_band: incidentData.Arrears_Band || "Default Band",
         bss_arrears_amount: incidentData.Arrears || 0,
         current_arrears_amount: incidentData.Arrears || 0,
         action_type: "New Case",
-        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",  // Fallback value
+        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",  
         last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
         monitor_months: 6,
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
@@ -1785,10 +1785,19 @@ export const Create_Case_for_incident= async (req, res) => {
       };      
 
       const newCase = new Case_details(caseData);
+      
+      
+      const newCaseStatus = {
+        case_status: "Open No Agent", 
+        status_reason: "Incident forward to case",  
+        created_dtm: new Date(),  
+        created_by: Proceed_By,   
+      };
+      newCase.case_status.push(newCaseStatus); 
       await newCase.save({ session });
       createdCases.push(newCase);
     }
-
+  
     await session.commitTransaction();
     res.status(201).json({
       message: `Successfully created ${createdCases.length} cases.`,
@@ -2012,6 +2021,19 @@ export const Forward_CPE_Collect = async (req, res) => {
     { session }
   );
   
+   
+   const newCaseStatus = {
+    case_status: "Open No Agent",  
+    status_reason: "Incident forwarded to CPE Collect",  
+    created_dtm: new Date(),  
+    created_by: Proceed_By,   
+  };
+
+
+  newCase.case_status.push(newCaseStatus);
+  await newCase.save({ session });
+
+
   await session.commitTransaction();
   session.endSession();
 
