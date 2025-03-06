@@ -6297,9 +6297,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-export const addNegoCase = async (req, res) => {
-
-  console.log("Received data:", req.body);
+export const Customer_Negotiations = async (req, res) => {
   try {
     const {
       case_id,
@@ -6323,7 +6321,7 @@ export const addNegoCase = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!case_id || !field_reason || !field_reason_id  || !ro_request || !field_reason_remark) {
+    if (!case_id || !drc_id ) {
 
       return res.status(400).json({
         status: "error",

@@ -71,7 +71,7 @@ import {
   List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListRequestLogFromRecoveryOfficers,
-  addNegoCase,
+  Customer_Negotiations,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5921,7 +5921,7 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/Customer_Negotiations", addNegoCase);
+router.post("/Customer_Negotiations", Customer_Negotiations);
 export default router;
 
 
