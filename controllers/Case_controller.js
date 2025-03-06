@@ -1667,7 +1667,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     }
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     const cases = await Case_details.find(query);
@@ -3407,7 +3407,7 @@ export const get_distribution_array_of_a_transaction = async (req, res) => {
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
     // Fetch all RO details from MongoDB
-    const ro_requests = await RecoveryOfficer_Request.find();
+    const ro_requests = await Template_RO_Request.find();
 
     // Check if any data is found in databases
     if (ro_requests.length === 0) {
@@ -5572,7 +5572,7 @@ export const listDRCAllCases = async (req, res) => {
     if (action_type) query.$and.push({ action_type });
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     // Fetch cases based on the query
@@ -5658,9 +5658,6 @@ export const CaseDetailsforDRC = async (req, res) => {
         },
       });
     }
-    
-    // Count the number of objects in the mediation_board array
-    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
     const formattedCaseDetails = {
       case_id: caseDetails.case_id,
@@ -5669,13 +5666,13 @@ export const CaseDetailsforDRC = async (req, res) => {
       current_arrears_amount: caseDetails.current_arrears_amount,
       last_payment_date: caseDetails.last_payment_date,
       contactDetails: caseDetails.current_contact,
-      calling_round: mediationBoardCount,
+      
     };
 
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: caseDetails
+      data: formattedCaseDetails
     });
 
   } catch (err) {
@@ -5692,8 +5689,8 @@ export const CaseDetailsforDRC = async (req, res) => {
         code: 500,
         description: err.message || "Internal server error occurred while fetching case details.",
       },
-    });
-  }
+    });
+  }
 };
 
 // List  All Active Mediation RO Requests from SLT
@@ -5861,15 +5858,15 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
 export const updateDrcCaseDetails = async (req, res) => {
   try {
     // Extract fields from the request body
-    const { case_id, mob, email, nic, lan , address, remark } = req.body;
+    const { drc_id, ro_id, case_id, mob, email, nic, lan , address, remark } = req.body;
 
     // Validate if case_id is provided
-    if (!case_id) {
-      return res.status(400).json({ error: "case_id is required" });
+    if (!case_id || !drc_id || !ro_id) {
+      return res.status(400).json({ error: "case_id, drc_id or ro_id is required" });
     }
 
     // Fetch case details from the database
-    const caseDetails = await Case_details.findOne({ case_id });
+    const caseDetails = await Case_details.findOne({ case_id, "drc.drc_id": drc_id, "drc.recovery_officers.ro_id": ro_id });
     if (!caseDetails) {
       return res.status(404).json({ error: "Case not found" });
     }
@@ -5912,8 +5909,8 @@ export const updateDrcCaseDetails = async (req, res) => {
     
     // Schema for edited contact details
     const editedcontactsSchema = {
-      ro_id:  "125" ,
-      drc_id: "2365",
+      // ro_id:  "125" ,
+      // drc_id: "2365",
       edited_dtm: new Date(),
       mob: mob,
       email: email,

@@ -40,7 +40,7 @@ import {
   Create_Task_For_case_distribution,
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
-  // ListActiveRORequestsMediation,
+  ListActiveRORequestsMediation,
   get_distribution_array_of_a_transaction,
   Create_Task_For_case_distribution_transaction_array,
   Exchange_DRC_RTOM_Cases,
@@ -5790,6 +5790,8 @@ router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Boar
 router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
 
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+
+router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation)
 
 export default router;
 
