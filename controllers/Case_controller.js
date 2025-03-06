@@ -4274,7 +4274,7 @@ export const listDRCAllCases = async (req, res) => {
     try {
         const { case_id, recieved_by } = req.body;  
   
-        // Validate required fields
+      
         if (!case_id) {
             return res.status(400).json({ message: 'case_id is required' });
         }
@@ -4282,19 +4282,19 @@ export const listDRCAllCases = async (req, res) => {
             return res.status(400).json({ message: 'recieved_by is required' });
         }
   
-        // Fetch the case record
+       
         const caseRecord = await Case_details.findOne({ case_id });
   
         if (!caseRecord) {
             return res.status(404).json({ message: 'Case not found' });
         }
   
-        // Validate the case status before updating
+        
         if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
             return res.status(400).json({ message: 'Case status does not match the required condition' });
         }
   
-        // Find the latest mediation board entry to update
+      
         const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
   
         if (mediationBoardEntry) {
@@ -4305,10 +4305,10 @@ export const listDRCAllCases = async (req, res) => {
             return res.status(400).json({ message: 'No mediation board entry found for this case' });
         }
   
-        // Update case_current_status
+        
         caseRecord.case_current_status = 'MB Fail with Non-Settlement';
   
-        // Save the updated case record
+       
         await caseRecord.save();
   
         return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
