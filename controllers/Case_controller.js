@@ -6054,7 +6054,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 };
 
-
 export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   try {
     const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
@@ -6091,30 +6090,27 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       }
     }
 
-   // Fetch cases based on the query (if request body is empty, return all cases)
-   let cases = await Case_details.find(query)
-   .populate("drc") // Populate DRC details
-   .sort({ created_dtm: -1 });
+   
+    let cases = await Case_details.find(query).sort({ created_dtm: -1 });
 
-    // Process each case to get mediation board details
-    const processedCases = cases.map((caseItem) => {
-      const mediationBoardEntries = caseItem.mediation_board || [];
 
-      // Get the last object in the mediation_board array (if exists)
-      const lastMediationBoardEntry =
-        mediationBoardEntries.length > 0
-          ? mediationBoardEntries[mediationBoardEntries.length - 1]
-          : null;
+const processedCases = cases.map((caseItem) => {
+const mediationBoardEntries = caseItem.mediation_board || [];
 
-      return {
-        ...caseItem._doc,
-        latest_next_calling_dtm: lastMediationBoardEntry
-          ? lastMediationBoardEntry.next_calling_dtm
-          : null,
-        mediation_board_call_count: mediationBoardEntries.length, 
-        drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
-      };
-    });
+const lastMediationBoardEntry =
+  mediationBoardEntries.length > 0
+    ? mediationBoardEntries[mediationBoardEntries.length - 1]
+    : null;
+
+return {
+  ...caseItem._doc,
+  latest_next_calling_dtm: lastMediationBoardEntry
+    ? lastMediationBoardEntry.mediation_board_calling_dtm || null
+    : null,
+  mediation_board_call_count: mediationBoardEntries.length,
+  drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
+};
+});
 
     return res.status(200).json({
       status: "success",
@@ -6130,11 +6126,58 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   }
 };
 
+// export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
+//   try {
+//       const { case_id, recieved_by } = req.body;  
+
+    
+//       if (!case_id) {
+//           return res.status(400).json({ message: 'case_id is required' });
+//       }
+//       if (!recieved_by) {
+//           return res.status(400).json({ message: 'recieved_by is required' });
+//       }
+
+     
+//       const caseRecord = await Case_details.findOne({ case_id });
+
+//       if (!caseRecord) {
+//           return res.status(404).json({ message: 'Case not found' });
+//       }
+
+      
+//       if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
+//           return res.status(400).json({ message: 'Case status does not match the required condition' });
+//       }
+
+    
+//       const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
+
+//       if (mediationBoardEntry) {
+//           mediationBoardEntry.received_on = new Date();
+//           mediationBoardEntry.received_by = recieved_by;
+          
+//       } else {
+//           return res.status(400).json({ message: 'No mediation board entry found for this case' });
+//       }
+
+      
+//       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+
+     
+//       await caseRecord.save();
+
+//       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
+
+//   } catch (error) {
+//       return res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
       const { case_id, recieved_by } = req.body;  
 
-      
+   
       if (!case_id) {
           return res.status(400).json({ message: 'case_id is required' });
       }
@@ -6142,38 +6185,51 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
           return res.status(400).json({ message: 'recieved_by is required' });
       }
 
-      
+    
       const caseRecord = await Case_details.findOne({ case_id });
 
       if (!caseRecord) {
           return res.status(404).json({ message: 'Case not found' });
       }
 
-    
+      
       if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
           return res.status(400).json({ message: 'Case status does not match the required condition' });
       }
 
-      
+     
       const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
 
       if (mediationBoardEntry) {
+         
           mediationBoardEntry.received_on = new Date();
           mediationBoardEntry.received_by = recieved_by;
-          
       } else {
           return res.status(400).json({ message: 'No mediation board entry found for this case' });
       }
 
-     
+      
       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+
+      
+      const newCaseStatus = {
+          case_status: 'MB Fail with Non-Settlement',    
+          status_reason: 'Non-settlement request accepted from Mediation Board',  
+          created_dtm: new Date(),                      
+          created_by: recieved_by,                     
+      };
+
+     
+      caseRecord.case_status.push(newCaseStatus);
 
       
       await caseRecord.save();
 
+      
       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
 
   } catch (error) {
+      
       return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -6392,3 +6448,4 @@ export const Customer_Negotiations = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
