@@ -1314,7 +1314,7 @@ export const Acivite_Case_Details = async (req, res) => {
   }
 };
 
-export const get_count_by_drc_commision_rule = async (req, res) => {
+export const List_count_by_drc_commision_rule = async (req, res) => {
   const case_status = "Open No Agent";
     try {
       const casesCount = await Case_details.aggregate([
@@ -6295,5 +6295,102 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
   } catch (error) {
       console.error("Error fetching request logs:", error);
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+export const addNegoCase = async (req, res) => {
+
+  console.log("Received data:", req.body);
+  try {
+    const {
+      case_id,
+      ro_request_id,
+      ro_request,
+      ro_request_remark,
+      drc_id,
+      ro_id,
+      field_reason_id,
+      field_reason,
+      field_reason_remark,
+      intraction_id,
+      todo_on,
+      completed_on,
+      settlement_id,
+      initial_amount,
+      calender_month,
+      duration_from,
+      duration_to,
+      settlement_remark
+    } = req.body;
+
+    // Validate required fields
+    if (!case_id || !field_reason || !field_reason_id  || !ro_request || !field_reason_remark) {
+
+      return res.status(400).json({
+        status: "error",
+        message:
+          "All fields are required: case_id, negotiation, ro_request, negotiation_remarks.",
+      });
+    }
+    
+    // Find the case by ID
+    const caseDetails = await Case_details.findOne({ case_id });
+
+    if (!caseDetails) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    // Check and update any drc entries missing removed_dtm
+    caseDetails.drc.forEach((drcEntry) => {
+      if (!drcEntry.removed_dtm) {
+        drcEntry.removed_dtm = new Date(); // Or set it to null if schema allows
+      }
+    });
+
+    caseDetails.drc.forEach((drcEntry) => {
+      if (!drcEntry.expire_dtm) {
+        drcEntry.expire_dtm = new Date(); // Or set it to null if schema allows
+      }
+    });
+
+    // Function to filter out null or undefined values from an object
+    const filterNonNullValues = (obj) => {
+      return Object.fromEntries(
+        Object.entries(obj).filter(([_, v]) => v != null)
+      );
+    };
+
+    // Push the new negotiation data into ro_negotiation array
+
+    caseDetails.ro_negotiation.push(
+      filterNonNullValues({
+        drc_id,
+        ro_id,
+        created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
+        field_reason_id,
+        field_reason,
+        field_reason_remark
+      })
+    );
+
+    caseDetails.ro_requests.push(
+      filterNonNullValues({
+        drc_id,
+        ro_id,
+        created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
+        ro_request_id,
+        ro_request,
+        ro_request_remark,
+        intraction_id, 
+        todo_on,
+        completed_on,
+      })
+    );
+    await caseDetails.save();
+    res
+      .status(200)
+      .json({ message: "Case negotiation added successfully", caseDetails });
+  } catch (error) {
+    console.error("Error adding case negotiation:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

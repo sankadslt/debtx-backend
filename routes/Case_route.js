@@ -31,7 +31,7 @@ import {
   listCases,
   Acivite_Case_Details,
   ListALLMediationCasesownnedbyDRCRO,
-  get_count_by_drc_commision_rule,
+  List_count_by_drc_commision_rule,
   getAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
@@ -71,6 +71,7 @@ import {
   List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListRequestLogFromRecoveryOfficers,
+  addNegoCase,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -2499,7 +2500,7 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/get_count_by_drc_commision_rule", get_count_by_drc_commision_rule);
+router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
 
 router.get("/getAllArrearsBands", getAllArrearsBands);
 
@@ -5791,6 +5792,136 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
 
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
 
+/**
+ * @swagger
+ * /Customer_Negotiations:
+ *   post:
+ *     summary: Add a new customer negotiation case.
+ *     description: |
+ *       | Version | Date        | Description                                | Changed By             |
+ *       |---------|-------------|--------------------------------------------|------------------------|
+ *       | 01      | 2025-Mar-05 | Adds a new negotiation case for a customer.| Yevin Theenura         |
+ *     tags:
+ *       - Customer Negotiations
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - drc_id
+ *               - ro_id
+ *               - negotiation_details
+ *               - request_details
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 description: Unique identifier for the case.
+ *                 example: 12345
+ *               drc_id:
+ *                 type: number
+ *                 description: Unique identifier for the Debt Recovery Coordinator (DRC).
+ *                 example: 67890
+ *               ro_id:
+ *                 type: number
+ *                 description: Unique identifier for the Recovery Officer (RO).
+ *                 example: 11223
+ *               negotiation_details:
+ *                 type: object
+ *                 description: Details of the negotiation.
+ *                 properties:
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of negotiation.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   field_reason_id:
+ *                     type: number
+ *                     description: ID of selected field reason.
+ *                     example: 13
+ *                   field_reason:
+ *                     type: string
+ *                     description: Field reason.
+ *                     example: "Agreed To Settle"
+ *                   field_reason_remarks:
+ *                     type: string
+ *                     description: Additional remarks about the negotiation.
+ *                     example: "Customer agreed to settle the amount in installments."
+ *               request_details:
+ *                 type: object
+ *                 description: Details of the requests.
+ *                 properties:
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   ro_request_id:
+ *                     type: number
+ *                     description: ID of selected request.
+ *                     example: 13
+ *                   ro_request:
+ *                     type: string
+ *                     description: Request description.
+ *                     example: "Request Settlement plan"
+ *                   intraction_id:
+ *                     type: number
+ *                     description: ID regarding interaction.
+ *                     example: 12
+ *                   todo_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request reached.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   completed_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request completed.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *     responses:
+ *       200:
+ *         description: Negotiation case added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Negotiation case added successfully."
+ *       400:
+ *         description: Validation error - Missing or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Validation error - Invalid input."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+router.post("/Customer_Negotiations", addNegoCase);
 export default router;
 
 
