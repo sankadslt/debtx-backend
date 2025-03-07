@@ -1880,48 +1880,9 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       case_id : case_id,
     };
 
-    // let query = {
-    //   $or: [
-    //     { "drc.drc_id": drc_id },
-    //     { "drc.recovery_officers.ro_id": ro_id },
-    //   ],
-    //   case_id,
-    // };
-
-    // Add the ro_id condition to the query if provided
-    // if (ro_id) {
-    //   query.$and.push({
-    //     $expr: {
-    //       $eq: [
-    //         ro_id,
-    //         {
-    //           $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
-    //         },
-    //       ],
-    //     },
-    //   });
-    // }
 
     const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
-      
-      // {
-      //   case_id: 1,
-      //   customer_ref: 1,
-      //   account_no: 1,
-      //   current_arrears_amount: 1,
-      //   last_payment_date: 1,
-      //   "ref_products.product_label": 1,
-      //   "ref_products.service": 1,
-      //   "ref_products.product_status": 1,
-      //   "ref_products.service_address": 1,
-      //   "ro_negotiation.created_dtm": 1,
-      //   "ro_negotiation.feild_reason": 1,
-      //   "ro_negotiation.remark": 1,
-      //   "ro_requests.created_dtm": 1,
-      //   "ro_requests.ro_request": 1,
-      //   "ro_requests.todo_dtm": 1,
-      //   "ro_requests.completed_dtm": 1,
-      // }
+
 
     // Check if any cases exist
     if (!caseData) {
@@ -5666,7 +5627,6 @@ export const CaseDetailsforDRC = async (req, res) => {
       current_arrears_amount: caseDetails.current_arrears_amount,
       last_payment_date: caseDetails.last_payment_date,
       contactDetails: caseDetails.current_contact,
-      
     };
 
     return res.status(200).json({
