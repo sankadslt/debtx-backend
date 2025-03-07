@@ -6344,7 +6344,6 @@ export const Customer_Negotiations = async (req, res) => {
 
     // Validate required fields
     if (!case_id || !drc_id ) {
-
       return res.status(400).json({
         status: "error",
         message:
