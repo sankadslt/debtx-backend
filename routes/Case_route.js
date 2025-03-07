@@ -32,7 +32,7 @@ import {
   Acivite_Case_Details,
   ListALLMediationCasesownnedbyDRCRO,
   List_count_by_drc_commision_rule,
-  getAllArrearsBands,
+  ListAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
   List_Case_Distribution_DRC_Summary,
@@ -41,7 +41,7 @@ import {
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
   // ListActiveRORequestsMediation,
-  get_distribution_array_of_a_transaction,
+  list_distribution_array_of_a_transaction,
   Create_Task_For_case_distribution_transaction_array,
   Exchange_DRC_RTOM_Cases,
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
@@ -2502,7 +2502,7 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
 
-router.get("/getAllArrearsBands", getAllArrearsBands);
+router.get("/ListAllArrearsBands", ListAllArrearsBands);
 
 /**
  * @swagger
@@ -3524,8 +3524,8 @@ router.post(
     "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
 
 router.post(
-  "/get_distribution_array_of_a_transaction",
-  get_distribution_array_of_a_transaction
+  "/list_distribution_array_of_a_transaction",
+  list_distribution_array_of_a_transaction
 );
 
 /**

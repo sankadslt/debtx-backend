@@ -35,7 +35,7 @@ import User_Interaction_Log from "../models/User_Interaction_Log.js";
 import Request from "../models/Request.js";
 import { ro } from "date-fns/locale";
 
-export const getAllArrearsBands = async (req, res) => {
+export const ListAllArrearsBands = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
@@ -1522,22 +1522,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         message: "Already has tasks with this commision rule and arrears band ",
       });
     }
-    // Prepare dynamic parameters for the task
-    const dynamicParams = {
-      drc_commision_rule,
-      current_arrears_band,
-      distributed_Amounts_array:validatedList,
-      batch_seq_rulebase_count
-    };
-
-    // Call createTaskFunction
-    const result = await createTaskFunction({
-      Template_Task_Id: 3,
-      task_type: "Case Distribution Planning among DRC",
-      Created_By: created_by,
-      ...dynamicParams,
-    });
-
     const counter_result_of_case_distribution_batch_id = await mongo.collection("counters").findOneAndUpdate(
       { _id: "case_distribution_batch_id" },
       { $inc: { seq: 1 } },
@@ -1582,6 +1566,22 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     const new_Case_distribution_drc_transaction = new Case_distribution_drc_transactions(Case_distribution_drc_transactions_data);
     await new_Case_distribution_drc_transaction.save();
 
+    // Prepare dynamic parameters for the task
+    const dynamicParams = {
+      // drc_commision_rule,
+      // current_arrears_band,
+      // distributed_Amounts_array:validatedList,
+      // batch_seq_rulebase_count
+      case_distribution_batch_id,
+    };
+
+    // Call createTaskFunction
+    const result = await createTaskFunction({
+      Template_Task_Id: 3,
+      task_type: "Case Distribution Planning among DRC",
+      Created_By: created_by,
+      ...dynamicParams,
+    });
 
     // Return success response from createTaskFunction
     return res.status(200).json(result);
@@ -3321,7 +3321,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
   }
 };
 
-export const get_distribution_array_of_a_transaction = async (req, res) => {
+export const list_distribution_array_of_a_transaction = async (req, res) => {
   try {
     const { case_distribution_batch_id, batch_seq } = req.body;
 
@@ -3527,7 +3527,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     // Prepare dynamic parameters for the task
     const dynamicParams = {
       case_distribution_batch_id,
-      exchange_drc_list: validatedDRCList,
+      // exchange_drc_list: validatedDRCList,
     };
 
     // Call createTaskFunction
