@@ -44,6 +44,11 @@ const interactionSchema = new mongoose.Schema(
     },
     Rejected_Reason: { type: String, default: null },
     Rejected_By: { type: String, default: null },
+    Request_Mode: {
+      type: String,
+      enum: ["Negotiation", "Mediation Board"],
+      default: "null",
+    },
   },
   {
     collection: "User_Interaction_Log",
