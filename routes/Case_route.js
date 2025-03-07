@@ -40,7 +40,7 @@ import {
   Create_Task_For_case_distribution,
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
-  // ListActiveRORequestsMediation,
+  ListActiveRORequestsMediation,
   list_distribution_array_of_a_transaction,
   Create_Task_For_case_distribution_transaction_array,
   Exchange_DRC_RTOM_Cases,
@@ -5922,6 +5922,8 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *                   example: "Internal server error."
  */
 router.post("/Customer_Negotiations", Customer_Negotiations);
+router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation)
+
 export default router;
 
 

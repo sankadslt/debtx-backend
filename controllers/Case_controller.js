@@ -1669,7 +1669,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     }
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     const cases = await Case_details.find(query);
@@ -1882,48 +1882,9 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       case_id : case_id,
     };
 
-    // let query = {
-    //   $or: [
-    //     { "drc.drc_id": drc_id },
-    //     { "drc.recovery_officers.ro_id": ro_id },
-    //   ],
-    //   case_id,
-    // };
-
-    // Add the ro_id condition to the query if provided
-    // if (ro_id) {
-    //   query.$and.push({
-    //     $expr: {
-    //       $eq: [
-    //         ro_id,
-    //         {
-    //           $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
-    //         },
-    //       ],
-    //     },
-    //   });
-    // }
 
     const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
-      
-      // {
-      //   case_id: 1,
-      //   customer_ref: 1,
-      //   account_no: 1,
-      //   current_arrears_amount: 1,
-      //   last_payment_date: 1,
-      //   "ref_products.product_label": 1,
-      //   "ref_products.service": 1,
-      //   "ref_products.product_status": 1,
-      //   "ref_products.service_address": 1,
-      //   "ro_negotiation.created_dtm": 1,
-      //   "ro_negotiation.feild_reason": 1,
-      //   "ro_negotiation.remark": 1,
-      //   "ro_requests.created_dtm": 1,
-      //   "ro_requests.ro_request": 1,
-      //   "ro_requests.todo_dtm": 1,
-      //   "ro_requests.completed_dtm": 1,
-      // }
+
 
     // Check if any cases exist
     if (!caseData) {
@@ -2001,7 +1962,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ref_products: caseData.ref_products || null,
       ro_negotiation: caseData.ro_negotiation || null,
       ro_requests: caseData.ro_requests || null,
-      ro_id: lastRecoveryOfficer?.ro_id || null,
+      ro_id: matchingRecoveryOfficer?.ro_id || null,
     };
 
 
@@ -3114,12 +3075,21 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
 
     // Add optional filters dynamically
     if (rtom) query.$and.push({ area: rtom });
-    if (ro_id) query.$and.push({ "drc.recovery_officers.ro_id": ro_id });
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            { $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ], },
+          ],
+        },
+      });
+    };    
     if (action_type) query.$and.push({ action_type });
     if (case_current_status) query.$and.push({ case_current_status });
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     // Fetch cases based on the query
@@ -3400,7 +3370,7 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
     // Fetch all RO details from MongoDB
-    const ro_requests = await RecoveryOfficer_Request.find();
+    const ro_requests = await Template_RO_Request.find();
 
     // Check if any data is found in databases
     if (ro_requests.length === 0) {
@@ -5585,7 +5555,7 @@ export const listDRCAllCases = async (req, res) => {
     if (action_type) query.$and.push({ action_type });
     if (from_date && to_date) {
       query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.expire_dtm": { $lt: new Date(to_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
     }
 
     // Fetch cases based on the query
@@ -5671,9 +5641,6 @@ export const CaseDetailsforDRC = async (req, res) => {
         },
       });
     }
-    
-    // Count the number of objects in the mediation_board array
-    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
     const formattedCaseDetails = {
       case_id: caseDetails.case_id,
@@ -5682,13 +5649,12 @@ export const CaseDetailsforDRC = async (req, res) => {
       current_arrears_amount: caseDetails.current_arrears_amount,
       last_payment_date: caseDetails.last_payment_date,
       contactDetails: caseDetails.current_contact,
-      calling_round: mediationBoardCount,
     };
 
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: caseDetails
+      data: formattedCaseDetails
     });
 
   } catch (err) {
@@ -5705,8 +5671,8 @@ export const CaseDetailsforDRC = async (req, res) => {
         code: 500,
         description: err.message || "Internal server error occurred while fetching case details.",
       },
-    });
-  }
+    });
+  }
 };
 
 // List  All Active Mediation RO Requests from SLT
@@ -5874,15 +5840,15 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
 export const updateDrcCaseDetails = async (req, res) => {
   try {
     // Extract fields from the request body
-    const { case_id, mob, email, nic, lan , address, remark } = req.body;
+    const { drc_id, ro_id, case_id, mob, email, nic, lan , address, remark } = req.body;
 
     // Validate if case_id is provided
-    if (!case_id) {
-      return res.status(400).json({ error: "case_id is required" });
+    if (!case_id || !drc_id || !ro_id) {
+      return res.status(400).json({ error: "case_id, drc_id or ro_id is required" });
     }
 
     // Fetch case details from the database
-    const caseDetails = await Case_details.findOne({ case_id });
+    const caseDetails = await Case_details.findOne({ case_id, "drc.drc_id": drc_id, "drc.recovery_officers.ro_id": ro_id });
     if (!caseDetails) {
       return res.status(404).json({ error: "Case not found" });
     }
@@ -5925,8 +5891,8 @@ export const updateDrcCaseDetails = async (req, res) => {
     
     // Schema for edited contact details
     const editedcontactsSchema = {
-      ro_id:  "125" ,
-      drc_id: "2365",
+      // ro_id:  "125" ,
+      // drc_id: "2365",
       edited_dtm: new Date(),
       mob: mob,
       email: email,
@@ -6054,7 +6020,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 };
 
-
 export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   try {
     const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
@@ -6091,30 +6056,27 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       }
     }
 
-   // Fetch cases based on the query (if request body is empty, return all cases)
-   let cases = await Case_details.find(query)
-   .populate("drc") // Populate DRC details
-   .sort({ created_dtm: -1 });
+   
+    let cases = await Case_details.find(query).sort({ created_dtm: -1 });
 
-    // Process each case to get mediation board details
-    const processedCases = cases.map((caseItem) => {
-      const mediationBoardEntries = caseItem.mediation_board || [];
 
-      // Get the last object in the mediation_board array (if exists)
-      const lastMediationBoardEntry =
-        mediationBoardEntries.length > 0
-          ? mediationBoardEntries[mediationBoardEntries.length - 1]
-          : null;
+const processedCases = cases.map((caseItem) => {
+const mediationBoardEntries = caseItem.mediation_board || [];
 
-      return {
-        ...caseItem._doc,
-        latest_next_calling_dtm: lastMediationBoardEntry
-          ? lastMediationBoardEntry.next_calling_dtm
-          : null,
-        mediation_board_call_count: mediationBoardEntries.length, 
-        drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
-      };
-    });
+const lastMediationBoardEntry =
+  mediationBoardEntries.length > 0
+    ? mediationBoardEntries[mediationBoardEntries.length - 1]
+    : null;
+
+return {
+  ...caseItem._doc,
+  latest_next_calling_dtm: lastMediationBoardEntry
+    ? lastMediationBoardEntry.mediation_board_calling_dtm || null
+    : null,
+  mediation_board_call_count: mediationBoardEntries.length,
+  drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
+};
+});
 
     return res.status(200).json({
       status: "success",
@@ -6130,11 +6092,58 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   }
 };
 
+// export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
+//   try {
+//       const { case_id, recieved_by } = req.body;  
+
+    
+//       if (!case_id) {
+//           return res.status(400).json({ message: 'case_id is required' });
+//       }
+//       if (!recieved_by) {
+//           return res.status(400).json({ message: 'recieved_by is required' });
+//       }
+
+     
+//       const caseRecord = await Case_details.findOne({ case_id });
+
+//       if (!caseRecord) {
+//           return res.status(404).json({ message: 'Case not found' });
+//       }
+
+      
+//       if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
+//           return res.status(400).json({ message: 'Case status does not match the required condition' });
+//       }
+
+    
+//       const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
+
+//       if (mediationBoardEntry) {
+//           mediationBoardEntry.received_on = new Date();
+//           mediationBoardEntry.received_by = recieved_by;
+          
+//       } else {
+//           return res.status(400).json({ message: 'No mediation board entry found for this case' });
+//       }
+
+      
+//       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+
+     
+//       await caseRecord.save();
+
+//       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
+
+//   } catch (error) {
+//       return res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
       const { case_id, recieved_by } = req.body;  
 
-      
+   
       if (!case_id) {
           return res.status(400).json({ message: 'case_id is required' });
       }
@@ -6142,38 +6151,51 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
           return res.status(400).json({ message: 'recieved_by is required' });
       }
 
-      
+    
       const caseRecord = await Case_details.findOne({ case_id });
 
       if (!caseRecord) {
           return res.status(404).json({ message: 'Case not found' });
       }
 
-    
+      
       if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
           return res.status(400).json({ message: 'Case status does not match the required condition' });
       }
 
-      
+     
       const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
 
       if (mediationBoardEntry) {
+         
           mediationBoardEntry.received_on = new Date();
           mediationBoardEntry.received_by = recieved_by;
-          
       } else {
           return res.status(400).json({ message: 'No mediation board entry found for this case' });
       }
 
-     
+      
       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
+
+      
+      const newCaseStatus = {
+          case_status: 'MB Fail with Non-Settlement',    
+          status_reason: 'Non-settlement request accepted from Mediation Board',  
+          created_dtm: new Date(),                      
+          created_by: recieved_by,                     
+      };
+
+     
+      caseRecord.case_status.push(newCaseStatus);
 
       
       await caseRecord.save();
 
+      
       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
 
   } catch (error) {
+      
       return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -6392,3 +6414,4 @@ export const Customer_Negotiations = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
