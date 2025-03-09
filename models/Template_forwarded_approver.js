@@ -47,7 +47,7 @@ const temmplateForwardedApproverSchema = new Schema({
       default: {},
       default: {},
     },
-  approved_by: { type: String, default: null },
+  approved_deligated_by: { type: Number, default: null },
   remark:  {type:[remarkSchema]},
 }, { 
   collection: 'Template_forwarded_approver', 
