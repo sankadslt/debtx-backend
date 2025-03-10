@@ -9,6 +9,8 @@ export const createUserInteractionFunction = async ({
   delegate_user_id,
   Created_By,
   User_Interaction_Status = "Open",
+  User_Interaction_Status_DTM,
+  Request_Mode,
   ...dynamicParams
 }) => {
   try {
@@ -43,6 +45,8 @@ export const createUserInteractionFunction = async ({
       delegate_user_id,
       Created_By,
       User_Interaction_Status,
+      User_Interaction_Status_DTM,
+      Request_Mode
     };
 
     // Insert into User_Interaction_Log collection

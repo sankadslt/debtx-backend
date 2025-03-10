@@ -93,6 +93,10 @@ const drcSchema = new Schema(
       type: [remarkSchema],
       required: true,
     },
+    current_drc_operator: {
+      type: String,
+      // required: true,
+    },
   },
   {
     collection: "Debt_recovery_company",

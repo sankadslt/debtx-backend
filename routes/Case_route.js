@@ -2,10 +2,8 @@
     Purpose: This template is used for the DRC Routes.
     Created Date: 2025-01-08
     Created By: Janendra Chamodi (apjanendra@gmail.com)
-
     Last Modified Date: 2024-02-07
     Modified By: Naduni Rabel (rabelnaduni2000@gmail.com), Sasindu Srinayaka (sasindusrinayaka@gmail.com), Ravindu Pathum (ravindupathumiit@gmail.com)    
-
     Version: Node.js v20.11.1
     Dependencies: express
     Related Files: Case_controller.js
@@ -33,18 +31,17 @@ import {
   listCases,
   Acivite_Case_Details,
   ListALLMediationCasesownnedbyDRCRO,
-  get_count_by_drc_commision_rule,
-  getAllArrearsBands,
+  List_count_by_drc_commision_rule,
+  ListAllArrearsBands,
   count_cases_rulebase_and_arrears_band,
   Case_Distribution_Among_Agents,
   List_Case_Distribution_DRC_Summary,
   Batch_Forward_for_Proceed,
   Create_Task_For_case_distribution,
-
   List_all_transaction_seq_of_batch_id,
   Create_Task_For_case_distribution_transaction,
-  // ListActiveRORequestsMediation,
-  get_distribution_array_of_a_transaction,
+  ListActiveRORequestsMediation,
+  list_distribution_array_of_a_transaction,
   Create_Task_For_case_distribution_transaction_array,
   Exchange_DRC_RTOM_Cases,
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
@@ -55,7 +52,6 @@ import {
   Approve_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
-
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
@@ -66,10 +62,16 @@ import {
   ListActiveRORequests,
   CaseDetailsforDRC,
   Create_Task_For_Assigned_drc_case_list_download,
+  // listAllDRCMediationBoardCases,
+  // drcCaseDetails,
   Mediation_Board,
-  drcCaseDetails,
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
+  Withdraw_CasesOwened_By_DRC,
+  List_All_DRCs_Mediation_Board_Cases,
+  Accept_Non_Settlement_Request_from_Mediation_Board,
+  ListRequestLogFromRecoveryOfficers,
+  Customer_Negotiations,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -838,7 +840,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *
  * /api/case/Assign_RO_To_Case:
  *   patch:
- *     summary: Assign a Recovery Officer to cases.
+ *     summary: xxxx Assign a Recovery Officer to cases.
  *     description: |
  *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area
  *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
@@ -1337,6 +1339,114 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       example: Internal server error while retrieving case behaviors.
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+/**
+ * @swagger
+ * /Update_case_last_Ro_Details:
+ *   post:
+ *     summary: Update the last recovery officer's remark in a case
+ *     description: Updates the `case_removal_remark` field of the last recovery officer in a given DRC case.
+ *
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-mar-10 | Initial creation of API for updating RO details  | Sanjaya Perera   |
+ *
+ *     tags: [DRC Mediation Board Cases]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - drc_id
+ *               - remark
+ *             properties:
+ *               case_id:
+ *                 type: string
+ *                 description: The unique ID of the case.
+ *                 example: "CASE_001"
+ *               drc_id:
+ *                 type: string
+ *                 description: The unique ID of the DRC.
+ *                 example: "DRC_12345"
+ *               remark:
+ *                 type: string
+ *                 description: The remark to update for the last recovery officer.
+ *                 example: "Case closed due to settlement."
+ *     responses:
+ *       200:
+ *         description: Recovery Officer details updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Recovery Officer details updated successfully."
+ *       400:
+ *         description: Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "All fields are required."
+ *       404:
+ *         description: Case or DRC not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: "No case found with the provided case_id and drc_id."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while updating recovery officer details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Error details here."
+ */
 
 router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
@@ -2498,9 +2608,73 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/get_count_by_drc_commision_rule", get_count_by_drc_commision_rule);
+/**
+ * @swagger
+ * /List_count_by_drc_commision_rule:
+ *   get:
+ *     summary: C-1G12 Get case count grouped by DRC commission rule
+ *     description: Retrieves the count of cases grouped by `drc_commision_rule` where the `case_current_status` is "Open No Agent".
+ *
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-mar-10 | Initial creation of API for case count retrieval | Sanjaya Perera   |
+ *
+ *     tags: [DRC Mediation Board Cases]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the case count grouped by `drc_commision_rule`.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Cases count grouped by drc_commision_rule fetched successfully."
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     total_rules:
+ *                       type: integer
+ *                       example: 5
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       drc_commision_rule:
+ *                         type: string
+ *                         example: "RULE_001"
+ *                       case_count:
+ *                         type: integer
+ *                         example: 12
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch cases count. Please try again later."
+ *                 error:
+ *                   type: string
+ *                   example: "Error details here."
+ */
 
-router.get("/getAllArrearsBands", getAllArrearsBands);
+router.get(
+  "/List_count_by_drc_commision_rule",
+  List_count_by_drc_commision_rule
+);
+
+router.get("/ListAllArrearsBands", ListAllArrearsBands);
 
 /**
  * @swagger
@@ -3316,7 +3490,7 @@ router.post(
  */
 router.post(
   "/List_All_DRC_Mediation_Board_Cases",
-  ListALLMediationCasesownnedbyDRCRO 
+  ListALLMediationCasesownnedbyDRCRO
 );
 
 /**
@@ -3425,7 +3599,9 @@ router.post(
  *                   example: Server error. Please try again later.
  */
 router.post(
-  "/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id );
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);
 
 /**
  * @swagger
@@ -3519,11 +3695,13 @@ router.post(
  */
 
 router.post(
-    "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
+);
 
 router.post(
-  "/get_distribution_array_of_a_transaction",
-  get_distribution_array_of_a_transaction
+  "/list_distribution_array_of_a_transaction",
+  list_distribution_array_of_a_transaction
 );
 
 /**
@@ -3753,21 +3931,20 @@ router.post(
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
-
 // /**
 //  * @swagger
 //  * tags:
 //  *   - name: Case Management
 //  *     description: Endpoints related to retrieving case details based on mediation board requests.
-//  * 
+//  *
 //  * /api/case/Case_Details_for_DRC:
 //  *   post:
 //  *     summary: Retrieve case details by Case ID and DRC ID.
 //  *     description: |
-//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
-//  *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
+//  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
 //  *       the system returns relevant case details.
-//  *       
+//  *
 //  *       | Version | Date       | Description                     | Changed By         |
 //  *       |---------|------------|---------------------------------|--------------------|
 //  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
@@ -3903,7 +4080,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  * tags:
  *   - name: Recovery Officer Requests
  *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
- * 
+ *
  * /api/case/List_Active_RO_Requests_Mediation:
  *   get:
  *     summary: Retrieve active RO mediation requests.
@@ -3993,7 +4170,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  *                 error:
  *                   type: string
  *                   example: Error message describing the issue.
- * 
+ *
  *   post:
  *     summary: Retrieve active RO mediation requests (via POST with body).
  *     description: |
@@ -5286,7 +5463,7 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
-router.post("/Mediation_Board",Mediation_Board);
+router.post("/Mediation_Board", Mediation_Board);
 
 /**
  * @swagger
@@ -5454,8 +5631,7 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // Define the POST route for fetching case details
-router.post("/Case_Details_for_DRC", drcCaseDetails);
-
+// router.post("/Case_Details_for_DRC", drcCaseDetails);
 
 /**
  * @swagger
@@ -5597,9 +5773,342 @@ router.post("/Case_Details_for_DRC", drcCaseDetails);
  */
 
 // POST route to update customer contacts or remarks for a specific case.
-router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
+router.post("/Update_Customer_Contacts", updateDrcCaseDetails);
 
-router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
+
+router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
+
+/**
+ * @swagger
+ * /api/case/List_All_DRCs_Mediation_Board_Cases:
+ *   post:
+ *     summary: Retrieve Mediation Board cases based on filters, excluding "MB Fail with Non-Settlement".
+ *     tags:
+ *       - Case Management
+ *     parameters:
+ *       - in: body
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Case status to filter cases.
+ *       - in: body
+ *         name: From_DAT
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: Start date of the case creation range.
+ *       - in: body
+ *         name: To_DAT
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-31"
+ *         description: End date of the case creation range.
+ *       - in: body
+ *         name: rtom
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter by RTOM.
+ *       - in: body
+ *         name: drc
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter by DRC.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 description: Case status to filter cases.
+ *               From_DAT:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *                 description: Start date of the case creation range.
+ *               To_DAT:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-31"
+ *                 description: End date of the case creation range.
+ *               rtom:
+ *                 type: string
+ *                 description: Filter by RTOM.
+ *               drc:
+ *                 type: string
+ *                 description: Filter by DRC.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved Mediation Board cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Mediation Board cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: string
+ *                         example: "12345"
+ *                       case_current_status:
+ *                         type: string
+ *                         example: "MB Negotiation"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:00:00Z"
+ *                       rtom:
+ *                         type: string
+ *                         example: "RTOM123"
+ *                       drc:
+ *                         type: string
+ *                         example: "DRC456"
+ *       400:
+ *         description: Invalid input, missing required fields, or incorrect date format.
+ *       404:
+ *         description: No cases found matching the criteria.
+ *       500:
+ *         description: Internal server error. Failed to retrieve cases.
+ */
+router.post(
+  "/List_All_DRCs_Mediation_Board_Cases",
+  List_All_DRCs_Mediation_Board_Cases
+);
+
+/**
+ * @swagger
+ * /api/case/Accept_Non_Settlement_Request_from_Mediation_Board:
+ *   put:
+ *     summary: Accept Non-Settlement Request from Mediation Board
+ *     description: Updates the case_current_status and case_status based on case_id.
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: body
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: object
+ *           required:
+ *             - case_id
+ *           properties:
+ *             case_id:
+ *               type: integer
+ *               description: The unique case ID to update the status.
+ *               example: 1001
+ *     responses:
+ *       200:
+ *         description: Case status updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Case status updated successfully.
+ *                 updatedCase:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1001
+ *                     case_current_status:
+ *                       type: string
+ *                       example: MB Fail with Non-Settlement
+ *       400:
+ *         description: Validation error - Case ID not provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: case_id is required.
+ *       404:
+ *         description: Case not found or not eligible for update.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Case not found or not eligible for update.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error.
+ */
+router.put(
+  "/Accept_Non_Settlement_Request_from_Mediation_Board",
+  Accept_Non_Settlement_Request_from_Mediation_Board
+);
+
+router.post(
+  "/ListRequestLogFromRecoveryOfficers",
+  ListRequestLogFromRecoveryOfficers
+);
+
+/**
+ * @swagger
+ * /Customer_Negotiations:
+ *   post:
+ *     summary: Add a new customer negotiation case.
+ *     description: |
+ *       | Version | Date        | Description                                | Changed By             |
+ *       |---------|-------------|--------------------------------------------|------------------------|
+ *       | 01      | 2025-Mar-05 | Adds a new negotiation case for a customer.| Yevin Theenura         |
+ *     tags:
+ *       - Customer Negotiations
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - drc_id
+ *               - ro_id
+ *               - negotiation_details
+ *               - request_details
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 description: Unique identifier for the case.
+ *                 example: 12345
+ *               drc_id:
+ *                 type: number
+ *                 description: Unique identifier for the Debt Recovery Coordinator (DRC).
+ *                 example: 67890
+ *               ro_id:
+ *                 type: number
+ *                 description: Unique identifier for the Recovery Officer (RO).
+ *                 example: 11223
+ *               negotiation_details:
+ *                 type: object
+ *                 description: Details of the negotiation.
+ *                 properties:
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of negotiation.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   field_reason_id:
+ *                     type: number
+ *                     description: ID of selected field reason.
+ *                     example: 13
+ *                   field_reason:
+ *                     type: string
+ *                     description: Field reason.
+ *                     example: "Agreed To Settle"
+ *                   field_reason_remarks:
+ *                     type: string
+ *                     description: Additional remarks about the negotiation.
+ *                     example: "Customer agreed to settle the amount in installments."
+ *               request_details:
+ *                 type: object
+ *                 description: Details of the requests.
+ *                 properties:
+ *                   created_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   ro_request_id:
+ *                     type: number
+ *                     description: ID of selected request.
+ *                     example: 13
+ *                   ro_request:
+ *                     type: string
+ *                     description: Request description.
+ *                     example: "Request Settlement plan"
+ *                   intraction_id:
+ *                     type: number
+ *                     description: ID regarding interaction.
+ *                     example: 12
+ *                   todo_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request reached.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                   completed_dtm:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of request completed.
+ *                     example: "2025-02-21T06:25:41.000+00:00"
+ *     responses:
+ *       200:
+ *         description: Negotiation case added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Negotiation case added successfully."
+ *       400:
+ *         description: Validation error - Missing or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Validation error - Invalid input."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+router.post("/Customer_Negotiations", Customer_Negotiations);
+
+router.post(
+  "/List_Active_RO_Requests_Mediation",
+  ListActiveRORequestsMediation
+);
+
 export default router;
-
-

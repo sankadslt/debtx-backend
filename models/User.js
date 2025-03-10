@@ -11,10 +11,9 @@ const userSchema = new mongoose.Schema({
   created_on: { type: Date, default: Date.now },
   user_status: { type: Boolean, required: true, default: true },
   login_method: { type: String, required: true, enum: ["slt", "email", "facebook"] },
-  sequence_id: { type: String },
-  drc_id: { type: String, default: null },
-  drc_sequence_id: { type: String, default: null },
-  ro_sequence_id: { type: String, default: null },
+  sequence_id: { type: Number },
+  drc_id: { type: Number, default: null },
+  ro_id: { type: Number, default: null },
 });
 
 // Create the User model
