@@ -39,125 +39,7 @@ List_Reject_Incident
 
 const router = Router();
 
-/**
- * @swagger
- * tags:
- *   - name: Incident Management
- *     description: Incident-related endpoints for managing and updating incidents.
- *
- * /api/incident/Forward_F1_filtered_incident:
- *   post:
- *     summary: Forward an F1 filtered incident
- *     description: |
- *       This endpoint forwards an F1 filtered incident based on the provided `Incident_Id`.
- *       The incident must have a status of `Reject Pending` and a `Proceed_Dtm` value of null.
- *
- *       | Version | Date       | Description    |
- *       |---------|------------|----------------|
- *       | 01      | 2025-Feb-18| Initial version|
- *
- *     tags:
- *      - Incident Management
- *     parameters:
- *       - in: query
- *         name: Incident_Id
- *         required: true
- *         description: The unique identifier of the incident.
- *         schema:
- *           type: integer
- *           example: 1001
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               Incident_Id:
- *                 type: integer
- *                 description: The unique identifier of the incident.
- *                 example: 1001
- *     responses:
- *       201:
- *         description: Incident successfully forwarded.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: F1 filtered incident successfully forwarded.
- *       400:
- *         description: Bad request due to invalid status or missing parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Incident status must be "Reject Pending" to update.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 400
- *                     description:
- *                       type: string
- *                       example: Incident status must be "Reject Pending" to update.
- *       404:
- *         description: Incident not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Incident not found.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 404
- *                     description:
- *                       type: string
- *                       example: No matching incident found.
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Internal server error.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 500
- *                     description:
- *                       type: string
- *                       example: An unexpected error occurred.
- */
+
 
 router.post("/Forward_F1_filtered_incident", Forward_F1_filtered_incident);
 
@@ -1633,6 +1515,46 @@ router.post("/distribution_ready_incidents_group_by_arrears_band",distribution_r
  */
 router.post("/List_Transaction_Logs_Upload_Files", List_Transaction_Logs_Upload_Files);
 
+/**
+ * @swagger
+ * /api/incident/Create_Case_for_incident:
+ *   post:
+ *     summary: Create cases for multiple incidents
+ *     description: |
+ *       This endpoint creates cases for multiple incidents provided in the request.
+ *       It processes up to 10 incidents at a time.
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Mar-10| Initial version|
+ *
+ *     tags:
+ *       - Incident Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Incident_Ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of incident IDs.
+ *                 example: ["1001", "1002"]
+ *               Proceed_By:
+ *                 type: string
+ *                 description: The user creating the cases.
+ *                 example: "admin"
+ *     responses:
+ *       201:
+ *         description: Cases successfully created.
+ *       400:
+ *         description: Bad request due to missing parameters.
+ *       500:
+ *         description: Internal server error.
+ */
 router.post("/Create_Case_for_incident",Create_Case_for_incident);
 
 /**
@@ -1759,6 +1681,61 @@ router.patch("/Reject_F1_filtered_Incident", Reject_F1_filtered_Incident);
 
 router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Incident Management
+ *     description: Incident-related endpoints for managing and updating incidents.
+ *
+ * /api/incident/Forward_CPE_Collect:
+ *   post:
+ *     summary: Forward an incident to CPE Collect
+ *     description: |
+ *       This endpoint forwards an incident to CPE Collect based on the provided `Incident_Id`.
+ *       The incident must have a status of `Open CPE Collect`.
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Mar-10| Initial version|
+ *
+ *     tags:
+ *      - Incident Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Incident_Id:
+ *                 type: string
+ *                 description: The unique identifier of the incident.
+ *                 example: "1001"
+ *               Proceed_By:
+ *                 type: string
+ *                 description: The user who proceeds the forwarding.
+ *                 example: "admin"
+ *     responses:
+ *       201:
+ *         description: Incident successfully forwarded to CPE Collect.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: CPE Collect incident successfully forwarded.
+ *       400:
+ *         description: Bad request due to missing parameters or invalid status.
+ *       404:
+ *         description: Incident not found.
+ *       500:
+ *         description: Internal server error.
+ */
 router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
 
 router.post("/List_Reject_Incident", List_Reject_Incident);
