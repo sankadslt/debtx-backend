@@ -96,35 +96,38 @@ const productDetailsSchema = new Schema({
 
 const RoCpeCollectSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
-  ro_id: { type: Number, required: true },
   serial_no: { type: String, required: true },
-  order_id: { type: String, required: true },
   service_type: { type: String, required: true },
-  date: { type: Date, required: true },
-  more_info_about_item: { type: String }, // Optional for additional information
-  rcmp_submit_dtm: { type: Date },
-  rcmp_status: { type: String },
-  rcmp_date: { type: Date },
+  // ro_id: { type: Number, required: true },
+  // order_id: { type: String, required: true },
+  
+  // date: { type: Date, required: true },
+  // more_info_about_item: { type: String }, 
+  // rcmp_submit_dtm: { type: Date },
+  // rcmp_status: { type: String },
+  // rcmp_date: { type: Date },
+  
+
 });
 
 const roNegotiationSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
-  drc: {type: String, required: true},
-  ro_name:{type: String, required: true},
-  created_dtm: { type: Date, required: true },
-  feild_reason: { type: String, required: true },
-  remark: { type: String },
+  drc_id: { type: String },
+  ro_id: { type: String },
+  created_dtm: { type: Date },
+  field_reason_id: { type: Number },
+  field_reason: { type: String },
+  field_reason_remark: { type: String },
 });
 
 const roRequestsSchema = new mongoose.Schema({
-  drc_id: { type: Number, required: true },
-  ro_id: { type: Number, required: true },
-  created_dtm: { type: Date, required: true },
-  ro_request_id: { type: Number, required: true },
-  ro_request: { type: String, required: true },
-  intraction_id: { type: Number, required: true }, 
-  intraction_log_id: { type: Number, required: true },
+  drc_id: { type: Number },
+  ro_id: { type: Number, },
+  created_dtm: { type: Date, },
+  ro_request_id: { type: Number, },
+  ro_request: { type: String, },
+  ro_request_remark: { type: String, },
+  intraction_id: { type: Number }, 
+  //intraction_log_id: { type: Number, required: true },
   todo_dtm: { type: Date, default:null  },
   completed_dtm: { type: Date, default:null },
 });
@@ -143,7 +146,7 @@ const mediationBoardSchema = new mongoose.Schema({
 const settlementschema = new Schema({
   settlement_id: {type: Number, required: true, unique: true},
   settlement_created_dtm: {type: Date, required:true},
-  settlment_status: {type: String, required:true},
+  settlment_status: {type: String},
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
 });

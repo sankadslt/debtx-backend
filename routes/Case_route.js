@@ -68,6 +68,8 @@ import {
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
+  getActiveNegotiations,
+  addNegoCase,addCpeToNegotiation
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -3314,7 +3316,7 @@ router.post(
  */
 router.post(
   "/List_All_DRC_Mediation_Board_Cases",
-  ListALLMediationCasesownnedbyDRCRO 
+  ListALLMediationCasesownnedbyDRCRO
 );
 
 /**
@@ -3423,7 +3425,9 @@ router.post(
  *                   example: Server error. Please try again later.
  */
 router.post(
-  "/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id );
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);
 
 /**
  * @swagger
@@ -3517,7 +3521,9 @@ router.post(
  */
 
 router.post(
-    "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
+);
 
 router.post(
   "/get_distribution_array_of_a_transaction",
@@ -3751,21 +3757,20 @@ router.post(
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
-
 // /**
 //  * @swagger
 //  * tags:
 //  *   - name: Case Management
 //  *     description: Endpoints related to retrieving case details based on mediation board requests.
-//  * 
+//  *
 //  * /api/case/Case_Details_for_DRC:
 //  *   post:
 //  *     summary: Retrieve case details by Case ID and DRC ID.
 //  *     description: |
-//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
-//  *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
+//  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
 //  *       the system returns relevant case details.
-//  *       
+//  *
 //  *       | Version | Date       | Description                     | Changed By         |
 //  *       |---------|------------|---------------------------------|--------------------|
 //  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
@@ -3901,7 +3906,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  * tags:
  *   - name: Recovery Officer Requests
  *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
- * 
+ *
  * /api/case/List_Active_RO_Requests_Mediation:
  *   get:
  *     summary: Retrieve active RO mediation requests.
@@ -3991,7 +3996,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  *                 error:
  *                   type: string
  *                   example: Error message describing the issue.
- * 
+ *
  *   post:
  *     summary: Retrieve active RO mediation requests (via POST with body).
  *     description: |
@@ -5278,13 +5283,14 @@ router.post("/List_Active_RO_Requests", ListActiveRORequests);
  *                   example: Internal server error message.
  */
 
+
 router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
 router.post(
   "/Create_Task_For_Assigned_drc_case_list_download",
   Create_Task_For_Assigned_drc_case_list_download
 );
 
-router.post("/Mediation_Board",Mediation_Board);
+router.post("/Mediation_Board", Mediation_Board);
 
 /**
  * @swagger
@@ -5454,7 +5460,6 @@ router.post("/Mediation_Board",Mediation_Board);
 // Define the POST route for fetching case details
 // router.post("/Case_Details_for_DRC", drcCaseDetails);
 
-
 /**
  * @swagger
  * /api/Update_Customer_Contacts:
@@ -5595,12 +5600,229 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // POST route to update customer contacts or remarks for a specific case.
-router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
+router.post("/Update_Customer_Contacts", updateDrcCaseDetails);
 
-router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
-router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
+router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
+
+/**
+ * @swagger
+ * /api/case/list_Active_Customer_Negotiations:
+ *   post:
+ *     summary: Retrieve all active customer negotiations.
+ *     description: |
+ *       This endpoint retrieves all active customer negotiations.
+ *
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-06| List all active customer negotiations | Yevin Theenura  |
+ *     tags:
+ *       - Customer Negotiations
+ *     requestBody:
+ *       required: false
+ *     responses:
+ *       200:
+ *         description: Active customer negotiations retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active customer negotiations retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       negotiation_id:
+ *                         type: integer
+ *                         description: Unique identifier for the negotiation.
+ *                         example: 501
+ *                       case_id:
+ *                         type: integer
+ *                         description: ID of the related case.
+ *                         example: 1001
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the negotiation.
+ *                         example: "Ongoing"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the negotiation started.
+ *                         example: "2025-02-10T09:30:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the negotiation ended, if applicable.
+ *                         example: null
+ *       404:
+ *         description: No active customer negotiations found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active customer negotiations found.
+ *       500:
+ *         description: Internal server error occurred while fetching active customer negotiations.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active customer negotiations.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
+ */
+router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
+
+/**
+ * @swagger
+ * /Customer_Negotiations:
+ *  post:
+ *   summary: Add a new customer negotiation case.
+ *
+ *    | Version | Date        | Description                                | Changed By             |
+ *    |---------|-------------|--------------------------------------------|------------------------|
+ *    | 01      | 2025-Mar-05 | Adds a new negotiation case for a customer.| Yevin Theenura         |
+ *
+ *    tags: [Customer Negotiations]
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            required:
+ *              - case_id
+ *              - drc_id
+ *              - ro_id
+ *              - negotiation_details
+ *              - request details
+ *            properties:
+ *              case_id:
+ *                type: number
+ *                description: Unique identifier for the case.
+ *                example: 12345
+ *              drc_id:
+ *                type: number
+ *                description: Unique identifier for the Debt Recovery Coordinator (DRC).
+ *                example: 67890
+ *              ro_id:
+ *                type: number
+ *                description: Unique identifier for the Recovery Officer (RO).
+ *                example: 11223
+ *              negotiation_details:
+ *                type: object
+ *                description: Details of the negotiation.
+ *                properties:
+ *                  created_dtm:
+ *                    type: Date
+ *                    description: Date of negotiation.
+ *                    example: "2025-02-21T06:25:41.000+00:00"
+ *                  field_reason_id:
+ *                    type: number
+ *                    description: id of selected field reason
+ *                    example: 13
+ *                  field_reason:
+ *                    type: String
+ *                    description: field reason.
+ *                    example: "Agreed To Settle"
+ *                  field_reason_remarks:
+ *                    type: string
+ *                    description: Additional remarks about the negotiation.
+ *                    example: "Customer agreed to settle the amount in installments."
+ *              request_details:
+ *                type: object
+ *                description: Details of the requests.
+ *                properties:
+ *                  created_dtm:
+ *                    type: Date
+ *                    description: Date of request.
+ *                    example: "2025-02-21T06:25:41.000+00:00"
+ *                  ro_request_id:
+ *                    type: number
+ *                    description: id of selected request
+ *                    example: 13
+ *                  ro_request:
+ *                    type: String
+ *                    description: request.
+ *                    example: "Request Settlement plan"
+ *                  intraction_id:
+ *                    type: Number
+ *                    description: id regarding intraction
+ *                    example: 12
+ *                  todo_dtm:
+ *                    type: Date
+ *                    description: date of request reached
+ *                    example: 2025-02-21T06:25:41.000+00:00
+ *                  completed_dtm:
+ *                    type: Date
+ *                    description: date of request completed
+ *                    example: 2025-02-21T06:25:41.000+00:00
+ *
+ *     responses:
+ *       200:
+ *         description: Negotiation case added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Negotiation case added successfully."
+ *       400:
+ *         description: Validation error - Missing or invalid input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Validation error - Invalid input."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+router.post("/Customer_Negotiations", addNegoCase);
+
+router.post("/add-cpecollect", addCpeToNegotiation);
+
 
 export default router;
-
-

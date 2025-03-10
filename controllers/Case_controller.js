@@ -32,6 +32,7 @@ import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
 import DRC from "../models/Debt_recovery_company.js";
 import { ro } from "date-fns/locale";
+import Field_Reasons from "../models/Template_negotiation.js";
 
 export const getAllArrearsBands = async (req, res) => {
   try {
@@ -4515,75 +4516,75 @@ export const drcCaseDetails = async (req, res) => {
 
 
 // Updates DRC case details with new contact information and remarks.
-export const updateDrcCaseDetails = async (req, res) => {
-  try {
-    // Extract fields from the request body
-    const { case_id, mob, email, nic, lan , address, remark } = req.body;
+// export const updateDrcCaseDetails = async (req, res) => {
+//   try {
+//     // Extract fields from the request body
+//     const { case_id, mob, email, nic, lan , address, remark } = req.body;
 
-    // Validate if case_id is provided
-    if (!case_id) {
-      return res.status(400).json({ error: "case_id is required" });
-    }
+//     // Validate if case_id is provided
+//     if (!case_id) {
+//       return res.status(400).json({ error: "case_id is required" });
+//     }
 
-    // Fetch case details from the database
-    const caseDetails = await Case_details.findOne({ case_id });
-    if (!caseDetails) {
-      return res.status(404).json({ error: "Case not found" });
-    }
+//     // Fetch case details from the database
+//     const caseDetails = await Case_details.findOne({ case_id });
+//     if (!caseDetails) {
+//       return res.status(404).json({ error: "Case not found" });
+//     }
 
-    // Schema for edited contact details
-    const editedcontactsSchema = {
-      ro_id:  "125" ,
-      drc_id: "2365",
-      edited_dtm: new Date(),
-      mob: mob,
-      email: email,
-      nic: nic,
-      lan: lan,
-      address: address,
-      geo_location: null,
-      remark: remark,
-    };
-    // Schema for current contact details
-    const contactsSchema ={
-      mob: mob,
-      email: email,
-      nic: nic,
-      lan: lan,
-      address: address,
-      geo_location: null,
-    };
+//     // Schema for edited contact details
+//     const editedcontactsSchema = {
+//       ro_id:  "125" ,
+//       drc_id: "2365",
+//       edited_dtm: new Date(),
+//       mob: mob,
+//       email: email,
+//       nic: nic,
+//       lan: lan,
+//       address: address,
+//       geo_location: null,
+//       remark: remark,
+//     };
+//     // Schema for current contact details
+//     const contactsSchema ={
+//       mob: mob,
+//       email: email,
+//       nic: nic,
+//       lan: lan,
+//       address: address,
+//       geo_location: null,
+//     };
 
-    // Prepare update data
-    const updateData = {};
-    // Add edited contact details to the update data
-    if (editedcontactsSchema) {
-      updateData.$push = updateData.$push || {};
-      updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
-      console.log("updateData.contact", updateData);
-    }
+//     // Prepare update data
+//     const updateData = {};
+//     // Add edited contact details to the update data
+//     if (editedcontactsSchema) {
+//       updateData.$push = updateData.$push || {};
+//       updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
+//       console.log("updateData.contact", updateData);
+//     }
 
-    // Update remark array
-    if (contactsSchema) {
-      updateData.$set = updateData.$set || {};
-      updateData.$set.current_contact = [contactsSchema];
-      console.log("updateData.remark", updateData);
-    }
+//     // Update remark array
+//     if (contactsSchema) {
+//       updateData.$set = updateData.$set || {};
+//       updateData.$set.current_contact = [contactsSchema];
+//       console.log("updateData.remark", updateData);
+//     }
 
-    // Perform the update in the database
-    const updatedCase = await Case_details.findOneAndUpdate(
-      { case_id }, // Match the document by case_id
-      updateData,
-      { new: true, runValidators: true }
-    );
+//     // Perform the update in the database
+//     const updatedCase = await Case_details.findOneAndUpdate(
+//       { case_id }, // Match the document by case_id
+//       updateData,
+//       { new: true, runValidators: true }
+//     );
 
-    console.log("Updated case", updatedCase);
-    return res.status(200).json(updatedCase);
-  } catch (error) {
-    console.error("Error updating case", error);
-    return res.status(500).json({ error: "Failed to update the case" });
-  }
-};
+//     console.log("Updated case", updatedCase);
+//     return res.status(200).json(updatedCase);
+//   } catch (error) {
+//     console.error("Error updating case", error);
+//     return res.status(500).json({ error: "Failed to update the case" });
+//   }
+// };
 
 export const Mediation_Board = async (req, res) => {
   const session = await mongoose.startSession();
@@ -5368,3 +5369,178 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 };
 
+//get active negotiations for the customer negotiations
+export const getActiveNegotiations = async (req, res) => {
+  try {
+    // const currentDate = new Date();
+    // const activeNegotiations = await Field_Reasons.find
+    // ({
+    //   end_dtm: { $gte: currentDate },
+    // })
+    // .select("negotiation_id negotiation_description end_dtm");
+
+    const activeNegotiations = await Field_Reasons.find();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Active negotiations retrieved successfully.",
+      data: activeNegotiations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving active negotiations.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+});
+}
+};
+
+// Function to check if all settlement values are filled
+// const areSettlementValuesFilled = (settlementData) => {
+//   const requiredFields = [
+//     "settlement_id",
+//     "settlement_created_dtm",
+//     "drc_id",
+//     "ro_id",
+//     "initial_amount",
+//     "calender_month",
+//     "duration_from",
+//     "duration_to",
+//     "settlement_remark",
+//   ];
+
+//   return requiredFields.every((field) => settlementData[field] != null  && settlementData[field] !== "");
+// };
+
+export const addNegoCase = async (req, res) => {
+  console.log(req.body);
+  try {
+    const {
+      case_id,
+      ro_request_id,
+      ro_request,
+      ro_request_remark,
+      drc_id,
+      ro_id,
+      field_reason_id,
+      field_reason,
+      field_reason_remark,
+      intraction_id,
+      todo_on,
+      completed_on,
+      settlement_id,
+      initial_amount,
+      calender_month,
+      duration_from,
+      duration_to,
+      settlement_remark,
+      
+    } = req.body;
+
+    // Validate required fields
+    if (!case_id || !field_reason || !field_reason_id || !ro_request || !field_reason_remark ) {
+      return res.status(400).json({
+        status: "error",
+        message: "All fields are required: case_id, negotiation, ro_request, negotiation_remarks",
+      });
+    }
+
+    
+
+    // Find the case by ID
+    const caseDetails = await Case_details.findOne({ case_id });
+
+    if (!caseDetails) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    // Function to filter out null or undefined values from an object
+    const filterNonNullValues = (obj) => {
+      return Object.fromEntries(
+        Object.entries(obj).filter(([_, v]) => v != null)
+      );
+    };
+
+    // Push the new negotiation data into ro_negotiation array
+    caseDetails.ro_negotiation.push(
+      filterNonNullValues({
+        drc_id,
+        ro_id,
+        created_dtm: new Date(),
+        field_reason_id,
+        field_reason,
+        field_reason_remark
+      })
+    );
+
+    caseDetails.ro_requests.push(
+      filterNonNullValues({
+        drc_id,
+        ro_id,
+        created_dtm: new Date(),
+        ro_request_id,
+        ro_request,
+        ro_request_remark,
+        intraction_id,
+        todo_on,
+        completed_on,
+      })
+    );
+
+    // Save the updated case document
+    await caseDetails.save({ validateBeforeSave: false });
+
+    res.status(200).json({ message: "Case negotiation added successfully", caseDetails });
+  } catch (error) {
+    console.error("Error adding case negotiation:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+export const addCpeToNegotiation = async (req, res) => {
+  try {
+    const { case_id, Rtype, cpemodel, serialNo, nego_remark, service, drc_id } = req.body;
+
+    // Validate required fields
+    if (!case_id || !Rtype || !cpemodel || !serialNo || !nego_remark || !service || !drc_id) {
+      return res.status(400).json({ message: "case_id, Rtype, nego_remark, serialNo, cpemodel, service, and drc_id are required" });
+    }
+
+    // Find and update the case details, but save the data in ro_negotiate_cpe_collect
+    const caseDetails = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $push: {
+          ro_negotiate_cpe_collect: {
+            serial_no: serialNo,
+            service_type: service,  // Save service_type here
+            drc_id: drc_id,  // Save drc_id here
+          }
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    // If case not found, return an error
+    if (!caseDetails) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    // Return success response
+    return res.status(200).json({ 
+      message: "CPE details added successfully!",
+      updatedCase: caseDetails 
+    });
+
+  } catch (error) {
+    console.error("🔥 Backend Error:", error);
+    return res.status(500).json({ 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
