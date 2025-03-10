@@ -5852,7 +5852,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
 export const updateDrcCaseDetails = async (req, res) => {
   try {
     // Extract fields from the request body
-    const { case_id, mob, email, nic, lan , address, remark } = req.body;
+    const { case_id, contact_type, contact_no, identification_type, nic, email, address, remark } = req.body;
 
     // Validate if case_id is provided
     if (!case_id) {
@@ -5866,66 +5866,73 @@ export const updateDrcCaseDetails = async (req, res) => {
     }
 
     // Check for duplicate mobile in ro_edited_customer_details array
+    if(contact_no){
     const isDuplicateMobile = caseDetails.ro_edited_customer_details.some(
-      (contact) => contact.mob === mob
+      (contact) => contact.contact_no === contact_no
     );
     
     if (isDuplicateMobile) {
       return res.status(400).json({ error: "Duplicate data detected: Mobile already exists" });
-    }
+    }}
 
     // Check for duplicate email in ro_edited_customer_details array
+    if(email){
     const isDuplicateEmail = caseDetails.ro_edited_customer_details.some(
       (contact) => contact.email === email
     );
     
     if (isDuplicateEmail) {
       return res.status(400).json({ error: "Duplicate data detected: Email already exists" });
-    }
+    }}
 
     // Check for duplicate nic in ro_edited_customer_details array
+    if(nic){
     const isDuplicateNIC = caseDetails.ro_edited_customer_details.some(
       (contact) => contact.nic === nic
     );
     
     if (isDuplicateNIC) {
       return res.status(400).json({ error: "Duplicate data detected: NIC already exists" });
-    }
+    }}
 
     // Check for duplicate address in ro_edited_customer_details array
+    if(address){
     const isDuplicateAddress = caseDetails.ro_edited_customer_details.some(
       (contact) => contact.address === address
     );
     
     if (isDuplicateAddress) {
       return res.status(400).json({ error: "Duplicate data detected: address already exists" });
-    }
+    }}
     
     // Schema for edited contact details
     const editedcontactsSchema = {
       ro_id:  "125" ,
       drc_id: "2365",
       edited_dtm: new Date(),
-      mob: mob,
-      email: email,
-      nic: nic,
-      lan: lan,
-      address: address,
-      geo_location: null,
-      remark: remark,
+      contact_type: contact_type || null, 
+      contact_no: contact_no || null,
+      identification_type: identification_type || null,
+      nic: nic || null,
+      email: email || null,
+      address: address || null,
+      geo_location: null || null,
+      remark: remark || null,
     };
     // Schema for current contact details
     const contactsSchema ={
-      mob: mob,
-      email: email,
-      nic: nic,
-      lan: lan,
-      address: address,
-      geo_location: null,
+      contact_type: contact_type || null,
+      contact_no: contact_no || null,
+      identification_type: identification_type || null,
+      nic: nic || null,
+      email: email || null,
+      address: address || null,
+      geo_location: null || null,
     };
 
     // Prepare update data
     const updateData = {};
+    
     // Add edited contact details to the update data
     if (editedcontactsSchema) {
       updateData.$push = updateData.$push || {};
@@ -5933,19 +5940,48 @@ export const updateDrcCaseDetails = async (req, res) => {
       console.log("updateData.contact", updateData);
     }
 
-    // Update remark array
-    if (contactsSchema) {
-      updateData.$set = updateData.$set || {};
-      updateData.$set.current_contact = [contactsSchema];
-      console.log("updateData.remark", updateData);
+    // Add current contact details to the update data
+    // Build an update object for current contacts only with provided fields
+    const currentContactUpdates = {};
+    if (typeof contact_type !== "undefined" && contact_type !== "") {
+      currentContactUpdates.contact_type = contact_type;
     }
+    if (typeof contact_no !== "undefined" && contact_no !== "") {
+      currentContactUpdates.contact_no = contact_no;
+    }
+    if (typeof identification_type !== "undefined" && identification_type !== "") {
+      currentContactUpdates.identification_type = identification_type;
+    }
+    if (typeof nic !== "undefined" && nic !== "") {
+      currentContactUpdates.nic = nic;
+    }
+    if (typeof email !== "undefined" && email !== "") {
+      currentContactUpdates.email = email;
+    }
+    if (typeof address !== "undefined" && address !== "") {
+      currentContactUpdates.address = address;
+    }
+    if (typeof geo_location !== "undefined" && geo_location !== "") {
+      currentContactUpdates.geo_location = geo_location;
+    }
+    
+    // Update only if there is data to update
+    if (Object.keys(currentContactUpdates).length > 0) {
+      updateData.$set = updateData.$set || {};
+      // Use dot notation to update the first element of current_contact array
+      Object.keys(currentContactUpdates).forEach((key) => {
+        updateData.$set[`current_contact.0.${key}`] = currentContactUpdates[key];
+      });
+    }
+    
+    console.log("updateData.current_contact", updateData.current_contact);
 
     // Perform the update in the database
     const updatedCase = await Case_details.findOneAndUpdate(
       { case_id }, // Match the document by case_id
       updateData,
       { new: true, runValidators: true }
-    );
+    ); 
 
     console.log("Updated case", updatedCase);
     return res.status(200).json(updatedCase);
