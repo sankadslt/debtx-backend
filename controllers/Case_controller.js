@@ -6319,98 +6319,225 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 export const Customer_Negotiations = async (req, res) => {
+  const session = await mongoose.startSession(); // Start a session
+  session.startTransaction(); // Begin the transaction
   try {
     const {
       case_id,
-      ro_request_id,
-      ro_request,
-      ro_request_remark,
+      request_id,
+      request_type,
+      request_comment,
       drc_id,
       ro_id,
-      field_reason_id,
+      ro_name,
+      drc,
       field_reason,
       field_reason_remark,
       intraction_id,
-      todo_on,
-      completed_on,
-      settlement_id,
       initial_amount,
       calender_month,
       duration_from,
       duration_to,
-      settlement_remark
+      settlement_remark,
+      created_by,
     } = req.body;
 
-    // Validate required fields
-    if (!case_id || !drc_id ) {
-      return res.status(400).json({
+    if (!case_id || !drc_id || !field_reason) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
         status: "error",
-        message:
-          "All fields are required: case_id, negotiation, ro_request, negotiation_remarks.",
+        message: "Missing required fields: case_id, drc_id, field_reason" 
       });
     }
-    
-    // Find the case by ID
-    const caseDetails = await Case_details.findOne({ case_id });
 
-    if (!caseDetails) {
-      return res.status(404).json({ message: "Case not found" });
-    }
-
-    // Check and update any drc entries missing removed_dtm
-    caseDetails.drc.forEach((drcEntry) => {
-      if (!drcEntry.removed_dtm) {
-        drcEntry.removed_dtm = new Date(); // Or set it to null if schema allows
-      }
-    });
-
-    caseDetails.drc.forEach((drcEntry) => {
-      if (!drcEntry.expire_dtm) {
-        drcEntry.expire_dtm = new Date(); // Or set it to null if schema allows
-      }
-    });
-
-    // Function to filter out null or undefined values from an object
-    const filterNonNullValues = (obj) => {
-      return Object.fromEntries(
-        Object.entries(obj).filter(([_, v]) => v != null)
-      );
+    const negotiationData = {
+      drc_id, 
+      ro_id, 
+      drc,
+      ro_name,
+      created_dtm: new Date(),
+      field_reason,
+      remark:field_reason_remark,
     };
-
-    // Push the new negotiation data into ro_negotiation array
-
-    caseDetails.ro_negotiation.push(
-      filterNonNullValues({
+    if (request_id !=="") {
+      if (!request_id || !request_type || !intraction_id) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: request_id, request_type, intraction_id" 
+        });
+      }
+      const dynamicParams = {
+        case_id,
         drc_id,
         ro_id,
-        created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
-        field_reason_id,
-        field_reason,
-        field_reason_remark
-      })
-    );
+        request_id,
+        request_type,
+        request_comment,
+        intraction_id,
+      };
+      const result = await createUserInteractionFunction({
+        Interaction_ID:intraction_id,
+        User_Interaction_Type:request_type,
+        delegate_user_id:1,   // should be change this 
+        Created_By:created_by,
+        User_Interaction_Status: "Open",
+        ...dynamicParams
+      });
 
-    caseDetails.ro_requests.push(
-      filterNonNullValues({
-        drc_id,
-        ro_id,
-        created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
-        ro_request_id,
-        ro_request,
-        ro_request_remark,
-        intraction_id, 
-        todo_on,
-        completed_on,
-      })
-    );
-    await caseDetails.save();
-    res
-      .status(200)
-      .json({ message: "Case negotiation added successfully", caseDetails });
+      if (!result || !result.Interaction_Log_ID) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({ 
+          status: "error", 
+          message: "Failed to create user interaction" 
+        });
+      }
+      const intraction_log_id = result.Interaction_Log_ID;
+      const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id }, 
+        { 
+            $push: { 
+              ro_negotiation: negotiationData,
+                ro_requests: {
+                    drc_id,
+                    ro_id,
+                    created_dtm: new Date(),
+                    ro_request_id: request_id,
+                    ro_request: request_type,
+                    request_remark:request_comment,
+                    intraction_id: intraction_id,
+                    intraction_log_id,
+                },
+            },
+        },
+        { new: true, session } // Correct placement of options
+      );
+      if (!updatedCase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ 
+          status: "error",
+          message: 'Case not found this case id' 
+        });
+      }
+    }
+    else{
+      const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id }, 
+        {
+          $push: {
+            ro_negotiation: negotiationData,
+          },
+        },
+        { new: true, session }
+      );
+      if (!updatedMediationBoardCase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Case not found for this case id' 
+        });
+      }
+    }
+    if(field_reason === "Agreed To Settle"){
+      if(!initial_amount || !calender_month || !duration_from || !duration_to){
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
+        });
+      };
+      // call settlement APi
+      console.log("call settlement APi");
+    };
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(200).json({ 
+      status: "success", 
+      message: "Operation completed successfully" 
+    });
+
+    // Validate required fields
+    // if (!case_id || !drc_id ) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message:
+    //       "All fields are required: case_id, negotiation, ro_request, negotiation_remarks.",
+    //   });
+    // }
+    
+    // // Find the case by ID
+    // const caseDetails = await Case_details.findOne({ case_id });
+
+    // if (!caseDetails) {
+    //   return res.status(404).json({ message: "Case not found" });
+    // }
+
+    // // Check and update any drc entries missing removed_dtm
+    // caseDetails.drc.forEach((drcEntry) => {
+    //   if (!drcEntry.removed_dtm) {
+    //     drcEntry.removed_dtm = new Date(); // Or set it to null if schema allows
+    //   }
+    // });
+
+    // caseDetails.drc.forEach((drcEntry) => {
+    //   if (!drcEntry.expire_dtm) {
+    //     drcEntry.expire_dtm = new Date(); // Or set it to null if schema allows
+    //   }
+    // });
+
+    // // Function to filter out null or undefined values from an object
+    // const filterNonNullValues = (obj) => {
+    //   return Object.fromEntries(
+    //     Object.entries(obj).filter(([_, v]) => v != null)
+    //   );
+    // };
+
+    // // Push the new negotiation data into ro_negotiation array
+
+    // caseDetails.ro_negotiation.push(
+    //   filterNonNullValues({
+    //     drc_id,
+    //     ro_id,
+    //     created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
+    //     field_reason_id,
+    //     field_reason,
+    //     field_reason_remark
+    //   })
+    // );
+
+    // caseDetails.ro_requests.push(
+    //   filterNonNullValues({
+    //     drc_id,
+    //     ro_id,
+    //     created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
+    //     ro_request_id,
+    //     ro_request,
+    //     ro_request_remark,
+    //     intraction_id, 
+    //     todo_on,
+    //     completed_on,
+    //   })
+    // );
+    // await caseDetails.save();
+    // res
+    //   .status(200)
+    //   .json({ message: "Case negotiation added successfully", caseDetails });
   } catch (error) {
-    console.error("Error adding case negotiation:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ 
+      status:"error",
+      message: "Server error", 
+      error: error.message 
+    }); 
+ }
 };
 
