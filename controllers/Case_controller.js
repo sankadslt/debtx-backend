@@ -6387,7 +6387,6 @@ export const Customer_Negotiations = async (req, res) => {
       settlement_remark,
       created_by,
     } = req.body;
-
     if (!case_id || !drc_id || !field_reason) {
       await session.abortTransaction();
       session.endSession();
@@ -6396,7 +6395,6 @@ export const Customer_Negotiations = async (req, res) => {
         message: "Missing required fields: case_id, drc_id, field_reason" 
       });
     }
-
     const negotiationData = {
       drc_id, 
       ro_id, 
@@ -6507,73 +6505,6 @@ export const Customer_Negotiations = async (req, res) => {
       status: "success", 
       message: "Operation completed successfully" 
     });
-
-    // Validate required fields
-    // if (!case_id || !drc_id ) {
-    //   return res.status(400).json({
-    //     status: "error",
-    //     message:
-    //       "All fields are required: case_id, negotiation, ro_request, negotiation_remarks.",
-    //   });
-    // }
-    
-    // // Find the case by ID
-    // const caseDetails = await Case_details.findOne({ case_id });
-
-    // if (!caseDetails) {
-    //   return res.status(404).json({ message: "Case not found" });
-    // }
-
-    // // Check and update any drc entries missing removed_dtm
-    // caseDetails.drc.forEach((drcEntry) => {
-    //   if (!drcEntry.removed_dtm) {
-    //     drcEntry.removed_dtm = new Date(); // Or set it to null if schema allows
-    //   }
-    // });
-
-    // caseDetails.drc.forEach((drcEntry) => {
-    //   if (!drcEntry.expire_dtm) {
-    //     drcEntry.expire_dtm = new Date(); // Or set it to null if schema allows
-    //   }
-    // });
-
-    // // Function to filter out null or undefined values from an object
-    // const filterNonNullValues = (obj) => {
-    //   return Object.fromEntries(
-    //     Object.entries(obj).filter(([_, v]) => v != null)
-    //   );
-    // };
-
-    // // Push the new negotiation data into ro_negotiation array
-
-    // caseDetails.ro_negotiation.push(
-    //   filterNonNullValues({
-    //     drc_id,
-    //     ro_id,
-    //     created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
-    //     field_reason_id,
-    //     field_reason,
-    //     field_reason_remark
-    //   })
-    // );
-
-    // caseDetails.ro_requests.push(
-    //   filterNonNullValues({
-    //     drc_id,
-    //     ro_id,
-    //     created_dtm: new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo" }),
-    //     ro_request_id,
-    //     ro_request,
-    //     ro_request_remark,
-    //     intraction_id, 
-    //     todo_on,
-    //     completed_on,
-    //   })
-    // );
-    // await caseDetails.save();
-    // res
-    //   .status(200)
-    //   .json({ message: "Case negotiation added successfully", caseDetails });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -6582,6 +6513,8 @@ export const Customer_Negotiations = async (req, res) => {
       message: "Server error", 
       error: error.message 
     }); 
- }
+ }  finally {
+    session.endSession();
+ };
 };
 
