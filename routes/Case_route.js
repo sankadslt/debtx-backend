@@ -840,7 +840,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *
  * /api/case/Assign_RO_To_Case:
  *   patch:
- *     summary: Assign a Recovery Officer to cases.
+ *     summary: xxxx Assign a Recovery Officer to cases.
  *     description: |
  *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area
  *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
@@ -1339,6 +1339,114 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                       example: Internal server error while retrieving case behaviors.
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
+
+/**
+ * @swagger
+ * /Update_case_last_Ro_Details:
+ *   post:
+ *     summary: Update the last recovery officer's remark in a case
+ *     description: Updates the `case_removal_remark` field of the last recovery officer in a given DRC case.
+ *
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-mar-10 | Initial creation of API for updating RO details  | Sanjaya Perera   |
+ *
+ *     tags: [DRC Mediation Board Cases]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - drc_id
+ *               - remark
+ *             properties:
+ *               case_id:
+ *                 type: string
+ *                 description: The unique ID of the case.
+ *                 example: "CASE_001"
+ *               drc_id:
+ *                 type: string
+ *                 description: The unique ID of the DRC.
+ *                 example: "DRC_12345"
+ *               remark:
+ *                 type: string
+ *                 description: The remark to update for the last recovery officer.
+ *                 example: "Case closed due to settlement."
+ *     responses:
+ *       200:
+ *         description: Recovery Officer details updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Recovery Officer details updated successfully."
+ *       400:
+ *         description: Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "All fields are required."
+ *       404:
+ *         description: Case or DRC not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: "No case found with the provided case_id and drc_id."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while updating recovery officer details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Error details here."
+ */
 
 router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
@@ -2500,7 +2608,71 @@ router.post("/Case_List", Case_List);
  */
 router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
-router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
+/**
+ * @swagger
+ * /List_count_by_drc_commision_rule:
+ *   get:
+ *     summary: C-1G12 Get case count grouped by DRC commission rule
+ *     description: Retrieves the count of cases grouped by `drc_commision_rule` where the `case_current_status` is "Open No Agent".
+ *
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-mar-10 | Initial creation of API for case count retrieval | Sanjaya Perera   |
+ *
+ *     tags: [DRC Mediation Board Cases]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the case count grouped by `drc_commision_rule`.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Cases count grouped by drc_commision_rule fetched successfully."
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     total_rules:
+ *                       type: integer
+ *                       example: 5
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       drc_commision_rule:
+ *                         type: string
+ *                         example: "RULE_001"
+ *                       case_count:
+ *                         type: integer
+ *                         example: 12
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch cases count. Please try again later."
+ *                 error:
+ *                   type: string
+ *                   example: "Error details here."
+ */
+
+router.get(
+  "/List_count_by_drc_commision_rule",
+  List_count_by_drc_commision_rule
+);
 
 router.get("/ListAllArrearsBands", ListAllArrearsBands);
 
@@ -3318,7 +3490,7 @@ router.post(
  */
 router.post(
   "/List_All_DRC_Mediation_Board_Cases",
-  ListALLMediationCasesownnedbyDRCRO 
+  ListALLMediationCasesownnedbyDRCRO
 );
 
 /**
@@ -3427,7 +3599,9 @@ router.post(
  *                   example: Server error. Please try again later.
  */
 router.post(
-  "/List_all_transaction_seq_of_batch_id",List_all_transaction_seq_of_batch_id );
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);
 
 /**
  * @swagger
@@ -3521,7 +3695,9 @@ router.post(
  */
 
 router.post(
-    "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
+);
 
 router.post(
   "/list_distribution_array_of_a_transaction",
@@ -3755,21 +3931,20 @@ router.post(
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
-
 // /**
 //  * @swagger
 //  * tags:
 //  *   - name: Case Management
 //  *     description: Endpoints related to retrieving case details based on mediation board requests.
-//  * 
+//  *
 //  * /api/case/Case_Details_for_DRC:
 //  *   post:
 //  *     summary: Retrieve case details by Case ID and DRC ID.
 //  *     description: |
-//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID. 
-//  *       If a case with the specified Case ID exists and is associated with the given DRC ID, 
+//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
+//  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
 //  *       the system returns relevant case details.
-//  *       
+//  *
 //  *       | Version | Date       | Description                     | Changed By         |
 //  *       |---------|------------|---------------------------------|--------------------|
 //  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
@@ -3905,7 +4080,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  * tags:
  *   - name: Recovery Officer Requests
  *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
- * 
+ *
  * /api/case/List_Active_RO_Requests_Mediation:
  *   get:
  *     summary: Retrieve active RO mediation requests.
@@ -3995,7 +4170,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  *                 error:
  *                   type: string
  *                   example: Error message describing the issue.
- * 
+ *
  *   post:
  *     summary: Retrieve active RO mediation requests (via POST with body).
  *     description: |
@@ -5288,7 +5463,7 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
-router.post("/Mediation_Board",Mediation_Board);
+router.post("/Mediation_Board", Mediation_Board);
 
 /**
  * @swagger
@@ -5458,7 +5633,6 @@ router.post("/Mediation_Board",Mediation_Board);
 // Define the POST route for fetching case details
 // router.post("/Case_Details_for_DRC", drcCaseDetails);
 
-
 /**
  * @swagger
  * /api/Update_Customer_Contacts:
@@ -5599,11 +5773,11 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // POST route to update customer contacts or remarks for a specific case.
-router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
+router.post("/Update_Customer_Contacts", updateDrcCaseDetails);
 
-router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
+router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
-router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
+router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
 /**
  * @swagger
@@ -5715,7 +5889,10 @@ router.post("/Withdraw_CasesOwened_By_DRC",Withdraw_CasesOwened_By_DRC);
  *       500:
  *         description: Internal server error. Failed to retrieve cases.
  */
-router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+router.post(
+  "/List_All_DRCs_Mediation_Board_Cases",
+  List_All_DRCs_Mediation_Board_Cases
+);
 
 /**
  * @swagger
@@ -5788,9 +5965,15 @@ router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Boar
  *                   type: string
  *                   example: Internal server error.
  */
-router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
+router.put(
+  "/Accept_Non_Settlement_Request_from_Mediation_Board",
+  Accept_Non_Settlement_Request_from_Mediation_Board
+);
 
-router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+router.post(
+  "/ListRequestLogFromRecoveryOfficers",
+  ListRequestLogFromRecoveryOfficers
+);
 
 /**
  * @swagger
@@ -5922,8 +6105,10 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *                   example: "Internal server error."
  */
 router.post("/Customer_Negotiations", Customer_Negotiations);
-router.post("/List_Active_RO_Requests_Mediation",ListActiveRORequestsMediation)
+
+router.post(
+  "/List_Active_RO_Requests_Mediation",
+  ListActiveRORequestsMediation
+);
 
 export default router;
-
-
