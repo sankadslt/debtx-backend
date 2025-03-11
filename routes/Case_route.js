@@ -72,6 +72,7 @@ import {
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
+  Create_task_for_Request_log_download_when_select_more_than_one_month,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -7043,6 +7044,11 @@ router.post("/Customer_Negotiations", Customer_Negotiations);
 router.post(
   "/List_Active_RO_Requests_Mediation",
   ListActiveRORequestsMediation
+);
+
+router.post(
+  "/Create_task_for_Request_log_download_when_select_more_than_one_month",
+  Create_task_for_Request_log_download_when_select_more_than_one_month
 );
 
 export default router;
