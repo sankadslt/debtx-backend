@@ -20,7 +20,7 @@ const interactionSchema = new mongoose.Schema(
       default: Date.now,
     },
     delegate_user_id: {
-      type: Number,
+      type: String,
       required: true,
     },
     Created_By: {
