@@ -6362,46 +6362,6 @@ export const ListActiveRORequests = async (req, res) => {
   }
 };
 
-export const addCpeToNegotiation = async (req, res) => {
-  try {
-    const { case_id, Rtype, cpemodel, serialNo, nego_remark, service, drc_id } = req.body;
-
-    // Validate required fields
-    if (!case_id || !Rtype || !cpemodel || !serialNo || !nego_remark || !service || !drc_id) {
-      return res.status(400).json({ message: "case_id, Rtype, nego_remark, serialNo, cpemodel, service, and drc_id are required" });
-    }
-
-    // Find and update the case details, but save the data in ro_negotiate_cpe_collect
-    const caseDetails = await Case_details.findOneAndUpdate(
-      { case_id },
-      {
-        $push: {
-          ro_negotiate_cpe_collect: {
-            serial_no: serialNo,
-            service_type: service,  // Save service_type here
-            drc_id: drc_id,  // Save drc_id here
-          }
-        }
-      },
-      { new: true, runValidators: true }
-    );
-
-    // If case not found, return an error
-    if (!caseDetails) {
-      return res.status(404).json({ message: "Case not found" });
-    }
-
-    // Return success response
-    return res.status(200).json({ 
-      message: "CPE details added successfully!",
-      updatedCase: caseDetails 
-    });
-
-  } catch (error) {
-    console.error("🔥 Backend Error:", error);
-    return res.status(500).json({ 
-      message: "Internal server error", 
-      error: error.message 
 export const Create_task_for_Request_log_download_when_select_more_than_one_month = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

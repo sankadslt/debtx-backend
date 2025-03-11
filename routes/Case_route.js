@@ -61,7 +61,7 @@ import {
   ListActiveMediationResponse,
   ListActiveRORequests,
   CaseDetailsforDRC,
-  addCpeToNegotiation,
+  // addCpeToNegotiation,
   Create_Task_For_Assigned_drc_case_list_download,
   // listAllDRCMediationBoardCases,
   // drcCaseDetails,
@@ -7062,7 +7062,7 @@ router.post(
   "/List_Active_RO_Requests_Mediation",
   ListActiveRORequestsMediation
 );
-router.post("/add-cpecollect", addCpeToNegotiation);
+// router.post("/add-cpecollect", addCpeToNegotiation);
 
 /**
  * @swagger
