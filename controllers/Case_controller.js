@@ -4141,60 +4141,6 @@ export const listDRCAllCases = async (req, res) => {
   }
 };
 
-
-  // export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
-  //   try {
-  //     const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
-      
-  //     const allowedStatuses = [
-  //       "Forward to Mediation Board",
-  //       "MB Negotiation",
-  //       "MB Request Customer-Info",
-  //       "MB Handover Customer-Info",
-  //       "MB Settle Pending",
-  //       "MB Settle Open-Pending",
-  //       "MB Settle Active",
-  //       "MB Fail with Pending Non-Settlement"
-  //     ];
-
-  //     let query = {  case_current_status: { $in: allowedStatuses } };
-
-  //     if (From_DAT && To_DAT) {
-  //       const from = new Date(From_DAT);
-  //       from.setUTCHours(0, 0, 0, 0);
-  //       const to = new Date(To_DAT);
-  //       to.setUTCHours(23, 59, 59, 999);
-  //       query.created_dtm = { $gte: from, $lte: to };
-  //     }
-  //     if (rtom) {
-  //       query.rtom = rtom;
-  //     }
-  //     if (drc) {
-  //       query.drc = drc;
-  //     }
-
-  //     let cases;
-  //     if (!case_current_status && !From_DAT && !To_DAT && !rtom && !drc) {
-  //       cases = await Case_details.find({  case_current_status: { $ne: "MB Fail with Non-Settlement" } }).sort({ created_dtm: -1 });
-  //     } else {
-  //       query. case_current_status = { $in: allowedStatuses }; 
-  //       cases = await Case_details.find(query);
-  //     }
-      
-      
-  //     return res.status(200).json({
-  //       status: "success",
-  //       message: "Mediation Board cases retrieved successfully.",
-  //       data: cases,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error fetching Mediation Board cases:", error);
-  //     return res.status(500).json({
-  //       status: "error",
-  //       message: error.message || "An unexpected error occurred.",
-  //     });
-  //   }
-  // };
   export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
     try {
       const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
@@ -4212,7 +4158,7 @@ export const listDRCAllCases = async (req, res) => {
   
       let query = {};
   
-      // If request body is not empty, apply filters
+     
       if (Object.keys(req.body).length > 0) {
         query.case_current_status = { $in: allowedStatuses };
   
@@ -4237,12 +4183,17 @@ export const listDRCAllCases = async (req, res) => {
 
 const processedCases = cases.map((caseItem) => {
   const mediationBoardEntries = caseItem.mediation_board || [];
+  
+  const roRequestEntries = caseItem.ro_requests || [];
 
   const lastMediationBoardEntry =
     mediationBoardEntries.length > 0
       ? mediationBoardEntries[mediationBoardEntries.length - 1]
       : null;
 
+            const lastRoRequestEntry = roRequestEntries.length > 0
+                ? roRequestEntries[roRequestEntries.length - 1]
+                : null;
   return {
     ...caseItem._doc,
     latest_next_calling_dtm: lastMediationBoardEntry
@@ -4250,6 +4201,13 @@ const processedCases = cases.map((caseItem) => {
       : null,
     mediation_board_call_count: mediationBoardEntries.length,
     drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
+    customer_available: lastMediationBoardEntry?.customer_available || null,
+    agree_to_settle: lastMediationBoardEntry?.agree_to_settle || null,
+    comment: lastMediationBoardEntry?.comment || null,
+    customer_response: lastMediationBoardEntry?.customer_response || null,
+    ro_request_created_dtm: lastRoRequestEntry?.created_dtm || null,
+    ro_request: lastRoRequestEntry?.ro_request || null,
+    request_remark: lastRoRequestEntry?.request_remark || null,
   };
 });
 
@@ -4267,53 +4225,7 @@ const processedCases = cases.map((caseItem) => {
     }
   };
   
-  // export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
-  //   try {
-  //       const { case_id, recieved_by } = req.body;  
-  
-      
-  //       if (!case_id) {
-  //           return res.status(400).json({ message: 'case_id is required' });
-  //       }
-  //       if (!recieved_by) {
-  //           return res.status(400).json({ message: 'recieved_by is required' });
-  //       }
-  
-       
-  //       const caseRecord = await Case_details.findOne({ case_id });
-  
-  //       if (!caseRecord) {
-  //           return res.status(404).json({ message: 'Case not found' });
-  //       }
-  
-        
-  //       if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
-  //           return res.status(400).json({ message: 'Case status does not match the required condition' });
-  //       }
-  
-      
-  //       const mediationBoardEntry = caseRecord.mediation_board?.[caseRecord.mediation_board.length - 1];
-  
-  //       if (mediationBoardEntry) {
-  //           mediationBoardEntry.received_on = new Date();
-  //           mediationBoardEntry.received_by = recieved_by;
-            
-  //       } else {
-  //           return res.status(400).json({ message: 'No mediation board entry found for this case' });
-  //       }
-  
-        
-  //       caseRecord.case_current_status = 'MB Fail with Non-Settlement';
-  
-       
-  //       await caseRecord.save();
-  
-  //       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
-  
-  //   } catch (error) {
-  //       return res.status(500).json({ message: 'Server error', error: error.message });
-  //   }
-  // };
+
   export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
     try {
         const { case_id, recieved_by } = req.body;  
