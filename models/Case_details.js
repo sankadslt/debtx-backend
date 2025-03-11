@@ -113,7 +113,7 @@ const roNegotiationSchema = new mongoose.Schema({
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
-  feild_reason: { type: String, required: true },
+  field_reason: { type: String, default:null },
   remark: { type: String },
 });
 
