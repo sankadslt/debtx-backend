@@ -21,6 +21,7 @@ import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
 import Template_RO_Request from "../models/Template_RO_Request .js";
 import Template_Mediation_Board from "../models/Template_mediation_board.js";
+import TemplateNegotiation from "../models/Template_negotiation.js"
 import moment from "moment";
 import mongoose from "mongoose";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
@@ -5633,8 +5634,7 @@ export const listDRCAllCases = async (req, res) => {
 // get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
-    const { case_id, drc_id } = req.body;
-    
+    const { case_id, drc_id } = req.body;    
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -5650,7 +5650,22 @@ export const CaseDetailsforDRC = async (req, res) => {
     const caseDetails = await Case_details.findOne({
       case_id: case_id,
       "drc.drc_id": drc_id,
-    }).lean();  // Using lean() for better performance
+    },
+    { case_id: 1, 
+      case_current_status: 1, 
+      ro_cpe_collect:1, 
+      customer_ref: 1, 
+      account_no: 1, 
+      current_arrears_amount: 1, 
+      contact: 1, 
+      rtom: 1,
+      ref_products:1,
+      last_payment_date: 1,
+      drc: 1, 
+      ro_negotiation:1,settle:1, 
+      money_transactions:1, 
+      ro_requests: 1}
+    ).lean();  // Using lean() for better performance
 
     if (!caseDetails) {
       return res.status(404).json({
@@ -5663,19 +5678,20 @@ export const CaseDetailsforDRC = async (req, res) => {
       });
     }
 
-    const formattedCaseDetails = {
-      case_id: caseDetails.case_id,
-      customer_ref: caseDetails.customer_ref,
-      account_no: caseDetails.account_no,
-      current_arrears_amount: caseDetails.current_arrears_amount,
-      last_payment_date: caseDetails.last_payment_date,
-      contactDetails: caseDetails.current_contact,
-    };
+    // const formattedCaseDetails = {
+    //   case_id: caseDetails.case_id,
+    //   customer_ref: caseDetails.customer_ref,
+    //   account_no: caseDetails.account_no,
+    //   current_arrears_amount: caseDetails.current_arrears_amount,
+    //   last_payment_date: caseDetails.last_payment_date,
+    //   contactDetails: caseDetails.current_contact,
+
+    // };
 
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: formattedCaseDetails
+      data: caseDetails
     });
 
   } catch (err) {
@@ -5697,46 +5713,46 @@ export const CaseDetailsforDRC = async (req, res) => {
 };
 
 // List  All Active Mediation RO Requests from SLT
-export const ListActiveRORequests = async (req, res) => {
-  try {
-    // Get request_mode from either body (POST) or query (GET)
-    const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
+// export const ListActiveRORequests = async (req, res) => {
+//   try {
+//     // Get request_mode from either body (POST) or query (GET)
+//     const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
     
-    let query = { end_dtm: null };
+//     let query = { end_dtm: null };
     
-    if (request_mode) {
-      query.request_mode = request_mode;
-    }
+//     if (request_mode) {
+//       query.request_mode = request_mode;
+//     }
 
-    const ro_requests = await Template_RO_Request.find(query);
+//     const ro_requests = await Template_RO_Request.find(query);
 
-    if (ro_requests.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: request_mode 
-          ? `No active RO requests found with request_mode: ${request_mode}.`
-          : "No active RO requests found.",
-      });
-    }
+//     if (ro_requests.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: request_mode 
+//           ? `No active RO requests found with request_mode: ${request_mode}.`
+//           : "No active RO requests found.",
+//       });
+//     }
 
-    // Return only the matching records
+//     // Return only the matching records
 
-    return res.status(200).json({
-      status: "success",
-      message: request_mode
-        ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
-        : "Active RO request details retrieved successfully.",
-      data: ro_requests,
-    });
-  } catch (error) {
-    console.error("Unexpected error:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error occurred while fetching active RO details.",
-      error: error.message,
-    });
-  }
-};
+//     return res.status(200).json({
+//       status: "success",
+//       message: request_mode
+//         ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
+//         : "Active RO request details retrieved successfully.",
+//       data: ro_requests,
+//     });
+//   } catch (error) {
+//     console.error("Unexpected error:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error occurred while fetching active RO details.",
+//       error: error.message,
+//     });
+//   }
+// };
 
 export const ListActiveMediationResponse = async (req, res) => {
   try {
@@ -6518,3 +6534,107 @@ export const Customer_Negotiations = async (req, res) => {
  };
 };
 
+//get active negotiations for the customer negotiations
+export const getActiveNegotiations = async (req, res) => {
+  try {
+    // const currentDate = new Date();
+    // const activeNegotiations = await Field_Reasons.find
+    // ({
+    //   end_dtm: { $gte: currentDate },
+    // })
+    // .select("negotiation_id negotiation_description end_dtm");
+
+    const activeNegotiations = await TemplateNegotiation.find();
+    console.log("field reason ", activeNegotiations);
+    return res.status(200).json({
+      status: "success",
+      message: "Active negotiations retrieved successfully.",
+      data: activeNegotiations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving active negotiations.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+});
+}
+};
+
+// List  All Active Mediation RO Requests from SLT
+export const ListActiveRORequests = async (req, res) => {
+  try {
+    const {request_mode} = req.body;
+    if (!request_mode) {
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: request_mode" 
+      });
+    };
+    const ro_requests = await Template_RO_Request.find({ end_dtm: null, request_mode });
+    if (ro_requests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `No active RO requests found with request_mode: ${request_mode}.`
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: `Active RO requests with mode '${request_mode}' retrieved successfully.`,
+      data: ro_requests
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active RO details.",
+      error: error.message,
+    });
+  }
+};
+
+export const addCpeToNegotiation = async (req, res) => {
+  try {
+    const { case_id, Rtype, cpemodel, serialNo, nego_remark, service, drc_id } = req.body;
+
+    // Validate required fields
+    if (!case_id || !Rtype || !cpemodel || !serialNo || !nego_remark || !service || !drc_id) {
+      return res.status(400).json({ message: "case_id, Rtype, nego_remark, serialNo, cpemodel, service, and drc_id are required" });
+    }
+
+    // Find and update the case details, but save the data in ro_negotiate_cpe_collect
+    const caseDetails = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $push: {
+          ro_negotiate_cpe_collect: {
+            serial_no: serialNo,
+            service_type: service,  // Save service_type here
+            drc_id: drc_id,  // Save drc_id here
+          }
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    // If case not found, return an error
+    if (!caseDetails) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    // Return success response
+    return res.status(200).json({ 
+      message: "CPE details added successfully!",
+      updatedCase: caseDetails 
+    });
+
+  } catch (error) {
+    console.error("🔥 Backend Error:", error);
+    return res.status(500).json({ 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};

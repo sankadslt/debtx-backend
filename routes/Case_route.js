@@ -61,6 +61,7 @@ import {
   ListActiveMediationResponse,
   ListActiveRORequests,
   CaseDetailsforDRC,
+  addCpeToNegotiation,
   Create_Task_For_Assigned_drc_case_list_download,
   // listAllDRCMediationBoardCases,
   // drcCaseDetails,
@@ -72,6 +73,7 @@ import {
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
+  getActiveNegotiations,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -5271,31 +5273,35 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
 /**
  * @swagger
  * tags:
- *   - name: Recovery Officer Requests
- *     description: Endpoints for managing Recovery Officer (RO) mediation requests.
+ *   - name: RO Requests
+ *     description: Endpoints related to active RO requests.
  *
- * /api/case/List_Active_RO_Request:
- *   get:
- *     summary: Retrieve active RO mediation requests.
+ * /api/case/List_Active_RO_Requests:
+ *   post:
+ *     summary: Retrieve all active RO requests by request_mode.
  *     description: |
- *       This endpoint retrieves all active Recovery Officer (RO) mediation requests where end_dtm is null.
- *       Optionally, you can filter the requests by providing a request_mode as a query parameter.
+ *       This endpoint retrieves all active RO requests where the end_dtm field is null,
+ *       indicating that the request is still ongoing, and filters by the provided request_mode.
  *
- *       | Version | Date       | Description                             | Changed By         |
- *       |---------|------------|-----------------------------------------|--------------------|
- *       | 01      | 2025-Feb-19| List active RO mediation requests       | U.H.Nandali Linara |
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-10| List all active RO requests by mode | Your Name          |
  *     tags:
- *       - Recovery Officer Requests
- *     parameters:
- *       - in: query
- *         name: request_mode
- *         schema:
- *           type: string
- *         description: Optional filter for the request mode (e.g., "manual", "automatic").
- *         example: manual
+ *       - RO Requests
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               request_mode:
+ *                 type: string
+ *                 description: The mode of the request to filter by.
+ *                 example: "active"
  *     responses:
  *       200:
- *         description: Active RO mediation requests retrieved successfully.
+ *         description: Active RO requests retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -5306,7 +5312,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Active RO request details retrieved successfully.
+ *                   example: Active RO requests with mode 'active' retrieved successfully.
  *                 data:
  *                   type: array
  *                   items:
@@ -5315,27 +5321,38 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *                       ro_request_id:
  *                         type: integer
  *                         description: Unique identifier for the RO request.
- *                         example: 301
+ *                         example: 101
  *                       request_mode:
  *                         type: string
- *                         description: Mode of the request (e.g., "manual" or "automatic").
- *                         example: manual
+ *                         description: Mode of the request.
+ *                         example: "active"
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
- *                         description: Timestamp when the request was created.
- *                         example: "2025-02-15T14:00:00Z"
+ *                         description: The date and time the request was created.
+ *                         example: "2025-03-10T09:30:00Z"
  *                       end_dtm:
  *                         type: string
  *                         nullable: true
- *                         description: End date and time of the request (null if active).
+ *                         description: The date and time the request ended, if applicable.
  *                         example: null
- *                       status:
- *                         type: string
- *                         description: Current status of the request.
- *                         example: active
+ *       400:
+ *         description: |
+ *           Missing required field: request_mode.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields: request_mode"
  *       404:
- *         description: No active RO requests found.
+ *         description: |
+ *           No active RO requests found for the provided request_mode.
  *         content:
  *           application/json:
  *             schema:
@@ -5346,9 +5363,10 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No active RO requests found.
+ *                   example: "No active RO requests found with request_mode: active."
  *       500:
- *         description: Internal server error occurred while fetching active RO requests.
+ *         description: |
+ *           Internal server error occurred while fetching active RO requests.
  *         content:
  *           application/json:
  *             schema:
@@ -5359,12 +5377,11 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Internal server error occurred while fetching active RO details.
+ *                   example: "Internal server error occurred while fetching active RO details."
  *                 error:
  *                   type: string
- *                   example: Internal server error message.
+ *                   example: "Internal server error message."
  */
-
 router.post("/List_Active_RO_Requests", ListActiveRORequests);
 
 /**
@@ -6110,5 +6127,94 @@ router.post(
   "/List_Active_RO_Requests_Mediation",
   ListActiveRORequestsMediation
 );
+router.post("/add-cpecollect", addCpeToNegotiation);
+
+/**
+ * @swagger
+ * /api/case/list_Active_Customer_Negotiations:
+ *   post:
+ *     summary: Retrieve all active customer negotiations.
+ *     description: |
+ *       This endpoint retrieves all active customer negotiations.
+ *
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-06| List all active customer negotiations | Yevin Theenura  |
+ *     tags:
+ *       - Customer Negotiations
+ *     requestBody:
+ *       required: false
+ *     responses:
+ *       200:
+ *         description: Active customer negotiations retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Active customer negotiations retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       negotiation_id:
+ *                         type: integer
+ *                         description: Unique identifier for the negotiation.
+ *                         example: 501
+ *                       case_id:
+ *                         type: integer
+ *                         description: ID of the related case.
+ *                         example: 1001
+ *                       status:
+ *                         type: string
+ *                         description: Current status of the negotiation.
+ *                         example: "Ongoing"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time the negotiation started.
+ *                         example: "2025-02-10T09:30:00Z"
+ *                       end_dtm:
+ *                         type: string
+ *                         nullable: true
+ *                         description: The date and time the negotiation ended, if applicable.
+ *                         example: null
+ *       404:
+ *         description: No active customer negotiations found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No active customer negotiations found.
+ *       500:
+ *         description: Internal server error occurred while fetching active customer negotiations.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching active customer negotiations.
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error message.
+ */
+router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
 export default router;

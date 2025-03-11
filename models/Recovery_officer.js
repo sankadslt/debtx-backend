@@ -254,6 +254,10 @@ const roSchema = new Schema(
             type: String,
             required: true,
         },
+        drc_id: {
+            type: Number,
+            required: true,
+        },
         rtoms_for_ro: {
             type: [rtomforRoSchema], // RTOMs array with statuses
             required: true,
