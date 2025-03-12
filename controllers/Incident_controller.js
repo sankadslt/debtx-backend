@@ -1649,6 +1649,12 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       product_ownership: product.Equipment_Ownership || "Unknown",
       service_address: product.Service_Address || "N/A",
     })) || [],
+    case_status: {
+      case_status: incidentData.Incident_Status,
+      status_reason: "Forward F1 Filtered",
+      created_dtm: new Date(),
+      created_by: user
+    }
   };
 
   const newCase = new Case_details(caseData);
@@ -1874,7 +1880,8 @@ export const Forward_Direct_LOD = async (req, res) => {
       monitor_months: 6,
       last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
-      case_current_status: incidentData.Incident_Status,
+     // case_current_status: incidentData.Incident_Status,
+      case_current_status: "LIT",
       filtered_reason: incidentData.Filtered_Reason || null,
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
@@ -1885,6 +1892,12 @@ export const Forward_Direct_LOD = async (req, res) => {
         product_ownership: product.Equipment_Ownership || "Unknown",
         service_address: product.Service_Address || "N/A",
       })) || [],
+      case_status: {
+        case_status: incidentData.Incident_Status,
+        status_reason: "Forward Direct LOD",
+        created_dtm: new Date(),
+        created_by: user
+      }
     };
     
 
