@@ -4852,6 +4852,7 @@ export const listDRCAllCases = async (req, res) => {
 };
 
 // get CaseDetails for MediationBoard 
+// get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
@@ -4871,6 +4872,7 @@ export const CaseDetailsforDRC = async (req, res) => {
     const caseDetails = await Case_details.findOne({
       case_id: case_id,
       "drc.drc_id": drc_id,
+      'mediation_board.drc_id': drc_id,
     }).lean();  // Using lean() for better performance
 
     if (!caseDetails) {
@@ -4883,24 +4885,17 @@ export const CaseDetailsforDRC = async (req, res) => {
         },
       });
     }
-    
+
     // Count the number of objects in the mediation_board array
     const mediationBoardCount = caseDetails.mediation_board?.length || 0;
-
-    const formattedCaseDetails = {
-      case_id: caseDetails.case_id,
-      customer_ref: caseDetails.customer_ref,
-      account_no: caseDetails.account_no,
-      current_arrears_amount: caseDetails.current_arrears_amount,
-      last_payment_date: caseDetails.last_payment_date,
-      contactDetails: caseDetails.current_contact,
-      calling_round: mediationBoardCount,
-    };
 
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: caseDetails
+      data: {
+        ...caseDetails,  // All fields from the case details
+        calling_round: mediationBoardCount, // Include the count in the response
+      },
     });
 
   } catch (err) {
