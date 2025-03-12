@@ -87,7 +87,7 @@ const abnormalSchema = new Schema({
 const productDetailsSchema = new Schema({
   service: { type: String, required: true },
   product_label: { type: String, required: true },
-  product_status: { type: String, enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], required: true },
+  product_status: { type: String, required: true },
   status_Dtm: { type: Date, required: true },
   rtom: { type: String, required: true },
   product_ownership: { type: String, required: true },
