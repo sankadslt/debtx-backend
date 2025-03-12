@@ -5599,7 +5599,7 @@ router.post("/Mediation_Board",Mediation_Board);
  */
 
 // POST route to update customer contacts or remarks for a specific case.
-router.post("/Update_Customer_Contacts",updateDrcCaseDetails);
+router.patch("/Update_Customer_Contacts",updateDrcCaseDetails);
 
 router.post("/AssignDRCToCaseDetails",AssignDRCToCaseDetails);
 
