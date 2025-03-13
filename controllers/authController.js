@@ -7,7 +7,6 @@ const generateTokens = (user) => {
   const payload = {
     user_id: user.user_id,
     username: user.username,
-    email: user.email,
     role: user.role,
     drc_id: user.drc_id,
     ro_id: user.ro_id,
