@@ -5729,8 +5729,8 @@ export const updateDrcCaseDetails = async (req, res) => {
     
     // Schema for edited contact details
     const editedcontactsSchema = {
-      // ro_id:  "125" ,
-      // drc_id: "2365",
+      drc_id: drc_id,
+      ro_id: ro_id || null,
       edited_dtm: new Date(),
       mob: mob,
       email: email,
@@ -5780,6 +5780,8 @@ export const updateDrcCaseDetails = async (req, res) => {
     return res.status(500).json({ error: "Failed to update the case" });
   }
 };
+
+// Update DRC case details with new contact information and remarks.
 
 export const AssignDRCToCaseDetails = async (req, res) => {
   let { case_id,} = req.body;
