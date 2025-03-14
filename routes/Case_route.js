@@ -1591,10 +1591,7 @@ router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post(
-  "/Open_No_Agent_Cases_ALL_By_Rulebase",
-  openNoAgentCasesAllByServiceTypeRulebase
-);
+router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByServiceTypeRulebase);
 
 /**
  * @swagger
@@ -2436,7 +2433,6 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *                   type: string
  *                   example: "Error details here."
  */
-
 router.get("/List_All_Arrears_Bands", ListAllArrearsBands);
 
 /**
@@ -2563,11 +2559,7 @@ router.get("/List_All_Arrears_Bands", ListAllArrearsBands);
  *                       type: string
  *                       example: Detailed error message.
  */
-
-router.post(
-  "/count_cases_rulebase_and_arrears_band",
-  count_cases_rulebase_and_arrears_band
-);
+router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_arrears_band);
 
 /**
  * @swagger
@@ -2788,11 +2780,7 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                   type: string
  *                   example: "Database connection failed"
  */
-
-router.post(
-  "/List_Case_Distribution_DRC_Summary",
-  List_Case_Distribution_DRC_Summary
-);
+router.post("/List_Case_Distribution_DRC_Summary", List_Case_Distribution_DRC_Summary);
 
 /**
  * @swagger
@@ -2974,7 +2962,6 @@ router.post(
  *                   type: string
  *                   example: "Internal server error."
  */
-
 router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
 
 /**
@@ -3121,11 +3108,7 @@ router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
  *                       type: string
  *                       example: Error details here.
  */
-
-router.post(
-  "/Create_Task_For_case_distribution",
-  Create_Task_For_case_distribution
-);
+router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
 
 /**
  * @swagger
@@ -3280,10 +3263,7 @@ router.post(
  *                       type: string
  *                       example: "Error details here."
  */
-router.post(
-  "/List_All_DRC_Mediation_Board_Cases",
-  ListALLMediationCasesownnedbyDRCRO 
-);
+router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedbyDRCRO);
 
 /**
  * @swagger
@@ -3390,10 +3370,7 @@ router.post(
  *                   type: string
  *                   example: Server error. Please try again later.
  */
-router.post(
-  "/List_all_transaction_seq_of_batch_id",
-  List_all_transaction_seq_of_batch_id
-);
+router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of_batch_id);
 
 /**
  * @swagger
@@ -3485,7 +3462,6 @@ router.post(
  *                       type: string
  *                       example: Error message details.
  */
-
 router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_case_distribution_transaction ); 
 
 router.post("/get_distribution_array_of_a_transaction", list_distribution_array_of_a_transaction);
@@ -3596,10 +3572,7 @@ router.post("/get_distribution_array_of_a_transaction", list_distribution_array_
  *                       type: string
  *                       example: Error message details.
  */
-router.post(
-  "/Create_Task_For_case_distribution_transaction_array",
-  Create_Task_For_case_distribution_transaction_array
-);
+router.post("/Create_Task_For_case_distribution_transaction_array", Create_Task_For_case_distribution_transaction_array);
 
 /**
  * @swagger
@@ -3982,10 +3955,7 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  *       500:
  *         $ref: '#/components/responses/500'
  */
-router.post(
-  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
-  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
-);
+router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribution_Details_With_Drc_Rtom_ByBatchId);
 
 /**
  * @swagger
@@ -4195,7 +4165,6 @@ router.post("/List_All_Batch_Details", List_All_Batch_Details);
  *                   type: string
  *                   example: "Internal server error."
  */
-
 router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
 
 /**
@@ -4300,7 +4269,6 @@ router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
  *                   type: string
  *                   example: "Internal server error."
  */
-
 router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
 
 /**
@@ -5189,8 +5157,6 @@ router.post("/Create_Task_For_case_distribution_drc_summery", Create_Task_For_ca
  *                   type: string
  *                   example: "Internal server error."
  */
-
-
 router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution_Details_With_Rtoms);
 
 /**
@@ -5366,8 +5332,6 @@ router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution
  *                       type: string
  *                       example: "Internal server error."
  */
-
-
 router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
 
 /**
@@ -5798,7 +5762,6 @@ router.post("/List_Active_RO_Requests", ListActiveRORequests);
  *                   type: string
  *                   example: Internal server error message.
  */
-
 router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
 
 /**
@@ -5928,12 +5891,7 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *                       type: string
  *                       example: "Internal server error."
  */
-
-
-router.post(
-  "/Create_Task_For_Assigned_drc_case_list_download",
-  Create_Task_For_Assigned_drc_case_list_download
-);
+router.post("/Create_Task_For_Assigned_drc_case_list_download", Create_Task_For_Assigned_drc_case_list_download);
 
 router.post("/Mediation_Board", Mediation_Board);
 
@@ -6375,8 +6333,6 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *                   type: string
  *                   example: "Internal Server Error"
  */
-
-
 router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
 /**
@@ -6489,10 +6445,7 @@ router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
  *       500:
  *         description: Internal server error. Failed to retrieve cases.
  */
-router.post(
-  "/List_All_DRCs_Mediation_Board_Cases",
-  List_All_DRCs_Mediation_Board_Cases
-);
+router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
 
 /**
  * @swagger
@@ -6565,15 +6518,9 @@ router.post(
  *                   type: string
  *                   example: Internal server error.
  */
-router.put(
-  "/Accept_Non_Settlement_Request_from_Mediation_Board",
-  Accept_Non_Settlement_Request_from_Mediation_Board
-);
+router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
 
-router.post(
-  "/ListRequestLogFromRecoveryOfficers",
-  ListRequestLogFromRecoveryOfficers
-);
+router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
 
 /**
  * @swagger
@@ -6706,10 +6653,7 @@ router.post(
  */
 router.post("/Customer_Negotiations", Customer_Negotiations);
 
-router.post(
-  "/List_Active_RO_Requests_Mediation",
-  ListActiveRORequestsMediation
-);
+router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
 // router.post("/add-cpecollect", addCpeToNegotiation);
 
 /**
@@ -6800,9 +6744,6 @@ router.post(
  */
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
-router.post(
-  "/Create_task_for_Request_log_download_when_select_more_than_one_month",
-  Create_task_for_Request_log_download_when_select_more_than_one_month
-);
+router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
 export default router;
