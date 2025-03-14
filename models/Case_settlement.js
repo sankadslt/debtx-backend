@@ -1,11 +1,17 @@
 import { Schema, model } from "mongoose";
 
-const installmentSchema = new Schema({
+const settlementPlanSchema = new Schema({
   installment_seq: { type: Number, required: true },
-  Installment_Settle_Amount: Number,
-  Plan_Date: Date,
-  Payment_Seq: Number,
-  Installment_Paid_Amount: Number
+  Installment_Settle_Amount: { type: Number, required: true },
+  Plan_Date: {type: Date, required: true},
+  Payment_Seq: {type: Number, required: true},
+  Installment_Paid_Amount: {type: Number, required: true}
+});
+
+const planReceivedSchema = new Schema({
+  installment_seq: { type: Number, required: true },
+  Installment_Settle_Amount: {type: Number, required: true},
+  Plan_Date: {type: Date, required: true},
 });
 
 const casesettlementSchema = new Schema({
@@ -31,8 +37,8 @@ const casesettlementSchema = new Schema({
   drc_id: { type: Number },
   ro_id: { type: Number },
   last_monitoring_dtm: { type: Date },
-  settlement_plan_received: [],
-  settlement_plan: [installmentSchema],
+  settlement_plan_received: [planReceivedSchema],
+  settlement_plan: [settlementPlanSchema],
   settlement_occured: { type: Date },
   expire_date: { type: Date },
   remark: { type: String },
