@@ -4353,7 +4353,6 @@ export const List_Case_Distribution_Details = async (req, res) => {
 };
 
 
-
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -5942,6 +5941,8 @@ export const updateDrcCaseDetails = async (req, res) => {
     return res.status(500).json({ error: "Failed to update the case" });
   }
 };
+
+// Update DRC case details with new contact information and remarks.
 
 export const AssignDRCToCaseDetails = async (req, res) => {
   let { case_id,} = req.body;

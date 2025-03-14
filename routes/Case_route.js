@@ -862,15 +862,15 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 items:
  *                   type: integer
  *                 description: List of case IDs to which the Recovery Officer will be assigned.
- *                 example: [10]
+ *                 example: [13]
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID who will be assigned.
- *                 example: 46
+ *                 example: 15
  *               drc_id:
  *                 type: integer
  *                 description: The DRC ID to which the cases belong.
- *                 example: 11
+ *                 example: 7
  *               assigned_by:
  *                 type: String
  *                 description: The user assigning the Recovery Officer.
@@ -1006,7 +1006,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
- *                 example: 11
+ *                 example: 7
  *               rtom:
  *                 type: string
  *                 description: Area name associated with the case.
@@ -1014,7 +1014,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID responsible for the case.
- *                 example: 46
+ *                 example: 15
  *               arrears_band:
  *                 type: string
  *                 description: Arrears category for filtering cases.
@@ -1023,12 +1023,12 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                 type: string
  *                 format: date
  *                 description: Start date for filtering cases.
- *                 example: "2025-01-01"
+ *                 example: "2025-02-25"
  *               to_date:
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2025-07-01"
+ *                 example: "2025-03-15"
  *     responses:
  *       200:
  *         description: Cases retrieved successfully.
@@ -1043,45 +1043,6 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                 message:
  *                   type: string
  *                   example: Cases retrieved successfully.
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       case_id:
- *                         type: integer
- *                         description: Unique identifier for the case.
- *                         example: 10
- *                       status:
- *                         type: string
- *                         description: Current status of the case.
- *                         example: "Negotiation Settle Active"
- *                       created_dtm:
- *                         type: string
- *                         format: date-time
- *                         description: Case creation date.
- *                         example: 2025-01-01T12:00:00.000+00:00
- *                       current_arreas_amount:
- *                         type: double
- *                         description: Outstanding arrears amount.
- *                         example: 11000.00
- *                       area:
- *                         type: string
- *                         description: RTOM area related to the case.
- *                         example: Matara
- *                       remark:
- *                         type: string
- *                         description: Latest remark on the case.
- *                         example: "Case is in negotiation."
- *                       expire_dtm:
- *                         type: string
- *                         format: date-time
- *                         description: Case expiration date.
- *                         example: 2025-05-01T12:00:00.000+00:00
- *                       ro_name:
- *                         type: string
- *                         description: Name of the assigned Recovery Officer.
- *                         example: "Sasindu"
  *       400:
  *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
@@ -1157,7 +1118,7 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *   - name: Case Management
  *     description: Endpoints for retrieving case behavior details during a specific DRC period.
  *
- * /api/case/Case_Behavior_During_DRC:
+ * /api/case/List_Behaviors_of_case_during_DRC:
  *   post:
  *     summary: Retrieve case behavior details during a specific DRC period.
  *     description: |
@@ -1179,15 +1140,15 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier of the case.
- *                 example: 10
+ *                 example: 13
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
- *                 example: 11
+ *                 example: 7
  *               ro_id:
  *                 type: integer
  *                 description: (Optional) Recovery Officer ID for filtering.
- *                 example: 46
+ *                 example: 15
  *     responses:
  *       200:
  *         description: Case behavior details retrieved successfully.
@@ -1202,84 +1163,6 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                 message:
  *                   type: string
  *                   example: Case retrieved successfully.
- *                 data:
- *                   type: object
- *                   properties:
- *                     formattedCase:
- *                       type: object
- *                       properties:
- *                         case_id:
- *                           type: integer
- *                           description: Unique identifier of the case.
- *                           example: 101
- *                         customer_ref:
- *                           type: string
- *                           description: Customer reference for the case.
- *                           example: "CR123456"
- *                         account_no:
- *                           type: string
- *                           description: Account number associated with the case.
- *                           example: "ACC7890"
- *                         current_arrears_amount:
- *                           type: number
- *                           description: Current arrears amount for the case.
- *                           example: 50000.75
- *                         last_payment_date:
- *                           type: string
- *                           format: date-time
- *                           description: Date of the last payment made for the case.
- *                           example: "2024-12-15T00:00:00Z"
- *                         ref_products:
- *                           type: array
- *                           items:
- *                             type: string
- *                           description: Reference products associated with the case.
- *                           example: ["Product A", "Product B"]
- *                         ro_id:
- *                           type: integer
- *                           description: Recovery Officer ID assigned to the case.
- *                           example: 10
- *                         ro_name:
- *                           type: string
- *                           description: Name of the assigned Recovery Officer.
- *                           example: "John Doe"
- *                         ro_contact_no:
- *                           type: string
- *                           description: Contact number of the Recovery Officer.
- *                           example: "0712345678"
- *                     settlementData:
- *                       type: object
- *                       properties:
- *                         created_dtm:
- *                           type: string
- *                           format: date-time
- *                           description: Date the settlement was created.
- *                           example: "2024-01-15T00:00:00Z"
- *                         settlement_status:
- *                           type: string
- *                           description: Current status of the settlement.
- *                           example: "Active"
- *                         expire_date:
- *                           type: string
- *                           format: date-time
- *                           description: Expiration date of the settlement.
- *                           example: "2024-12-31T00:00:00Z"
- *                     paymentData:
- *                       type: object
- *                       properties:
- *                         created_dtm:
- *                           type: string
- *                           format: date-time
- *                           description: Date the payment was created.
- *                           example: "2024-02-15T00:00:00Z"
- *                         bill_paid_amount:
- *                           type: number
- *                           description: Amount paid for the bill.
- *                           example: 15000.50
- *                         settled_balance:
- *                           type: number
- *                           description: Settled balance after the payment.
- *                           example: 35000.25
  *       400:
  *         description: Validation error - Missing required fields.
  *         content:
@@ -1340,6 +1223,115 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  */
 router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for managing recovery officer details related to cases.
+ * 
+ * /api/case/Update_case_last_Ro_Details:
+ *   patch:
+ *     summary: Update the last Recovery Officer's details for a given case.
+ *     description: |
+ *       This endpoint updates the last Recovery Officer's `case_removal_remark` for a specific case and DRC ID.
+ *       It identifies the most recent Recovery Officer entry and updates the associated remark.
+ *       
+ *       | Version | Date       | Description                       | Changed By         |
+ *       |---------|------------|-----------------------------------|--------------------|
+ *       | 01      | 2025-Feb-28| Update Recovery Officer details   | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier of the case.
+ *                 example: 13
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               remark:
+ *                 type: string
+ *                 description: Remark for the case removal related to the last Recovery Officer.
+ *                 example: "Officer resigned from handling the case."
+ *     responses:
+ *       200:
+ *         description: Recovery Officer details updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Recovery Officer details updated successfully.
+ *       400:
+ *         description: Validation error - Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All fields are required.
+ *       404:
+ *         description: Case or Recovery Officer not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case not found.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No case found with the provided case_id and drc_id.
+ *       500:
+ *         description: Internal server error occurred while updating Recovery Officer details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while updating recovery officer details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while updating recovery officer details.
+ */
 router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
 
 // router.post("/List_All_Active_ROs_By_DRC", listAllActiveRosByDRCID);
@@ -1842,10 +1834,7 @@ router.post(
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post(
-  "/Open_No_Agent_Count_Arrears_Band_By_Rulebase",
-  openNoAgentCountArrearsBandByServiceType
-);
+router.post( "/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType );
 
 /**
  * @swagger
@@ -2502,7 +2491,7 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
 
-router.get("/getAllArrearsBands", getAllArrearsBands);
+router.get("/List_All_Arrears_Bands", getAllArrearsBands);
 
 /**
  * @swagger
@@ -3520,13 +3509,9 @@ router.post(
  *                       example: Error message details.
  */
 
-router.post(
-    "/Create_Task_For_case_distribution_transaction",Create_Task_For_case_distribution_transaction ); 
+router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_case_distribution_transaction ); 
 
-router.post(
-  "/get_distribution_array_of_a_transaction",
-  get_distribution_array_of_a_transaction
-);
+router.post("/get_distribution_array_of_a_transaction", get_distribution_array_of_a_transaction);
 
 /**
  * @swagger
@@ -4432,11 +4417,7 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *                   type: string
  *                   example: "Internal server error details."
  */
-
-router.post(
-  "/List_DRC_Assign_Manager_Approval",
-  List_DRC_Assign_Manager_Approval
-);
+router.post("/List_DRC_Assign_Manager_Approval", List_DRC_Assign_Manager_Approval);
 
 /**
  * @swagger
@@ -4517,11 +4498,7 @@ router.post(
  *                   type: string
  *                   example: "Internal server error details."
  */
-
-router.post(
-  "/Approve_DRC_Assign_Manager_Approval",
-  Approve_DRC_Assign_Manager_Approval
-);
+router.post("/Approve_DRC_Assign_Manager_Approval", Approve_DRC_Assign_Manager_Approval);
 
 /**
  * @swagger
@@ -4602,11 +4579,7 @@ router.post(
  *                   type: string
  *                   example: "Internal server error details."
  */
-
-router.post(
-  "/Reject_DRC_Assign_Manager_Approval",
-  Reject_DRC_Assign_Manager_Approval
-);
+router.post("/Reject_DRC_Assign_Manager_Approval", Reject_DRC_Assign_Manager_Approval);
 
 /**
  * @swagger
@@ -4697,11 +4670,7 @@ router.post(
  *                   type: string
  *                   example: "Internal server error details."
  */
-
-router.post(
-  "/Create_task_for_DRC_Assign_Manager_Approval",
-  Create_task_for_DRC_Assign_Manager_Approval
-);
+router.post("/Create_task_for_DRC_Assign_Manager_Approval", Create_task_for_DRC_Assign_Manager_Approval);
 
 /**
  * @swagger
@@ -4852,20 +4821,13 @@ router.post(
  *                       type: string
  *                       example: "Internal server error details."
  */
-
 router.post("/Assign_DRC_To_Case", Assign_DRC_To_Case);
 
 router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
 
-router.post(
-  "/Create_Task_For_case_distribution_drc_summery",
-  Create_Task_For_case_distribution_drc_summery
-);
+router.post("/Create_Task_For_case_distribution_drc_summery", Create_Task_For_case_distribution_drc_summery);
 
-router.post(
-  "/List_Case_Distribution_Details_With_Rtoms",
-  List_Case_Distribution_Details_With_Rtoms
-);
+router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution_Details_With_Rtoms);
 
 router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
 
@@ -5597,7 +5559,6 @@ router.post("/Mediation_Board",Mediation_Board);
  *                       type: string
  *                       example: Detailed server error message.
  */
-
 // POST route to update customer contacts or remarks for a specific case.
 router.patch("/Update_Customer_Contacts",updateDrcCaseDetails);
 
