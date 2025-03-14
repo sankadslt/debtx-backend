@@ -3218,7 +3218,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     const interaction_id = 6; // this must be changed later
     const request_type = "Pending Approval Agent Destribution"; 
     const created_by = Proceed_by;
-    const dynamicParams = { case_distribution_batch_id };
+    const dynamicParams = { case_distribution_batch_id, Request_Mode: "Negotiation" };
 
     const interactionResult = await createUserInteractionFunction({
       Interaction_ID: interaction_id,
@@ -3227,7 +3227,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       Created_By: created_by,
       User_Interaction_Status: "Open",
       User_Interaction_Status_DTM: currentDate,
-      Request_Mode: "Negotiation", 
       ...dynamicParams,
     });
 
@@ -6469,7 +6468,9 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       let responseData = [];
       
       filteredInteractionLogs.forEach(log => {
-          const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+        const logObject = log.toObject();
+        logObject.parameters = Object.fromEntries(log.parameters || []);
+        const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
           
           let validityPeriod = "";
           if (relatedCase) {
@@ -6489,7 +6490,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
           if (relatedCase?.drc?.length) {
               relatedCase.drc.forEach(drc => {
                   responseData.push({
-                      ...log.toObject(),
+                      ...logObject,
                       case_details: {
                           case_id: relatedCase.case_id,
                           case_current_status: relatedCase.case_current_status,
@@ -6506,7 +6507,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
               });
           } else {
               responseData.push({
-                  ...log.toObject(),
+                  ...logObject,
                   case_details: {
                       case_id: relatedCase?.case_id,
                       case_current_status: relatedCase?.case_current_status,
