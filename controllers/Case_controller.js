@@ -3383,34 +3383,34 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
 // List  All Active Mediation RO Requests from SLT
 
 
-export const ListActiveRORequests = async (req, res) => {
-  try {
-    // Fetch all RO details from MongoDB
-    const ro_requests = await Template_RO_Request.find();
+// export const ListActiveRORequestsMediation = async (req, res) => {
+//   try {
+//     // Fetch all RO details from MongoDB
+//     const ro_requests = await Template_RO_Request.find();
 
-    // Check if any data is found in databases
-    if (ro_requests.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No RO request found.",
-      });
-    }
+//     // Check if any data is found in databases
+//     if (ro_requests.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No RO request found.",
+//       });
+//     }
 
-    // Return the retrieved data
-    return res.status(200).json({
-      status: "success",
-      message: "Ro request details retrieved successfully.",
-      data: ro_requests,
-    });
-  } catch (error) {
-    console.error("Unexpected error:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error occurred while fetching RO details.",
-      error: error.message,
-    });
-  }
-};
+//     // Return the retrieved data
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Ro request details retrieved successfully.",
+//       data: ro_requests,
+//     });
+//   } catch (error) {
+//     console.error("Unexpected error:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error occurred while fetching RO details.",
+//       error: error.message,
+//     });
+//   }
+// };
 
 export const Create_Task_For_case_distribution_transaction_array = async (req, res) => {
   const session = await mongoose.startSession();
@@ -5248,46 +5248,46 @@ export const CaseDetailsforDRC = async (req, res) => {
 };
 
 // List  All Active Mediation RO Requests from SLT
-export const ListActiveRORequests = async (req, res) => {
+export const ListActiveRORequestsMediation = async (req, res) => {
   try {
     // Get request_mode from either body (POST) or query (GET)
     const request_mode = req.method === 'POST' ? req.body.request_mode : req.query.request_mode;
     
-//     let query = { end_dtm: null };
+    let query = { end_dtm: null };
     
-//     if (request_mode) {
-//       query.request_mode = request_mode;
-//     }
+    if (request_mode) {
+      query.request_mode = request_mode;
+    }
 
-//     const ro_requests = await Template_RO_Request.find(query);
+    const ro_requests = await Template_RO_Request.find(query);
 
-//     if (ro_requests.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: request_mode 
-//           ? `No active RO requests found with request_mode: ${request_mode}.`
-//           : "No active RO requests found.",
-//       });
-//     }
+    if (ro_requests.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: request_mode 
+          ? `No active RO requests found with request_mode: ${request_mode}.`
+          : "No active RO requests found.",
+      });
+    }
 
-//     // Return only the matching records
+    // Return only the matching records
 
-//     return res.status(200).json({
-//       status: "success",
-//       message: request_mode
-//         ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
-//         : "Active RO request details retrieved successfully.",
-//       data: ro_requests,
-//     });
-//   } catch (error) {
-//     console.error("Unexpected error:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error occurred while fetching active RO details.",
-//       error: error.message,
-//     });
-//   }
-// };
+    return res.status(200).json({
+      status: "success",
+      message: request_mode
+        ? `Active RO requests with mode '${request_mode}' retrieved successfully.`
+        : "Active RO request details retrieved successfully.",
+      data: ro_requests,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred while fetching active RO details.",
+      error: error.message,
+    });
+  }
+};
 
 export const ListActiveMediationResponse = async (req, res) => {
   try {
