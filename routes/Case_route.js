@@ -75,6 +75,8 @@ import {
   Customer_Negotiations,
   getActiveNegotiations,
   Create_task_for_Request_log_download_when_select_more_than_one_month,
+  getAllPaymentCases,
+
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -6860,5 +6862,9 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+
+//payments
+
+router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 export default router;
