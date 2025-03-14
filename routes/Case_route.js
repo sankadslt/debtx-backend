@@ -4413,7 +4413,7 @@ router.post(
  *                   example: "Internal Server Error"
  */
 
-router.get("/List_All_Batch_Details", List_All_Batch_Details);
+router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
 /**
  * @swagger
