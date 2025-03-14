@@ -4176,7 +4176,8 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                   type: string
  *                   example: "Internal Server Error"
  */
-router.get("/List_All_Batch_Details", List_All_Batch_Details);
+
+router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
 /**
  * @swagger
