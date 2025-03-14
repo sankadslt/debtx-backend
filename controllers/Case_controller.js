@@ -6423,8 +6423,8 @@ export const getAllPaymentCases = async (req, res) => {
       case_id, 
       account_num, 
       settlement_phase, 
-      start_date, 
-      end_date, 
+      from_date, 
+      to_date, 
       page = 1, 
       limit = 10, 
       recent = false 
@@ -6439,22 +6439,9 @@ export const getAllPaymentCases = async (req, res) => {
     if (case_id) query.case_id = Number(case_id);
     if (account_num) query.account_num = account_num;
     if (settlement_phase) query.settlement_phase = settlement_phase;
-    
-    // Handle date filters - updated to match the first code example
-    if (start_date && end_date) {
-      const from = new Date(start_date);
-      from.setUTCHours(0, 0, 0, 0);
-      const to = new Date(end_date);
-      to.setUTCHours(23, 59, 59, 999);
-      query.created_dtm = { $gte: from, $lte: to };
-    } else if (start_date) {
-      const from = new Date(start_date);
-      from.setUTCHours(0, 0, 0, 0);
-      query.created_dtm = { $gte: from };
-    } else if (end_date) {
-      const to = new Date(end_date);
-      to.setUTCHours(23, 59, 59, 999);
-      query.created_dtm = { $lte: to };
+    if (from_date && to_date) {
+      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
     }
     
     
