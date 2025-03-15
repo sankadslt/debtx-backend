@@ -3230,54 +3230,62 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
 
 /**
  * @swagger
- * /List_All_DRC_Mediation_Board_Cases:
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
+ * 
+ * /api/case/List_ALL_Mediation_Cases_By_DRC_RO:
  *   post:
- *     summary:  C-1P46 Retrieve all DRC Mediation Board cases
- *     description: Fetches a list of mediation board cases filtered by various parameters.
- *
- *       | Version | Date        | Description                                  | Changed By       |
- *       |---------|------------|----------------------------------------------|------------------|
- *       | 01      | 2025-Feb-25 | Initial creation of API for listing cases   | Sanjaya Perera   |
- *
- *     tags: [DRC Mediation Board Cases]
+ *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
+ *     description: |
+ *       This endpoint retrieves mediation cases associated with a specified DRC ID and optional filters.
+ *       Users can filter cases based on RTOM, Recovery Officer ID, action type, case current status, and date range.
+ *       
+ *       | Version | Date       | Description                                     | Changed By         |
+ *       |---------|------------|-------------------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-02| List mediation cases owned by DRC and RO         | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - drc_id
  *             properties:
  *               drc_id:
- *                 type: string
- *                 description: The unique ID of the DRC.
- *                 example: "DRC_12345"
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: 1
  *               rtom:
  *                 type: string
- *                 description: The regional area for filtering cases.
- *                 example: "Region_A"
- *               ro_id:
- *                 type: string
- *                 description: The ID of the recovery officer.
- *                 example: "RO_56789"
+ *                 description: Area name associated with the case.
+ *                 example: "Matara"
  *               action_type:
  *                 type: string
- *                 description: The type of action performed.
- *                 example: "Legal Notice Sent"
+ *                 description: Action type of the case.
+ *                 example: "Arrears Collect"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Current status of the case.
+ *                 example: "Forward to Mediation Board"
  *               from_date:
  *                 type: string
  *                 format: date
  *                 description: Start date for filtering cases.
- *                 example: "2025-02-01"
+ *                 example: "2025-01-01"
  *               to_date:
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2025-02-10"
+ *                 example: "2025-01-31"
  *     responses:
  *       200:
- *         description: Cases retrieved successfully.
+ *         description: Mediation cases retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -3285,37 +3293,47 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "success"
+ *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Cases retrieved successfully."
+ *                   example: Cases retrieved successfully.
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
  *                       case_id:
- *                         type: string
- *                         example: "CASE_001"
+ *                         type: integer
+ *                         description: Unique identifier of the case.
+ *                         example: 101
  *                       status:
  *                         type: string
- *                         example: "Pending"
+ *                         description: Current status of the mediation case.
+ *                         example: "MB_Negotiation"
  *                       created_dtm:
  *                         type: string
  *                         format: date-time
- *                         example: "2025-02-05T10:00:00Z"
- *                       area:
- *                         type: string
- *                         example: "Region_A"
- *                       expire_dtm:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-02-15T10:00:00Z"
+ *                         description: Case creation date.
+ *                         example: "2024-06-15T08:00:00Z"
  *                       ro_name:
  *                         type: string
+ *                         description: Name of the assigned Recovery Officer.
  *                         example: "John Doe"
+ *                       area:
+ *                         type: string
+ *                         description: RTOM area related to the case.
+ *                         example: "Matara"
+ *                       mediation_board_count:
+ *                         type: integer
+ *                         description: Number of mediation boards associated with the case.
+ *                         example: 3
+ *                       next_calling_date:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Next mediation board calling date.
+ *                         example: "2024-07-01T10:00:00Z"
  *       400:
- *         description: Missing or invalid parameters.
+ *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
  *           application/json:
  *             schema:
@@ -3323,10 +3341,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "DRC ID is required."
+ *                   example: At least one filtering parameter is required.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3335,9 +3353,9 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together."
+ *                       example: Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.
  *       404:
- *         description: No matching cases found.
+ *         description: No matching mediation cases found for the given criteria.
  *         content:
  *           application/json:
  *             schema:
@@ -3345,10 +3363,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "No matching cases found for the given criteria."
+ *                   example: No matching cases found for the given criteria.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3357,9 +3375,9 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: "No cases satisfy the provided criteria."
+ *                       example: No cases satisfy the provided criteria.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while retrieving mediation cases.
  *         content:
  *           application/json:
  *             schema:
@@ -3367,10 +3385,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "An error occurred while retrieving cases."
+ *                   example: An error occurred while retrieving mediation cases.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3379,7 +3397,7 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: "Error details here."
+ *                       example: Internal server error while retrieving mediation cases.
  */
 router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedbyDRCRO);
 
