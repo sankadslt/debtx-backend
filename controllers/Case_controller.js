@@ -5405,8 +5405,6 @@ export const listDRCAllCases = async (req, res) => {
 
         const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
 
-        const last_contact = Array.isArray(caseData.current_contact) ? [caseData.current_contact.length - 1] : null;
-
         const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
 
         return {
@@ -5414,7 +5412,7 @@ export const listDRCAllCases = async (req, res) => {
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
-          contact_no: last_contact?.mob || null,
+          contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.contact_no || null,
           area: caseData.area,
           action_type: caseData.action_type,
         };
