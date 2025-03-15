@@ -75,6 +75,7 @@ import {
   Customer_Negotiations,
   getActiveNegotiations,
   Create_task_for_Request_log_download_when_select_more_than_one_month,
+  List_Details_Of_Mediation_Board_Acceptance,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -6860,5 +6861,10 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+
+router.post(
+  "/List_Details_Of_Mediation_Board_Acceptance",
+  List_Details_Of_Mediation_Board_Acceptance
+);
 
 export default router;

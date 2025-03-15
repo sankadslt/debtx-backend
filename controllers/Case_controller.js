@@ -37,6 +37,7 @@ import Request from "../models/Request.js";
 import Tmp_SLT_Approval from '../models/Tmp_SLT_Approval.js'; // Import the model directly
 import { getApprovalUserIdService } from "../services/ApprovalService.js";
 import { getBatchApprovalUserIdService } from "../services/ApprovalService.js";
+import Incident from "../models/Incident.js";
 import { ro } from "date-fns/locale";
 
 export const ListAllArrearsBands = async (req, res) => {
@@ -6791,3 +6792,99 @@ export const Create_task_for_Request_log_download_when_select_more_than_one_mont
     });
   }
 };
+
+export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
+  try {
+      const { delegate_user_id, User_Interaction_Type, case_id, Interaction_Log_ID } = req.body;
+      
+      if (!delegate_user_id || !case_id || !Interaction_Log_ID) {
+          return res.status(400).json({ message: "delegate_user_id, case_id, and Interaction_Log_ID are required" });
+      }
+      
+      let filter = { delegate_user_id, Interaction_Log_ID };
+      
+      if (User_Interaction_Type) {
+          filter.User_Interaction_Type = User_Interaction_Type;
+      }
+      
+      // Fetch document from User_Interaction_Log based on Interaction_Log_ID
+      const interactionLog = await User_Interaction_Log.findOne(filter);
+      
+      if (!interactionLog) {
+          return res.status(404).json({ message: "No matching interaction found." });
+      }
+      
+      // Fetch all interactions related to delegate_user_id excluding the one with Interaction_Log_ID
+      const requestHistory = await User_Interaction_Log.find(
+          { delegate_user_id, Interaction_Log_ID: { $ne: Interaction_Log_ID } },
+          { _id: 0, __v: 0 } // Exclude unnecessary fields
+      );
+      
+      // Fetch relevant case details
+      const caseDetails = await Case_details.findOne(
+          { case_id },
+          { 
+              case_id: 1, 
+              customer_ref: 1, 
+              account_no: 1, 
+              current_arrears_amount: 1, 
+              last_payment_date: 1, 
+              monitor_months: 1,
+              incident_id: 1,
+              case_current_status: 1,
+              ro_negotiation: 1,
+              mediation_board: 1
+          }
+      );
+      
+      if (!caseDetails) {
+          return res.status(404).json({ message: "No case details found." });
+      }
+      
+      // Fetch incident details
+      const incidentDetails = await Incident.findOne(
+          { Incident_Id: caseDetails.incident_id },
+          { "Customer_Details.Customer_Type_Name": 1, "Marketing_Details.ACCOUNT_MANAGER": 1 }
+      );
+      
+      const roNegotiationStatuses = [
+          "RO Negotiation", "Negotiation Settle Pending", "Negotiation Settle Open-Pending", 
+          "Negotiation Settle Active", "RO Negotiation Extension Pending", 
+          "RO Negotiation Extended", "RO Negotiation FMB Pending"
+      ];
+      
+      const mediationBoardStatuses = [
+          "Forward to Mediation Board", "MB Negotiation", "MB Request Customer-Info", 
+          "MB Handover Customer-Info", "MB Settle Pending", "MB Settle Open-Pending", 
+          "MB Settle Active", "MB Fail with Pending Non-Settlement", "MB Fail with Non-Settlement"
+      ];
+      
+      let response = caseDetails.toObject();
+      
+      if (roNegotiationStatuses.includes(caseDetails.case_current_status)) {
+          response.ro_negotiation = caseDetails.ro_negotiation;
+          delete response.mediation_board;
+      } else if (mediationBoardStatuses.includes(caseDetails.case_current_status)) {
+          response.mediation_board = caseDetails.mediation_board;
+          delete response.ro_negotiation;
+      } else {
+          delete response.ro_negotiation;
+          delete response.mediation_board;
+      }
+      
+      // Add incident details if found
+      if (incidentDetails) {
+          response.Customer_Type_Name = incidentDetails.Customer_Details?.Customer_Type_Name || null;
+          response.ACCOUNT_MANAGER = incidentDetails.Marketing_Details?.ACCOUNT_MANAGER || null;
+      }
+      
+      // Add request history
+      response.Request_History = requestHistory;
+      
+      return res.json(response);
+  } catch (error) {
+      console.error("Error fetching case details:", error);
+      return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
