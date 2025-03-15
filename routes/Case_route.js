@@ -6882,7 +6882,142 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
 //payments
-
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to mediation cases handled by DRC and Recovery Officers.
+ *
+ * /api/case/List_All_Payment_Cases:
+ *   post:
+ *     summary: List all mediation cases owned by DRC and Recovery Officers.
+ *     description: |
+ *       This endpoint retrieves all mediation cases managed by a specific Debt Recovery Company (DRC) and its assigned Recovery Officers.
+ *       Filtering options include Recovery Officer ID, RTOM, action type, case status, and date range.
+ *
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Mar-14| List all mediation cases owned by DRC and RO | K.K.Chathundi Sakumini  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier for the Debt Recovery Company (DRC).
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Unique identifier for the Recovery Officer (RO).
+ *                 example: 15
+ *               rtom:
+ *                 type: string
+ *                 description: Regional Traffic Office Management (RTOM) area.
+ *                 example: "Matara"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Current status of the mediation case.
+ *                 example: "Open with Agent"
+ *               action_type:
+ *                 type: string
+ *                 description: Action type applied to the mediation case.
+ *                 example: "Negotiation Settle pending"
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for case filtering.
+ *                 example: "2025-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for case filtering.
+ *                 example: "2025-02-01"
+ *     responses:
+ *       200:
+ *         description: Mediation cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *       400:
+ *         description: Validation error - Required parameters are missing.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: At least one filtering parameter is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.
+ *       404:
+ *         description: No matching cases found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching mediation cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error while retrieving cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving mediation cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error occurred while fetching case details.
+ */
 router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 export default router;
