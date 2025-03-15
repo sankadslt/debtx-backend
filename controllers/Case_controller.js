@@ -34,6 +34,10 @@ import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.
 import DRC from "../models/Debt_recovery_company.js";
 import User_Interaction_Log from "../models/User_Interaction_Log.js";
 import Request from "../models/Request.js";
+import Tmp_SLT_Approval from '../models/Tmp_SLT_Approval.js'; // Import the model directly
+import { getApprovalUserIdService } from "../services/ApprovalService.js";
+import { getBatchApprovalUserIdService } from "../services/ApprovalService.js";
+import Incident from "../models/Incident.js";
 import { ro } from "date-fns/locale";
 import MoneyTransaction from "../models/Money_transactions.js";
 
