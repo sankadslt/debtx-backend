@@ -3230,54 +3230,62 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
 
 /**
  * @swagger
- * /List_All_DRC_Mediation_Board_Cases:
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
+ * 
+ * /api/case/List_All_DRC_Mediation_Board_Cases:
  *   post:
- *     summary:  C-1P46 Retrieve all DRC Mediation Board cases
- *     description: Fetches a list of mediation board cases filtered by various parameters.
- *
- *       | Version | Date        | Description                                  | Changed By       |
- *       |---------|------------|----------------------------------------------|------------------|
- *       | 01      | 2025-Feb-25 | Initial creation of API for listing cases   | Sanjaya Perera   |
- *
- *     tags: [DRC Mediation Board Cases]
+ *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
+ *     description: |
+ *       This endpoint retrieves mediation cases associated with a specified DRC ID and optional filters.
+ *       Users can filter cases based on RTOM, Recovery Officer ID, action type, case current status, and date range.
+ *       
+ *       | Version | Date       | Description                                     | Changed By         |
+ *       |---------|------------|-------------------------------------------------|--------------------|
+ *       | 01      | 2025-Feb-02| List mediation cases owned by DRC and RO         | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - drc_id
  *             properties:
  *               drc_id:
- *                 type: string
- *                 description: The unique ID of the DRC.
- *                 example: "DRC_12345"
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: null
  *               rtom:
  *                 type: string
- *                 description: The regional area for filtering cases.
- *                 example: "Region_A"
- *               ro_id:
- *                 type: string
- *                 description: The ID of the recovery officer.
- *                 example: "RO_56789"
+ *                 description: Area name associated with the case.
+ *                 example: "Matara"
  *               action_type:
  *                 type: string
- *                 description: The type of action performed.
- *                 example: "Legal Notice Sent"
+ *                 description: Action type of the case.
+ *                 example: "Arrears Collect"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Current status of the case.
+ *                 example: "Forward_to_Mediation_Board"
  *               from_date:
  *                 type: string
  *                 format: date
  *                 description: Start date for filtering cases.
- *                 example: "2025-02-01"
+ *                 example: "2025-01-01"
  *               to_date:
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2025-02-10"
+ *                 example: "2025-01-31"
  *     responses:
  *       200:
- *         description: Cases retrieved successfully.
+ *         description: Mediation cases retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -3285,37 +3293,12 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "success"
+ *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Cases retrieved successfully."
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       case_id:
- *                         type: string
- *                         example: "CASE_001"
- *                       status:
- *                         type: string
- *                         example: "Pending"
- *                       created_dtm:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-02-05T10:00:00Z"
- *                       area:
- *                         type: string
- *                         example: "Region_A"
- *                       expire_dtm:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-02-15T10:00:00Z"
- *                       ro_name:
- *                         type: string
- *                         example: "John Doe"
+ *                   example: Cases retrieved successfully.
  *       400:
- *         description: Missing or invalid parameters.
+ *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
  *           application/json:
  *             schema:
@@ -3323,10 +3306,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "DRC ID is required."
+ *                   example: At least one filtering parameter is required.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3335,9 +3318,9 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: "Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together."
+ *                       example: Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.
  *       404:
- *         description: No matching cases found.
+ *         description: No matching mediation cases found for the given criteria.
  *         content:
  *           application/json:
  *             schema:
@@ -3345,10 +3328,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "No matching cases found for the given criteria."
+ *                   example: No matching cases found for the given criteria.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3357,9 +3340,9 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: "No cases satisfy the provided criteria."
+ *                       example: No cases satisfy the provided criteria.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while retrieving mediation cases.
  *         content:
  *           application/json:
  *             schema:
@@ -3367,10 +3350,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "error"
+ *                   example: error
  *                 message:
  *                   type: string
- *                   example: "An error occurred while retrieving cases."
+ *                   example: An error occurred while retrieving mediation cases.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -3379,7 +3362,7 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: "Error details here."
+ *                       example: Internal server error while retrieving mediation cases.
  */
 router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedbyDRCRO);
 
@@ -5454,84 +5437,135 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
 
 /**
  * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving all cases handled by a specific DRC.
+ * 
  * /api/case/List_All_DRC_Negotiation_Cases:
  *   post:
- *     summary: Retrieve all cases assigned to a specific DRC
+ *     summary: Retrieve all cases handled by a DRC with filtering options.
  *     description: |
- *       Fetches all cases assigned to a DRC within a given date range and optional status filter.
- *
- *       | Version | Date        | Description                        | Changed By            |
- *       |---------|-------------|------------------------------------|-----------------------|
- *       | 01      | 2024-Feb-03 | Initial API for listing cases     | Vishmi Wijewardana    |
- *
- *     tags: [Case Management]
+ *       This endpoint retrieves all cases associated with a specified DRC ID. 
+ *       Users can filter cases based on RTOM, Recovery Officer ID, action type, and date range.
+ *       
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-03| List all cases handled by a DRC      | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - drc_id
- *               - ro_id
- *               - From_DAT
- *               - TO_DAT
  *             properties:
  *               drc_id:
- *                 type: string
- *                 description: Unique ID of the DRC.
- *                 example: "DRC123"
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
  *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: 4
+ *               rtom:
  *                 type: string
- *                 description: Unique ID of the Recovery Officer.
- *                 example: "RO456"
- *               From_DAT:
+ *                 description: Area name associated with the case.
+ *                 example: "Matara"
+ *               action_type:
+ *                 type: string
+ *                 description: Type of action performed on the case.
+ *                 example: "Arrears Collect"
+ *               from_date:
  *                 type: string
  *                 format: date
  *                 description: Start date for filtering cases.
- *                 example: "2024-01-01"
- *               TO_DAT:
+ *                 example: "2025-01-01"
+ *               to_date:
  *                 type: string
  *                 format: date
  *                 description: End date for filtering cases.
- *                 example: "2024-01-31"
- *               case_current_status:
- *                 type: string
- *                 description: Case status filter (e.g., Open, Closed, Pending).
- *                 example: "Open"
+ *                 example: "2025-01-31"
  *     responses:
  *       200:
- *         description: List of cases owned by the DRC.
+ *         description: Cases retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   case_id:
- *                     type: integer
- *                     example: 1001
- *                   drc_id:
- *                     type: string
- *                     example: "DRC123"
- *                   ro_id:
- *                     type: string
- *                     example: "RO456"
- *                   case_details:
- *                     type: string
- *                     example: "Loan default case"
- *                   case_status:
- *                     type: string
- *                     example: "Open"
- *                   assigned_date:
- *                     type: string
- *                     format: date-time
- *                     example: "2024-01-15T10:30:00.000Z"
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
  *       400:
- *         description: Bad request - required fields missing or invalid format.
+ *         description: Validation error - Missing required fields or no filter parameters provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: At least one filtering parameter is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.
+ *       404:
+ *         description: No matching cases found for the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while retrieving cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while retrieving cases.
  */
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
 
@@ -6864,7 +6898,6 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
 //payments
-
 router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 export default router;
