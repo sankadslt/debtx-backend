@@ -225,7 +225,7 @@ export const Task_for_Download_Incidents = async (req, res) => {
       // Task object
       const taskData = {
           Task_Id,
-          Template_Task_Id: 21, // Placeholder, adjust if needed
+          Template_Task_Id: 20, // Placeholder, adjust if needed
           task_type: "Create Incident list for download",
           parameters: {
               DRC_Action,

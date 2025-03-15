@@ -38,11 +38,22 @@ const caseStatusSchema = new Schema({
 }, { _id: false });
 
 // Define the contact 
+// const contactsSchema = new Schema({
+//   mob: { type: String, required: false },
+//   email: { type: String, required: true },
+//   nic: { type: String, required: true },
+//   lan: { type: String, required: false },
+//   address: { type: String, required: true },
+//   geo_location: {type: String, default:null},
+// },{ _id: false });
+
+// Define the edited contact
 const contactsSchema = new Schema({
-  mob: { type: String, required: false },
+  contact_type: { type: String, required: true, enum: ['mob', 'lan'] },
+  contact_no: { type: Number, required: true },
+  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport'] },
+  customer_identification: { type: String, required: true },
   email: { type: String, required: true },
-  nic: { type: String, required: true },
-  lan: { type: String, required: false },
   address: { type: String, required: true },
   geo_location: {type: String, default:null},
 },{ _id: false });
@@ -51,10 +62,11 @@ const editedcontactsSchema = new Schema({
   ro_id: { type: Number, required: true },
   drc_id: { type: Number, required: true },
   edited_dtm: { type: Date, required: true },
-  mob: { type: String, required: false },
+  contact_type: { type: String, required: true, enum: ['mob', 'lan'] },
+  contact_no: { type: Number, required: true },
+  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport'] },
+  customer_identification: { type: String, required: true },
   email: { type: String, required: true },
-  nic: { type: String, required: true },
-  lan: { type: String, required: false },
   address: { type: String, required: true },
   geo_location: {type: String, default:null},
   remark:{type: String, default:null},
@@ -87,7 +99,7 @@ const abnormalSchema = new Schema({
 const productDetailsSchema = new Schema({
   service: { type: String, required: true },
   product_label: { type: String, required: true },
-  product_status: { type: String, enum: ['Active', 'Terminated', 'Suspended', 'Inactive'], required: true },
+  product_status: { type: String, required: true },
   status_Dtm: { type: Date, required: true },
   rtom: { type: String, required: true },
   product_ownership: { type: String, required: true },
@@ -95,16 +107,20 @@ const productDetailsSchema = new Schema({
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
-  drc_id: { type: Number, required: true },
-  ro_id: { type: Number, required: true },
-  serial_no: { type: String, required: true },
-  order_id: { type: String, required: true },
-  service_type: { type: String, required: true },
-  date: { type: Date, required: true },
-  more_info_about_item: { type: String }, // Optional for additional information
-  rcmp_submit_dtm: { type: Date },
-  rcmp_status: { type: String },
-  rcmp_date: { type: Date },
+  ro_cpe_collect_id: { type: Number, required: true },
+  drc_id: { type: Number, required: true }, 
+  ro_id: { type: Number, required: true }, 
+  order_id: { type: String, required: true }, 
+  collected_date: { type: Date, required: true }, 
+  product_label: { type: String, required: true }, 
+  service_type: { type: String, required: true }, 
+  cp_type: { type: String, required: true }, 
+  cpe_model: { type: String, required: true },
+  serial_no: { type: String, required: true }, 
+  remark: { type: String }, 
+  rcmp_status: { type: String, required: true }, 
+  rcmp_status_dtm: { type: Date },
+  rcmp_status_reason: { type: String }, 
 });
 
 const roNegotiationSchema = new mongoose.Schema({
@@ -113,7 +129,7 @@ const roNegotiationSchema = new mongoose.Schema({
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
-  feild_reason: { type: String, required: true },
+  field_reason: { type: String, default:null },
   remark: { type: String },
 });
 
@@ -123,9 +139,10 @@ const roRequestsSchema = new mongoose.Schema({
   created_dtm: { type: Date, required: true },
   ro_request_id: { type: Number, required: true },
   ro_request: { type: String, required: true },
+  request_remark: { type: String, default:null  },
   intraction_id: { type: Number, required: true }, 
   intraction_log_id: { type: Number, required: true },
-  todo_dtm: { type: Date, default:null  },
+  todo_dtm: { type: Date,default:null  },
   completed_dtm: { type: Date, default:null },
 });
 
@@ -133,11 +150,15 @@ const mediationBoardSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   created_dtm: { type: Date, required: true },
-  mediation_board_calling_dtm: { type: Date, required: true },
-  customer_available: { type: String, required: true, enum: ['yes','no'] },
+  mediation_board_calling_dtm: { type: Date, default:null },
+  customer_available: { type: String, default:null, enum: ['yes','no'] },
   comment: { type: String, default:null },
   agree_to_settle: { type: String},
   customer_response: { type: String, default:null },
+  handed_over_non_settlemet_on: { type: String, default:null },
+  non_settlement_comment: { type: String, default:null },
+  received_on: { type: Date, default:null },
+  received_by: { type: String, default:null },
 });
 
 const settlementschema = new Schema({
@@ -148,8 +169,17 @@ const settlementschema = new Schema({
   ro_id: { type: Number, required: true },
 });
 
+const moneytransactionsschema = new Schema({
+  money_transaction_id: {type: Number, required: true, unique: true},
+  payment_Dtm: {type: Date, required:true},
+  payment_Type : {type: String, required:true},
+  payment : { type: Number, required: true },
+  case_phase : {type: String, required:true},
+  settle_balanced : { type: Number, required: true },
+})
+
 // Define the main case details schema
-const caseDetailsSchema = new Schema({
+const caseDetailsSchema = new Schema({ 
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
   account_no: { type: String, required: true },
@@ -182,9 +212,10 @@ const caseDetailsSchema = new Schema({
   ref_products: [productDetailsSchema], 
   ro_negotiation: [roNegotiationSchema],
   ro_requests: [roRequestsSchema],
-  ro_negotiate_cpe_collect: [RoCpeCollectSchema],
+  ro_cpe_collect : [RoCpeCollectSchema],
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
+  money_transactions	: [moneytransactionsschema],
 },
 {
   collection: 'Case_details', 
