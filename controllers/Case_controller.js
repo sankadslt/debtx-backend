@@ -5782,7 +5782,7 @@ export const listDRCAllCases = async (req, res) => {
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
-          contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.mob || null,
+          contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.contact_no || null,
           area: caseData.area,
           action_type: caseData.action_type,
         };
