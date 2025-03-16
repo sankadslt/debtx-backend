@@ -6905,7 +6905,10 @@ export const List_All_Settlement_Cases =async(req, res) => {
     if (settlement_phase) query.settlement_phase =settlement_phase;
     if (settlement_status) query.settlement_status =settlement_status;
 
-    const caseSettlements = await CaseSettlement.find(query);
+    // Fetch last 10 records sorted by created date in descending order
+    const caseSettlements = await CaseSettlement.find(query)
+      .sort({created_dtm: -1})
+      .limit(10);
 
     if (caseSettlements.length === 0) {
       return res.status(404).json({
