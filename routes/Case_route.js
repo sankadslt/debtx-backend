@@ -80,6 +80,7 @@ import {
   Withdraw_Mediation_Board_Acceptance,
   getAllPaymentCases,
 
+  List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -6938,5 +6939,6 @@ router.post(
 );
 //payments
 router.post("/List_All_Payment_Cases", getAllPaymentCases);
+router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
 
 export default router;
