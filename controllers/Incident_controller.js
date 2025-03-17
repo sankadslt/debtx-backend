@@ -15,7 +15,7 @@ import Incident from "../models/Incident.js";
 import Case_details from "../models/Case_details.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { startOfDay, endOfDay } from "date-fns";
+// import { startOfDay, endOfDay } from "date-fns";
 // import logger from "../utils/logger.js";
 
 // Define __dirname for ES Modules
@@ -1272,7 +1272,10 @@ export const List_F1_filted_Incidents = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
          Incident_Status: { $in: rejectpendingStatuses },
-         $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+         $and: [
+          { Proceed_Dtm: { $exists: true } },
+          { Proceed_Dtm: { $in: [null, ""] } }
+        ]
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
@@ -1476,7 +1479,7 @@ export const total_incidents_Direct_LOD = async (req, res) => {
 
 export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
-    const { Incident_Id } = req.body;
+    const { Incident_Id, user } = req.body;
 
     if (!Incident_Id) {
       return res.status(400).json({
@@ -1512,7 +1515,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
         }
       });
     }
-    console.log(incident.Proceed_Dtm)
+    
     if (incident.Proceed_Dtm !== " " && incident.Proceed_Dtm !== null) {
       return res.status(400).json({ 
        status:"error",
@@ -1530,7 +1533,8 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
           $set: {
               Incident_Status: 'Incident Reject',
               Incident_Status_Dtm: new Date(),
-              Proceed_Dtm: new Date()
+              Proceed_Dtm: new Date(),
+              Proceed_By: user
           },
       },
       
@@ -1645,6 +1649,12 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       product_ownership: product.Equipment_Ownership || "Unknown",
       service_address: product.Service_Address || "N/A",
     })) || [],
+    case_status: {
+      case_status: incidentData.Incident_Status,
+      status_reason: "Forward F1 Filtered",
+      created_dtm: new Date(),
+      created_by: user
+    }
   };
 
   const newCase = new Case_details(caseData);
@@ -1821,7 +1831,7 @@ export const Forward_Direct_LOD = async (req, res) => {
     session.startTransaction();
     
     try {
-    const { Incident_Id } = req.body;
+    const { Incident_Id, user } = req.body;
     if (!Incident_Id) {
       const error = new Error("Incident_Id is required.");
       error.statusCode = 400;
@@ -1870,7 +1880,8 @@ export const Forward_Direct_LOD = async (req, res) => {
       monitor_months: 6,
       last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
-      case_current_status: incidentData.Incident_Status,
+     // case_current_status: incidentData.Incident_Status,
+      case_current_status: "LIT",
       filtered_reason: incidentData.Filtered_Reason || null,
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
@@ -1881,6 +1892,12 @@ export const Forward_Direct_LOD = async (req, res) => {
         product_ownership: product.Equipment_Ownership || "Unknown",
         service_address: product.Service_Address || "N/A",
       })) || [],
+      case_status: {
+        case_status: incidentData.Incident_Status,
+        status_reason: "Forward Direct LOD",
+        created_dtm: new Date(),
+        created_by: user
+      }
     };
     
 
@@ -1889,7 +1906,7 @@ export const Forward_Direct_LOD = async (req, res) => {
 
     await Incident.updateOne(
       { Incident_Id },
-      { $set: { Proceed_Dtm: new Date() } },
+      { $set:{ Proceed_Dtm: new Date(), Proceed_By: user } },
       { session }
     );
 

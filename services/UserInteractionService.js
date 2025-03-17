@@ -9,6 +9,7 @@ export const createUserInteractionFunction = async ({
   delegate_user_id,
   Created_By,
   User_Interaction_Status = "Open",
+  User_Interaction_Status_DTM,
   ...dynamicParams
 }) => {
   try {
@@ -29,8 +30,7 @@ export const createUserInteractionFunction = async ({
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
-
-    const Interaction_Log_ID = counterResult.value.seq;
+    const Interaction_Log_ID = counterResult.seq;
     if (!Interaction_Log_ID) {
       throw new Error("Failed to generate Interaction_Log_ID.");
     }
@@ -44,6 +44,7 @@ export const createUserInteractionFunction = async ({
       delegate_user_id,
       Created_By,
       User_Interaction_Status,
+      User_Interaction_Status_DTM,
     };
 
     // Insert into User_Interaction_Log collection
@@ -58,8 +59,7 @@ export const createUserInteractionFunction = async ({
     return {
       status: "success",
       message: "User interaction created successfully",
-      Interaction_Log_ID, 
-      data: interactionData,
+      Interaction_Log_ID,
     };
   } catch (error) {
     console.error("Error creating user interaction:", error);
