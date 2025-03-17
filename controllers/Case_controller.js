@@ -7062,9 +7062,9 @@ export const getAllPaymentCases = async (req, res) => {
   }
 };
 export const List_All_Settlement_Cases =async(req, res) => {
-  try {
-    const {case_id, settlement_phase, settlement_status} =req.body;
+  const {case_id, settlement_phase, settlement_status, from_date, to_date} =req.body;
 
+  try {
     //Validate Case ID
     if(!case_id) {
       return res.status(400).json({
@@ -7073,10 +7073,26 @@ export const List_All_Settlement_Cases =async(req, res) => {
       });
     }
 
+    if (!settlement_phase && !settlement_status && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of settlement_phase, settlement_status or both from_date and to_date together.",
+        },
+      });
+    }
     //Query
-    const query ={case_id};
+    const query ={case_id: case_id};
+    query.$and = [];
+
     if (settlement_phase) query.settlement_phase =settlement_phase;
     if (settlement_status) query.settlement_status =settlement_status;
+    if (from_date && to_date) {
+      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+    }
 
     // Fetch last 10 records sorted by created date in descending order
     const caseSettlements = await CaseSettlement.find(query)
@@ -7102,7 +7118,8 @@ export const List_All_Settlement_Cases =async(req, res) => {
       return res.status(500).json({
         status: "error",
         message: "Internal Server error. Please try again later.",
-      });
+      }
+    );
   }
 }
 
