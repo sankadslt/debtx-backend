@@ -1868,10 +1868,134 @@ export const assignROToCase = async (req, res) => {
 };
 
 
+// export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
+//   try {
+//     const { case_id, drc_id } = req.body;
+
+//     // Validate input
+//     if (!case_id || !drc_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "All fields are required.",
+//       });
+//     }
+
+//     // Fetch the case details (use find() to get an array of documents)
+//     let query = {
+//       "drc.drc_id": drc_id,
+//       case_id : case_id,
+//     };
+
+
+//     const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
+
+
+//     // Check if any cases exist
+//     if (!caseData) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No matching cases found for the given criteria.",
+//         errors: {
+//           code: 404,
+//           description: "No cases satisfy the provided criteria.",
+//         },
+//       });
+//     }
+
+//     // Fetch settlement data (use find() to get an array of documents)
+//     const settlementData = await CaseSettlement.findOne(
+//       { case_id },
+//       {
+//         created_dtm: 1 || null,
+//         settlement_status: 1 || null,
+//         expire_date: 1 || null
+//       }
+//     ).collation({ locale: 'en', strength: 2 });
+
+//     // Check if the case has any settlements
+//     if (!settlementData) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No settlements found for the case.",
+//         errors: {
+//           code: 404,
+//           description: "No settlements found for the case.",
+//         },
+//       });
+//     }
+
+//     // Fetch payment data (use find() to get an array of documents)
+//     const paymentData = await CasePayments.findOne(
+//       { case_id },
+//       {
+//         created_dtm: 1 || null,
+//         bill_paid_amount: 1 || null,
+//         settled_balance: 1 || null
+//       }
+//     ).collation({ locale: 'en', strength: 2 });
+
+//     if (!paymentData) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No payments found for the case.",
+//         errors: {
+//           code: 404,
+//           description: "No payments found for the case.",
+//         },
+//       });
+//     }
+
+//     // Use Promise.all to handle asynchronous operations
+//     const findDrc = { "drc.drc_id": drc_id}
+//     const lastRecoveryOfficer =
+//       caseData.findDrc?.recovery_officers?.[caseData.findDrc.recovery_officers.length - 1];
+
+//     let matchingRecoveryOfficer = null;
+//     if (lastRecoveryOfficer?.ro_id) {
+//       matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+//         ro_id: lastRecoveryOfficer.ro_id,
+//       });
+//     }
+
+//     const formattedCaseDetails = {
+//       case_id: caseData.case_id,
+//       customer_ref: caseData.customer_ref,
+//       account_no: caseData.account_no,
+//       current_arrears_amount: caseData.current_arrears_amount,
+//       last_payment_date: caseData.last_payment_date,
+//       ref_products: caseData.ref_products || null,
+//       ro_negotiation: caseData.ro_negotiation || null,
+//       ro_requests: caseData.ro_requests || null,
+//       ro_id: matchingRecoveryOfficer?.ro_id || null,
+//     };
+
+
+//     // Return success response
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Cases retrieved successfully.",
+//       data: {
+//         formattedCaseDetails,
+//         settlementData,
+//         paymentData,
+//       }
+//     });
+//   } catch (error) {
+//     // Handle unexpected errors
+//     return res.status(500).json({
+//       status: "error",
+//       message: "An error occurred while retrieving case behaviors.",
+//       errors: {
+//         code: 500,
+//         description: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
-
     // Validate input
     if (!case_id || !drc_id) {
       return res.status(400).json({
@@ -1879,18 +2003,15 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         message: "All fields are required.",
       });
     }
-
-    // Fetch the case details (use find() to get an array of documents)
+    
+    // Fetch the case details
     let query = {
       "drc.drc_id": drc_id,
-      case_id : case_id,
+      case_id: case_id,
     };
-
-
     const caseData = await Case_details.findOne(query).collation({ locale: 'en', strength: 2 });
-
-
-    // Check if any cases exist
+    
+    // Check if case exists
     if (!caseData) {
       return res.status(404).json({
         status: "error",
@@ -1901,62 +2022,22 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         },
       });
     }
-
-    // Fetch settlement data (use find() to get an array of documents)
-    const settlementData = await CaseSettlement.findOne(
-      { case_id },
-      {
-        created_dtm: 1,
-        settlement_status: 1,
-        expire_date: 1
-      }
-    ).collation({ locale: 'en', strength: 2 });
-
-    // Check if the case has any settlements
-    if (!settlementData) {
-      return res.status(404).json({
-        status: "error",
-        message: "No settlements found for the case.",
-        errors: {
-          code: 404,
-          description: "No settlements found for the case.",
-        },
-      });
-    }
-
-    // Fetch payment data (use find() to get an array of documents)
-    const paymentData = await CasePayments.findOne(
-      { case_id },
-      {
-        created_dtm: 1,
-        bill_paid_amount: 1,
-        settled_balance: 1
-      }
-    ).collation({ locale: 'en', strength: 2 });
-
-    if (!paymentData) {
-      return res.status(404).json({
-        status: "error",
-        message: "No payments found for the case.",
-        errors: {
-          code: 404,
-          description: "No payments found for the case.",
-        },
-      });
-    }
-
-    // Use Promise.all to handle asynchronous operations
-    const findDrc = { "drc.drc_id": drc_id}
-    const lastRecoveryOfficer =
-      caseData.findDrc?.recovery_officers?.[caseData.findDrc.recovery_officers.length - 1];
-
+    
+    // Find the DRC-specific data
+    const drcEntry = caseData.drc?.find(entry => entry.drc_id === drc_id);
+    
+    // Find the last recovery officer for this DRC
     let matchingRecoveryOfficer = null;
-    if (lastRecoveryOfficer?.ro_id) {
-      matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-        ro_id: lastRecoveryOfficer.ro_id,
-      });
+    if (drcEntry?.recovery_officers?.length) {
+      const lastRecoveryOfficer = drcEntry.recovery_officers[drcEntry.recovery_officers.length - 1];
+      if (lastRecoveryOfficer?.ro_id) {
+        matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+          ro_id: lastRecoveryOfficer.ro_id,
+        });
+      }
     }
-
+    
+    // Format case details
     const formattedCaseDetails = {
       case_id: caseData.case_id,
       customer_ref: caseData.customer_ref,
@@ -1968,17 +2049,55 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       ro_requests: caseData.ro_requests || null,
       ro_id: matchingRecoveryOfficer?.ro_id || null,
     };
-
-
+    
+    // Prepare response object
+    const responseData = {
+      formattedCaseDetails
+    };
+    
+    // Try to fetch settlement data, but don't require it
+    try {
+      const settlementData = await CaseSettlement.findOne(
+        { case_id },
+        {
+          created_dtm: 1,
+          settlement_status: 1,
+          expire_date: 1
+        }
+      ).collation({ locale: 'en', strength: 2 });
+      
+      if (settlementData) {
+        responseData.settlementData = settlementData;
+      }
+    } catch (settlementError) {
+      // Log error but continue
+      console.error("Error fetching settlement data:", settlementError.message);
+    }
+    
+    // Try to fetch payment data, but don't require it
+    try {
+      const paymentData = await CasePayments.findOne(
+        { case_id },
+        {
+          created_dtm: 1,
+          bill_paid_amount: 1,
+          settled_balance: 1
+        }
+      ).collation({ locale: 'en', strength: 2 });
+      
+      if (paymentData) {
+        responseData.paymentData = paymentData;
+      }
+    } catch (paymentError) {
+      // Log error but continue
+      console.error("Error fetching payment data:", paymentError.message);
+    }
+    
     // Return success response
     return res.status(200).json({
       status: "success",
-      message: "Cases retrieved successfully.",
-      data: {
-        formattedCaseDetails,
-        settlementData,
-        paymentData,
-      }
+      message: "Case data retrieved successfully.",
+      data: responseData
     });
   } catch (error) {
     // Handle unexpected errors
@@ -6658,6 +6777,139 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
   }
 };
 
+// export const Submit_Mediation_Board_Acceptance = async (req, res) => {
+//   try {
+//     const {
+//       create_by,
+//       Interaction_Log_ID,
+//       case_id,
+//       User_Interaction_Type,
+//       Request_Mode,
+//       Interaction_ID,
+//       "Request Accept": requestAccept,
+//       Reamrk,
+//       No_of_Calendar_Month,
+//       Letter_Send
+//     } = req.body;
+
+//     // Step 1: Create new Request document
+//     const newRequest = new Request({
+//       RO_Request_Id: Interaction_Log_ID,
+//       Request_Description: User_Interaction_Type,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       Request_Mode: Request_Mode,
+//       Intraction_ID: Interaction_ID,
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       }
+//     });
+
+//     // Save Request
+//     const savedRequest = await newRequest.save();
+
+//     // Step 2: Fetch existing case
+//     const existingCase = await Case_details.findOne({ case_id: case_id });
+
+//     if (!existingCase) {
+//       return res.status(404).json({
+//         message: `Case with case_id ${case_id} not found.`
+//       });
+//     }
+
+//     // Existing monitor_months value (default to 0 if undefined)
+//     const existingMonitorMonths = existingCase.monitor_months || 0;
+
+//     // Final monitor_months to set (if No_of_Calendar_Month is provided)
+//     let finalMonitorMonths = existingMonitorMonths;
+
+//     // Step 3: Validate and calculate new monitor_months if No_of_Calendar_Month is provided
+//     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+//       const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+
+//       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+//         return res.status(400).json({
+//           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
+//         });
+//       }
+
+//       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+
+//       // Check if final monitor_months exceeds limit
+//       if (finalMonitorMonths > 5) {
+//         return res.status(400).json({
+//           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+//         });
+//       }
+//     }
+
+//     // Step 4: Prepare new case_status object
+//     const newCaseStatus = {
+//       case_status: "Accept",
+//       status_reason: Reamrk || null,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       notified_dtm: null,
+//       expire_dtm: null
+//     };
+
+//     // Step 5: Prepare update object for CaseDetails
+//     const updateFields = {
+//       $push: { case_status: newCaseStatus },
+//       $set: { 
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths // Update final calculated monitor_months
+//       }
+//     };
+
+//     // Step 6: Update CaseDetails (only applying update, no return of full doc)
+//     await Case_details.updateOne(
+//       { case_id: case_id },
+//       updateFields
+//     );
+
+//     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+//     await User_Interaction_Log.updateOne(
+//       { Interaction_Log_ID: Interaction_Log_ID },
+//       { $set: { User_Interaction_Status: "Approved" } }
+//     );
+
+//     // Step 8: Success response with only updated fields
+//     return res.status(201).json({
+//       message: "Mediation Board Acceptance Request submitted and case updated successfully.",
+//       updates: {
+//         case_id: case_id,
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths,
+//         added_case_status: newCaseStatus,
+//         interaction_log_status: "Approved"
+//       },
+//       request: {
+//         RO_Request_Id: savedRequest.RO_Request_Id,
+//         Request_Description: savedRequest.Request_Description,
+//         created_dtm: savedRequest.created_dtm,
+//         created_by: savedRequest.created_by,
+//         Request_Mode: savedRequest.Request_Mode,
+//         Intraction_ID: savedRequest.Intraction_ID,
+//         parameters: savedRequest.parameters
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error submitting mediation board acceptance and updating case and interaction log:", error);
+//     return res.status(500).json({
+//       message: "Failed to submit Mediation Board Acceptance Request and update related records.",
+//       error: error.message
+//     });
+//   }
+// };
+
+// File: controllers/requestController.js
+
+
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   try {
     const {
@@ -6701,16 +6953,13 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       });
     }
 
-    // Existing monitor_months value (default to 0 if undefined)
     const existingMonitorMonths = existingCase.monitor_months || 0;
-
-    // Final monitor_months to set (if No_of_Calendar_Month is provided)
     let finalMonitorMonths = existingMonitorMonths;
 
-    // Step 3: Validate and calculate new monitor_months if No_of_Calendar_Month is provided
+    // Step 3: Validate No_of_Calendar_Month
+    let monthsToAdd = 0;
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
-
+      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
         return res.status(400).json({
           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
@@ -6718,8 +6967,6 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       }
 
       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
-
-      // Check if final monitor_months exceeds limit
       if (finalMonitorMonths > 5) {
         return res.status(400).json({
           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
@@ -6742,15 +6989,12 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       $push: { case_status: newCaseStatus },
       $set: { 
         case_current_status: "Accept",
-        monitor_months: finalMonitorMonths // Update final calculated monitor_months
+        monitor_months: finalMonitorMonths
       }
     };
 
-    // Step 6: Update CaseDetails (only applying update, no return of full doc)
-    await Case_details.updateOne(
-      { case_id: case_id },
-      updateFields
-    );
+    // Step 6: Update CaseDetails
+    await Case_details.updateOne({ case_id: case_id }, updateFields);
 
     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
     await User_Interaction_Log.updateOne(
@@ -6758,7 +7002,28 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       { $set: { User_Interaction_Status: "Approved" } }
     );
 
-    // Step 8: Success response with only updated fields
+    // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+    const drcArrayLength = existingCase.drc.length;
+    let extendedExpireDate = null;
+
+    if (drcArrayLength > 0 && monthsToAdd > 0) {
+      const lastDrcIndex = drcArrayLength - 1;
+      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+      if (lastExpireDtm) {
+        // Extend existing expire_dtm by No_of_Calendar_Month
+        extendedExpireDate = new Date(lastExpireDtm);
+        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+        // Update specific drc element's expire_dtm in DB
+        await Case_details.updateOne(
+          { case_id: case_id },
+          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+        );
+      }
+    }
+
+    // ✅ Final success response
     return res.status(201).json({
       message: "Mediation Board Acceptance Request submitted and case updated successfully.",
       updates: {
@@ -6766,7 +7031,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
         case_current_status: "Accept",
         monitor_months: finalMonitorMonths,
         added_case_status: newCaseStatus,
-        interaction_log_status: "Approved"
+        interaction_log_status: "Approved",
+        drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
       },
       request: {
         RO_Request_Id: savedRequest.RO_Request_Id,
@@ -6787,6 +7053,167 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
     });
   }
 };
+
+
+// export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
+//   try {
+//     const {
+//       create_by,
+//       Interaction_Log_ID,
+//       case_id,
+//       User_Interaction_Type,
+//       Request_Mode,
+//       Interaction_ID,
+//       "Request Accept": requestAccept,
+//       Reamrk,
+//       No_of_Calendar_Month,
+//       Letter_Send
+//     } = req.body;
+
+//     // Step 1: Create new Request document
+//     const newRequest = new Request({
+//       RO_Request_Id: Interaction_Log_ID,
+//       Request_Description: User_Interaction_Type,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       Request_Mode: Request_Mode,
+//       Intraction_ID: Interaction_ID,
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       }
+//     });
+
+//     const savedRequest = await newRequest.save();
+
+//     // Step 2: Fetch existing case
+//     const existingCase = await Case_details.findOne({ case_id: case_id });
+
+//     if (!existingCase) {
+//       return res.status(404).json({
+//         message: `Case with case_id ${case_id} not found.`
+//       });
+//     }
+
+//     const existingMonitorMonths = existingCase.monitor_months || 0;
+//     let finalMonitorMonths = existingMonitorMonths;
+
+//     // Step 3: Validate No_of_Calendar_Month
+//     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+//       const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+//       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+//         return res.status(400).json({
+//           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
+//         });
+//       }
+//       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+//       if (finalMonitorMonths > 5) {
+//         return res.status(400).json({
+//           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+//         });
+//       }
+//     }
+
+//     // Step 4: Prepare new case_status object
+//     const newCaseStatus = {
+//       case_status: "Withdraw",
+//       status_reason: Reamrk || null,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       notified_dtm: null,
+//       expire_dtm: null
+//     };
+
+//     // Step 5: Prepare update object for CaseDetails
+//     const updateFields = {
+//       $push: { case_status: newCaseStatus },
+//       $set: { 
+//         case_current_status: "Withdraw",
+//         monitor_months: finalMonitorMonths
+//       }
+//     };
+
+//     // Step 6: Update CaseDetails
+//     await Case_details.updateOne({ case_id: case_id }, updateFields);
+
+//     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+//     await User_Interaction_Log.updateOne(
+//       { Interaction_Log_ID: Interaction_Log_ID },
+//       { $set: { User_Interaction_Status: "Withdraw" } }
+//     );
+
+//     // Step 8: Get approver user_id dynamically
+//     const delegated_user_id = await getApprovalUserIdService({
+//       case_phase: "Initial Review",
+//       approval_type: "Customer Approval"
+//     });
+
+//     // Step 9: Prepare Template_forwarded_approver document
+//     const forwardedApprover = new TmpForwardedApprover({
+//       approver_reference: case_id,
+//       created_on: new Date(),
+//       created_by: create_by,
+//       approve_status: [
+//         {
+//           status: "Open",
+//           status_date: new Date(),
+//           status_edit_by: create_by
+//         }
+//       ],
+//       approver_type: "Case Withdrawal Approval",
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       },
+//       approved_deligated_by: delegated_user_id,
+//       remark: [
+//         {
+//           remark: Reamrk || "Withdrawal requested",
+//           remark_date: new Date(),
+//           remark_edit_by: create_by
+//         }
+//       ]
+//     });
+
+//     const savedForwardApprover = await forwardedApprover.save();
+
+//     // ✅ Final success response
+//     return res.status(201).json({
+//       message: "Withdrawal mediation board request submitted and all records updated successfully.",
+//       updates: {
+//         case_id: case_id,
+//         case_current_status: "Withdraw",
+//         monitor_months: finalMonitorMonths,
+//         added_case_status: newCaseStatus,
+//         interaction_log_status: "Withdraw",
+//         forwarded_approver_id: savedForwardApprover._id
+//       },
+//       request: {
+//         RO_Request_Id: savedRequest.RO_Request_Id,
+//         Request_Description: savedRequest.Request_Description,
+//         created_dtm: savedRequest.created_dtm,
+//         created_by: savedRequest.created_by,
+//         Request_Mode: savedRequest.Request_Mode,
+//         Intraction_ID: savedRequest.Intraction_ID,
+//         parameters: savedRequest.parameters
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error processing withdrawal mediation board acceptance:", error);
+//     return res.status(500).json({
+//       message: "Failed to process withdrawal mediation board acceptance.",
+//       error: error.message
+//     });
+//   }
+// };
+
+
+// File: controllers/requestController.js
 
 
 export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
@@ -6835,13 +7262,15 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     let finalMonitorMonths = existingMonitorMonths;
 
     // Step 3: Validate No_of_Calendar_Month
+    let monthsToAdd = 0;
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
         return res.status(400).json({
           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
         });
       }
+
       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
       if (finalMonitorMonths > 5) {
         return res.status(400).json({
@@ -6872,19 +7301,40 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     // Step 6: Update CaseDetails
     await Case_details.updateOne({ case_id: case_id }, updateFields);
 
-    // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+    // Step 7: Update User_Interaction_Log -> Set status to "Withdraw"
     await User_Interaction_Log.updateOne(
       { Interaction_Log_ID: Interaction_Log_ID },
       { $set: { User_Interaction_Status: "Withdraw" } }
     );
 
-    // Step 8: Get approver user_id dynamically
+    // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+    const drcArrayLength = existingCase.drc.length;
+    let extendedExpireDate = null;
+
+    if (drcArrayLength > 0 && monthsToAdd > 0) {
+      const lastDrcIndex = drcArrayLength - 1;
+      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+      if (lastExpireDtm) {
+        // Extend existing expire_dtm by No_of_Calendar_Month
+        extendedExpireDate = new Date(lastExpireDtm);
+        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+        // Update specific drc element's expire_dtm in DB
+        await Case_details.updateOne(
+          { case_id: case_id },
+          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+        );
+      }
+    }
+
+    // Step 9: Get approver user_id dynamically
     const delegated_user_id = await getApprovalUserIdService({
       case_phase: "Initial Review",
       approval_type: "Customer Approval"
     });
 
-    // Step 9: Prepare Template_forwarded_approver document
+    // Step 10: Prepare Template_forwarded_approver document
     const forwardedApprover = new TmpForwardedApprover({
       approver_reference: case_id,
       created_on: new Date(),
@@ -6924,7 +7374,8 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
         monitor_months: finalMonitorMonths,
         added_case_status: newCaseStatus,
         interaction_log_status: "Withdraw",
-        forwarded_approver_id: savedForwardApprover._id
+        forwarded_approver_id: savedForwardApprover._id,
+        drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
       },
       request: {
         RO_Request_Id: savedRequest.RO_Request_Id,
@@ -6945,6 +7396,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -7061,3 +7513,65 @@ export const getAllPaymentCases = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+export const List_All_Settlement_Cases =async(req, res) => {
+  const {case_id, settlement_phase, settlement_status, from_date, to_date} =req.body;
+
+  try {
+    //Validate Case ID
+    if(!case_id) {
+      return res.status(400).json({
+        status:"error",
+        message: "Case Id is required."
+      });
+    }
+
+    if (!settlement_phase && !settlement_status && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of settlement_phase, settlement_status or both from_date and to_date together.",
+        },
+      });
+    }
+    //Query
+    const query ={case_id: case_id};
+    query.$and = [];
+
+    if (settlement_phase) query.settlement_phase =settlement_phase;
+    if (settlement_status) query.settlement_status =settlement_status;
+    if (from_date && to_date) {
+      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+    }
+
+    // Fetch last 10 records sorted by created date in descending order
+    const caseSettlements = await CaseSettlement.find(query)
+      .sort({created_dtm: -1})
+      .limit(10);
+
+    if (caseSettlements.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for the provided parameters"
+      })
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Successfully retrieved case settlements.",
+      data: caseSettlements,
+    });
+
+
+  } catch (error) {
+      console.error("Error fetching settlement data:", error);
+      return res.status(500).json({
+        status: "error",
+        message: "Internal Server error. Please try again later.",
+      }
+    );
+  }
+}
+
