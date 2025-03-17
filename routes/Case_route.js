@@ -2552,6 +2552,65 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *                   type: string
  *                   example: "Error details here."
  */
+
+/**
+ * @swagger
+ * /api/case/List_All_Arrears_Bands:
+ *   get:
+ *     summary: Retrieve all arrears bands
+ *     description: |
+ *       Fetches arrears band details from the `Arrears_bands` collection in MongoDB.
+ *
+ *       | Version | Date        | Description                      | Changed By         |
+ *       |---------|------------|----------------------------------|--------------------|
+ *       | 01      | 2025-Mar-11 | Initial implementation          | Your Name         |
+ *
+ *     tags: [Case Management]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved arrears bands data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Data retrieved successfully."
+ *                 data:
+ *                   type: object
+ *                   example:
+ *                     _id: "65f3c1b6e7c4b6a123456789"
+ *                     band_name: "Low Arrears"
+ *                     min_amount: 100
+ *                     max_amount: 500
+ *       500:
+ *         description: Error retrieving arrears bands due to MongoDB connection failure or internal server issue.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Error retrieving Arrears bands."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "MongoDB connection failed"
+ */
+
 router.get("/List_All_Arrears_Bands", ListAllArrearsBands);
 
 /**
