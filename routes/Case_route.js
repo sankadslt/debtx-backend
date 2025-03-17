@@ -74,6 +74,9 @@ import {
   Customer_Negotiations,
   getActiveNegotiations,
   Create_task_for_Request_log_download_when_select_more_than_one_month,
+  getAllPaymentCases,
+  List_All_Commission_Cases 
+
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -6788,5 +6791,7 @@ router.post("/Create_task_for_Request_log_download_when_select_more_than_one_mon
 
 //payments
 router.post("/List_All_Payment_Cases", getAllPaymentCases);
+
+router.post("/List_All_Commission_Cases", List_All_Commission_Cases );
 
 export default router;

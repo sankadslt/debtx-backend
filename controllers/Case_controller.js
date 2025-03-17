@@ -36,6 +36,7 @@ import User_Interaction_Log from "../models/User_Interaction_Log.js";
 import Request from "../models/Request.js";
 import { ro } from "date-fns/locale";
 import MoneyTransaction from "../models/Money_transactions.js";
+import MoneyCommission from "../models/Money_commission.js";
 
 export const ListAllArrearsBands = async (req, res) => {
   try {
@@ -6054,5 +6055,235 @@ export const getAllPaymentCases = async (req, res) => {
     return res.status(200).json(responseData);
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+
+// export const List_All_Commission_Cases = async (req, res) => {
+
+//   try {
+//     const { case_id, From_DAT, TO_DAT, DRC_ID } = req.body;
+
+//     // Validate input
+//     if (!case_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to retrieve Money Commission details.",
+//         errors: {
+//           code: 400,
+//           description: "case_id is required.",
+//         },
+//       });
+//     }
+
+//     // Build query
+//     const query = {
+//       case_id: case_id,
+//     };
+
+//     if (From_DAT && TO_DAT) {
+//       query.created_on = {
+//         $gte: new Date(From_DAT), 
+//         $lte: new Date(TO_DAT),   
+//       };
+//     }
+
+//     if (DRC_ID) {
+//       query.drc_id = DRC_ID;
+//     }
+
+//     // Fetch data from MongoDB
+//     const commissions = await MoneyCommission.find(query)
+//       .sort({ created_on: -1 }) // Sort by latest first
+//       .exec();
+
+//     if (!commissions || commissions.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No Money Commission data found.",
+//         errors: {
+//           code: 404,
+//           description: "No data matches the provided criteria.",
+//         },
+//       });
+//     }
+
+//     // Return success response
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Money Commission details retrieved successfully.",
+//       data: commissions,
+//     });
+//   } catch (err) {
+//     // Log the error for debugging
+//     console.error("Error fetching Money Commission data:", err.message);
+
+//     // Return 500 Internal Server Error response
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve Money Commission details.",
+//       errors: {
+//         code: 500,
+//         description: "Internal server error occurred while fetching data.",
+//       },
+//     });
+//   }
+// };
+
+
+// export const List_All_Commission_Cases = async (req, res) => {
+//   try {
+//     const { case_id, From_DAT, TO_DAT, DRC_ID } = req.body;
+
+//     // If no case_id is provided, fetch the 10 latest documents
+//     if (!case_id) {
+//       const latestCommissions = await MoneyCommission.find({})
+//         .sort({ created_on: -1 }) // Sort by latest first
+//         .limit(10) // Limit to 10 documents
+//         .exec();
+
+//       return res.status(200).json({
+//         status: "success",
+//         message: "Latest 10 Money Commission details retrieved successfully.",
+//         data: latestCommissions,
+//       });
+//     }
+
+//     // Validate input
+//     if (!From_DAT || !TO_DAT) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to retrieve Money Commission details.",
+//         errors: {
+//           code: 400,
+//           description: "From_DAT and TO_DAT are required when case_id is provided.",
+//         },
+//       });
+//     }
+
+//     // Build query
+//     const query = {
+//       case_id: case_id,
+//       created_on: {
+//         $gte: new Date(From_DAT), // Greater than or equal to From_DAT
+//         $lte: new Date(TO_DAT),   // Less than or equal to TO_DAT
+//       },
+//     };
+
+//     if (DRC_ID) {
+//       query.drc_id = DRC_ID;
+//     }
+
+//     // Fetch data from MongoDB
+//     const commissions = await MoneyCommission.find(query)
+//       .sort({ created_on: -1 }) // Sort by latest first
+//       .exec();
+
+//     if (!commissions || commissions.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No Money Commission data found.",
+//         errors: {
+//           code: 404,
+//           description: "No data matches the provided criteria.",
+//         },
+//       });
+//     }
+
+//     // Return success response
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Money Commission details retrieved successfully.",
+//       data: commissions,
+//     });
+//   } catch (err) {
+//     // Log the error for debugging
+//     console.error("Error fetching Money Commission data:", err.message);
+
+//     // Return 500 Internal Server Error response
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve Money Commission details.",
+//       errors: {
+//         code: 500,
+//         description: "Internal server error occurred while fetching data.",
+//       },
+//     });
+//   }
+// };
+
+
+export const List_All_Commission_Cases = async (req, res) => {
+  try {
+    const { case_id, From_DAT, TO_DAT, DRC_ID } = req.body;
+
+    // If no case_id is provided, fetch the 10 latest documents
+    if (!case_id) {
+      const latestCommissions = await MoneyCommission.find({})
+        .sort({ created_on: -1 }) // Sort by latest first
+        .limit(10) // Limit to 10 documents
+        .exec();
+
+      return res.status(200).json({
+        status: "success",
+        message: "Latest 10 Money Commission details retrieved successfully.",
+        data: latestCommissions,
+      });
+    }
+
+    // Build query
+    const query = {
+      case_id: case_id,
+    };
+
+    // Add date range to query if From_DAT and TO_DAT are provided
+    if (From_DAT && TO_DAT) {
+      query.created_on = {
+        $gte: new Date(From_DAT), // Greater than or equal to From_DAT
+        $lte: new Date(TO_DAT),   // Less than or equal to TO_DAT
+      };
+    }
+
+    // Add DRC_ID to query if provided
+    if (DRC_ID) {
+      query.drc_id = DRC_ID;
+    }
+
+    // Fetch data from MongoDB
+    const commissions = await MoneyCommission.find(query)
+      .sort({ created_on: -1 }) // Always sort by latest first
+      .exec();
+
+    if (!commissions || commissions.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No Money Commission data found.",
+        errors: {
+          code: 404,
+          description: "No data matches the provided criteria.",
+        },
+      });
+    }
+
+    // Return success response
+    return res.status(200).json({
+      status: "success",
+      message: "Money Commission details retrieved successfully.",
+      data: commissions,
+    });
+  } catch (err) {
+    // Log the error for debugging
+    console.error("Error fetching Money Commission data:", err.message);
+
+    // Return 500 Internal Server Error response
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve Money Commission details.",
+      errors: {
+        code: 500,
+        description: "Internal server error occurred while fetching data.",
+      },
+    });
   }
 };

@@ -36,7 +36,7 @@ const moneyCommissionSchema = new Schema({
   approved_by: { type: String },
   approved_on: { type: Date, default: Date.now },
 },{
-    collection: 'Money_Commission',
+    collection: 'Money_commission',
   }
 );
 
