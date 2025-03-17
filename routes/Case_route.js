@@ -74,6 +74,9 @@ import {
   Customer_Negotiations,
   getActiveNegotiations,
   Create_task_for_Request_log_download_when_select_more_than_one_month,
+  List_Details_Of_Mediation_Board_Acceptance,
+  Submit_Mediation_Board_Acceptance,
+  Withdraw_Mediation_Board_Acceptance,
   getAllPaymentCases,
   List_All_Commission_Cases 
 
@@ -2442,6 +2445,67 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *                   type: string
  *                   example: "Error details here."
  */
+
+router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
+
+/**
+ * @swagger
+ * /api/case/List_All_Arrears_Bands:
+ *   get:
+ *     summary: Retrieve all arrears bands
+ *     description: |
+ *       Fetches arrears band details from the `Arrears_bands` collection in MongoDB.
+ *
+ *       | Version | Date        | Description                      | Changed By         |
+ *       |---------|------------|----------------------------------|--------------------|
+ *       | 01      | 2025-Mar-11 | Initial implementation          | Your Name         |
+ *
+ *     tags: [Case Management]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved arrears bands data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Data retrieved successfully."
+ *                 data:
+ *                   type: object
+ *                   example:
+ *                     _id: "65f3c1b6e7c4b6a123456789"
+ *                     band_name: "Low Arrears"
+ *                     min_amount: 100
+ *                     max_amount: 500
+ *       500:
+ *         description: Error retrieving arrears bands due to MongoDB connection failure or internal server issue.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Error retrieving Arrears bands."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "MongoDB connection failed"
+ */
+
 router.get("/List_All_Arrears_Bands", ListAllArrearsBands);
 
 /**
@@ -6108,98 +6172,73 @@ router.post("/Mediation_Board", Mediation_Board);
 
 /**
  * @swagger
- * /api/Update_Customer_Contacts:
- *   post:
- *     summary: Updates specific customer profile details
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for updating case details related to DRC and RO.
+ * 
+ * /api/case/Update_Customer_Contacts:
+ *   patch:
+ *     summary: Update case details for a specific DRC or Recovery Officer.
  *     description: |
- *       Updates specific customer profile details, including Contact Numbers, NIC/PP/Driving License, Email, Address, and Remark.
- *
- *       | Version | Date        | Description                                | Changed By             |
- *       |---------|-------------|--------------------------------------------|------------------------|
- *       | 01      | 2025-Feb-13 | Updates specific customer profile details  | Susinidu Sachinthana   |
- *
- *     tags: [Customer Management]
+ *       This endpoint updates case details related to a specific DRC or Recovery Officer.
+ *       It handles updating customer contact details, address, email, and remark.
+ *       The endpoint also checks for duplicate data to avoid conflicts.
+ *       
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-16| Update DRC case details              | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Management
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - ro_edited_customer_details
- *               - current_contact
  *             properties:
- *               current_contact:
- *                 type: array
- *                 description: A list of current contact details of the customer.
- *                 items:
- *                   type: object
- *                   properties:
- *                     mob:
- *                       type: string
- *                       description: Mobile number of the customer.
- *                       example: "0743564765"
- *                     email:
- *                       type: string
- *                       description: Email of the customer.
- *                       example: "example@gmail.com"
- *                     nic:
- *                       type: string
- *                       description: NIC of the customer.
- *                       example: "200546376548"
- *                     lan:
- *                       type: string
- *                       description: Land phone number of the customer.
- *                       example: "0378564356"
- *                     address:
- *                       type: string
- *                       description: Address of the customer.
- *                       example: "Koswatta, Kiribathgoda"
- *               ro_edited_customer_details:
- *                 type: array
- *                 description: Details edited by the logged-in RO.
- *                 items:
- *                   type: object
- *                   properties:
- *                     ro_id:
- *                       type: number
- *                       description: Logged-in RO's ID.
- *                       example: 123
- *                     drc_id:
- *                       type: number
- *                       description: Logged-in RO's DRC.
- *                       example: 123
- *                     mob:
- *                       type: string
- *                       description: Mobile number of the customer.
- *                       example: "0743564765"
- *                     email:
- *                       type: string
- *                       description: Email of the customer.
- *                       example: "example@gmail.com"
- *                     nic:
- *                       type: string
- *                       description: NIC of the customer.
- *                       example: "200546376548"
- *                     lan:
- *                       type: string
- *                       description: Land phone number of the customer.
- *                       example: "0378564356"
- *                     address:
- *                       type: string
- *                       description: Address of the customer.
- *                       example: "Koswatta, Kiribathgoda"
- *                     geo_location:
- *                       type: string
- *                       description: The location where customer details are edited (not required - NULL).
- *                       example: ""
- *                     remarks:
- *                       type: string
- *                       description: Remarks regarding the customer.
- *                       example: ""
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: 2
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier of the case.
+ *                 example: 11
+ *               customer_identification:
+ *                 type: string
+ *                 description: Customer identification number (e.g., NIC).
+ *                 example: "987654321V"
+ *               customer_identification_type:
+ *                 type: string
+ *                 description: Type of customer identification.
+ *                 example: "NIC"
+ *               contact_no:
+ *                 type: string
+ *                 description: Contact number of the customer.
+ *                 example: "0712345678"
+ *               contact_type:
+ *                 type: string
+ *                 description: Type of contact (e.g., Mobile, Landline).
+ *                 example: "Mobile"
+ *               email:
+ *                 type: string
+ *                 description: Email address of the customer.
+ *                 example: "john.doe@example.com"
+ *               address:
+ *                 type: string
+ *                 description: Address of the customer.
+ *                 example: "123 Main St, Matara"
+ *               remark:
+ *                 type: string
+ *                 description: Remark related to the case.
+ *                 example: "Address updated with new contact number."
  *     responses:
  *       200:
- *         description: Customer details updated successfully.
+ *         description: Case details updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -6210,9 +6249,22 @@ router.post("/Mediation_Board", Mediation_Board);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Customer details updated successfully.
+ *                   example: Case details updated successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       description: Updated case ID.
+ *                       example: 101
+ *                     updated_fields:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of updated fields.
+ *                       example: ["contact_no", "email", "address"]
  *       400:
- *         description: Validation error - Missing or invalid input.
+ *         description: Validation error - Missing required fields or duplicate data.
  *         content:
  *           application/json:
  *             schema:
@@ -6223,26 +6275,60 @@ router.post("/Mediation_Board", Mediation_Board);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Validation error - Invalid input.
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Internal server error.
+ *                   example: Failed to update case details.
  *                 errors:
  *                   type: object
  *                   properties:
- *                     exception:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
  *                       type: string
- *                       example: Detailed server error message.
+ *                       example: Case ID is required.
+ *       404:
+ *         description: No matching cases found for the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error occurred while updating case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to update the case.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while updating the case.
  */
 // POST route to update customer contacts or remarks for a specific case.
 router.patch("/Update_Customer_Contacts",updateDrcCaseDetails);
@@ -6789,6 +6875,20 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
+router.post(
+  "/List_Details_Of_Mediation_Board_Acceptance",
+  List_Details_Of_Mediation_Board_Acceptance
+);
+
+router.post(
+  "/Submit_Mediation_Board_Acceptance",
+  Submit_Mediation_Board_Acceptance
+);
+
+router.post(
+  "/Withdraw_Mediation_Board_Acceptance",
+  Withdraw_Mediation_Board_Acceptance
+);
 //payments
 router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
