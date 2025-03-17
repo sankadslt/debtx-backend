@@ -1231,7 +1231,7 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
  *   - name: RTOM
  *     description: RTOM-related endpoints, allowing management and registration of RTOMs.
  * 
- * /api/RTOM/List_All_Active_RTOMs_By_DRC:
+ * /api/RTOM/List_ALL_Active_RTOM_Ownned_By_DRC:
  *   post:
  *     summary: RTOM-2P04 Retrieve all active RTOMs by DRC ID.
  *     description: |

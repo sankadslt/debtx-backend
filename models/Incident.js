@@ -46,6 +46,14 @@ const customerDetailsSchema = new Schema({
     Customer_Type_Id: { type: String, required: true },
 });
 
+// Markerting Details Schema
+const markertingDetailsSchema = new Schema({
+    ACCOUNT_MANAGER: { type: String, default: null },
+    CONSUMER_MARKET: { type: String, default: null },
+    Informed_To: { type: String, default: null },
+    Informed_On: { type: Date, default: null },
+});
+
 // Account Details Schema
 const accountDetailsSchema = new Schema({
     Account_Status: { type: String, required: true },
@@ -112,6 +120,7 @@ const incidentSchema = new Schema(
         Customer_Details: { type: customerDetailsSchema, required: true },
         Account_Details: { type: accountDetailsSchema, required: true },
         Last_Actions: { type: lastActionsSchema, required: true },
+        Marketing_Details: { type: markertingDetailsSchema, required: true },
         current_arrears_band: { type: String, required:true,default: "Default Band"},
         drc_commision_rule: { type: String, required: true, default: "PEO TV" },
       

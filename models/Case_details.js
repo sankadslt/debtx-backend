@@ -38,11 +38,22 @@ const caseStatusSchema = new Schema({
 }, { _id: false });
 
 // Define the contact 
+// const contactsSchema = new Schema({
+//   mob: { type: String, required: false },
+//   email: { type: String, required: true },
+//   nic: { type: String, required: true },
+//   lan: { type: String, required: false },
+//   address: { type: String, required: true },
+//   geo_location: {type: String, default:null},
+// },{ _id: false });
+
+// Define the edited contact
 const contactsSchema = new Schema({
-  mob: { type: String, required: false },
+  contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },
+  contact_no: { type: Number, required: true },
+  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport', "Driving License"] },
+  customer_identification: { type: String, required: true },
   email: { type: String, required: true },
-  nic: { type: String, required: true },
-  lan: { type: String, required: false },
   address: { type: String, required: true },
   geo_location: {type: String, default:null},
 },{ _id: false });
@@ -51,10 +62,11 @@ const editedcontactsSchema = new Schema({
   ro_id: { type: Number, required: true },
   drc_id: { type: Number, required: true },
   edited_dtm: { type: Date, required: true },
-  mob: { type: String, required: false },
+  contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },
+  contact_no: { type: Number, required: true },
+  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport', "Driving License"] },
+  customer_identification: { type: String, required: true },
   email: { type: String, required: true },
-  nic: { type: String, required: true },
-  lan: { type: String, required: false },
   address: { type: String, required: true },
   geo_location: {type: String, default:null},
   remark:{type: String, default:null},
