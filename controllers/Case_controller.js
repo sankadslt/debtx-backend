@@ -6658,6 +6658,139 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
   }
 };
 
+// export const Submit_Mediation_Board_Acceptance = async (req, res) => {
+//   try {
+//     const {
+//       create_by,
+//       Interaction_Log_ID,
+//       case_id,
+//       User_Interaction_Type,
+//       Request_Mode,
+//       Interaction_ID,
+//       "Request Accept": requestAccept,
+//       Reamrk,
+//       No_of_Calendar_Month,
+//       Letter_Send
+//     } = req.body;
+
+//     // Step 1: Create new Request document
+//     const newRequest = new Request({
+//       RO_Request_Id: Interaction_Log_ID,
+//       Request_Description: User_Interaction_Type,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       Request_Mode: Request_Mode,
+//       Intraction_ID: Interaction_ID,
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       }
+//     });
+
+//     // Save Request
+//     const savedRequest = await newRequest.save();
+
+//     // Step 2: Fetch existing case
+//     const existingCase = await Case_details.findOne({ case_id: case_id });
+
+//     if (!existingCase) {
+//       return res.status(404).json({
+//         message: `Case with case_id ${case_id} not found.`
+//       });
+//     }
+
+//     // Existing monitor_months value (default to 0 if undefined)
+//     const existingMonitorMonths = existingCase.monitor_months || 0;
+
+//     // Final monitor_months to set (if No_of_Calendar_Month is provided)
+//     let finalMonitorMonths = existingMonitorMonths;
+
+//     // Step 3: Validate and calculate new monitor_months if No_of_Calendar_Month is provided
+//     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+//       const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+
+//       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+//         return res.status(400).json({
+//           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
+//         });
+//       }
+
+//       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+
+//       // Check if final monitor_months exceeds limit
+//       if (finalMonitorMonths > 5) {
+//         return res.status(400).json({
+//           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+//         });
+//       }
+//     }
+
+//     // Step 4: Prepare new case_status object
+//     const newCaseStatus = {
+//       case_status: "Accept",
+//       status_reason: Reamrk || null,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       notified_dtm: null,
+//       expire_dtm: null
+//     };
+
+//     // Step 5: Prepare update object for CaseDetails
+//     const updateFields = {
+//       $push: { case_status: newCaseStatus },
+//       $set: { 
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths // Update final calculated monitor_months
+//       }
+//     };
+
+//     // Step 6: Update CaseDetails (only applying update, no return of full doc)
+//     await Case_details.updateOne(
+//       { case_id: case_id },
+//       updateFields
+//     );
+
+//     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+//     await User_Interaction_Log.updateOne(
+//       { Interaction_Log_ID: Interaction_Log_ID },
+//       { $set: { User_Interaction_Status: "Approved" } }
+//     );
+
+//     // Step 8: Success response with only updated fields
+//     return res.status(201).json({
+//       message: "Mediation Board Acceptance Request submitted and case updated successfully.",
+//       updates: {
+//         case_id: case_id,
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths,
+//         added_case_status: newCaseStatus,
+//         interaction_log_status: "Approved"
+//       },
+//       request: {
+//         RO_Request_Id: savedRequest.RO_Request_Id,
+//         Request_Description: savedRequest.Request_Description,
+//         created_dtm: savedRequest.created_dtm,
+//         created_by: savedRequest.created_by,
+//         Request_Mode: savedRequest.Request_Mode,
+//         Intraction_ID: savedRequest.Intraction_ID,
+//         parameters: savedRequest.parameters
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error submitting mediation board acceptance and updating case and interaction log:", error);
+//     return res.status(500).json({
+//       message: "Failed to submit Mediation Board Acceptance Request and update related records.",
+//       error: error.message
+//     });
+//   }
+// };
+
+// File: controllers/requestController.js
+
+
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   try {
     const {
@@ -6701,16 +6834,13 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       });
     }
 
-    // Existing monitor_months value (default to 0 if undefined)
     const existingMonitorMonths = existingCase.monitor_months || 0;
-
-    // Final monitor_months to set (if No_of_Calendar_Month is provided)
     let finalMonitorMonths = existingMonitorMonths;
 
-    // Step 3: Validate and calculate new monitor_months if No_of_Calendar_Month is provided
+    // Step 3: Validate No_of_Calendar_Month
+    let monthsToAdd = 0;
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
-
+      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
         return res.status(400).json({
           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
@@ -6718,8 +6848,6 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       }
 
       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
-
-      // Check if final monitor_months exceeds limit
       if (finalMonitorMonths > 5) {
         return res.status(400).json({
           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
@@ -6742,15 +6870,12 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       $push: { case_status: newCaseStatus },
       $set: { 
         case_current_status: "Accept",
-        monitor_months: finalMonitorMonths // Update final calculated monitor_months
+        monitor_months: finalMonitorMonths
       }
     };
 
-    // Step 6: Update CaseDetails (only applying update, no return of full doc)
-    await Case_details.updateOne(
-      { case_id: case_id },
-      updateFields
-    );
+    // Step 6: Update CaseDetails
+    await Case_details.updateOne({ case_id: case_id }, updateFields);
 
     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
     await User_Interaction_Log.updateOne(
@@ -6758,7 +6883,28 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       { $set: { User_Interaction_Status: "Approved" } }
     );
 
-    // Step 8: Success response with only updated fields
+    // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+    const drcArrayLength = existingCase.drc.length;
+    let extendedExpireDate = null;
+
+    if (drcArrayLength > 0 && monthsToAdd > 0) {
+      const lastDrcIndex = drcArrayLength - 1;
+      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+      if (lastExpireDtm) {
+        // Extend existing expire_dtm by No_of_Calendar_Month
+        extendedExpireDate = new Date(lastExpireDtm);
+        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+        // Update specific drc element's expire_dtm in DB
+        await Case_details.updateOne(
+          { case_id: case_id },
+          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+        );
+      }
+    }
+
+    // ✅ Final success response
     return res.status(201).json({
       message: "Mediation Board Acceptance Request submitted and case updated successfully.",
       updates: {
@@ -6766,7 +6912,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
         case_current_status: "Accept",
         monitor_months: finalMonitorMonths,
         added_case_status: newCaseStatus,
-        interaction_log_status: "Approved"
+        interaction_log_status: "Approved",
+        drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
       },
       request: {
         RO_Request_Id: savedRequest.RO_Request_Id,
@@ -6787,6 +6934,167 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
     });
   }
 };
+
+
+// export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
+//   try {
+//     const {
+//       create_by,
+//       Interaction_Log_ID,
+//       case_id,
+//       User_Interaction_Type,
+//       Request_Mode,
+//       Interaction_ID,
+//       "Request Accept": requestAccept,
+//       Reamrk,
+//       No_of_Calendar_Month,
+//       Letter_Send
+//     } = req.body;
+
+//     // Step 1: Create new Request document
+//     const newRequest = new Request({
+//       RO_Request_Id: Interaction_Log_ID,
+//       Request_Description: User_Interaction_Type,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       Request_Mode: Request_Mode,
+//       Intraction_ID: Interaction_ID,
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       }
+//     });
+
+//     const savedRequest = await newRequest.save();
+
+//     // Step 2: Fetch existing case
+//     const existingCase = await Case_details.findOne({ case_id: case_id });
+
+//     if (!existingCase) {
+//       return res.status(404).json({
+//         message: `Case with case_id ${case_id} not found.`
+//       });
+//     }
+
+//     const existingMonitorMonths = existingCase.monitor_months || 0;
+//     let finalMonitorMonths = existingMonitorMonths;
+
+//     // Step 3: Validate No_of_Calendar_Month
+//     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+//       const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+//       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+//         return res.status(400).json({
+//           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
+//         });
+//       }
+//       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+//       if (finalMonitorMonths > 5) {
+//         return res.status(400).json({
+//           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+//         });
+//       }
+//     }
+
+//     // Step 4: Prepare new case_status object
+//     const newCaseStatus = {
+//       case_status: "Withdraw",
+//       status_reason: Reamrk || null,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       notified_dtm: null,
+//       expire_dtm: null
+//     };
+
+//     // Step 5: Prepare update object for CaseDetails
+//     const updateFields = {
+//       $push: { case_status: newCaseStatus },
+//       $set: { 
+//         case_current_status: "Withdraw",
+//         monitor_months: finalMonitorMonths
+//       }
+//     };
+
+//     // Step 6: Update CaseDetails
+//     await Case_details.updateOne({ case_id: case_id }, updateFields);
+
+//     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+//     await User_Interaction_Log.updateOne(
+//       { Interaction_Log_ID: Interaction_Log_ID },
+//       { $set: { User_Interaction_Status: "Withdraw" } }
+//     );
+
+//     // Step 8: Get approver user_id dynamically
+//     const delegated_user_id = await getApprovalUserIdService({
+//       case_phase: "Initial Review",
+//       approval_type: "Customer Approval"
+//     });
+
+//     // Step 9: Prepare Template_forwarded_approver document
+//     const forwardedApprover = new TmpForwardedApprover({
+//       approver_reference: case_id,
+//       created_on: new Date(),
+//       created_by: create_by,
+//       approve_status: [
+//         {
+//           status: "Open",
+//           status_date: new Date(),
+//           status_edit_by: create_by
+//         }
+//       ],
+//       approver_type: "Case Withdrawal Approval",
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       },
+//       approved_deligated_by: delegated_user_id,
+//       remark: [
+//         {
+//           remark: Reamrk || "Withdrawal requested",
+//           remark_date: new Date(),
+//           remark_edit_by: create_by
+//         }
+//       ]
+//     });
+
+//     const savedForwardApprover = await forwardedApprover.save();
+
+//     // ✅ Final success response
+//     return res.status(201).json({
+//       message: "Withdrawal mediation board request submitted and all records updated successfully.",
+//       updates: {
+//         case_id: case_id,
+//         case_current_status: "Withdraw",
+//         monitor_months: finalMonitorMonths,
+//         added_case_status: newCaseStatus,
+//         interaction_log_status: "Withdraw",
+//         forwarded_approver_id: savedForwardApprover._id
+//       },
+//       request: {
+//         RO_Request_Id: savedRequest.RO_Request_Id,
+//         Request_Description: savedRequest.Request_Description,
+//         created_dtm: savedRequest.created_dtm,
+//         created_by: savedRequest.created_by,
+//         Request_Mode: savedRequest.Request_Mode,
+//         Intraction_ID: savedRequest.Intraction_ID,
+//         parameters: savedRequest.parameters
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error processing withdrawal mediation board acceptance:", error);
+//     return res.status(500).json({
+//       message: "Failed to process withdrawal mediation board acceptance.",
+//       error: error.message
+//     });
+//   }
+// };
+
+
+// File: controllers/requestController.js
 
 
 export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
@@ -6835,13 +7143,15 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     let finalMonitorMonths = existingMonitorMonths;
 
     // Step 3: Validate No_of_Calendar_Month
+    let monthsToAdd = 0;
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
         return res.status(400).json({
           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
         });
       }
+
       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
       if (finalMonitorMonths > 5) {
         return res.status(400).json({
@@ -6872,19 +7182,40 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     // Step 6: Update CaseDetails
     await Case_details.updateOne({ case_id: case_id }, updateFields);
 
-    // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+    // Step 7: Update User_Interaction_Log -> Set status to "Withdraw"
     await User_Interaction_Log.updateOne(
       { Interaction_Log_ID: Interaction_Log_ID },
       { $set: { User_Interaction_Status: "Withdraw" } }
     );
 
-    // Step 8: Get approver user_id dynamically
+    // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+    const drcArrayLength = existingCase.drc.length;
+    let extendedExpireDate = null;
+
+    if (drcArrayLength > 0 && monthsToAdd > 0) {
+      const lastDrcIndex = drcArrayLength - 1;
+      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+      if (lastExpireDtm) {
+        // Extend existing expire_dtm by No_of_Calendar_Month
+        extendedExpireDate = new Date(lastExpireDtm);
+        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+        // Update specific drc element's expire_dtm in DB
+        await Case_details.updateOne(
+          { case_id: case_id },
+          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+        );
+      }
+    }
+
+    // Step 9: Get approver user_id dynamically
     const delegated_user_id = await getApprovalUserIdService({
       case_phase: "Initial Review",
       approval_type: "Customer Approval"
     });
 
-    // Step 9: Prepare Template_forwarded_approver document
+    // Step 10: Prepare Template_forwarded_approver document
     const forwardedApprover = new TmpForwardedApprover({
       approver_reference: case_id,
       created_on: new Date(),
@@ -6924,7 +7255,8 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
         monitor_months: finalMonitorMonths,
         added_case_status: newCaseStatus,
         interaction_log_status: "Withdraw",
-        forwarded_approver_id: savedForwardApprover._id
+        forwarded_approver_id: savedForwardApprover._id,
+        drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
       },
       request: {
         RO_Request_Id: savedRequest.RO_Request_Id,
@@ -6945,6 +7277,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     });
   }
 };
+
 
 
 
