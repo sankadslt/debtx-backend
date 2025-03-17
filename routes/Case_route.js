@@ -2555,6 +2555,8 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *                   example: "Error details here."
  */
 
+router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
+
 /**
  * @swagger
  * /api/case/List_All_Arrears_Bands:
