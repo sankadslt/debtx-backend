@@ -32,6 +32,7 @@ import taskRouter from "./routes/Task_route.js";
 import taskListRouter from "./routes/TaskList_route.js";
 import chartRouter from "./routes/chart.js";
 import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
+import MoneyTransactionRouter from "./routes/Money_Transation_route.js";
 
 // Load environment variables
 config();
@@ -61,6 +62,7 @@ app.use("/api/task", taskRouter);
 app.use("/api/taskList", taskListRouter);
 app.use("/api", chartRouter);
 app.use("/api", tmpSLTApprovalRouter);
+app.use("/api/money",MoneyTransactionRouter);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
