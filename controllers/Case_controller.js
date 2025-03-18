@@ -39,7 +39,6 @@ import { getApprovalUserIdService } from "../services/ApprovalService.js";
 import { getBatchApprovalUserIdService } from "../services/ApprovalService.js";
 import Incident from "../models/Incident.js";
 import { ro } from "date-fns/locale";
-import MoneyTransaction from "../models/Money_transactions.js";
 
 export const ListAllArrearsBands = async (req, res) => {
   try {
