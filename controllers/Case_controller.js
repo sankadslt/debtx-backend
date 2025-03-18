@@ -7665,6 +7665,62 @@ export const List_Request_Response_log = async (req, res) => {
 };
 
 
+export const Create_Task_For_Request_Responce_Log_Download = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_current_status, date_from, date_to, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      case_current_status,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 38,
+      task_type: "Create Request Responce Log List for Downloard",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
 
 
 
