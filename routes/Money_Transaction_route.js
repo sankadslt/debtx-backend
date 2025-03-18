@@ -13,7 +13,7 @@
 import { Router } from "express";
 import { getAllPaymentCases,
 
-} from "../controllers/MoneyTransation_controller.js";
+} from "../controllers/MoneyTransaction_controller.js";
 
 const router = Router();
 

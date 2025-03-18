@@ -32,7 +32,7 @@ import taskRouter from "./routes/Task_route.js";
 import taskListRouter from "./routes/TaskList_route.js";
 import chartRouter from "./routes/chart.js";
 import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
-import MoneyTransactionRouter from "./routes/Money_Transation_route.js";
+import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
 
 // Load environment variables
 config();
