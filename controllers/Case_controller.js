@@ -5809,6 +5809,7 @@ export const listDRCAllCases = async (req, res) => {
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;    
+    console.log("case id is ", case_id , " drc id is ", drc_id)
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6693,7 +6694,7 @@ export const getActiveNegotiations = async (req, res) => {
     // .select("negotiation_id negotiation_description end_dtm");
 
     const activeNegotiations = await TemplateNegotiation.find();
-    console.log("field reason ", activeNegotiations);
+    // console.log("field reason ", activeNegotiations);
     return res.status(200).json({
       status: "success",
       message: "Active negotiations retrieved successfully.",
@@ -6887,4 +6888,15 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
+export const RO_CPE_Collection = async (req,res) => {
+  try {
+    const ro_cpe_collect_id = 1;
+    const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
+      
+    if (!case_id || !drc_id || !cp_type ||!cpe_model || !serial_no) {
+        return res.status(400).json({ message: "case_id, and Interaction_Log_ID are required" });
+    };
+  } catch (error) {
+    
+  }
+};

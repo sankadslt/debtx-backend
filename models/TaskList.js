@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const taskListSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     task: {
       type: String,
       required: true,
