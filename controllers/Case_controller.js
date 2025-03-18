@@ -7580,3 +7580,91 @@ export const RO_CPE_Collection = async (req,res) => {
   }
 };
 
+
+export const List_Request_Response_log = async (req, res) => {
+  try {
+    const { case_current_status, date_from, date_to } = req.body;
+
+    if (!date_from || !date_to || !case_current_status) {
+      return res.status(400).json({ message: "Missing required fields: case_current_status, date_from, and date_to are required." });
+    }
+
+    const startDate = new Date(date_from);
+    const endDate = new Date(date_to);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Step 1: Fetch all requests within the date range
+    const requests = await Request.find({
+      created_dtm: { $gte: startDate, $lte: endDate }
+    });
+
+    if (!requests.length) {
+      return res.status(404).json({ message: "No requests found within the given date range." });
+    }
+
+    const requestIds = requests.map(req => req.RO_Request_Id);
+    console.log("Request IDs:", requestIds);
+
+    // Step 2: Fetch related user interaction logs
+    const interactions = await User_Interaction_Log.find({ Interaction_Log_ID: { $in: requestIds } });
+    console.log("Interactions:", interactions);
+
+    if (!interactions.length) {
+      return res.status(404).json({ message: "No related user interactions found." });
+    }
+
+    // Extract case IDs from interaction logs (handling Map type correctly)
+    const caseIds = interactions
+      .map(interaction => interaction.parameters?.get("case_id"))
+      .filter(Boolean);
+    console.log("Extracted Case IDs:", caseIds);
+
+    // Step 3: Fetch all related case details
+    const allCases = await Case_details.find({ case_id: { $in: caseIds } });
+
+    if (!allCases.length) {
+      return res.status(404).json({ message: "No related case details found." });
+    }
+
+    // Step 4: Filter cases based on case_current_status
+    const cases = allCases.filter(caseDoc => caseDoc.case_current_status === case_current_status);
+
+    if (!cases.length) {
+      return res.status(404).json({ message: "No matching case details found." });
+    }
+
+    // Construct response, grouping data by DRC
+    const response = cases.flatMap(caseDoc => {
+      const relatedInteraction = interactions.find(interaction => interaction.parameters?.get("case_id") === caseDoc.case_id);
+      const relatedRequest = requests.find(request => request.RO_Request_Id === relatedInteraction?.Interaction_Log_ID);
+
+      const startValidity = new Date(caseDoc.created_dtm);
+      const expiryValidity = new Date(startValidity);
+      expiryValidity.setMonth(expiryValidity.getMonth() + caseDoc.monitor_months);
+
+      return caseDoc.drc.map(drcEntry => ({
+        drc_id: drcEntry.drc_id,
+        drc_name: drcEntry.drc_name,
+        case_id: caseDoc.case_id,
+        case_current_status: caseDoc.case_current_status,
+        Validity_Period: `${startValidity.toISOString()} - ${expiryValidity.toISOString()}`,
+        User_Interaction_Status: relatedInteraction?.User_Interaction_Status || "N/A",
+        Request_Description: relatedRequest?.Request_Description || "N/A",
+        Letter_Issued_On: relatedRequest?.parameters?.get("Letter_Send") === "Yes" ? relatedRequest.created_dtm : null,
+        Approved_on: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_dtm : null,
+        Approved_by: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_by : null,
+        Remark: relatedRequest?.parameters?.get("Remark") || "N/A"
+      }));
+    });
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching request response log:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+
+
+
