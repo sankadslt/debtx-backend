@@ -1739,8 +1739,93 @@ router.post("/Forward_Direct_LOD", Forward_Direct_LOD);
  *       500:
  *         description: Internal server error.
  */
-router.post("/Forward_CPE_Collect",Forward_CPE_Collect)
+router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
 
+/**
+ * @swagger
+ * /api/incident/List_Reject_Incident:
+ *   post:
+ *     summary: INC-1P51 List "Rejected" incidents
+ *     description: |
+ *       Retrieves a list of incidents with the status "Incident Reject".
+ *
+ *       | Version | Date       | Description    |
+ *       |---------|------------|----------------|
+ *       | 01      | 2025-Mar-10| Initial version|
+ *     tags:
+ *       - Incident Management
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Action_Type:
+ *                 type: string
+ *                 example: "Review Required"
+ *                 description: Filter incidents by a specific action type.
+ *               FromDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *                 description: Start date for filtering incidents.
+ *               ToDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-31"
+ *                 description: End date for filtering incidents.
+ *     responses:
+ *       200:
+ *         description: List of "Rejected" incidents retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Rejected incidents retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       Incident_Id:
+ *                         type: string
+ *                         example: "INC54321"
+ *                       Account_Num:
+ *                         type: string
+ *                         example: "AC123456789"
+ *                       Incident_Status:
+ *                         type: string
+ *                         example: "Incident Reject"
+ *                       Created_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-02T08:00:00Z"
+ *                       Proceed_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                         example: null
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An unexpected error occurred."
+ */
 router.post("/List_Reject_Incident", List_Reject_Incident);
 
 router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
