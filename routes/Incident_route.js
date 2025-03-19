@@ -1745,7 +1745,7 @@ router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
  * @swagger
  * /api/incident/List_Reject_Incident:
  *   post:
- *     summary: INC-1P51 List "Rejected" incidents
+ *     summary: List "Rejected" incidents
  *     description: |
  *       Retrieves a list of incidents with the status "Incident Reject".
  *
