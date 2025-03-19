@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 // Define the schema for SystemTransaction
 const systemTransactionSchema = new Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     Transaction_Id: {
         type: Number,
         required: true,

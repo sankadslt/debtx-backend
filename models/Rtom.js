@@ -29,6 +29,7 @@ const updatedSchema = new Schema({
 
 // Main schema for RTOM
 const rtomSchema = new Schema({
+    doc_version : {type:Number, required: true, default: 1},
     rtom_id: {
         type: Number, 
         required: true, 

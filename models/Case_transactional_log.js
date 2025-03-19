@@ -27,6 +27,7 @@ const updatedSchema = new Schema({
 
 const caseTransactionalLogSchema = new Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     case_id: { 
         type: Number, 
         required: true 

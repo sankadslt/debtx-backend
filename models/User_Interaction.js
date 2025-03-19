@@ -78,6 +78,7 @@
 import { Schema, model } from 'mongoose';
 
 const caseUserInteractionSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   User_Interaction_id: {
     type: Number,
     required: true,

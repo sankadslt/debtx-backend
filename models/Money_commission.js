@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
 
 const moneyCommissionSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   commission_id: { type: Number, required: true, unique: true },
   case_id: { type: Number, required: true },
   created_on: { type: Date, default: Date.now },

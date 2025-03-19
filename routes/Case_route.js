@@ -79,6 +79,8 @@ import {
   Submit_Mediation_Board_Acceptance,
   Withdraw_Mediation_Board_Acceptance,
   getAllPaymentCases,
+  List_Request_Response_log,
+  Create_Task_For_Request_Responce_Log_Download,
 
   List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
@@ -7122,5 +7124,15 @@ router.post("/List_All_Payment_Cases", getAllPaymentCases);
  *                   example: "Internal Server error. Please try again later."
  */
 router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
+
+router.post(
+  "/List_Request_Response_log",
+  List_Request_Response_log
+);
+
+router.post(
+  "/Create_Task_For_Request_Responce_Log_Download",
+  Create_Task_For_Request_Responce_Log_Download
+);
 
 export default router;

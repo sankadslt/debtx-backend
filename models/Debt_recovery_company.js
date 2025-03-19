@@ -46,6 +46,7 @@ const remarkSchema = new Schema({
 });
 const drcSchema = new Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     drc_id: {
       type: Number,
       required: true,

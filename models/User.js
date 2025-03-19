@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+  doc_version : {type:Number, required: true, default: 1},
   user_id: { type: String, required: true, unique: true },
   user_type: { type: String, required: true, enum: ["slt", "drc", "ro"] },
   username: { type: String, required: true },
