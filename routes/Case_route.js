@@ -8226,6 +8226,137 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *                       example: "An unexpected error occurred."
  */
 router.post("/RO_CPE_Collection", RO_CPE_Collection);
+
+/**
+ * @swagger
+ * /api/case/List_Request_Response_log:
+ *   post:
+ *     summary: List Request Response Log
+ *     description: |
+ *       Fetches request response log based on provided filters (case_current_status, date_from, and date_to).
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Fetches request response log data for the given filters. | Your Name       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         schema:
+ *           type: string
+ *           example: "Withdraw"
+ *         description: Current status of the case.
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: date
+ *           example: "2025-03-01"
+ *         description: Date user wants to starting filter.
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: date
+ *           example: "2025-03-05"
+ *         description: Date user wants to end filter.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 example: "Withdraw"
+ *                 description: The current status of the case.
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-01"
+ *                 description: The start date of the range for the request.
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-05"
+ *                 description: The end date of the range for the request.
+ *     responses:
+ *       200:
+ *         description: Request response log data fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   drc_id:
+ *                     type: integer
+ *                     example: 7
+ *                   drc_name:
+ *                     type: string
+ *                     example: "DRC A"
+ *                   case_id:
+ *                     type: integer
+ *                     example: 1
+ *                   case_current_status:
+ *                     type: string
+ *                     example: "Withdraw"
+ *                   Validity_Period:
+ *                     type: string
+ *                     example: "2025-01-18T10:00:00.000Z - 2025-04-18T10:00:00.000Z"
+ *                   User_Interaction_Status:
+ *                     type: string
+ *                     example: "Open"
+ *                   Request_Description:
+ *                     type: string
+ *                     example: "Mediation board forward request letter"
+ *                   Letter_Issued_On:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T14:00:00.000Z"
+ *                   Approved_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T14:00:00.000Z"
+ *                   Approved_by:
+ *                     type: string
+ *                     example: "User456"
+ *                   Remark:
+ *                     type: string
+ *                     example: "high"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "case_current_status, date_from, and date_to are required"
+ *       404:
+ *         description: No requests or interaction logs found for the given filters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No requests found within the given date range."
+ *       500:
+ *         description: Server error occurred while fetching the request response log.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ */
+
 router.post(
   "/List_Request_Response_log",
   List_Request_Response_log
