@@ -79,7 +79,7 @@ import {
   Submit_Mediation_Board_Acceptance,
   Withdraw_Mediation_Board_Acceptance,
   getAllPaymentCases,
-
+  RO_CPE_Collection,
   List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
 
@@ -7123,4 +7123,146 @@ router.post("/List_All_Payment_Cases", getAllPaymentCases);
  */
 router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: RO CPE Collection
+ *     description: Endpoints for managing RO CPE collection.
+ *
+ * /api/case/RO_CPE_Collection:
+ *   post:
+ *     summary: Collect RO CPE data.
+ *     description: |
+ *       This endpoint is used to collect RO CPE data and update the case details.
+ *       The system increments a counter to generate a unique `ro_cpe_collect_id` and updates
+ *       the specified case with the provided details.
+ *       
+ *       | Version | Date       | Description                        | Changed By         |
+ *       |---------|------------|------------------------------------|--------------------|
+ *       | 01      | 2025-Mar-19| Initial implementation of the API | H.B.R.P.Madushan   |
+ *     tags:
+ *       - RO CPE Collection
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: Unique identifier of the case.
+ *                 example: 5
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Unique identifier of the RO.
+ *                 example: 91011
+ *               order_id:
+ *                 type: string
+ *                 description: Order ID related to the collection.
+ *                 example: "ORD-2025-001"
+ *               product_label:
+ *                 type: string
+ *                 description: Product label assigned to the CPE.
+ *                 example: "Label-XYZ"
+ *               service_type:
+ *                 type: string
+ *                 description: Type of service for the CPE.
+ *                 example: "Broadband"
+ *               cp_type:
+ *                 type: string
+ *                 description: Type of CP being collected.
+ *                 example: "Router"
+ *               cpe_model:
+ *                 type: string
+ *                 description: Model of the collected CPE.
+ *                 example: "XYZ-Model123"
+ *               serial_no:
+ *                 type: string
+ *                 description: Serial number of the collected CPE.
+ *                 example: "SN-ABC123456"
+ *               remark:
+ *                 type: string
+ *                 description: Additional remarks or comments.
+ *                 example: "Collected successfully."
+ *     responses:
+ *       200:
+ *         description: Case updated successfully with the collected CPE data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Case has been updated successfully."
+ *                 data:
+ *                   type: object
+ *                   description: Updated case details.
+ *       400:
+ *         description: Validation error - Missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "case_id, drc_id, cpe_model, serial_no and cp_type are required."
+ *       404:
+ *         description: Case not found for the given case_id and drc_id.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     data:
+ *                       type: string
+ *                       example: "Case is not available."
+ *       500:
+ *         description: Internal server error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "An unexpected error occurred."
+ */
+router.post("/RO_CPE_Collection", RO_CPE_Collection);
 export default router;

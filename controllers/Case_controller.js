@@ -7569,14 +7569,72 @@ export const List_All_Settlement_Cases =async(req, res) => {
 
 export const RO_CPE_Collection = async (req,res) => {
   try {
-    const ro_cpe_collect_id = 1;
     const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
       
     if (!case_id || !drc_id || !cp_type ||!cpe_model || !serial_no) {
-        return res.status(400).json({ message: "case_id, and Interaction_Log_ID are required" });
+        return res.status(400).json({ message: "case_id, drc_id, cpe_model, serial_no and cp_type are required" });
     };
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      return res.status(500).json({ message: "Failed to connect to MongoDB" });
+    }
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "ro_cpe_collect_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    console.log(counterResult);
+    if (!counterResult.seq) {
+      return res.status(500).json({ message: "Failed to generate ro_cpe_collect_id" });
+    }
+
+    const ro_cpe_collect_id = counterResult.seq;
+
+    const updatedCaseDetails = await Case_details.findOneAndUpdate(
+      { case_id: case_id, "drc.drc_id": drc_id }, 
+      {
+        $push: {
+          ro_cpe_collect: {
+            ro_cpe_collect_id: ro_cpe_collect_id, 
+            drc_id: Number(drc_id), 
+            ro_id: Number(ro_id), 
+            order_id: order_id, 
+            collected_date: new Date(), 
+            product_label,
+            service_type,
+            cp_type,
+            cpe_model,
+            serial_no,
+            remark,
+          }
+        }
+      },
+      { new: true }
+    );
+    if (!updatedCaseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found",
+        errors: {
+          code: 404,
+          data: "Case is not available",
+        },
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "Case has been updated successfully",
+      data: updatedCaseDetails,
+    });
   } catch (error) {
-    
+      return res.status(500).json({
+        status: "error",
+        message: "Internal Server Error",
+        errors: {
+          code: 500,
+          description: error.message,
+        },
+      });
   }
 };
 

@@ -117,10 +117,10 @@ const RoCpeCollectSchema = new mongoose.Schema({
   cp_type: { type: String, required: true }, 
   cpe_model: { type: String, required: true },
   serial_no: { type: String, required: true }, 
-  remark: { type: String }, 
-  rcmp_status: { type: String,}, 
-  rcmp_status_dtm: { type: Date },
-  rcmp_status_reason: { type: String }, 
+  remark: { type: String, default:null }, 
+  rcmp_status: { type: String, default:null}, 
+  rcmp_status_dtm: { type: Date, default:null },
+  rcmp_status_reason: { type: String , default:null}, 
 });
 
 const roNegotiationSchema = new mongoose.Schema({
