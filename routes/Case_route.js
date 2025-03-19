@@ -80,6 +80,9 @@ import {
   Withdraw_Mediation_Board_Acceptance,
   getAllPaymentCases,
   RO_CPE_Collection,
+  List_Request_Response_log,
+  Create_Task_For_Request_Responce_Log_Download,
+
   List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
 
@@ -7265,4 +7268,14 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *                       example: "An unexpected error occurred."
  */
 router.post("/RO_CPE_Collection", RO_CPE_Collection);
+router.post(
+  "/List_Request_Response_log",
+  List_Request_Response_log
+);
+
+router.post(
+  "/Create_Task_For_Request_Responce_Log_Download",
+  Create_Task_For_Request_Responce_Log_Download
+);
+
 export default router;
