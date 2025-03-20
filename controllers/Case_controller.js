@@ -5561,6 +5561,7 @@ export const listDRCAllCases = async (req, res) => {
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;    
+    console.log("case id is ", case_id , " drc id is ", drc_id)
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6586,7 +6587,7 @@ export const getActiveNegotiations = async (req, res) => {
     // .select("negotiation_id negotiation_description end_dtm");
 
     const activeNegotiations = await TemplateNegotiation.find();
-    console.log("field reason ", activeNegotiations);
+    // console.log("field reason ", activeNegotiations);
     return res.status(200).json({
       status: "success",
       message: "Active negotiations retrieved successfully.",
@@ -6780,7 +6781,6 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 // export const Submit_Mediation_Board_Acceptance = async (req, res) => {
 //   try {
 //     const {
@@ -7400,14 +7400,6 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
 // money transactions
 // export const getAllPaymentCases = async (req, res) => {
 //   try {
@@ -7691,5 +7683,220 @@ export const List_All_Settlement_Cases =async(req, res) => {
       }
     );
   }
-}
+};
+
+export const RO_CPE_Collection = async (req,res) => {
+  try {
+    const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
+      
+    if (!case_id || !drc_id || !cp_type ||!cpe_model || !serial_no) {
+        return res.status(400).json({ message: "case_id, drc_id, cpe_model, serial_no and cp_type are required" });
+    };
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      return res.status(500).json({ message: "Failed to connect to MongoDB" });
+    }
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "ro_cpe_collect_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    console.log(counterResult);
+    if (!counterResult.seq) {
+      return res.status(500).json({ message: "Failed to generate ro_cpe_collect_id" });
+    }
+
+    const ro_cpe_collect_id = counterResult.seq;
+
+    const updatedCaseDetails = await Case_details.findOneAndUpdate(
+      { case_id: case_id, "drc.drc_id": drc_id }, 
+      {
+        $push: {
+          ro_cpe_collect: {
+            ro_cpe_collect_id: ro_cpe_collect_id, 
+            drc_id: Number(drc_id), 
+            ro_id: Number(ro_id), 
+            order_id: order_id, 
+            collected_date: new Date(), 
+            product_label,
+            service_type,
+            cp_type,
+            cpe_model,
+            serial_no,
+            remark,
+          }
+        }
+      },
+      { new: true }
+    );
+    if (!updatedCaseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found",
+        errors: {
+          code: 404,
+          data: "Case is not available",
+        },
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "Case has been updated successfully",
+      data: updatedCaseDetails,
+    });
+  } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Internal Server Error",
+        errors: {
+          code: 500,
+          description: error.message,
+        },
+      });
+  }
+};
+
+
+export const List_Request_Response_log = async (req, res) => {
+  try {
+    const { case_current_status, date_from, date_to } = req.body;
+
+    if (!date_from || !date_to || !case_current_status) {
+      return res.status(400).json({ message: "Missing required fields: case_current_status, date_from, and date_to are required." });
+    }
+
+    const startDate = new Date(date_from);
+    const endDate = new Date(date_to);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Step 1: Fetch all requests within the date range
+    const requests = await Request.find({
+      created_dtm: { $gte: startDate, $lte: endDate }
+    });
+
+    if (!requests.length) {
+      return res.status(404).json({ message: "No requests found within the given date range." });
+    }
+
+    const requestIds = requests.map(req => req.RO_Request_Id);
+    console.log("Request IDs:", requestIds);
+
+    // Step 2: Fetch related user interaction logs
+    const interactions = await User_Interaction_Log.find({ Interaction_Log_ID: { $in: requestIds } });
+    console.log("Interactions:", interactions);
+
+    if (!interactions.length) {
+      return res.status(404).json({ message: "No related user interactions found." });
+    }
+
+    // Extract case IDs from interaction logs (handling Map type correctly)
+    const caseIds = interactions
+      .map(interaction => interaction.parameters?.get("case_id"))
+      .filter(Boolean);
+    console.log("Extracted Case IDs:", caseIds);
+
+    // Step 3: Fetch all related case details
+    const allCases = await Case_details.find({ case_id: { $in: caseIds } });
+
+    if (!allCases.length) {
+      return res.status(404).json({ message: "No related case details found." });
+    }
+
+    // Step 4: Filter cases based on case_current_status
+    const cases = allCases.filter(caseDoc => caseDoc.case_current_status === case_current_status);
+
+    if (!cases.length) {
+      return res.status(404).json({ message: "No matching case details found." });
+    }
+
+    // Construct response, grouping data by DRC
+    const response = cases.flatMap(caseDoc => {
+      const relatedInteraction = interactions.find(interaction => interaction.parameters?.get("case_id") === caseDoc.case_id);
+      const relatedRequest = requests.find(request => request.RO_Request_Id === relatedInteraction?.Interaction_Log_ID);
+
+      const startValidity = new Date(caseDoc.created_dtm);
+      const expiryValidity = new Date(startValidity);
+      expiryValidity.setMonth(expiryValidity.getMonth() + caseDoc.monitor_months);
+
+      return caseDoc.drc.map(drcEntry => ({
+        drc_id: drcEntry.drc_id,
+        drc_name: drcEntry.drc_name,
+        case_id: caseDoc.case_id,
+        case_current_status: caseDoc.case_current_status,
+        Validity_Period: `${startValidity.toISOString()} - ${expiryValidity.toISOString()}`,
+        User_Interaction_Status: relatedInteraction?.User_Interaction_Status || "N/A",
+        Request_Description: relatedRequest?.Request_Description || "N/A",
+        Letter_Issued_On: relatedRequest?.parameters?.get("Letter_Send") === "Yes" ? relatedRequest.created_dtm : null,
+        Approved_on: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_dtm : null,
+        Approved_by: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_by : null,
+        Remark: relatedRequest?.parameters?.get("Remark") || "N/A"
+      }));
+    });
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching request response log:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+export const Create_Task_For_Request_Responce_Log_Download = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { case_current_status, date_from, date_to, Created_By } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      case_current_status,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 38,
+      task_type: "Create Request Responce Log List for Downloard",
+      ...parameters, // Spreads parameters directly into taskData
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    console.error("Error in Create_Task_For_case_distribution:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+
 

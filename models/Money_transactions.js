@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
 
 const moneyTransactionSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   money_transaction_id: { type: Number, required: true, unique: true },
   case_id: { type: Number, required: true },
   account_num: { type: Number, required: true },

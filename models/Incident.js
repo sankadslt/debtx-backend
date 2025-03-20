@@ -80,6 +80,7 @@ const lastActionsSchema = new Schema({
 // Main Incident Schema
 const incidentSchema = new Schema(
     {
+        doc_version : {type:Number, required: true, default: 1},
         Incident_Id: { type: Number, required: true },
         Account_Num: { type: String, required: true },
         Arrears_Band: {type: String, required: true},
