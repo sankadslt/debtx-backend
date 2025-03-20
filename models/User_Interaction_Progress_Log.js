@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 const interactionSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     Interaction_Log_ID: {
       type: Number,
       required: true,

@@ -2,6 +2,7 @@ import { Schema, model } from 'mongoose';
 
 // Define the schema
 const temCaseDistributionSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   case_distribution_batch_id: { type: Number, required: true },
   batch_seq: { type: Number, required: true },
   created_dtm: { type: Date, required: true },
