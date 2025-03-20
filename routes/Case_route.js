@@ -81,9 +81,9 @@ import {
 
 
 //   getAllPaymentCases,
-//   RO_CPE_Collection,
-//   List_Request_Response_log,
-//   Create_Task_For_Request_Responce_Log_Download,
+  RO_CPE_Collection,
+  List_Request_Response_log,
+  Create_Task_For_Request_Responce_Log_Download,
 
 
   List_All_Settlement_Cases,
@@ -7982,7 +7982,7 @@ router.post(
   Withdraw_Mediation_Board_Acceptance
 );
 //payments
-router.post("/List_All_Payment_Cases", getAllPaymentCases);
+// router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 /**
  * @swagger
