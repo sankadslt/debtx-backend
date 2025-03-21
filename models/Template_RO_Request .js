@@ -2,6 +2,7 @@ import { Schema, model } from 'mongoose';
 
 const RORequestSchema = new Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     ro_request_id: { 
       type: Number, 
       required: true, 

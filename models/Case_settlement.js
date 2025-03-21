@@ -15,6 +15,7 @@ const planReceivedSchema = new Schema({
 });
 
 const casesettlementSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   settlement_id: { type: Number, required: true, unique: true },
   case_id: { type: Number, required: true },
   created_by: { type: String, required: true },

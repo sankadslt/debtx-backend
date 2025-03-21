@@ -117,10 +117,10 @@ const RoCpeCollectSchema = new mongoose.Schema({
   cp_type: { type: String, required: true }, 
   cpe_model: { type: String, required: true },
   serial_no: { type: String, required: true }, 
-  remark: { type: String }, 
-  rcmp_status: { type: String, required: true }, 
-  rcmp_status_dtm: { type: Date },
-  rcmp_status_reason: { type: String }, 
+  remark: { type: String, default:null }, 
+  rcmp_status: { type: String, default:null}, 
+  rcmp_status_dtm: { type: Date, default:null },
+  rcmp_status_reason: { type: String , default:null}, 
 });
 
 const roNegotiationSchema = new mongoose.Schema({
@@ -180,6 +180,7 @@ const moneytransactionsschema = new Schema({
 
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
+  doc_version : {type:Number, required: true, default: 1},
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
   account_no: { type: String, required: true },
