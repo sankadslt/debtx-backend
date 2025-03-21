@@ -6984,9 +6984,7 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
-router.post(
-  "/List_Details_Of_Mediation_Board_Acceptance",
-  List_Details_Of_Mediation_Board_Acceptance
+router.post("/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Mediation_Board_Acceptance
 );
 
 router.post(

@@ -7397,13 +7397,6 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
 // money transactions
 export const getAllPaymentCases = async (req, res) => {
   try {
@@ -7513,6 +7506,7 @@ export const getAllPaymentCases = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 export const List_All_Settlement_Cases =async(req, res) => {
   const {case_id, settlement_phase, settlement_status, from_date, to_date} =req.body;
 
