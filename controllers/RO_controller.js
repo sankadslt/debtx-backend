@@ -14,7 +14,6 @@ import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
-
 import CaseDetails from "../models/CaseMode.js";
 
 
@@ -29,20 +28,6 @@ export const Change_RO_Status = async (req, res) => {
       message: "RO ID field, RO EDIT BY field and RO Status field are required",
     });
   }
-  // const updateStatusQue = `UPDATE recovery_officer SET ro_status = ? WHERE ro_id = ?`;
-
-  // try {
-    // Execute MySQL query
-    // const executeMySQLQuery = (query, params) => {
-    //   return new Promise((resolve, reject) => {
-    //     db.mysqlConnection.query(query, params, (err, results) => {
-    //       if (err) reject(err);
-    //       else resolve(results);
-    //     });
-    //   });
-    // };
-
-    // const mysqlResults = await executeMySQLQuery(updateStatusQue, [ro_status, ro_id]);
 
     // Update MongoDB
     

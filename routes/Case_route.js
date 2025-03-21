@@ -78,10 +78,13 @@ import {
   List_Details_Of_Mediation_Board_Acceptance,
   Submit_Mediation_Board_Acceptance,
   Withdraw_Mediation_Board_Acceptance,
-  getAllPaymentCases,
+
+
+//   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+
 
   List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
@@ -4129,17 +4132,27 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
 /**
  * @swagger
  * /api/case/List_All_Batch_Details:
- *   get:
+ *   post:
  *     summary: List All Batch Details
  *     description: |
- *       Retrieves all batch details where the last approve_status is "Open" and approver_type is "DRC_Distribution".
- *       Also fetches related data from Case Distribution DRC Transactions.
+ *       Retrieves batch details for cases with an open approval status.
+ *       Filters and structures batch details along with related case distribution data.
  *
- *       | Version | Date        | Description                | Changed By       |
- *       |---------|-------------|----------------------------|------------------|
- *       | 01      | 2025-Mar-11 | List All Batch Details     | Dinusha Anupama        |
+ *       | Version | Date        | Description            | Changed By       |
+ *       |---------|------------|------------------------|------------------|
+ *       | 01      | 2025-Mar-14 | List All Batch Details | Dinusha Anupama  |
  *
  *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approved_deligated_by:
+ *                 type: string
+ *                 example: "super@gmail.com"
  *     responses:
  *       200:
  *         description: Successfully retrieved batch details.
@@ -4152,14 +4165,14 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                 properties:
  *                   _id:
  *                     type: string
- *                     example: "67cfcef19b203c2118a0e40e"
+ *                     example: "67d3d5a668b432dd5edf8e6d"
  *                   approver_reference:
  *                     type: integer
  *                     example: 1
  *                   created_on:
  *                     type: string
  *                     format: date-time
- *                     example: "2025-03-11T05:49:37.286Z"
+ *                     example: "2025-03-14T07:07:18.773Z"
  *                   created_by:
  *                     type: string
  *                     example: "manager_1"
@@ -4174,7 +4187,7 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                         status_date:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-03-11T05:49:36.764Z"
+ *                           example: "2025-03-14T07:07:18.288Z"
  *                         status_edit_by:
  *                           type: string
  *                           example: "manager_1"
@@ -4196,15 +4209,14 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                       minus_drc_id:
  *                         type: integer
  *                         example: 9
- *                   approved_by:
- *                     type: string
- *                     example: "approver_1"
  *                   remark:
  *                     type: array
  *                     items:
  *                       type: string
+ *                     example: []
  *                   case_distribution_details:
  *                     type: object
+ *                     nullable: true
  *                     properties:
  *                       case_distribution_batch_id:
  *                         type: integer
@@ -4214,12 +4226,19 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                         example: "PEO TV"
  *                       rulebase_count:
  *                         type: integer
- *                         example: 100
- *                       rulebase_arrears_sum:
- *                         type: integer
- *                         example: 500000
+ *                         example: 10
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, missing required fields."
  *       500:
- *         description: Internal server error while fetching batch details.
+ *         description: Server error occurred while fetching batch details.
  *         content:
  *           application/json:
  *             schema:
@@ -4228,7 +4247,11 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                 message:
  *                   type: string
  *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Error fetching batch details."
  */
+
 
 router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
@@ -6761,6 +6784,181 @@ router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Boar
  */
 router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
 
+/**
+ * @swagger
+ * /api/case/ListRequestLogFromRecoveryOfficers:
+ *   post:
+ *     summary: Retrieve request logs from recovery officers
+ *     description: |
+ *       Fetches request logs from the `User_Interaction_Log` collection based on filters such as delegate user ID, interaction type, and date range.
+ *       It also retrieves related request records and case details.
+ *
+ *       | Version | Date        | Description                                | Changed By    |
+ *       |---------|------------|--------------------------------------------|--------------|
+ *       | 01      | 2025-Mar-17 | Initial implementation                    | Dinusha Anupama    |
+ *
+ *     tags: [Case Management]
+  *     parameters:
+ *       - in: body
+ *         name: delegate_user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the delegate user to fetch interaction logs.
+ *       - in: body
+ *         name: User_Interaction_Type
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Type of user interaction to filter logs.
+ *       - in: body
+ *         name: date_from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering logs.
+ *       - in: body
+ *         name: date_to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering logs.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               delegate_user_id:
+ *                 type: string
+ *                 example: "5"
+ *               User_Interaction_Type:
+ *                 type: string
+ *                 example: "Mediation board forward request letter"
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-31"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved request logs from recovery officers.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   doc_version:
+ *                     type: integer
+ *                     example: 1
+ *                   _id:
+ *                     type: string
+ *                     example: "67c67875737c34aa4701ce32"
+ *                   Interaction_Log_ID:
+ *                     type: integer
+ *                     example: 100
+ *                   Interaction_ID:
+ *                     type: integer
+ *                     example: 1
+ *                   User_Interaction_Type:
+ *                     type: string
+ *                     example: "Mediation board forward request letter"
+ *                   delegate_user_id:
+ *                     type: string
+ *                     example: "5"
+ *                   Created_By:
+ *                     type: string
+ *                     example: "User123"
+ *                   User_Interaction_Status:
+ *                     type: string
+ *                     example: "Open"
+ *                   parameters:
+ *                     type: object
+ *                     example: {}
+ *                   User_Interaction_Status_DTM:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T15:30:00.000Z"
+ *                   Request_Mode:
+ *                     type: string
+ *                     example: "Negotiation"
+ *                   CreateDTM:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T19:27:17.666Z"
+ *                   case_details:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         example: 1
+ *                       case_current_status:
+ *                         type: string
+ *                         example: "Withdraw"
+ *                       current_arrears_amount:
+ *                         type: number
+ *                         example: 1250.75
+ *                       drc:
+ *                         type: object
+ *                         properties:
+ *                           drc_id:
+ *                             type: integer
+ *                             example: 7
+ *                           drc_name:
+ *                             type: string
+ *                             example: "DRC A"
+ *                           drc_status:
+ *                             type: string
+ *                             example: "Active"
+ *                       Validity_Period:
+ *                         type: string
+ *                         example: "2025-01-18T10:00:00.000Z - 2025-04-18T10:00:00.000Z"
+ *                   Approve_Status:
+ *                     type: string
+ *                     example: "Yes"
+ *       400:
+ *         description: Validation error due to missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "delegate_user_id is required"
+ *       404:
+ *         description: No matching interactions or approved/rejected requests found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching interactions found."
+ *       500:
+ *         description: Internal server error due to database or application failure.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection failed"
+ */
+
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
 
 /**
@@ -6985,24 +7183,826 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
  */
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
+
+// router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+
+// router.post(
+//   "/List_Details_Of_Mediation_Board_Acceptance",
+//   List_Details_Of_Mediation_Board_Acceptance
+// );
+
+// router.post(
+//   "/Submit_Mediation_Board_Acceptance",
+//   Submit_Mediation_Board_Acceptance
+// );
+
+// router.post(
+//   "/Withdraw_Mediation_Board_Acceptance",
+//   Withdraw_Mediation_Board_Acceptance
+// );
+
+
+/**
+ * @swagger
+ * /api/case/Create_task_for_Request_log_download_when_select_more_than_one_month:
+ *   post:
+ *     summary: Create Task for Request Log Download (More than One Month)
+ *     description: |
+ *       Creates a task for downloading request logs when the selected date range exceeds one month.
+ *
+ *       | Version | Date        | Description                                      | Changed By       |
+ *       |---------|------------|--------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-06 | Create task for request log download for >1 month | Dinusha Anupama |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: delegate_user_id
+ *         schema:
+ *           type: string
+ *           example: "5"
+ *         description: ID of the delegate user associated with the task.
+ *       - in: query
+ *         name: User_Interaction_Type
+ *         schema:
+ *           type: string
+ *           example: "Download"
+ *         description: Type of user interaction.
+ *       - in: query
+ *         name: Request Accept
+ *         schema:
+ *           type: string
+ *           enum: [Approve, Reject]
+ *           example: "Approve"
+ *         description: Approval status for the request.
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-01"
+ *         description: Start date of the request log period.
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-02-01"
+ *         description: End date of the request log period.
+ *       - in: query
+ *         name: Created_By
+ *         schema:
+ *           type: string
+ *           example: "admin"
+ *         description: User who created the task.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               delegate_user_id:
+ *                 type: string
+ *                 example: "5"
+ *               User_Interaction_Type:
+ *                 type: string
+ *                 example: "Download"
+ *               Request Accept:
+ *                 type: string
+ *                 enum: [Approve, Reject]
+ *                 example: "Approve"
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-02-01"
+ *               Created_By:
+ *                 type: string
+ *                 example: "admin"
+ *     responses:
+ *       201:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Task for request log download created successfully."
+ *                 taskData:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 37
+ *                     task_type:
+ *                       type: string
+ *                       example: "Create Task for Request log List for Download"
+ *                     delegate_user_id:
+ *                       type: string
+ *                       example: "5"
+ *                     User_Interaction_Type:
+ *                       type: string
+ *                       example: "Download"
+ *                     Request Accept:
+ *                       type: string
+ *                       example: "Approve"
+ *                     date_from:
+ *                       type: string
+ *                       format: date
+ *                       example: "2025-01-01"
+ *                     date_to:
+ *                       type: string
+ *                       format: date
+ *                       example: "2025-02-01"
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-03-06T10:30:00.000Z"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, missing Created_By field."
+ *       500:
+ *         description: Server error occurred while creating the task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating task for request log download"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+
+/**
+ * @swagger
+ * /api/case/List_Details_Of_Mediation_Board_Acceptance:
+ *   post:
+ *     summary: List Details of Mediation Board Acceptance
+ *     description: |
+ *       Fetches case details and interaction logs related to mediation board acceptance.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Fetch case details and interaction logs for mediation board | Your Name       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: delegate_user_id
+ *         schema:
+ *           type: string
+ *           example: "5"
+ *         description: ID of the delegate user.
+ *       - in: query
+ *         name: User_Interaction_Type
+ *         schema:
+ *           type: string
+ *           example: "Mediation board forward request letter"
+ *         description: User_Interaction_Type which we want to get documents.
+ *       - in: query
+ *         name: case_id
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: ID of the case.
+ *       - in: query
+ *         name: Interaction_Log_ID
+ *         schema:
+ *           type: number
+ *           example: "100"
+ *         description: ID of the user interaction log.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               delegate_user_id:
+ *                 type: string
+ *                 example: "5"
+ *               User_Interaction_Type:
+ *                 type: string
+ *                 example: "Mediation board forward request letter"
+ *               case_id:
+ *                 type: integer
+ *                 example: 1
+ *               Interaction_Log_ID:
+ *                 type: integer
+ *                 example: 100
+ *     responses:
+ *       200:
+ *         description: Case details and request history retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 case_id:
+ *                   type: integer
+ *                   example: 1
+ *                 customer_ref:
+ *                   type: string
+ *                   example: "CUST12345"
+ *                 account_no:
+ *                   type: string
+ *                   example: "ACC56789"
+ *                 current_arrears_amount:
+ *                   type: number
+ *                   example: 15000.75
+ *                 last_payment_date:
+ *                   type: string
+ *                   format: date
+ *                   example: "2025-02-20"
+ *                 monitor_months:
+ *                   type: integer
+ *                   example: 6
+ *                 incident_id:
+ *                   type: integer
+ *                   example: 3001
+ *                 case_current_status:
+ *                   type: string
+ *                   example: "Forward to Mediation Board"
+ *                 ro_negotiation:
+ *                   type: object
+ *                   properties:
+ *                     negotiation_status:
+ *                       type: string
+ *                       example: "RO Negotiation Extension Pending"
+ *                 mediation_board:
+ *                   type: object
+ *                   properties:
+ *                     mediation_status:
+ *                       type: string
+ *                       example: "MB Settle Pending"
+ *                 Customer_Type_Name:
+ *                   type: string
+ *                   example: "Corporate"
+ *                 ACCOUNT_MANAGER:
+ *                   type: string
+ *                   example: "John Doe"
+ *                 Request_History:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       delegate_user_id:
+ *                         type: string
+ *                         example: "5"
+ *                       User_Interaction_Type:
+ *                         type: string
+ *                         example: "Previous Interaction Type"
+ *                       Interaction_Log_ID:
+ *                         type: integer
+ *                         example: 99
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "delegate_user_id, case_id, and Interaction_Log_ID are required"
+ *       404:
+ *         description: Case details or interaction logs not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No matching interaction found."
+ *       500:
+ *         description: Server error occurred while fetching case details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Error fetching case details"
+ */
 
 router.post(
   "/List_Details_Of_Mediation_Board_Acceptance",
   List_Details_Of_Mediation_Board_Acceptance
 );
 
+/**
+ * @swagger
+ * /api/case/Submit_Mediation_Board_Acceptance:
+ *   post:
+ *     summary: Submit Mediation Board Acceptance Request
+ *     description: |
+ *       Submits a mediation board acceptance request and updates the case status and interaction log.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Submit mediation board acceptance request          | Dinusha Anupama       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: create_by
+ *         schema:
+ *           type: string
+ *           example: "admin"
+ *         description: Person who accept the request.
+ *       - in: query
+ *         name: Interaction_Log_ID
+ *         schema:
+ *           type: number
+ *           example: 55
+ *         description: ID of the document in User Interaction Log.
+ *       - in: query
+ *         name: case_id
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: ID of the case.
+ *       - in: query
+ *         name: User_Interaction_Type
+ *         schema:
+ *           type: string
+ *           example: "Mediation Board"
+ *         description: User_Interaction_Type of the document in User Interaction Log.
+ *       - in: query
+ *         name: Request_Mode
+ *         schema:
+ *           type: string
+ *           example: "Negotiation"
+ *         description: Request_Mode of the document.
+ *       - in: query
+ *         name: Interaction_ID
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: Interaction_ID of the document.
+ *       - in: query
+ *         name: Request Accept
+ *         schema:
+ *           type: string
+ *           example: "Yes"
+ *         description: Request Accept field in parameters section in Request collection.
+ *       - in: query
+ *         name: Reamrk
+ *         schema:
+ *           type: string
+ *           example: "high"
+ *         description: Remark of the document in parameters section in Request collection document.
+ *       - in: query
+ *         name: No_of_Calendar_Month
+ *         schema:
+ *           type: string
+ *           example: "1"
+ *         description: No_of_Calendar_Month field in parameters section in Request collection document.
+ *       - in: query
+ *         name: Letter_Send
+ *         schema:
+ *           type: string
+ *           example: "Yes"
+ *         description: Letter_Send field in parameters section in Request collection document.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               create_by:
+ *                 type: string
+ *                 example: "User456"
+ *               Interaction_Log_ID:
+ *                 type: integer
+ *                 example: 55
+ *               case_id:
+ *                 type: integer
+ *                 example: 1
+ *               User_Interaction_Type:
+ *                 type: string
+ *                 example: "Mediation Board"
+ *               Request_Mode:
+ *                 type: string
+ *                 example: "Negotiation"
+ *               Interaction_ID:
+ *                 type: integer
+ *                 example: 1
+ *               Request Accept:
+ *                 type: string
+ *                 example: "Yes"
+ *               Reamrk:
+ *                 type: string
+ *                 example: "high"
+ *               No_of_Calendar_Month:
+ *                 type: string
+ *                 example: "1"
+ *               Letter_Send:
+ *                 type: string
+ *                 example: "Yes"
+ *     responses:
+ *       201:
+ *         description: Mediation board acceptance request submitted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Mediation Board Acceptance Request submitted and case updated successfully."
+ *                 updates:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Accept"
+ *                     monitor_months:
+ *                       type: integer
+ *                       example: 4
+ *                     added_case_status:
+ *                       type: object
+ *                       properties:
+ *                         case_status:
+ *                           type: string
+ *                           example: "Accept"
+ *                         status_reason:
+ *                           type: string
+ *                           example: "high"
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-03-19T07:26:51.862Z"
+ *                         created_by:
+ *                           type: string
+ *                           example: "User456"
+ *                         notified_dtm:
+ *                           type: string
+ *                           nullable: true
+ *                         expire_dtm:
+ *                           type: string
+ *                           nullable: true
+ *                     interaction_log_status:
+ *                       type: string
+ *                       example: "Approved"
+ *                     drc_expire_extended:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "2025-05-12T18:16:49.606Z"
+ *                 request:
+ *                   type: object
+ *                   properties:
+ *                     RO_Request_Id:
+ *                       type: integer
+ *                       example: 55
+ *                     Request_Description:
+ *                       type: string
+ *                       example: "Mediation Board"
+ *                     created_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-03-19T07:26:51.660Z"
+ *                     created_by:
+ *                       type: string
+ *                       example: "User456"
+ *                     Request_Mode:
+ *                       type: string
+ *                       example: "Negotiation"
+ *                     Intraction_ID:
+ *                       type: integer
+ *                       example: 1
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         Request Accept:
+ *                           type: string
+ *                           example: "Yes"
+ *                         Reamrk:
+ *                           type: string
+ *                           example: "high"
+ *                         No_of_Calendar_Month:
+ *                           type: string
+ *                           example: "1"
+ *                         Letter_Send:
+ *                           type: string
+ *                           example: "Yes"
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid No_of_Calendar_Month value. It must be a positive number."
+ *       404:
+ *         description: Case details not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Case with case_id 1 not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to submit Mediation Board Acceptance Request and update related records."
+ *                 error:
+ *                   type: string
+ *                   example: "Error message details"
+ */
+
 router.post(
   "/Submit_Mediation_Board_Acceptance",
   Submit_Mediation_Board_Acceptance
 );
+
+/**
+ * @swagger
+ * /api/case/Withdraw_Mediation_Board_Acceptance:
+ *   post:
+ *     summary: Withdraw Mediation Board Acceptance Request
+ *     description: |
+ *       Withdraws a mediation board acceptance request and updates the case status and interaction log.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Withdraw mediation board acceptance request          | Dinusha Anupama       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: create_by
+ *         schema:
+ *           type: string
+ *           example: "User456"
+ *         description: Person who withdraws the request.
+ *       - in: query
+ *         name: Interaction_Log_ID
+ *         schema:
+ *           type: number
+ *           example: 55
+ *         description: ID of the document in User Interaction Log.
+ *       - in: query
+ *         name: case_id
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: ID of the case.
+ *       - in: query
+ *         name: User_Interaction_Type
+ *         schema:
+ *           type: string
+ *           example: "Mediation Board"
+ *         description: User interaction type for the document in User Interaction Log.
+ *       - in: query
+ *         name: Request_Mode
+ *         schema:
+ *           type: string
+ *           example: "Negotiation"
+ *         description: Request mode for the document.
+ *       - in: query
+ *         name: Interaction_ID
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: Interaction ID of the document.
+ *       - in: query
+ *         name: Request Accept
+ *         schema:
+ *           type: string
+ *           example: "Yes"
+ *         description: Request accept status field in parameters section in Request collection.
+ *       - in: query
+ *         name: Reamrk
+ *         schema:
+ *           type: string
+ *           example: "high"
+ *         description: Remark for the document in parameters section in Request collection.
+ *       - in: query
+ *         name: No_of_Calendar_Month
+ *         schema:
+ *           type: string
+ *           example: "1"
+ *         description: Number of calendar months for the request in parameters section in Request collection.
+ *       - in: query
+ *         name: Letter_Send
+ *         schema:
+ *           type: string
+ *           example: "Yes"
+ *         description: Letter send status field in parameters section in Request collection.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               create_by:
+ *                 type: string
+ *                 example: "User456"
+ *               Interaction_Log_ID:
+ *                 type: integer
+ *                 example: 55
+ *               case_id:
+ *                 type: integer
+ *                 example: 1
+ *               User_Interaction_Type:
+ *                 type: string
+ *                 example: "Mediation Board"
+ *               Request_Mode:
+ *                 type: string
+ *                 example: "Negotiation"
+ *               Interaction_ID:
+ *                 type: integer
+ *                 example: 1
+ *               Request Accept:
+ *                 type: string
+ *                 example: "Yes"
+ *               Reamrk:
+ *                 type: string
+ *                 example: "high"
+ *               No_of_Calendar_Month:
+ *                 type: string
+ *                 example: "1"
+ *               Letter_Send:
+ *                 type: string
+ *                 example: "Yes"
+ *     responses:
+ *       201:
+ *         description: Withdrawal mediation board request submitted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Withdrawal mediation board request submitted and all records updated successfully."
+ *                 updates:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Withdraw"
+ *                     monitor_months:
+ *                       type: integer
+ *                       example: 2
+ *                     added_case_status:
+ *                       type: object
+ *                       properties:
+ *                         case_status:
+ *                           type: string
+ *                           example: "Withdraw"
+ *                         status_reason:
+ *                           type: string
+ *                           example: "high"
+ *                         created_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-03-19T08:00:00.203Z"
+ *                         created_by:
+ *                           type: string
+ *                           example: "User456"
+ *                         notified_dtm:
+ *                           type: string
+ *                           nullable: true
+ *                         expire_dtm:
+ *                           type: string
+ *                           nullable: true
+ *                     interaction_log_status:
+ *                       type: string
+ *                       example: "Withdraw"
+ *                     forwarded_approver_id:
+ *                       type: string
+ *                       example: "67da798045a4635e68522f4f"
+ *                     drc_expire_extended:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "2025-07-12T18:16:49.606Z"
+ *                 request:
+ *                   type: object
+ *                   properties:
+ *                     RO_Request_Id:
+ *                       type: integer
+ *                       example: 55
+ *                     Request_Description:
+ *                       type: string
+ *                       example: "Mediation Board"
+ *                     created_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-03-19T08:00:00.009Z"
+ *                     created_by:
+ *                       type: string
+ *                       example: "User456"
+ *                     Request_Mode:
+ *                       type: string
+ *                       example: "Negotiation"
+ *                     Intraction_ID:
+ *                       type: integer
+ *                       example: 1
+ *                     parameters:
+ *                       type: object
+ *                       properties:
+ *                         Request Accept:
+ *                           type: string
+ *                           example: "Yes"
+ *                         Reamrk:
+ *                           type: string
+ *                           example: "high"
+ *                         No_of_Calendar_Month:
+ *                           type: string
+ *                           example: "1"
+ *                         Letter_Send:
+ *                           type: string
+ *                           example: "Yes"
+ *       400:
+ *         description: Validation error - Incorrect or missing parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid No_of_Calendar_Month value. It must be a positive number."
+ *       404:
+ *         description: Case details not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Case with case_id 1 not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to process withdrawal mediation board acceptance."
+ *                 error:
+ *                   type: string
+ *                   example: "Error message details"
+ */
 
 router.post(
   "/Withdraw_Mediation_Board_Acceptance",
   Withdraw_Mediation_Board_Acceptance
 );
 //payments
-router.post("/List_All_Payment_Cases", getAllPaymentCases);
+// router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 /**
  * @swagger
@@ -7268,10 +8268,279 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *                       example: "An unexpected error occurred."
  */
 router.post("/RO_CPE_Collection", RO_CPE_Collection);
+
+/**
+ * @swagger
+ * /api/case/List_Request_Response_log:
+ *   post:
+ *     summary: List Request Response Log
+ *     description: |
+ *       Fetches request response log based on provided filters (case_current_status, date_from, and date_to).
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Fetches request response log data for the given filters. | Your Name       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         schema:
+ *           type: string
+ *           example: "Withdraw"
+ *         description: Current status of the case.
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: date
+ *           example: "2025-03-01"
+ *         description: Date user wants to starting filter.
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: date
+ *           example: "2025-03-05"
+ *         description: Date user wants to end filter.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 example: "Withdraw"
+ *                 description: The current status of the case.
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-01"
+ *                 description: The start date of the range for the request.
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-05"
+ *                 description: The end date of the range for the request.
+ *     responses:
+ *       200:
+ *         description: Request response log data fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   drc_id:
+ *                     type: integer
+ *                     example: 7
+ *                   drc_name:
+ *                     type: string
+ *                     example: "DRC A"
+ *                   case_id:
+ *                     type: integer
+ *                     example: 1
+ *                   case_current_status:
+ *                     type: string
+ *                     example: "Withdraw"
+ *                   Validity_Period:
+ *                     type: string
+ *                     example: "2025-01-18T10:00:00.000Z - 2025-04-18T10:00:00.000Z"
+ *                   User_Interaction_Status:
+ *                     type: string
+ *                     example: "Open"
+ *                   Request_Description:
+ *                     type: string
+ *                     example: "Mediation board forward request letter"
+ *                   Letter_Issued_On:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T14:00:00.000Z"
+ *                   Approved_on:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-03-03T14:00:00.000Z"
+ *                   Approved_by:
+ *                     type: string
+ *                     example: "User456"
+ *                   Remark:
+ *                     type: string
+ *                     example: "high"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "case_current_status, date_from, and date_to are required"
+ *       404:
+ *         description: No requests or interaction logs found for the given filters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No requests found within the given date range."
+ *       500:
+ *         description: Server error occurred while fetching the request response log.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ */
+
 router.post(
   "/List_Request_Response_log",
   List_Request_Response_log
 );
+
+/**
+ * @swagger
+ * /api/case/Create_Task_For_Request_Responce_Log_Download:
+ *   post:
+ *     summary: Create Task for Request Response Log Download
+ *     description: |
+ *       Creates a new task for generating a request response log download.
+ *
+ *       | Version | Date        | Description                                          | Changed By       |
+ *       |---------|------------|------------------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-19 | Create a task for downloading request response log data. | Your Name       |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         schema:
+ *           type: string
+ *           example: "Withdraw"
+ *         description: Current status of the case.
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: date
+ *           example: "2025-03-01"
+ *         description: Date user wants to starting filter.
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: date
+ *           example: "2025-03-05"
+ *         description: Date user wants to end filter.
+ *       - in: query
+ *         name: Created_By
+ *         schema:
+ *           type: string
+ *           example: "admin"
+ *         description: User who creats the task.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 example: "Withdraw"
+ *                 description: The current status of the case.
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *                 description: The start date of the range for the request.
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-02-01"
+ *                 description: The end date of the range for the request.
+ *               Created_By:
+ *                 type: string
+ *                 example: "admin"
+ *                 description: The user who created the task.
+ *     responses:
+ *       201:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Task created successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 38
+ *                     task_type:
+ *                       type: string
+ *                       example: "Create Request Responce Log List for Downloard"
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "Withdraw"
+ *                     date_from:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-01T00:00:00.000Z"
+ *                     date_to:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-02-01T00:00:00.000Z"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin"
+ *                     task_status:
+ *                       type: string
+ *                       example: "open"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Created_By is a required parameter."
+ *       500:
+ *         description: Server error occurred while creating the task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: "Error message details"
+ */
+
 
 router.post(
   "/Create_Task_For_Request_Responce_Log_Download",
