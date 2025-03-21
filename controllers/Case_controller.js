@@ -5559,8 +5559,7 @@ export const listDRCAllCases = async (req, res) => {
 // get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
-    const { case_id, drc_id } = req.body;    
-    console.log("case id is ", case_id , " drc id is ", drc_id)
+    const { case_id, drc_id } = req.body;
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6441,6 +6440,7 @@ export const Customer_Negotiations = async (req, res) => {
       settlement_remark,
       created_by,
     } = req.body;
+    console.log("details are ", req.body);
     if (!case_id || !drc_id || !field_reason) {
       await session.abortTransaction();
       session.endSession();
