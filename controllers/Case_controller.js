@@ -1711,6 +1711,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          assigned_date: lastRecoveryOfficer.assigned_dtm || null,
         };
       })
     );
