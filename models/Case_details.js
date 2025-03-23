@@ -180,9 +180,10 @@ const moneytransactionsschema = new Schema({
 
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
-  doc_version : {type:Number, required: true, default: 1},
+  doc_version : {type:Number, required: true, default: 2},
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
+  case_distribution_batch_id: {type: Number, default: null},
   account_no: { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },

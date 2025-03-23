@@ -4230,7 +4230,18 @@ export const Assign_DRC_To_Case = async (req, res) => {
     }
     const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAssignAproveRecode);
     await TmpForwardedApproverRespons.save();
-
+    const dynamicParams = {
+      case_id,
+      drc_id,
+    };  // should be change this 
+    const result = await createUserInteractionFunction({
+      Interaction_ID:8, // should be change this 
+      User_Interaction_Type:"request_type",  // should be change this 
+      delegate_user_id:1,   // should be change this 
+      Created_By:assigned_by,
+      User_Interaction_Status: "Open",
+      ...dynamicParams // should be change this 
+    });
     res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
@@ -5559,8 +5570,7 @@ export const listDRCAllCases = async (req, res) => {
 // get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
-    const { case_id, drc_id } = req.body;    
-    console.log("case id is ", case_id , " drc id is ", drc_id)
+    const { case_id, drc_id } = req.body;
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6444,6 +6454,7 @@ export const Customer_Negotiations = async (req, res) => {
       settlement_remark,
       created_by,
     } = req.body;
+    console.log("details are ", req.body);
     if (!case_id || !drc_id || !field_reason) {
       await session.abortTransaction();
       session.endSession();
