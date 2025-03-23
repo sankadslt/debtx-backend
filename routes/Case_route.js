@@ -71,6 +71,8 @@ import {
   Withdraw_CasesOwened_By_DRC,
   List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
+  ListAllRequestLogFromRecoveryOfficers,
+  ListAllRequestLogFromRecoveryOfficersWithoutUserID,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
   getActiveNegotiations,
@@ -6959,7 +6961,11 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *                   example: "Database connection failed"
  */
 
+router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecoveryOfficers);
+
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+
+router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllRequestLogFromRecoveryOfficersWithoutUserID);
 
 /**
  * @swagger
