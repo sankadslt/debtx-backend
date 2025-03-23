@@ -1711,6 +1711,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: lastDrc.expire_dtm,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
+          assigned_date: lastRecoveryOfficer.assigned_dtm || null,
         };
       })
     );
@@ -4230,7 +4231,18 @@ export const Assign_DRC_To_Case = async (req, res) => {
     }
     const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAssignAproveRecode);
     await TmpForwardedApproverRespons.save();
-
+    const dynamicParams = {
+      case_id,
+      drc_id,
+    };  // should be change this 
+    const result = await createUserInteractionFunction({
+      Interaction_ID:8, // should be change this 
+      User_Interaction_Type:"request_type",  // should be change this 
+      delegate_user_id:1,   // should be change this 
+      Created_By:assigned_by,
+      User_Interaction_Status: "Open",
+      ...dynamicParams // should be change this 
+    });
     res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
@@ -4381,7 +4393,6 @@ export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
       res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 
 export const Mediation_Board = async (req, res) => {
@@ -5560,8 +5571,7 @@ export const listDRCAllCases = async (req, res) => {
 // get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
-    const { case_id, drc_id } = req.body;    
-    console.log("case id is ", case_id , " drc id is ", drc_id)
+    const { case_id, drc_id } = req.body;
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -5606,15 +5616,7 @@ export const CaseDetailsforDRC = async (req, res) => {
       });
     }
 
-    // const formattedCaseDetails = {
-    //   case_id: caseDetails.case_id,
-    //   customer_ref: caseDetails.customer_ref,
-    //   account_no: caseDetails.account_no,
-    //   current_arrears_amount: caseDetails.current_arrears_amount,
-    //   last_payment_date: caseDetails.last_payment_date,
-    //   contactDetails: caseDetails.current_contact,
-
-    // };
+    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
     return res.status(200).json({
       status: "success",
@@ -5625,20 +5627,13 @@ export const CaseDetailsforDRC = async (req, res) => {
       },
     });
 
-  } catch (err) {
-    console.error("Detailed error:", {
-      message: err.message,
-      stack: err.stack,
-      name: err.name
-    });
-
+  } catch (error) {
+    console.error("Error fetching cases:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve case details.",
-      errors: {
-        code: 500,
-        description: err.message || "Internal server error occurred while fetching case details.",
-      },
+      code: 500,
+      message: "Failed to retrieve cases.",
+      errors: error.message,
     });
   }
 };
@@ -6445,6 +6440,7 @@ export const Customer_Negotiations = async (req, res) => {
       settlement_remark,
       created_by,
     } = req.body;
+    console.log("details are ", req.body);
     if (!case_id || !drc_id || !field_reason) {
       await session.abortTransaction();
       session.endSession();
@@ -7511,118 +7507,118 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
 // };
 
 
-export const getAllPaymentCases = async (req, res) => {
-  try {
-    // Get parameters from request body
-    const { 
-      case_id, 
-      account_num, 
-      settlement_phase, 
-      from_date, 
-      to_date, 
-      page = 1, 
-      limit = 10, 
-      recent = false 
-    } = req.body;
+// export const getAllPaymentCases = async (req, res) => {
+//   try {
+//     // Get parameters from request body
+//     const { 
+//       case_id, 
+//       account_num, 
+//       settlement_phase, 
+//       from_date, 
+//       to_date, 
+//       page = 1, 
+//       limit = 10, 
+//       recent = false 
+//     } = req.body;
 
-    // Default query parameters
-    const query = {};
+//     // Default query parameters
+//     const query = {};
     
-    // Initialize $and array if needed for date filtering
-    if (from_date && to_date) {
-      query.$and = [];
-    }
+//     // Initialize $and array if needed for date filtering
+//     if (from_date && to_date) {
+//       query.$and = [];
+//     }
     
-    let pageNum = Number(page);
-    let limitNum = Number(limit);
+//     let pageNum = Number(page);
+//     let limitNum = Number(limit);
 
-    // Apply filters if they exist
-    if (case_id) query.case_id = Number(case_id);
-    if (account_num) query.account_num = Number(account_num);
-    if (settlement_phase) query.settlement_phase = settlement_phase;
-    if (from_date && to_date) {
-      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
-    }
+//     // Apply filters if they exist
+//     if (case_id) query.case_id = Number(case_id);
+//     if (account_num) query.account_num = Number(account_num);
+//     if (settlement_phase) query.settlement_phase = settlement_phase;
+//     if (from_date && to_date) {
+//       query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+//       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+//     }
 
-    const sortOptions = { money_transaction_id: -1 };
+//     const sortOptions = { money_transaction_id: -1 };
 
-    // If recent is true, limit to 10 latest entries and ignore pagination
-    if (recent === true) {
-      limitNum = 10;
-      pageNum = 1;
-      // Clear any filters if we just want recent payments
-      Object.keys(query).forEach(key => delete query[key]);
-    }
+//     // If recent is true, limit to 10 latest entries and ignore pagination
+//     if (recent === true) {
+//       limitNum = 10;
+//       pageNum = 1;
+//       // Clear any filters if we just want recent payments
+//       Object.keys(query).forEach(key => delete query[key]);
+//     }
 
-    // Calculate skip for pagination
-    const skip = (pageNum - 1) * limitNum;
+//     // Calculate skip for pagination
+//     const skip = (pageNum - 1) * limitNum;
 
-    // Execute query with descending sort
-    const transactions = await MoneyTransaction.find(query)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limitNum);
+//     // Execute query with descending sort
+//     const transactions = await MoneyTransaction.find(query)
+//       .sort(sortOptions)
+//       .skip(skip)
+//       .limit(limitNum);
 
-    // Format response data - include all fields from model
-    const formattedTransactions = transactions.map(transaction => {
-      // Convert Mongoose document to plain object
-      const transactionObj = transaction.toObject();
+//     // Format response data - include all fields from model
+//     const formattedTransactions = transactions.map(transaction => {
+//       // Convert Mongoose document to plain object
+//       const transactionObj = transaction.toObject();
 
-      // Format date fields for better readability
-      if (transactionObj.created_dtm) {
-        transactionObj.created_dtm = transactionObj.created_dtm.toISOString();
-      }
+//       // Format date fields for better readability
+//       if (transactionObj.created_dtm) {
+//         transactionObj.created_dtm = transactionObj.created_dtm.toISOString();
+//       }
 
-      if (transactionObj.money_transaction_date) {
-        transactionObj.money_transaction_date = transactionObj.money_transaction_date.toISOString();
-      }
+//       if (transactionObj.money_transaction_date) {
+//         transactionObj.money_transaction_date = transactionObj.money_transaction_date.toISOString();
+//       }
 
-      // Return all fields from model with properly formatted names
-      return {
-        Money_Transaction_ID: transactionObj.money_transaction_id,
-        Case_ID: transactionObj.case_id,
-        Account_No: transactionObj.account_num || '-',
-        Created_DTM: transactionObj.created_dtm,
-        Settlement_ID: transactionObj.settlement_id || '-',
-        Installment_Seq: transactionObj.installment_seq || '-',
-        Transaction_Type: transactionObj.transaction_type || '-',
-        Money_Transaction_Ref: transactionObj.money_transaction_ref || '-',
-        Money_Transaction_Amount: transactionObj.money_transaction_amount || '-',
-        Money_Transaction_Date: transactionObj.money_transaction_date || '-',
-        Bill_Payment_Status: transactionObj.bill_payment_status || '-',
-        Settlement_Phase: transactionObj.settlement_phase || '-',
-        Cummulative_Credit: transactionObj.cummulative_credit || '-',
-        Cummulative_Debit: transactionObj.cummulative_debit || '-',
-        Cummulative_Settled_Balance: transactionObj.cummulative_settled_balance || '-',
-        Commissioned_Amount: transactionObj.commissioned_amount || '-'
-      };
-    });
+//       // Return all fields from model with properly formatted names
+//       return {
+//         Money_Transaction_ID: transactionObj.money_transaction_id,
+//         Case_ID: transactionObj.case_id,
+//         Account_No: transactionObj.account_num || '-',
+//         Created_DTM: transactionObj.created_dtm,
+//         Settlement_ID: transactionObj.settlement_id || '-',
+//         Installment_Seq: transactionObj.installment_seq || '-',
+//         Transaction_Type: transactionObj.transaction_type || '-',
+//         Money_Transaction_Ref: transactionObj.money_transaction_ref || '-',
+//         Money_Transaction_Amount: transactionObj.money_transaction_amount || '-',
+//         Money_Transaction_Date: transactionObj.money_transaction_date || '-',
+//         Bill_Payment_Status: transactionObj.bill_payment_status || '-',
+//         Settlement_Phase: transactionObj.settlement_phase || '-',
+//         Cummulative_Credit: transactionObj.cummulative_credit || '-',
+//         Cummulative_Debit: transactionObj.cummulative_debit || '-',
+//         Cummulative_Settled_Balance: transactionObj.cummulative_settled_balance || '-',
+//         Commissioned_Amount: transactionObj.commissioned_amount || '-'
+//       };
+//     });
 
-    // Prepare response data
-    const responseData = {
-      message: recent === true ? 'Recent money transactions retrieved successfully' : 'Money transactions retrieved successfully',
-      data: formattedTransactions,
-    };
+//     // Prepare response data
+//     const responseData = {
+//       message: recent === true ? 'Recent money transactions retrieved successfully' : 'Money transactions retrieved successfully',
+//       data: formattedTransactions,
+//     };
 
-    // Add pagination info if not in recent mode
-    if (recent !== true) {
-      const total = await MoneyTransaction.countDocuments(query);
-      responseData.pagination = {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        pages: Math.ceil(total / limitNum)
-      };
-    } else {
-      responseData.total = formattedTransactions.length;
-    }
+//     // Add pagination info if not in recent mode
+//     if (recent !== true) {
+//       const total = await MoneyTransaction.countDocuments(query);
+//       responseData.pagination = {
+//         total,
+//         page: pageNum,
+//         limit: limitNum,
+//         pages: Math.ceil(total / limitNum)
+//       };
+//     } else {
+//       responseData.total = formattedTransactions.length;
+//     }
 
-    return res.status(200).json(responseData);
-  } catch (error) {
-    return res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+//     return res.status(200).json(responseData);
+//   } catch (error) {
+//     return res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 export const List_All_Settlement_Cases =async(req, res) => {
   const {case_id, settlement_phase, settlement_status, from_date, to_date} =req.body;
 
@@ -7687,14 +7683,72 @@ export const List_All_Settlement_Cases =async(req, res) => {
 
 export const RO_CPE_Collection = async (req,res) => {
   try {
-    const ro_cpe_collect_id = 1;
     const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
       
     if (!case_id || !drc_id || !cp_type ||!cpe_model || !serial_no) {
-        return res.status(400).json({ message: "case_id, and Interaction_Log_ID are required" });
+        return res.status(400).json({ message: "case_id, drc_id, cpe_model, serial_no and cp_type are required" });
     };
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      return res.status(500).json({ message: "Failed to connect to MongoDB" });
+    }
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "ro_cpe_collect_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+    console.log(counterResult);
+    if (!counterResult.seq) {
+      return res.status(500).json({ message: "Failed to generate ro_cpe_collect_id" });
+    }
+
+    const ro_cpe_collect_id = counterResult.seq;
+
+    const updatedCaseDetails = await Case_details.findOneAndUpdate(
+      { case_id: case_id, "drc.drc_id": drc_id }, 
+      {
+        $push: {
+          ro_cpe_collect: {
+            ro_cpe_collect_id: ro_cpe_collect_id, 
+            drc_id: Number(drc_id), 
+            ro_id: Number(ro_id), 
+            order_id: order_id, 
+            collected_date: new Date(), 
+            product_label,
+            service_type,
+            cp_type,
+            cpe_model,
+            serial_no,
+            remark,
+          }
+        }
+      },
+      { new: true }
+    );
+    if (!updatedCaseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "Case not found",
+        errors: {
+          code: 404,
+          data: "Case is not available",
+        },
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "Case has been updated successfully",
+      data: updatedCaseDetails,
+    });
   } catch (error) {
-    
+      return res.status(500).json({
+        status: "error",
+        message: "Internal Server Error",
+        errors: {
+          code: 500,
+          description: error.message,
+        },
+      });
   }
 };
 
