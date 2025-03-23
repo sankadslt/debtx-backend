@@ -5616,15 +5616,7 @@ export const CaseDetailsforDRC = async (req, res) => {
       });
     }
 
-    // const formattedCaseDetails = {
-    //   case_id: caseDetails.case_id,
-    //   customer_ref: caseDetails.customer_ref,
-    //   account_no: caseDetails.account_no,
-    //   current_arrears_amount: caseDetails.current_arrears_amount,
-    //   last_payment_date: caseDetails.last_payment_date,
-    //   contactDetails: caseDetails.current_contact,
-
-    // };
+    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
     return res.status(200).json({
       status: "success",
@@ -5635,20 +5627,13 @@ export const CaseDetailsforDRC = async (req, res) => {
       },
     });
 
-  } catch (err) {
-    console.error("Detailed error:", {
-      message: err.message,
-      stack: err.stack,
-      name: err.name
-    });
-
+  } catch (error) {
+    console.error("Error fetching cases:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve case details.",
-      errors: {
-        code: 500,
-        description: err.message || "Internal server error occurred while fetching case details.",
-      },
+      code: 500,
+      message: "Failed to retrieve cases.",
+      errors: error.message,
     });
   }
 };
