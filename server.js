@@ -34,6 +34,7 @@ import chartRouter from "./routes/chart.js";
 import commissionRouter from "./routes/Commission_route.js";
 import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
 import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
+import fileDownloadRouter from "./routes/File_Download_Log_route.js"
 
 // Load environment variables
 config();
@@ -65,6 +66,7 @@ app.use("/api", chartRouter);
 app.use("/api", tmpSLTApprovalRouter);
 app.use("/api/money",MoneyTransactionRouter);
 app.use("/api/commission", commissionRouter);
+app.use("/api/file", fileDownloadRouter );
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
