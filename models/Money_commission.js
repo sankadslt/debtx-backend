@@ -1,3 +1,15 @@
+/* 
+    Purpose: This template is used for the DRC Controllers.
+    Created Date: 2024-11-21
+    Created By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)
+    Last Modified Date: 2024-11-24
+    Modified By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)            
+    Version: Node.js v20.11.1
+    Dependencies: mysql2
+    Related Files: DRC_route.js
+    Notes:  
+*/
+
 import { Schema, model } from "mongoose";
 
 const moneyCommissionSchema = new Schema({
