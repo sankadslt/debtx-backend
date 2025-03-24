@@ -1,6 +1,7 @@
 import { Schema, model } from 'mongoose';
 
 const incidentLogSchema = new Schema({
+    doc_version : {type:Number, required: true, default: 1},
     Incident_Id: { type: Number, required: true, unique: true },
     Account_Num: { type: String, required: true },
     Incident_Status: { type: String, enum: ['Incident Open', 'Incident Reject'], required: true },

@@ -1335,6 +1335,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
 // };
 
 export const List_distribution_ready_incidents = async (req, res) => {
+  
   try {
     const openNoAgentStatuses = ["Open No Agent"];
 
@@ -1391,9 +1392,10 @@ export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
 export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
   try {
     const details = (await Incident.find({
-      Incident_Status:"Open No Agent"
+      Incident_Status:"Open No Agent",
+      Proceed_Dtm: { $eq: null }, 
     }))
-
+    
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
       counts[band] = (counts[band] || 0) + 1; 
@@ -1647,6 +1649,12 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       product_ownership: product.Equipment_Ownership || "Unknown",
       service_address: product.Service_Address || "N/A",
     })) || [],
+    case_status: {
+      case_status: incidentData.Incident_Status,
+      status_reason: "Forward F1 Filtered",
+      created_dtm: new Date(),
+      created_by: user
+    }
   };
 
   const newCase = new Case_details(caseData);
@@ -1751,12 +1759,12 @@ export const Create_Case_for_incident= async (req, res) => {
         implemented_dtm: incidentData.Created_Dtm || new Date(),
         area: incidentData.Region || "Unknown",
         rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-        current_arrears_band: incidentData.current_arrears_band || "Default Band",  // Fallback value
+        current_arrears_band: incidentData.current_arrears_band || "Default Band",  
         arrears_band: incidentData.Arrears_Band || "Default Band",
         bss_arrears_amount: incidentData.Arrears || 0,
         current_arrears_amount: incidentData.Arrears || 0,
         action_type: "New Case",
-        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",  // Fallback value
+        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",  
         last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
         monitor_months: 6,
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
@@ -1787,10 +1795,19 @@ export const Create_Case_for_incident= async (req, res) => {
       };      
 
       const newCase = new Case_details(caseData);
+      
+      
+      const newCaseStatus = {
+        case_status: "Open No Agent", 
+        status_reason: "Incident forward to case",  
+        created_dtm: new Date(),  
+        created_by: Proceed_By,   
+      };
+      newCase.case_status.push(newCaseStatus); 
       await newCase.save({ session });
       createdCases.push(newCase);
     }
-
+  
     await session.commitTransaction();
     res.status(201).json({
       message: `Successfully created ${createdCases.length} cases.`,
@@ -1863,7 +1880,8 @@ export const Forward_Direct_LOD = async (req, res) => {
       monitor_months: 6,
       last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
-      case_current_status: incidentData.Incident_Status,
+     // case_current_status: incidentData.Incident_Status,
+      case_current_status: "LIT",
       filtered_reason: incidentData.Filtered_Reason || null,
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
@@ -1874,6 +1892,12 @@ export const Forward_Direct_LOD = async (req, res) => {
         product_ownership: product.Equipment_Ownership || "Unknown",
         service_address: product.Service_Address || "N/A",
       })) || [],
+      case_status: {
+        case_status: incidentData.Incident_Status,
+        status_reason: "Forward Direct LOD",
+        created_dtm: new Date(),
+        created_by: user
+      }
     };
     
 
@@ -2014,6 +2038,19 @@ export const Forward_CPE_Collect = async (req, res) => {
     { session }
   );
   
+   
+   const newCaseStatus = {
+    case_status: "Open No Agent",  
+    status_reason: "Incident forwarded to CPE Collect",  
+    created_dtm: new Date(),  
+    created_by: Proceed_By,   
+  };
+
+
+  newCase.case_status.push(newCaseStatus);
+  await newCase.save({ session });
+
+
   await session.commitTransaction();
   session.endSession();
 

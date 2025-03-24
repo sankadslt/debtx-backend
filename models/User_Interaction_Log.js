@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const interactionSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     Interaction_Log_ID: {
       type: Number,
       required: true,
@@ -20,7 +21,7 @@ const interactionSchema = new mongoose.Schema(
       default: Date.now,
     },
     delegate_user_id: {
-      type: Number,
+      type: String,
       required: true,
     },
     Created_By: {
@@ -44,6 +45,11 @@ const interactionSchema = new mongoose.Schema(
     },
     Rejected_Reason: { type: String, default: null },
     Rejected_By: { type: String, default: null },
+    // Request_Mode: {
+    //   type: String,
+    //   enum: ["Negotiation", "Mediation Board"],
+    //   default: "null",
+    // },
   },
   {
     collection: "User_Interaction_Log",

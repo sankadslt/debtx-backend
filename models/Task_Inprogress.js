@@ -68,6 +68,7 @@ import mongoose from 'mongoose';
 
 // Define the Schema
 const task_inprogress_Schema = new mongoose.Schema({
+  doc_version : {type:Number, required: true, default: 1},
   Task_Id: {
     type: Number,
     required: true,
