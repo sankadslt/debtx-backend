@@ -32,6 +32,7 @@ const statusSchema = new Schema({
     },
 });
 const temmplateForwardedApproverSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   approver_reference: { type: Number, required: true },
   created_on: { type: Date, required: true, default: Date.now },
   created_by: { type: String, required: true },
@@ -47,7 +48,7 @@ const temmplateForwardedApproverSchema = new Schema({
       default: {},
       default: {},
     },
-  approved_by: { type: String, default: null },
+  approved_deligated_by: { type: String, default: null },
   remark:  {type:[remarkSchema]},
 }, { 
   collection: 'Template_forwarded_approver', 

@@ -2,6 +2,7 @@ import mongoose, { model } from 'mongoose';
 const { Schema } = mongoose;
 
 const requestSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   RO_Request_Id: { type: Number, required: true, unique: true },
   Request_Description: { type: String, required: true },
   created_dtm: { type: Date, required: true },

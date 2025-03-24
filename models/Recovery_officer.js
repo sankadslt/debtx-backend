@@ -228,6 +228,7 @@ const roStatusSchema = new Schema({
 // Main schema for Recovery Officer
 const roSchema = new Schema(
     {
+        doc_version : {type:Number, required: true, default: 1},
         ro_id: {
             type: Number,
             required: true,
@@ -252,6 +253,10 @@ const roSchema = new Schema(
         },
         drc_name: {
             type: String,
+            required: true,
+        },
+        drc_id: {
+            type: Number,
             required: true,
         },
         rtoms_for_ro: {

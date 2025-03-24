@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const TemplateMediationBoardSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     mediation_id: 
     { 
         type: Number, 
