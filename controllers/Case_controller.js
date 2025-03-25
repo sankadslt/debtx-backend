@@ -1227,7 +1227,6 @@ export const listCases = async (req, res) =>{
   
 }
 
-
 export const Acivite_Case_Details = async (req, res) => {
   const { account_no } = req.body;
 
