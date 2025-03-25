@@ -4486,6 +4486,12 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *           example: "Case Withdrawal Approval"
  *         description: Type of approval request.
  *       - in: query
+ *         name: approved_deligated_by
+ *         schema:
+ *           type: string
+ *           example: "super@gmail.com"
+ *         description: Approved Deligated Person.
+ *       - in: query
  *         name: date_from
  *         schema:
  *           type: string
@@ -4509,6 +4515,9 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *               approver_type:
  *                 type: string
  *                 example: "Case Withdrawal Approval"
+ *               approved_deligated_by:
+ *                 type: string
+ *                 example: "super@gmail.com"
  *               date_from:
  *                 type: string
  *                 format: date
