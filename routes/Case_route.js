@@ -71,6 +71,8 @@ import {
   Withdraw_CasesOwened_By_DRC,
   List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
+  ListAllRequestLogFromRecoveryOfficers,
+  ListAllRequestLogFromRecoveryOfficersWithoutUserID,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
   getActiveNegotiations,
@@ -78,10 +80,13 @@ import {
   List_Details_Of_Mediation_Board_Acceptance,
   Submit_Mediation_Board_Acceptance,
   Withdraw_Mediation_Board_Acceptance,
-  getAllPaymentCases,
+
+
+//   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+
 
   List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
@@ -4129,17 +4134,27 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
 /**
  * @swagger
  * /api/case/List_All_Batch_Details:
- *   get:
+ *   post:
  *     summary: List All Batch Details
  *     description: |
- *       Retrieves all batch details where the last approve_status is "Open" and approver_type is "DRC_Distribution".
- *       Also fetches related data from Case Distribution DRC Transactions.
+ *       Retrieves batch details for cases with an open approval status.
+ *       Filters and structures batch details along with related case distribution data.
  *
- *       | Version | Date        | Description                | Changed By       |
- *       |---------|-------------|----------------------------|------------------|
- *       | 01      | 2025-Mar-11 | List All Batch Details     | Dinusha Anupama        |
+ *       | Version | Date        | Description            | Changed By       |
+ *       |---------|------------|------------------------|------------------|
+ *       | 01      | 2025-Mar-14 | List All Batch Details | Dinusha Anupama  |
  *
  *     tags: [Case Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approved_deligated_by:
+ *                 type: string
+ *                 example: "super@gmail.com"
  *     responses:
  *       200:
  *         description: Successfully retrieved batch details.
@@ -4152,14 +4167,14 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                 properties:
  *                   _id:
  *                     type: string
- *                     example: "67cfcef19b203c2118a0e40e"
+ *                     example: "67d3d5a668b432dd5edf8e6d"
  *                   approver_reference:
  *                     type: integer
  *                     example: 1
  *                   created_on:
  *                     type: string
  *                     format: date-time
- *                     example: "2025-03-11T05:49:37.286Z"
+ *                     example: "2025-03-14T07:07:18.773Z"
  *                   created_by:
  *                     type: string
  *                     example: "manager_1"
@@ -4174,7 +4189,7 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                         status_date:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-03-11T05:49:36.764Z"
+ *                           example: "2025-03-14T07:07:18.288Z"
  *                         status_edit_by:
  *                           type: string
  *                           example: "manager_1"
@@ -4196,15 +4211,14 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                       minus_drc_id:
  *                         type: integer
  *                         example: 9
- *                   approved_by:
- *                     type: string
- *                     example: "approver_1"
  *                   remark:
  *                     type: array
  *                     items:
  *                       type: string
+ *                     example: []
  *                   case_distribution_details:
  *                     type: object
+ *                     nullable: true
  *                     properties:
  *                       case_distribution_batch_id:
  *                         type: integer
@@ -4214,12 +4228,19 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                         example: "PEO TV"
  *                       rulebase_count:
  *                         type: integer
- *                         example: 100
- *                       rulebase_arrears_sum:
- *                         type: integer
- *                         example: 500000
+ *                         example: 10
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input, missing required fields."
  *       500:
- *         description: Internal server error while fetching batch details.
+ *         description: Server error occurred while fetching batch details.
  *         content:
  *           application/json:
  *             schema:
@@ -4228,7 +4249,11 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                 message:
  *                   type: string
  *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Error fetching batch details."
  */
+
 
 router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
@@ -6936,7 +6961,11 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *                   example: "Database connection failed"
  */
 
+router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecoveryOfficers);
+
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+
+router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllRequestLogFromRecoveryOfficersWithoutUserID);
 
 /**
  * @swagger
@@ -7159,6 +7188,25 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
  *                   example: Internal server error message.
  */
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
+
+
+// router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+
+// router.post(
+//   "/List_Details_Of_Mediation_Board_Acceptance",
+//   List_Details_Of_Mediation_Board_Acceptance
+// );
+
+// router.post(
+//   "/Submit_Mediation_Board_Acceptance",
+//   Submit_Mediation_Board_Acceptance
+// );
+
+// router.post(
+//   "/Withdraw_Mediation_Board_Acceptance",
+//   Withdraw_Mediation_Board_Acceptance
+// );
+
 
 /**
  * @swagger
@@ -7960,7 +8008,7 @@ router.post(
   Withdraw_Mediation_Board_Acceptance
 );
 //payments
-router.post("/List_All_Payment_Cases", getAllPaymentCases);
+// router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
 /**
  * @swagger
