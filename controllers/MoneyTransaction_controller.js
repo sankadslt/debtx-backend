@@ -272,7 +272,7 @@ export const getAllPaymentCases = async (req, res) => {
       query.$and.push({ created_dtm: { $lte: new Date(to_date) } });
     }
 
-    const sortOptions = { money_transaction_id: -1 };
+    const sortOptions = { created_dtm: -1 };
 
     // If recent is true, limit to 10 latest entries and ignore pagination
     if (recent === true) {
