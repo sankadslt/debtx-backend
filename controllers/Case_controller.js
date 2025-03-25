@@ -7619,67 +7619,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
 //     return res.status(500).json({ message: 'Server error', error: error.message });
 //   }
 // };
-export const List_All_Settlement_Cases =async(req, res) => {
-  const {case_id, settlement_phase, settlement_status, from_date, to_date} =req.body;
 
-  try {
-    //Validate Case ID
-    if(!case_id) {
-      return res.status(400).json({
-        status:"error",
-        message: "Case Id is required."
-      });
-    }
-
-    if (!settlement_phase && !settlement_status && !(from_date && to_date)) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description: "Provide at least one of settlement_phase, settlement_status or both from_date and to_date together.",
-        },
-      });
-    }
-    //Query
-    const query ={case_id: case_id};
-    query.$and = [];
-
-    if (settlement_phase) query.settlement_phase =settlement_phase;
-    if (settlement_status) query.settlement_status =settlement_status;
-    if (from_date && to_date) {
-      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
-    }
-
-    // Fetch last 10 records sorted by created date in descending order
-    const caseSettlements = await CaseSettlement.find(query)
-      .sort({created_dtm: -1})
-      .limit(10);
-
-    if (caseSettlements.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No data found for the provided parameters"
-      })
-    }
-
-    return res.status(200).json({
-      status: "success",
-      message: "Successfully retrieved case settlements.",
-      data: caseSettlements,
-    });
-
-
-  } catch (error) {
-      console.error("Error fetching settlement data:", error);
-      return res.status(500).json({
-        status: "error",
-        message: "Internal Server error. Please try again later.",
-      }
-    );
-  }
-};
 
 export const RO_CPE_Collection = async (req,res) => {
   try {

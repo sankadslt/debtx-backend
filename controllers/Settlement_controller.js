@@ -1,0 +1,129 @@
+/* 
+    Purpose: This template is used for the Settlement Controllers.
+    Created Date: 2025-03-23
+    Created By: sasindu srinayaka (sasindusrinayaka@gmail.com)
+    Version: Node.js v20.11.1
+    Dependencies: axios , mongoose
+    Related Files: Settlement_route.js
+    Notes:  
+*/
+
+// import db from "../config/db.js";
+import CaseSettlement from "../models/Case_settlement.js";
+
+export const List_All_Settlement_Cases = async (req, res) => {
+  const {
+    case_id, 
+    settlement_phase, 
+    settlement_status, 
+    from_date, 
+    to_date,
+    page = 1,  // Add default value
+    limit = 10,  // Add default value
+    recent = false  // Add default value
+  } = req.body;
+
+  try {
+    // Query
+    const query = {};
+
+    // Initialize $and array if needed for date filtering
+    // if (from_date && to_date) {
+    //   query.$and = [];
+    // }
+
+    let pageNum = Number(page);
+    let limitNum = Number(limit);
+
+    if (case_id) query.case_id = case_id;
+    if (settlement_phase) query.settlement_phase = settlement_phase;
+    if (settlement_status) query.settlement_status = settlement_status;
+    if (from_date && to_date) {
+      query.$and = [];
+      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+    }
+
+    const sortOptions = { created_dtm: -1 };
+
+    // If recent is true, limit to 10 latest entries and ignore pagination
+    if (recent === true) {
+      limitNum = 10;
+      pageNum = 1;
+      // Clear any filters if we just want recent payments
+      Object.keys(query).forEach(key => delete query[key]);
+    }
+    
+    // Calculate skip for pagination
+    const skip = (pageNum - 1) * limitNum;
+
+    // Execute query with descending sort
+    const settlements = await CaseSettlement.find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    if (settlements.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No data found for the provided parameters"
+      });
+    }
+
+    // Format response data - include all fields from model
+    const formattedSettlements = settlements.map(settlement => {
+      // Convert Mongoose document to plain object
+      const SettlementDetails = settlement.toObject();
+
+      // Format date fields for better readability
+      if (SettlementDetails.created_dtm) {
+        SettlementDetails.created_dtm = SettlementDetails.created_dtm.toISOString();
+      }
+
+      if (SettlementDetails.last_monitoring_dtm) {
+        SettlementDetails.last_monitoring_dtm = SettlementDetails.last_monitoring_dtm.toISOString();
+      }
+
+      // Return all fields from model with properly formatted names
+      return {
+        case_id: SettlementDetails.case_id,
+        settlement_status: SettlementDetails.settlement_status,
+        created_dtm: SettlementDetails.created_dtm,
+        settlement_phase: SettlementDetails.settlement_phase,
+        settlement_id: SettlementDetails.settlement_id,
+      };
+    });
+
+    // Prepare response data
+    const responseData = {
+      message: recent === true ? 'Recent Case settlements are retrieved successfully' : 'Case settlements retrieved successfully',
+      data: formattedSettlements,
+    };
+
+    // Add pagination info if not in recent mode
+    if (recent !== true) {
+      const total = await CaseSettlement.countDocuments(query);
+      responseData.pagination = {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum)
+      };
+    } else {
+      responseData.total = formattedSettlements.length;
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Successfully retrieved case settlements.",
+      data: responseData,
+    });
+
+  } catch (error) {
+    console.error("Error fetching settlement data:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server error. Please try again later.",
+    });
+  }
+};
