@@ -1227,7 +1227,6 @@ export const listCases = async (req, res) =>{
   
 }
 
-
 export const Acivite_Case_Details = async (req, res) => {
   const { account_no } = req.body;
 
@@ -3122,12 +3121,134 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
 };
 
 
+// export const Batch_Forward_for_Proceed = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id } = req.body;
+
+//     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+//     }
+
+//     if (!Proceed_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Proceed_by is required" });
+//     }
+
+//     // Validate if all batch IDs have "Complete" status
+//     const incompleteBatches = await CaseDistribution.find({
+//       case_distribution_batch_id: { $in: case_distribution_batch_id },
+//       crd_distribution_status: { $ne: "Complete" },
+//     }).session(session);
+
+//     if (incompleteBatches.length > 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({
+//         message: "Some batch IDs do not have a 'Complete' status and cannot be proceeded.",
+//         incompleteBatchIds: incompleteBatches.map(batch => batch.case_distribution_batch_id),
+//       });
+//     }
+
+//     const currentDate = new Date();
+//     const deligate_id = 5;
+
+//     // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
+//     const result = await CaseDistribution.updateMany(
+//       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
+//       {
+//         $set: {
+//           proceed_on: currentDate,
+//           forward_for_approvals_on: currentDate, // New field update
+//         },
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching batch IDs found" });
+//     }
+
+//     // --- Create Task for Proceed Action ---
+//     const taskData = {
+//       Template_Task_Id: 31,
+//       task_type: "Create Task for Proceed Cases from Batch_ID",
+//       case_distribution_batch_id,
+//       Created_By: Proceed_by,
+//       task_status: "open",
+//     };
+
+//     await createTaskFunction(taskData, session);
+
+//     // --- Create Entry in Template_forwarded_approver ---
+//     const approvalEntry = new TmpForwardedApprover({
+//       approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
+//       created_by: Proceed_by,
+//       approver_type: "DRC_Distribution",
+//       approve_status: [{
+//         status: "Open",
+//         status_date: currentDate,
+//         status_edit_by: Proceed_by,
+//       }],
+//       approved_deligated_by: deligate_id,
+//       parameters: {
+//         plus_drc, plus_drc_id, minus_drc, minus_drc_id,
+//       },
+//     });
+
+//     await approvalEntry.save({ session });
+
+//     // --- Create User Interaction Log ---
+//     const interaction_id = 6; //this must be chage
+//     const request_type = "Pending Approval Agent Destribution"; 
+//     const created_by = Proceed_by;
+//     const dynamicParams = { case_distribution_batch_id };
+
+//     const interactionResult = await createUserInteractionFunction({
+//       Interaction_ID: interaction_id,
+//       User_Interaction_Type: request_type,
+//       delegate_user_id: deligate_id,  
+//       Created_By: created_by,
+//       User_Interaction_Status: "Open",
+//       User_Interaction_Status_DTM: currentDate,
+//       Request_Mode: "Negotiation", 
+//       ...dynamicParams,
+//     });
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       message: "Batches forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
+//       updatedCount: result.modifiedCount,
+//       taskData,
+//       approvalEntry,
+//       interactionResult,
+//     });
+//   } catch (error) {
+//     console.error("Error forwarding batches for proceed:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error forwarding batches for proceed",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id } = req.body;
+    const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id, billing_center } = req.body;
 
     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
       await session.abortTransaction();
@@ -3140,6 +3261,12 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       session.endSession();
       return res.status(400).json({ message: "Proceed_by is required" });
     }
+
+    // Get delegate_id dynamically
+    const case_phase = "Initial Review";
+    const approval_type = "Customer Approval";
+
+    const delegate_id = await getBatchApprovalUserIdService({ case_phase, approval_type, billing_center });
 
     // Validate if all batch IDs have "Complete" status
     const incompleteBatches = await CaseDistribution.find({
@@ -3157,7 +3284,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const deligate_id = 5;
 
     // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
     const result = await CaseDistribution.updateMany(
@@ -3177,7 +3303,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       return res.status(404).json({ message: "No matching batch IDs found" });
     }
 
-    // --- Create Task for Proceed Action ---
+    // Create Task for Proceed Action
     const taskData = {
       Template_Task_Id: 31,
       task_type: "Create Task for Proceed Cases from Batch_ID",
@@ -3188,7 +3314,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     await createTaskFunction(taskData, session);
 
-    // --- Create Entry in Template_forwarded_approver ---
+    // Create Entry in Template_forwarded_approver
     const approvalEntry = new TmpForwardedApprover({
       approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
       created_by: Proceed_by,
@@ -3198,7 +3324,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
         status_date: currentDate,
         status_edit_by: Proceed_by,
       }],
-      approved_deligated_by: deligate_id,
+      approved_deligated_by: delegate_id, //  Dynamic delegate_id
       parameters: {
         plus_drc, plus_drc_id, minus_drc, minus_drc_id,
       },
@@ -3206,26 +3332,27 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     await approvalEntry.save({ session });
 
-    // --- Create User Interaction Log ---
-    const interaction_id = 6; //this must be chage
+    // Step 6: Create User Interaction Log
+    const interaction_id = 6; // this must be changed later
     const request_type = "Pending Approval Agent Destribution"; 
     const created_by = Proceed_by;
-    const dynamicParams = { case_distribution_batch_id };
+    const dynamicParams = { case_distribution_batch_id, Request_Mode: "Negotiation" };
 
     const interactionResult = await createUserInteractionFunction({
       Interaction_ID: interaction_id,
       User_Interaction_Type: request_type,
-      delegate_user_id: deligate_id,  
+      delegate_user_id: delegate_id, // Dynamic delegate_id
       Created_By: created_by,
       User_Interaction_Status: "Open",
       User_Interaction_Status_DTM: currentDate,
-      Request_Mode: "Negotiation", 
       ...dynamicParams,
     });
 
+    // Commit transaction
     await session.commitTransaction();
     session.endSession();
 
+    // Success response
     return res.status(200).json({
       message: "Batches forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
       updatedCount: result.modifiedCount,
@@ -3233,6 +3360,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       approvalEntry,
       interactionResult,
     });
+
   } catch (error) {
     console.error("Error forwarding batches for proceed:", error);
     await session.abortTransaction();
@@ -3243,7 +3371,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     });
   }
 };
-
 
 export const Create_Task_For_case_distribution_transaction = async (req, res) => {
   const session = await mongoose.startSession();
@@ -3672,15 +3799,73 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 };
 
 
+// export const List_All_Batch_Details = async (req, res) => {
+//   try {
+//       // Fetch documents that meet the condition
+//       const approverDocs = await TmpForwardedApprover.find({
+//           "approve_status.status": "Open",
+//           approver_type: "DRC_Distribution"
+//       });
+
+//       // Filter the documents to ensure the last element in approve_status is "Open"
+//       const filteredDocs = approverDocs.filter(doc => {
+//           const lastStatus = doc.approve_status[doc.approve_status.length - 1];
+//           return lastStatus && lastStatus.status === "Open";
+//       });
+
+//       // Extract approver_reference values
+//       const approverReferences = filteredDocs.map(doc => doc.approver_reference);
+
+//       // Fetch related data from Case_distribution_drc_transactions
+//       const caseDistributions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: approverReferences }
+//       }).select("case_distribution_batch_id drc_commision_rule rulebase_count rulebase_arrears_sum");
+
+//       // Map results to a structured response
+//       const response = filteredDocs.map(approver => {
+//           const relatedCase = caseDistributions.find(caseDoc => caseDoc.case_distribution_batch_id === approver.approver_reference);
+//           return {
+//               _id: approver._id,
+//               approver_reference: approver.approver_reference,
+//               created_on: approver.created_on,
+//               created_by: approver.created_by,
+//               approve_status: approver.approve_status,
+//               approver_type: approver.approver_type,
+//               parameters: approver.parameters,
+//               approved_by: approver.approved_by,
+//               remark: approver.remark,
+//               case_distribution_details: relatedCase ? {
+//                   case_distribution_batch_id: relatedCase.case_distribution_batch_id,
+//                   drc_commision_rule: relatedCase.drc_commision_rule,
+//                   rulebase_count: relatedCase.rulebase_count,
+//                   rulebase_arrears_sum: relatedCase.rulebase_arrears_sum
+//               } : null
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       console.error("Error fetching batch details:", error);
+//       res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
+
 export const List_All_Batch_Details = async (req, res) => {
   try {
-      // Fetch documents that meet the condition
+      const { approved_deligated_by } = req.body; // Extract approved_deligated_by from request
+      
+      if (!approved_deligated_by) {
+          return res.status(400).json({ message: "approved_deligated_by is required" });
+      }
+
+      // Fetch documents matching the conditions
       const approverDocs = await TmpForwardedApprover.find({
           "approve_status.status": "Open",
-          approver_type: "DRC_Distribution"
+          approver_type: "DRC_Distribution",
+          approved_deligated_by: approved_deligated_by
       });
 
-      // Filter the documents to ensure the last element in approve_status is "Open"
+      // Filter to ensure last element in approve_status is "Open"
       const filteredDocs = approverDocs.filter(doc => {
           const lastStatus = doc.approve_status[doc.approve_status.length - 1];
           return lastStatus && lastStatus.status === "Open";
@@ -3689,7 +3874,7 @@ export const List_All_Batch_Details = async (req, res) => {
       // Extract approver_reference values
       const approverReferences = filteredDocs.map(doc => doc.approver_reference);
 
-      // Fetch related data from Case_distribution_drc_transactions
+      // Fetch related data from CaseDistribution
       const caseDistributions = await CaseDistribution.find({
           case_distribution_batch_id: { $in: approverReferences }
       }).select("case_distribution_batch_id drc_commision_rule rulebase_count rulebase_arrears_sum");
@@ -3705,7 +3890,7 @@ export const List_All_Batch_Details = async (req, res) => {
               approve_status: approver.approve_status,
               approver_type: approver.approver_type,
               parameters: approver.parameters,
-              approved_by: approver.approved_by,
+              approved_deligated_by: approver.approved_deligated_by,
               remark: approver.remark,
               case_distribution_details: relatedCase ? {
                   case_distribution_batch_id: relatedCase.case_distribution_batch_id,
@@ -3722,6 +3907,105 @@ export const List_All_Batch_Details = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
+// export const Approve_Batch_or_Batches = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { approver_references, approved_by } = req.body;
+
+//     if (!approver_references || !Array.isArray(approver_references)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+//     }
+
+//     if (!approved_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "approved_by is required" });
+//     }
+
+//     const currentDate = new Date();
+//     const deligate_id = 8;
+
+//     // Update approve_status and approved_by for matching documents
+//     const result = await TmpForwardedApprover.updateMany(
+//       { 
+//         approver_reference: { $in: approver_references },
+//         approver_type: "DRC_Distribution" 
+//       },
+//       {
+//         $push: {
+//           approve_status: {
+//             status: "Approve",
+//             status_date: currentDate,
+//             status_edit_by: approved_by,
+//           },
+//         },
+//         $set: {
+//           approved_deligated_by: deligate_id
+//         }
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching approver references found" });
+//     }
+
+//     // --- Create Task for Approved Approvers ---
+//     const taskData = {
+//       Template_Task_Id: 29,
+//       task_type: "Create Task for Approve Cases from Approver_Reference",
+//       approver_references, // One or more approver references
+//       Created_By: approved_by, // Ensure Created_By is the same as approved_by
+//       task_status: "open",
+//     };
+
+//     // Call createTaskFunction
+//     await createTaskFunction(taskData, session);
+
+//     // --- Create User Interaction Log ---
+//     const interaction_id = 6; //this must be chage
+//     const request_type = "Pending Approval Agent Destribution"; 
+//     const created_by = approved_by;
+//     const dynamicParams = { approver_references };
+
+//     const interactionResult = await createUserInteractionFunction({
+//       Interaction_ID: interaction_id,
+//       User_Interaction_Type: request_type,
+//       delegate_user_id: deligate_id,  
+//       Created_By: created_by,
+//       User_Interaction_Status_DTM: currentDate,
+//       User_Interaction_Status: "Open",
+//       Request_Mode: "Negotiation", 
+//       ...dynamicParams,
+//     });
+
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       message: "Approvals added successfully, and task created.",
+//       updatedCount: result.modifiedCount,
+//       taskData,
+//     });
+//   } catch (error) {
+//     console.error("Error approving batches:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error approving batches",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
 
 
 export const Approve_Batch_or_Batches = async (req, res) => {
@@ -3744,7 +4028,24 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const deligate_id = 8;
+
+    // Fetch the created_by field for the matching approver_references
+    const approverDocs = await TmpForwardedApprover.find({
+      approver_reference: { $in: approver_references },
+      approver_type: "DRC_Distribution"
+    }).select("approver_reference created_by");
+
+    if (!approverDocs.length) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "No matching approver references found" });
+    }
+
+    // Map approver_reference to created_by directly
+    const deligateMap = approverDocs.reduce((map, doc) => {
+      map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
+      return map;
+    }, {});
 
     // Update approve_status and approved_by for matching documents
     const result = await TmpForwardedApprover.updateMany(
@@ -3759,9 +4060,6 @@ export const Approve_Batch_or_Batches = async (req, res) => {
             status_date: currentDate,
             status_edit_by: approved_by,
           },
-        },
-        $set: {
-          approved_deligated_by: deligate_id
         }
       },
       { session }
@@ -3773,43 +4071,45 @@ export const Approve_Batch_or_Batches = async (req, res) => {
       return res.status(404).json({ message: "No matching approver references found" });
     }
 
-    // --- Create Task for Approved Approvers ---
-    const taskData = {
+    // --- Create Tasks for Approved Approvers ---
+    const taskDataArray = approver_references.map(reference => ({
       Template_Task_Id: 29,
       task_type: "Create Task for Approve Cases from Approver_Reference",
-      approver_references, // One or more approver references
+      approver_reference: reference,
       Created_By: approved_by, // Ensure Created_By is the same as approved_by
       task_status: "open",
-    };
+    }));
 
-    // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    // Call createTaskFunction for each task
+    for (const taskData of taskDataArray) {
+      await createTaskFunction(taskData, session);
+    }
 
-    // --- Create User Interaction Log ---
-    const interaction_id = 6; //this must be chage
-    const request_type = "Pending Approval Agent Destribution"; 
-    const created_by = approved_by;
-    const dynamicParams = { approver_references };
+    // --- Create User Interaction Logs ---
+    const interaction_id = 6; // this must be changed
+    const request_type = "Pending Approval Agent Distribution"; 
+    
+    for (const reference of approver_references) {
+      if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
 
-    const interactionResult = await createUserInteractionFunction({
-      Interaction_ID: interaction_id,
-      User_Interaction_Type: request_type,
-      delegate_user_id: deligate_id,  
-      Created_By: created_by,
-      User_Interaction_Status_DTM: currentDate,
-      User_Interaction_Status: "Open",
-      Request_Mode: "Negotiation", 
-      ...dynamicParams,
-    });
-
+      await createUserInteractionFunction({
+        Interaction_ID: interaction_id,
+        User_Interaction_Type: request_type,
+        delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
+        Created_By: approved_by,
+        User_Interaction_Status_DTM: currentDate,
+        User_Interaction_Status: "Open",
+        approver_reference: reference,
+      });
+    }
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
-      message: "Approvals added successfully, and task created.",
+      message: "Approvals added successfully, and tasks created.",
       updatedCount: result.modifiedCount,
-      taskData,
+      taskData: taskDataArray,
     });
   } catch (error) {
     console.error("Error approving batches:", error);
@@ -3821,7 +4121,6 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     });
   }
 };
-
 
 export const Create_task_for_batch_approval = async (req, res) => {
   const session = await mongoose.startSession();
@@ -3876,9 +4175,59 @@ export const Create_task_for_batch_approval = async (req, res) => {
 };
 
 
+// export const List_DRC_Assign_Manager_Approval = async (req, res) => {
+//   try {
+//       const { approver_type, date_from, date_to } = req.body;
+//       const allowedApproverTypes = [
+//           "DRC Re-Assign Approval",
+//           "DRC Assign Approval",
+//           "Case Withdrawal Approval",
+//           "Case Abandoned Approval",
+//           "Case Write-Off Approval",
+//           "Commission Approval"
+//       ];
+
+//       let filter = { approver_type: { $in: allowedApproverTypes } }; // Filter only allowed approver types
+
+//       // Filter based on approver_type
+//       if (approver_type && allowedApproverTypes.includes(approver_type)) {
+//           filter.approver_type = approver_type;
+//       }
+
+//       // Filter based on date range
+//       if (date_from && date_to) {
+//           filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//       } else if (date_from) {
+//           filter.created_on = { $gte: new Date(date_from) };
+//       } else if (date_to) {
+//           filter.created_on = { $lte: new Date(date_to) };
+//       }
+
+//       // Fetch data from Template_forwarded_approver collection
+//       const approvals = await TmpForwardedApprover.find(filter);
+
+//       // Process results to extract only the last element of approve_status array
+//       const response = approvals.map(doc => {
+//           const lastApproveStatus = doc.approve_status?.length 
+//               ? doc.approve_status[doc.approve_status.length - 1] 
+//               : null;
+
+//           return {
+//               ...doc.toObject(),
+//               approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Keep only the last approve_status
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       console.error("Error fetching DRC Assign Manager Approvals:", error);
+//       res.status(500).json({ message: "Server Error", error });
+//   }
+// };
+
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
-      const { approver_type, date_from, date_to } = req.body;
+      const { approver_type, date_from, date_to, approved_deligated_by } = req.body;
       const allowedApproverTypes = [
           "DRC Re-Assign Approval",
           "DRC Assign Approval",
@@ -3904,6 +4253,11 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
           filter.created_on = { $lte: new Date(date_to) };
       }
 
+      // Filter based on approved_deligated_by
+      if (approved_deligated_by) {
+          filter.approved_deligated_by = approved_deligated_by;
+      }
+
       // Fetch data from Template_forwarded_approver collection
       const approvals = await TmpForwardedApprover.find(filter);
 
@@ -3926,6 +4280,128 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
+
+// export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//       const { approver_reference, approved_by } = req.body;
+
+//       if (!approver_reference) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "Invalid input, approver_reference is required" });
+//       }
+
+//       if (!approved_by) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "approved_by is required" });
+//       }
+
+//       const currentDate = new Date();
+//       const deligate_id = 7;
+
+//       // Fetch the document to get the approver_type, created_on, and created_by
+//       const approvalDoc = await TmpForwardedApprover.findOne({ approver_reference }).session(session);
+
+//       if (!approvalDoc) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(404).json({ message: "No matching approver reference found" });
+//       }
+
+//       // Determine status based on approver_type
+//       const statusMap = {
+//           "DRC Re-Assign Approval": "Open assign agent",
+//           "DRC Assign Approval": "Open assign agent",
+//           "Case Withdrawal Approval": "Case Withdrawed",
+//           "Case Abandoned Approval": "Case Abandoned",
+//           "Case Write-Off Approval": "Pending Write Off",
+//           "Commission Approval": "Commissioned"
+//       };
+
+//       const newStatus = statusMap[approvalDoc.approver_type] || "Pending";
+
+//       // Update approve_status and approved_by
+//       const result = await TmpForwardedApprover.updateOne(
+//           { approver_reference },
+//           {
+//               $push: {
+//                   approve_status: {
+//                       status: newStatus,
+//                       status_date: currentDate,
+//                       status_edit_by: approved_by,
+//                   },
+//               },
+//               $set: {
+//                 approved_deligated_by: deligate_id
+//               }
+//           },
+//           { session }
+//       );
+
+//       if (result.modifiedCount === 0) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(404).json({ message: "Approval update failed" });
+//       }
+
+//       // Update approve array in CaseDetails with requested_on and requested_by
+//       const caseResult = await Case_details.updateOne(
+//           { case_id: approver_reference },
+//           {
+//               $push: {
+//                   approve: {
+//                       approved_process: newStatus,
+//                       approved_by: approved_by,
+//                       approved_on: currentDate,
+//                       remark: " ",
+//                       requested_on: approvalDoc.created_on,
+//                       requested_by: approvalDoc.created_by
+//                   }
+//               }
+//           },
+//           { session }
+//       );
+
+//       // --- Create User Interaction Log ---
+//       const interaction_id = 6; //this must be chage
+//       const request_type = "Pending Approval Agent Destribution"; 
+//       const created_by = approved_by;
+//       const dynamicParams = { approver_reference };
+
+//       const interactionResult = await createUserInteractionFunction({
+//         Interaction_ID: interaction_id,
+//         User_Interaction_Type: request_type,
+//         delegate_user_id: deligate_id,  
+//         Created_By: created_by,
+//         User_Interaction_Status: "Open",
+//         User_Interaction_Status_DTM: currentDate,
+//         Request_Mode: "Negotiation", 
+//         ...dynamicParams,
+//       });
+
+//       await session.commitTransaction();
+//       session.endSession();
+
+//       return res.status(200).json({
+//           message: "Approval added successfully.",
+//           updatedCount: result.modifiedCount + caseResult.modifiedCount,
+//       });
+//   } catch (error) {
+//       console.error("Error approving DRC Assign Manager Approvals:", error);
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(500).json({
+//           message: "Error approving DRC Assign Manager Approvals",
+//           error: error.message || "Internal server error.",
+//       });
+//   }
+// };
+
+
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3946,9 +4422,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       }
 
       const currentDate = new Date();
-      const deligate_id = 7;
 
-      // Fetch the document to get the approver_type, created_on, and created_by
+      // Fetch the document to get approver_type, created_on, and created_by
       const approvalDoc = await TmpForwardedApprover.findOne({ approver_reference }).session(session);
 
       if (!approvalDoc) {
@@ -3956,6 +4431,9 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
           session.endSession();
           return res.status(404).json({ message: "No matching approver reference found" });
       }
+
+      // Assign created_by as delegate_id
+      const deligate_id = approvalDoc.created_by;
 
       // Determine status based on approver_type
       const statusMap = {
@@ -3979,9 +4457,6 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
                       status_date: currentDate,
                       status_edit_by: approved_by,
                   },
-              },
-              $set: {
-                approved_deligated_by: deligate_id
               }
           },
           { session }
@@ -4012,19 +4487,18 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       );
 
       // --- Create User Interaction Log ---
-      const interaction_id = 6; //this must be chage
-      const request_type = "Pending Approval Agent Destribution"; 
+      const interaction_id = 6; // This may need to be changed
+      const request_type = "Pending Approval Agent Distribution"; 
       const created_by = approved_by;
       const dynamicParams = { approver_reference };
 
-      const interactionResult = await createUserInteractionFunction({
+      await createUserInteractionFunction({
         Interaction_ID: interaction_id,
         User_Interaction_Type: request_type,
-        delegate_user_id: deligate_id,  
+        delegate_user_id: deligate_id,  // Now using created_by as delegate ID
         Created_By: created_by,
         User_Interaction_Status: "Open",
         User_Interaction_Status_DTM: currentDate,
-        Request_Mode: "Negotiation", 
         ...dynamicParams,
       });
 
@@ -4047,6 +4521,105 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
 };
 
 
+// export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//       const { approver_references, approved_by } = req.body;
+
+//       if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
+//       }
+
+//       if (!approved_by) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "approved_by is required" });
+//       }
+
+//       const currentDate = new Date();
+//       const deligate_id = 6;
+
+//       // Update approve_status for matching documents in TmpForwardedApprover
+//       const result = await TmpForwardedApprover.updateMany(
+//           { 
+//               approver_reference: { $in: approver_references },
+//               approver_type: { $ne: "DRC_Distribution" } 
+//           },
+//           {
+//               $push: {
+//                   approve_status: {
+//                       status: "Reject",
+//                       status_date: currentDate,
+//                       status_edit_by: approved_by,
+//                   },
+//               },
+//               $set: {
+//                 approved_deligated_by: null,
+//               }
+//           },
+//           { session }
+//       );
+
+//       if (result.modifiedCount === 0) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(404).json({ message: "No matching approver references found" });
+//       }
+
+//       // Update approve array in CaseDetails where case_id matches approver_reference
+//       const caseResult = await Case_details.updateMany(
+//           { case_id: { $in: approver_references } },
+//           {
+//               $push: {
+//                   approve: {
+//                       approved_process: "Reject",
+//                       rejected_by: approved_by,
+//                       remark: "Rejected because some reasons."
+//                   }
+//               }
+//           },
+//           { session }
+//       );
+
+//       // --- Create User Interaction Log ---
+//       const interaction_id = 6; //this must be chage
+//       const request_type = "Pending Approval Agent Destribution"; 
+//       const created_by = approved_by;
+//       const dynamicParams = { approver_references };
+
+//       const interactionResult = await createUserInteractionFunction({
+//         Interaction_ID: interaction_id,
+//         User_Interaction_Type: request_type,
+//         delegate_user_id: deligate_id,  
+//         Created_By: created_by,
+//         User_Interaction_Status: "Open",
+//         User_Interaction_Status_DTM: currentDate,
+//         Request_Mode: "Negotiation", 
+//         ...dynamicParams,
+//       });
+
+//       await session.commitTransaction();
+//       session.endSession();
+
+//       return res.status(200).json({
+//           message: "Rejections added successfully.",
+//           updatedCount: result.modifiedCount + caseResult.modifiedCount,
+//       });
+//   } catch (error) {
+//       console.error("Error rejecting DRC Assign Manager Approvals:", error);
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(500).json({
+//           message: "Error rejecting DRC Assign Manager Approvals",
+//           error: error.message || "Internal server error.",
+//       });
+//   }
+// };
+
 export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -4067,7 +4640,24 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
       }
 
       const currentDate = new Date();
-      const deligate_id = 6;
+
+      // Fetch the created_by field for the matching approver_references
+      const approverDocs = await TmpForwardedApprover.find({
+          approver_reference: { $in: approver_references },
+          approver_type: { $ne: "DRC_Distribution" }
+      }).select("approver_reference created_by");
+
+      if (!approverDocs.length) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ message: "No matching approver references found" });
+      }
+
+      // Map approver_reference to created_by directly
+      const deligateMap = approverDocs.reduce((map, doc) => {
+          map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
+          return map;
+      }, {});
 
       // Update approve_status for matching documents in TmpForwardedApprover
       const result = await TmpForwardedApprover.updateMany(
@@ -4082,9 +4672,6 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
                       status_date: currentDate,
                       status_edit_by: approved_by,
                   },
-              },
-              $set: {
-                approved_deligated_by: null,
               }
           },
           { session }
@@ -4111,22 +4698,23 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
           { session }
       );
 
-      // --- Create User Interaction Log ---
-      const interaction_id = 6; //this must be chage
-      const request_type = "Pending Approval Agent Destribution"; 
-      const created_by = approved_by;
-      const dynamicParams = { approver_references };
+      // --- Create User Interaction Logs ---
+      const interaction_id = 6; // This may need to be changed
+      const request_type = "Pending Approval Agent Distribution"; 
 
-      const interactionResult = await createUserInteractionFunction({
-        Interaction_ID: interaction_id,
-        User_Interaction_Type: request_type,
-        delegate_user_id: deligate_id,  
-        Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        Request_Mode: "Negotiation", 
-        ...dynamicParams,
-      });
+      for (const reference of approver_references) {
+          if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
+
+          await createUserInteractionFunction({
+              Interaction_ID: interaction_id,
+              User_Interaction_Type: request_type,
+              delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
+              Created_By: approved_by,
+              User_Interaction_Status: "Open",
+              User_Interaction_Status_DTM: currentDate,
+              approver_reference: reference,
+          });
+      }
 
       await session.commitTransaction();
       session.endSession();
@@ -6096,59 +6684,117 @@ export const AssignDRCToCaseDetails = async (req, res) => {
   }
 };
 
+// export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+//     try {
+//         const { approver_reference, remark, remark_edit_by, created_by } = req.body;
+
+//         if (!approver_reference || !remark || !remark_edit_by || !created_by) {
+//             return res.status(400).json({ message: "All required fields must be provided." });
+//         }
+
+//         const currentDate = new Date();
+//         const deligate_id = 9;
+
+//         const newDocument = new TmpForwardedApprover({
+//             approver_reference,
+//             created_by,
+//             approver_type: "Case Withdrawal Approval",
+//             approve_status: [{
+//                 status: "Pending Case Withdrawal",
+//                 status_date: new Date(),
+//                 status_edit_by: created_by,
+//             }],
+//             remark: [{
+//                 remark,
+//                 remark_date: new Date(),
+//                 remark_edit_by,
+//             }]
+//         });
+
+//         await newDocument.save();
+
+//             // --- Create User Interaction Log ---
+//         const interaction_id = 6; //this must be chage
+//         const request_type = "Pending Approval Agent Destribution"; 
+//         const create_by = created_by;
+//         const dynamicParams = { approver_reference };
+
+//         const interactionResult = await createUserInteractionFunction({
+//           Interaction_ID: interaction_id,
+//           User_Interaction_Type: request_type,
+//           delegate_user_id: deligate_id,  
+//           Created_By: create_by,
+//           User_Interaction_Status: "Open",
+//           User_Interaction_Status_DTM: currentDate,
+//           Request_Mode: "Negotiation", 
+//           ...dynamicParams,
+//         });
+
+
+
+//         return res.status(201).json({ message: "Case withdrawal request added successfully", data: newDocument });
+//     } catch (error) {
+//         console.error("Error withdrawing case:", error);
+//         return res.status(500).json({ message: "Internal Server Error" });
+//     }
+// };
+
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
-    try {
-        const { approver_reference, remark, remark_edit_by, created_by } = req.body;
+  try {
+      const { approver_reference, remark, remark_edit_by, created_by } = req.body;
 
-        if (!approver_reference || !remark || !remark_edit_by || !created_by) {
-            return res.status(400).json({ message: "All required fields must be provided." });
-        }
+      if (!approver_reference || !remark || !remark_edit_by || !created_by) {
+          return res.status(400).json({ message: "All required fields must be provided." });
+      }
 
-        const currentDate = new Date();
-        const deligate_id = 9;
+      const currentDate = new Date();
 
-        const newDocument = new TmpForwardedApprover({
-            approver_reference,
-            created_by,
-            approver_type: "Case Withdrawal Approval",
-            approve_status: [{
-                status: "Pending Case Withdrawal",
-                status_date: new Date(),
-                status_edit_by: created_by,
-            }],
-            remark: [{
-                remark,
-                remark_date: new Date(),
-                remark_edit_by,
-            }]
-        });
+      const delegate_id = await getApprovalUserIdService({
+          case_phase: "Initial Review",
+          approval_type: "Manager Approval"
+      });
 
-        await newDocument.save();
+      // --- Proceed to insert document ---
+      const newDocument = new TmpForwardedApprover({
+          approver_reference,
+          created_by,
+          approver_type: "Case Withdrawal Approval",
+          approve_status: [{
+              status: "Pending Case Withdrawal",
+              status_date: currentDate,
+              status_edit_by: created_by,
+          }],
+          remark: [{
+              remark,
+              remark_date: currentDate,
+              remark_edit_by,
+          }],
+          approved_deligated_by: delegate_id
+      });
 
-            // --- Create User Interaction Log ---
-        const interaction_id = 6; //this must be chage
-        const request_type = "Pending Approval Agent Destribution"; 
-        const create_by = created_by;
-        const dynamicParams = { approver_reference };
+      await newDocument.save();
 
-        const interactionResult = await createUserInteractionFunction({
-          Interaction_ID: interaction_id,
-          User_Interaction_Type: request_type,
-          delegate_user_id: deligate_id,  
-          Created_By: create_by,
+      // --- Interaction Log ---
+      const interactionResult = await createUserInteractionFunction({
+          Interaction_ID: 6,
+          User_Interaction_Type: "Pending Approval Agent Destribution",
+          delegate_user_id: delegate_id, 
+          Created_By: created_by,
           User_Interaction_Status: "Open",
           User_Interaction_Status_DTM: currentDate,
-          Request_Mode: "Negotiation", 
-          ...dynamicParams,
-        });
+          Request_Mode: "Negotiation",
+          approver_reference
+      });
 
+      return res.status(201).json({
+          message: "Case withdrawal request added successfully",
+          data: newDocument
+      });
 
-
-        return res.status(201).json({ message: "Case withdrawal request added successfully", data: newDocument });
-    } catch (error) {
-        console.error("Error withdrawing case:", error);
-        return res.status(500).json({ message: "Internal Server Error" });
-    }
+  } catch (error) {
+      console.error("Error withdrawing case:", error);
+      return res.status(500).json({ message: error.message });
+  }
 };
 
 export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
@@ -6298,6 +6944,526 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
 };
 
 
+// export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
+//   try {
+//       const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+      
+//       if (!delegate_user_id) {
+//           return res.status(400).json({ message: "delegate_user_id is required" });
+//       }
+      
+//       let filter = { delegate_user_id };
+      
+//       if (User_Interaction_Type) {
+//           filter.User_Interaction_Type = User_Interaction_Type;
+//       }
+      
+//       if (date_from && date_to) {
+//           filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//       }
+      
+//       // Step 1: Fetch documents from User_Interaction_Log
+//       const interactionLogs = await User_Interaction_Log.find(filter);
+      
+//       if (!interactionLogs.length) {
+//           return res.status(404).json({ message: "No matching interactions found." });
+//       }
+      
+//       // Step 2: Fetch matching Request records based on Interaction_Log_ID
+//       const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+//       const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+      
+//       // Step 3: Filter User_Interaction_Log based on Request Accept status
+//       let filteredInteractionLogs = interactionLogs;
+      
+//       if (requestAccept) {
+//           filteredInteractionLogs = interactionLogs.filter(log => {
+//               const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//               if (!matchingRequest) return false;
+              
+//               const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+//               return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+//                      (requestAccept === "Reject" && requestAcceptStatus === "No");
+//           });
+//       }
+      
+//       if (!filteredInteractionLogs.length) {
+//           return res.status(404).json({ message: "No matching approved/rejected requests found." });
+//       }
+      
+//       // Step 4: Fetch related case details
+//       const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+//       const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+//           case_id: 1,
+//           case_current_status: 1,
+//           current_arrears_amount: 1,
+//           drc: 1,
+//           created_dtm: 1,
+//           monitor_months: 1
+//       });
+      
+//       // Step 5: Prepare the final response with separate entries per DRC
+//       let responseData = [];
+      
+//       filteredInteractionLogs.forEach(log => {
+//           const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+          
+//           let validityPeriod = "";
+//           if (relatedCase) {
+//               const createdDtm = new Date(relatedCase.created_dtm);
+//               if (relatedCase.monitor_months) {
+//                   const endDtm = new Date(createdDtm);
+//                   endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+//                   validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+//               } else {
+//                   validityPeriod = createdDtm.toISOString();
+//               }
+//           }
+          
+//           const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//           const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+          
+//           if (relatedCase?.drc?.length) {
+//               relatedCase.drc.forEach(drc => {
+//                   responseData.push({
+//                       ...log.toObject(),
+//                       case_details: {
+//                           case_id: relatedCase.case_id,
+//                           case_current_status: relatedCase.case_current_status,
+//                           current_arrears_amount: relatedCase.current_arrears_amount,
+//                           drc: {
+//                               drc_id: drc.drc_id,
+//                               drc_name: drc.drc_name,
+//                               drc_status: drc.drc_status
+//                           },
+//                           Validity_Period: validityPeriod
+//                       },
+//                       Approve_Status: approveStatus
+//                   });
+//               });
+//           } else {
+//               responseData.push({
+//                   ...log.toObject(),
+//                   case_details: {
+//                       case_id: relatedCase?.case_id,
+//                       case_current_status: relatedCase?.case_current_status,
+//                       current_arrears_amount: relatedCase?.current_arrears_amount,
+//                       drc: []
+//                   },
+//                   Validity_Period: validityPeriod,
+//                   Approve_Status: approveStatus
+//               });
+//           }
+//       });
+      
+//       return res.json(responseData);
+//   } catch (error) {
+//       console.error("Error fetching request logs:", error);
+//       return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
+
+
+
+// export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
+//     try {
+//         const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+        
+//         if (!delegate_user_id) {
+//             return res.status(400).json({ message: "delegate_user_id is required" });
+//         }
+        
+//         const validUserInteractionTypes = [
+//             "Mediation board forward request letter",
+//             "Request Settlement plan for Negotiation",
+//             "Request period extend for Negotiation",
+//             "Request customer further information for Negotiation",
+//             "Customer request service for Negotiation",
+//             "Request Settlement plan",
+//             "Request period extend",
+//             "Request customer further information",
+//             "Customer request service"
+//         ];
+        
+//         let filter = { delegate_user_id, User_Interaction_Type: { $in: validUserInteractionTypes } };
+        
+//         if (date_from && date_to) {
+//             filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//         }
+        
+//         // Step 1: Fetch documents from User_Interaction_Log
+//         const interactionLogs = await User_Interaction_Log.find(filter);
+        
+//         if (!interactionLogs.length) {
+//             return res.status(404).json({ message: "No matching interactions found." });
+//         }
+        
+//         // Step 2: Fetch matching Request records based on Interaction_Log_ID
+//         const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+//         const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+        
+//         // Step 3: Filter User_Interaction_Log based on Request Accept status
+//         let filteredInteractionLogs = interactionLogs;
+        
+//         if (requestAccept) {
+//             filteredInteractionLogs = interactionLogs.filter(log => {
+//                 const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//                 if (!matchingRequest) return false;
+                
+//                 const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+//                 return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+//                        (requestAccept === "Reject" && requestAcceptStatus === "No");
+//             });
+//         }
+        
+//         if (!filteredInteractionLogs.length) {
+//             return res.status(404).json({ message: "No matching approved/rejected requests found." });
+//         }
+        
+//         // Step 4: Fetch related case details
+//         const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+//         const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+//             case_id: 1,
+//             case_current_status: 1,
+//             current_arrears_amount: 1,
+//             drc: 1,
+//             created_dtm: 1,
+//             monitor_months: 1
+//         });
+        
+//         // Step 5: Prepare the final response with separate entries per DRC
+//         let responseData = [];
+        
+//         filteredInteractionLogs.forEach(log => {
+//             const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+            
+//             let validityPeriod = "";
+//             if (relatedCase) {
+//                 const createdDtm = new Date(relatedCase.created_dtm);
+//                 if (relatedCase.monitor_months) {
+//                     const endDtm = new Date(createdDtm);
+//                     endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+//                     validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+//                 } else {
+//                     validityPeriod = createdDtm.toISOString();
+//                 }
+//             }
+            
+//             const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//             const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+            
+//             if (relatedCase?.drc?.length) {
+//                 relatedCase.drc.forEach(drc => {
+//                     responseData.push({
+//                         ...log.toObject(),
+//                         case_details: {
+//                             case_id: relatedCase.case_id,
+//                             case_current_status: relatedCase.case_current_status,
+//                             current_arrears_amount: relatedCase.current_arrears_amount,
+//                             drc: {
+//                                 drc_id: drc.drc_id,
+//                                 drc_name: drc.drc_name,
+//                                 drc_status: drc.drc_status
+//                             },
+//                             Validity_Period: validityPeriod
+//                         },
+//                         Approve_Status: approveStatus
+//                     });
+//                 });
+//             } else {
+//                 responseData.push({
+//                     ...log.toObject(),
+//                     case_details: {
+//                         case_id: relatedCase?.case_id,
+//                         case_current_status: relatedCase?.case_current_status,
+//                         current_arrears_amount: relatedCase?.current_arrears_amount,
+//                         drc: []
+//                     },
+//                     Validity_Period: validityPeriod,
+//                     Approve_Status: approveStatus
+//                 });
+//             }
+//         });
+        
+//         return res.json(responseData);
+//     } catch (error) {
+//         console.error("Error fetching request logs:", error);
+//         return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//     }
+// };
+
+// export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
+//   try {
+//       const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+      
+//       if (!delegate_user_id) {
+//           return res.status(400).json({ message: "delegate_user_id is required" });
+//       }
+      
+//       const validUserInteractionTypes = [
+//           "Mediation board forward request letter",
+//           "Request Settlement plan for Negotiation",
+//           "Request period extend for Negotiation",
+//           "Request customer further information for Negotiation",
+//           "Customer request service for Negotiation",
+//           "Request Settlement plan",
+//           "Request period extend",
+//           "Request customer further information",
+//           "Customer request service"
+//       ];
+      
+//       let filter = { delegate_user_id, User_Interaction_Type: { $in: validUserInteractionTypes } };
+      
+//       if (date_from && date_to) {
+//           filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+//       }
+      
+//       // Step 1: Fetch documents from User_Interaction_Log
+//       const interactionLogs = await User_Interaction_Log.find(filter);
+      
+//       if (!interactionLogs.length) {
+//           return res.status(404).json({ message: "No matching interactions found." });
+//       }
+      
+//       // Step 2: Fetch matching Request records based on Interaction_Log_ID
+//       const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+//       const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+      
+//       // Step 3: Filter User_Interaction_Log based on Request Accept status
+//       let filteredInteractionLogs = interactionLogs;
+      
+//       if (requestAccept) {
+//           filteredInteractionLogs = interactionLogs.filter(log => {
+//               const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//               if (!matchingRequest) return false;
+              
+//               const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+//               return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+//                      (requestAccept === "Reject" && requestAcceptStatus === "No");
+//           });
+//       }
+      
+//       if (!filteredInteractionLogs.length) {
+//           return res.status(404).json({ message: "No matching approved/rejected requests found." });
+//       }
+      
+//       // Step 4: Fetch related case details
+//       const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+//       const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+//           case_id: 1,
+//           case_current_status: 1,
+//           current_arrears_amount: 1,
+//           drc: 1,
+//           created_dtm: 1,
+//           monitor_months: 1
+//       });
+      
+//       // Step 5: Calculate request count where User_Interaction_Status is "Open"
+//       const requestCount = filteredInteractionLogs.filter(log => log.User_Interaction_Status === "Open").length;
+      
+//       // Step 6: Prepare the final response with separate entries per DRC
+//       let responseData = [];
+      
+//       filteredInteractionLogs.forEach(log => {
+//           const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+          
+//           let validityPeriod = "";
+//           if (relatedCase) {
+//               const createdDtm = new Date(relatedCase.created_dtm);
+//               if (relatedCase.monitor_months) {
+//                   const endDtm = new Date(createdDtm);
+//                   endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+//                   validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+//               } else {
+//                   validityPeriod = createdDtm.toISOString();
+//               }
+//           }
+          
+//           const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+//           const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+          
+//           if (relatedCase?.drc?.length) {
+//               relatedCase.drc.forEach(drc => {
+//                   responseData.push({
+//                       ...log.toObject(),
+//                       case_details: {
+//                           case_id: relatedCase.case_id,
+//                           case_current_status: relatedCase.case_current_status,
+//                           current_arrears_amount: relatedCase.current_arrears_amount,
+//                           drc: {
+//                               drc_id: drc.drc_id,
+//                               drc_name: drc.drc_name,
+//                               drc_status: drc.drc_status
+//                           },
+//                           Validity_Period: validityPeriod
+//                       },
+//                       Approve_Status: approveStatus,
+//                       Request_Count: requestCount
+//                   });
+//               });
+//           } else {
+//               responseData.push({
+//                   ...log.toObject(),
+//                   case_details: {
+//                       case_id: relatedCase?.case_id,
+//                       case_current_status: relatedCase?.case_current_status,
+//                       current_arrears_amount: relatedCase?.current_arrears_amount,
+//                       drc: []
+//                   },
+//                   Validity_Period: validityPeriod,
+//                   Approve_Status: approveStatus,
+//                   Request_Count: requestCount
+//               });
+//           }
+//       });
+      
+//       return res.json(responseData);
+//   } catch (error) {
+//       console.error("Error fetching request logs:", error);
+//       return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
+
+
+
+export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
+    try {
+        const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+        
+        if (!delegate_user_id) {
+            return res.status(400).json({ message: "delegate_user_id is required" });
+        }
+        
+        const validUserInteractionTypes = [
+            "Mediation board forward request letter",
+            "Request Settlement plan for Negotiation",
+            "Request period extend for Negotiation",
+            "Request customer further information for Negotiation",
+            "Customer request service for Negotiation",
+            "Request Settlement plan",
+            "Request period extend",
+            "Request customer further information",
+            "Customer request service"
+        ];
+        
+        let filter = { delegate_user_id };
+        
+        if (User_Interaction_Type) {
+            filter.User_Interaction_Type = User_Interaction_Type;
+        } else {
+            filter.User_Interaction_Type = { $in: validUserInteractionTypes };
+        }
+        
+        if (date_from && date_to) {
+            filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+        }
+        
+        // Step 1: Fetch documents from User_Interaction_Log
+        const interactionLogs = await User_Interaction_Log.find(filter);
+        
+        if (!interactionLogs.length) {
+            return res.status(404).json({ message: "No matching interactions found." });
+        }
+        
+        // Step 2: Fetch matching Request records based on Interaction_Log_ID
+        const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+        const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+        
+        // Step 3: Filter User_Interaction_Log based on Request Accept status
+        let filteredInteractionLogs = interactionLogs;
+        
+        if (requestAccept) {
+            filteredInteractionLogs = interactionLogs.filter(log => {
+                const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+                if (!matchingRequest) return false;
+                
+                const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+                return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+                       (requestAccept === "Reject" && requestAcceptStatus === "No");
+            });
+        }
+        
+        if (!filteredInteractionLogs.length) {
+            return res.status(404).json({ message: "No matching approved/rejected requests found." });
+        }
+        
+        // Step 4: Fetch related case details
+        const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+        const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+            case_id: 1,
+            case_current_status: 1,
+            current_arrears_amount: 1,
+            drc: 1,
+            created_dtm: 1,
+            monitor_months: 1
+        });
+        
+        // Step 5: Calculate request count where User_Interaction_Status is "Open"
+        const requestCount = filteredInteractionLogs.filter(log => log.User_Interaction_Status === "Open").length;
+        
+        // Step 6: Prepare the final response with separate entries per DRC
+        let responseData = [];
+        
+        filteredInteractionLogs.forEach(log => {
+            const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+            
+            let validityPeriod = "";
+            if (relatedCase) {
+                const createdDtm = new Date(relatedCase.created_dtm);
+                if (relatedCase.monitor_months) {
+                    const endDtm = new Date(createdDtm);
+                    endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+                    validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+                } else {
+                    validityPeriod = createdDtm.toISOString();
+                }
+            }
+            
+            const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+            const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+            
+            if (relatedCase?.drc?.length) {
+                relatedCase.drc.forEach(drc => {
+                    responseData.push({
+                        ...log.toObject(),
+                        case_details: {
+                            case_id: relatedCase.case_id,
+                            case_current_status: relatedCase.case_current_status,
+                            current_arrears_amount: relatedCase.current_arrears_amount,
+                            drc: {
+                                drc_id: drc.drc_id,
+                                drc_name: drc.drc_name,
+                                drc_status: drc.drc_status
+                            },
+                            Validity_Period: validityPeriod
+                        },
+                        Approve_Status: approveStatus,
+                        Request_Count: requestCount
+                    });
+                });
+            } else {
+                responseData.push({
+                    ...log.toObject(),
+                    case_details: {
+                        case_id: relatedCase?.case_id,
+                        case_current_status: relatedCase?.case_current_status,
+                        current_arrears_amount: relatedCase?.current_arrears_amount,
+                        drc: []
+                    },
+                    Validity_Period: validityPeriod,
+                    Approve_Status: approveStatus,
+                    Request_Count: requestCount
+                });
+            }
+        });
+        
+        return res.json(responseData);
+    } catch (error) {
+        console.error("Error fetching request logs:", error);
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
 export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
   try {
       const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
@@ -6306,10 +7472,162 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
           return res.status(400).json({ message: "delegate_user_id is required" });
       }
       
+      const validUserInteractionTypes = [
+          "Mediation board forward request letter",
+          "Request Settlement plan for Negotiation",
+          "Request period extend for Negotiation",
+          "Request customer further information for Negotiation",
+          "Customer request service for Negotiation",
+          "Request Settlement plan",
+          "Request period extend",
+          "Request customer further information",
+          "Customer request service"
+      ];
+      
       let filter = { delegate_user_id };
       
       if (User_Interaction_Type) {
           filter.User_Interaction_Type = User_Interaction_Type;
+      } else {
+          filter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      }
+      
+      if (date_from && date_to) {
+          filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      }
+      
+      // Step 1: Calculate total request count where User_Interaction_Status is "Open"
+      const totalRequestCount = await User_Interaction_Log.countDocuments({ ...filter, User_Interaction_Status: "Open" });
+      
+      // Step 2: Fetch latest 10 documents from User_Interaction_Log
+      const interactionLogs = await User_Interaction_Log.find(filter).sort({ CreateDTM: -1 }).limit(10);
+      
+      if (!interactionLogs.length) {
+          return res.status(404).json({ message: "No matching interactions found.", Request_Count: totalRequestCount });
+      }
+      
+      // Step 3: Fetch matching Request records based on Interaction_Log_ID
+      const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+      const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
+      
+      // Step 4: Filter User_Interaction_Log based on Request Accept status
+      let filteredInteractionLogs = interactionLogs;
+      
+      if (requestAccept) {
+          filteredInteractionLogs = interactionLogs.filter(log => {
+              const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+              if (!matchingRequest) return false;
+              
+              const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
+              return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
+                     (requestAccept === "Reject" && requestAcceptStatus === "No");
+          });
+      }
+      
+      if (!filteredInteractionLogs.length) {
+          return res.status(404).json({ message: "No matching approved/rejected requests found.", Request_Count: totalRequestCount });
+      }
+      
+      // Step 5: Fetch related case details
+      const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
+      const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
+          case_id: 1,
+          case_current_status: 1,
+          current_arrears_amount: 1,
+          drc: 1,
+          created_dtm: 1,
+          monitor_months: 1
+      });
+      
+      // Step 6: Prepare the final response with separate entries per DRC
+      let responseData = [];
+      
+      filteredInteractionLogs.forEach(log => {
+          const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
+          
+          let validityPeriod = "";
+          if (relatedCase) {
+              const createdDtm = new Date(relatedCase.created_dtm);
+              if (relatedCase.monitor_months) {
+                  const endDtm = new Date(createdDtm);
+                  endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
+                  validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
+              } else {
+                  validityPeriod = createdDtm.toISOString();
+              }
+          }
+          
+          const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
+          const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
+          
+          if (relatedCase?.drc?.length) {
+              relatedCase.drc.forEach(drc => {
+                  responseData.push({
+                      ...log.toObject(),
+                      case_details: {
+                          case_id: relatedCase.case_id,
+                          case_current_status: relatedCase.case_current_status,
+                          current_arrears_amount: relatedCase.current_arrears_amount,
+                          drc: {
+                              drc_id: drc.drc_id,
+                              drc_name: drc.drc_name,
+                              drc_status: drc.drc_status
+                          },
+                          Validity_Period: validityPeriod
+                      },
+                      Approve_Status: approveStatus,
+                      Request_Count: totalRequestCount
+                  });
+              });
+          } else {
+              responseData.push({
+                  ...log.toObject(),
+                  case_details: {
+                      case_id: relatedCase?.case_id,
+                      case_current_status: relatedCase?.case_current_status,
+                      current_arrears_amount: relatedCase?.current_arrears_amount,
+                      drc: []
+                  },
+                  Validity_Period: validityPeriod,
+                  Approve_Status: approveStatus,
+                  Request_Count: totalRequestCount
+              });
+          }
+      });
+      
+      return res.json(responseData);
+  } catch (error) {
+      console.error("Error fetching request logs:", error);
+      return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, res) => {
+  try {
+      const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
+      
+      const validUserInteractionTypes = [
+          "Mediation board forward request letter",
+          "Request Settlement plan for Negotiation",
+          "Request period extend for Negotiation",
+          "Request customer further information for Negotiation",
+          "Customer request service for Negotiation",
+          "Request Settlement plan",
+          "Request period extend",
+          "Request customer further information",
+          "Customer request service"
+      ];
+      
+      let filter = {};
+      
+      if (delegate_user_id) {
+          filter.delegate_user_id = delegate_user_id;
+      }
+      
+      if (User_Interaction_Type) {
+          filter.User_Interaction_Type = User_Interaction_Type;
+      } else {
+          filter.User_Interaction_Type = { $in: validUserInteractionTypes };
       }
       
       if (date_from && date_to) {
@@ -6356,7 +7674,10 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
           monitor_months: 1
       });
       
-      // Step 5: Prepare the final response with separate entries per DRC
+      // Step 5: Calculate request count where User_Interaction_Status is "Open"
+      const requestCount = filteredInteractionLogs.filter(log => log.User_Interaction_Status === "Open").length;
+      
+      // Step 6: Prepare the final response with separate entries per DRC
       let responseData = [];
       
       filteredInteractionLogs.forEach(log => {
@@ -6392,7 +7713,8 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
                           },
                           Validity_Period: validityPeriod
                       },
-                      Approve_Status: approveStatus
+                      Approve_Status: approveStatus,
+                      Request_Count: requestCount
                   });
               });
           } else {
@@ -6405,7 +7727,8 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
                       drc: []
                   },
                   Validity_Period: validityPeriod,
-                  Approve_Status: approveStatus
+                  Approve_Status: approveStatus,
+                  Request_Count: requestCount
               });
           }
       });
@@ -6416,6 +7739,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 export const Customer_Negotiations = async (req, res) => {
   const session = await mongoose.startSession(); // Start a session
@@ -6910,148 +8234,385 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
 // File: controllers/requestController.js
 
 
+// export const Submit_Mediation_Board_Acceptance = async (req, res) => {
+//   try {
+//     const {
+//       create_by,
+//       Interaction_Log_ID,
+//       case_id,
+//       User_Interaction_Type,
+//       Request_Mode,
+//       Interaction_ID,
+//       "Request Accept": requestAccept,
+//       Reamrk,
+//       No_of_Calendar_Month,
+//       Letter_Send
+//     } = req.body;
+
+//     // Step 1: Create new Request document
+//     const newRequest = new Request({
+//       RO_Request_Id: Interaction_Log_ID,
+//       Request_Description: User_Interaction_Type,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       Request_Mode: Request_Mode,
+//       Intraction_ID: Interaction_ID,
+//       parameters: {
+//         "Request Accept": requestAccept,
+//         "Reamrk": Reamrk,
+//         "No_of_Calendar_Month": No_of_Calendar_Month,
+//         "Letter_Send": Letter_Send
+//       }
+//     });
+
+//     // Save Request
+//     const savedRequest = await newRequest.save();
+
+//     // Step 2: Fetch existing case
+//     const existingCase = await Case_details.findOne({ case_id: case_id });
+
+//     if (!existingCase) {
+//       return res.status(404).json({
+//         message: `Case with case_id ${case_id} not found.`
+//       });
+//     }
+
+//     const existingMonitorMonths = existingCase.monitor_months || 0;
+//     let finalMonitorMonths = existingMonitorMonths;
+
+//     // Step 3: Validate No_of_Calendar_Month
+//     let monthsToAdd = 0;
+//     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+//       monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+//       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+//         return res.status(400).json({
+//           message: "Invalid No_of_Calendar_Month value. It must be a positive number."
+//         });
+//       }
+
+//       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+//       if (finalMonitorMonths > 5) {
+//         return res.status(400).json({
+//           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+//         });
+//       }
+//     }
+
+//     // Step 4: Prepare new case_status object
+//     const newCaseStatus = {
+//       case_status: "Accept",
+//       status_reason: Reamrk || null,
+//       created_dtm: new Date(),
+//       created_by: create_by,
+//       notified_dtm: null,
+//       expire_dtm: null
+//     };
+
+//     // Step 5: Prepare update object for CaseDetails
+//     const updateFields = {
+//       $push: { case_status: newCaseStatus },
+//       $set: { 
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths
+//       }
+//     };
+
+//     // Step 6: Update CaseDetails
+//     await Case_details.updateOne({ case_id: case_id }, updateFields);
+
+//     // Step 7: Update User_Interaction_Log -> Set status to "Approved"
+//     await User_Interaction_Log.updateOne(
+//       { Interaction_Log_ID: Interaction_Log_ID },
+//       { $set: { User_Interaction_Status: "Complete" } }
+//     );
+
+//     // Fetch the document to get approver_type, created_on, and created_by
+//     const approvalDoc = await User_Interaction_Log.findOne({ Interaction_Log_ID });
+
+//     if (!approvalDoc) {
+//          await session.abortTransaction();
+//         session.endSession();
+//          return res.status(404).json({ message: "No matching Interaction_Log_ID found" });
+//     }
+    
+//     // Assign created_by as delegate_id
+//      const deligate_id = approvalDoc.Created_By;
+
+//     // --- Create User Interaction Log ---
+//     const interaction_id = 6; // This may need to be changed
+//     const request_type = "Pending Approval Agent Distribution"; 
+//     const created_by = create_by;
+//     const dynamicParams = { Interaction_Log_ID };
+
+//     await createUserInteractionFunction({
+//       Interaction_ID: interaction_id,
+//       User_Interaction_Type: request_type,
+//       delegate_user_id: deligate_id,  // Now using created_by as delegate ID
+//       Created_By: created_by,
+//       User_Interaction_Status: "Open",
+//       User_Interaction_Status_DTM: new Date(),
+//       ...dynamicParams,
+//     });
+
+
+//     // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+//     const drcArrayLength = existingCase.drc.length;
+//     let extendedExpireDate = null;
+
+//     if (drcArrayLength > 0 && monthsToAdd > 0) {
+//       const lastDrcIndex = drcArrayLength - 1;
+//       const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+//       if (lastExpireDtm) {
+//         // Extend existing expire_dtm by No_of_Calendar_Month
+//         extendedExpireDate = new Date(lastExpireDtm);
+//         extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+//         // Update specific drc element's expire_dtm in DB
+//         await Case_details.updateOne(
+//           { case_id: case_id },
+//           { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+//         );
+//       }
+//     }
+
+//     // ✅ Final success response
+//     return res.status(201).json({
+//       message: "Mediation Board Acceptance Request submitted and case updated successfully.",
+//       updates: {
+//         case_id: case_id,
+//         case_current_status: "Accept",
+//         monitor_months: finalMonitorMonths,
+//         added_case_status: newCaseStatus,
+//         interaction_log_status: "Approved",
+//         drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
+//       },
+//       request: {
+//         RO_Request_Id: savedRequest.RO_Request_Id,
+//         Request_Description: savedRequest.Request_Description,
+//         created_dtm: savedRequest.created_dtm,
+//         created_by: savedRequest.created_by,
+//         Request_Mode: savedRequest.Request_Mode,
+//         Intraction_ID: savedRequest.Intraction_ID,
+//         parameters: savedRequest.parameters
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error submitting mediation board acceptance and updating case and interaction log:", error);
+//     return res.status(500).json({
+//       message: "Failed to submit Mediation Board Acceptance Request and update related records.",
+//       error: error.message
+//     });
+//   }
+// };
+
+// Define the status mapping based on User_Interaction_Type and Request Accept
+const statusMapping = {
+  "Mediation board forward request letter": { Yes: "FMB", No: "RO Negotiation" },
+  "Request Settlement plan for Negotiation": { Yes: "RO Negotiation Settle Pending", No: "RO Negotiation" },
+  "Request period extend for Negotiation": { Yes: "RO Negotiation extended", No: "RO Negotiation" },
+  "Request customer further information for Negotiation": { Yes: "RO Negotiation", No: "RO Negotiation" },
+  "Customer request service for Negotiation": { Yes: "RO Negotiation", No: "RO Negotiation" },
+  "Request Settlement plan": { Yes: "MB Negotiation Settle Pending", No: "MB Negotiation" },
+  "Request period extend": { Yes: "MB Negotiation", No: "MB Negotiation" },
+  "Request customer further information": { Yes: "MB Negotiation", No: "MB Negotiation" },
+  "Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
+};
+
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
-  try {
-    const {
-      create_by,
-      Interaction_Log_ID,
-      case_id,
-      User_Interaction_Type,
-      Request_Mode,
-      Interaction_ID,
-      "Request Accept": requestAccept,
-      Reamrk,
-      No_of_Calendar_Month,
-      Letter_Send
-    } = req.body;
+try {
+  const {
+    create_by,
+    Interaction_Log_ID,
+    case_id,
+    User_Interaction_Type,
+    Request_Mode,
+    Interaction_ID,
+    "Request Accept": requestAccept,
+    Reamrk,
+    No_of_Calendar_Month,
+    Letter_Send
+  } = req.body;
 
-    // Step 1: Create new Request document
-    const newRequest = new Request({
-      RO_Request_Id: Interaction_Log_ID,
-      Request_Description: User_Interaction_Type,
-      created_dtm: new Date(),
-      created_by: create_by,
-      Request_Mode: Request_Mode,
-      Intraction_ID: Interaction_ID,
-      parameters: {
-        "Request Accept": requestAccept,
-        "Reamrk": Reamrk,
-        "No_of_Calendar_Month": No_of_Calendar_Month,
-        "Letter_Send": Letter_Send
-      }
+  // Step 1: Determine the status based on User_Interaction_Type and Request Accept
+  const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
+
+  if (!caseStatus) {
+    return res.status(400).json({
+      message: `Invalid User_Interaction_Type or Request Accept value provided.`
     });
+  }
 
-    // Save Request
-    const savedRequest = await newRequest.save();
+  // Step 2: Create new Request document
+  const newRequest = new Request({
+    RO_Request_Id: Interaction_Log_ID,
+    Request_Description: User_Interaction_Type,
+    created_dtm: new Date(),
+    created_by: create_by,
+    Request_Mode: Request_Mode,
+    Intraction_ID: Interaction_ID,
+    parameters: {
+      "Request Accept": requestAccept,
+      "Reamrk": Reamrk,
+      "No_of_Calendar_Month": No_of_Calendar_Month,
+      "Letter_Send": Letter_Send
+    }
+  });
 
-    // Step 2: Fetch existing case
-    const existingCase = await Case_details.findOne({ case_id: case_id });
+  // Save Request
+  const savedRequest = await newRequest.save();
 
-    if (!existingCase) {
-      return res.status(404).json({
-        message: `Case with case_id ${case_id} not found.`
+  // Step 3: Fetch existing case
+  const existingCase = await Case_details.findOne({ case_id: case_id });
+
+  if (!existingCase) {
+    return res.status(404).json({
+      message: `Case with case_id ${case_id} not found.`
+    });
+  }
+
+  const existingMonitorMonths = existingCase.monitor_months || 0;
+  let finalMonitorMonths = existingMonitorMonths;
+
+  // Step 4: Validate No_of_Calendar_Month
+  let monthsToAdd = 0;
+  if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
+    monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+    if (isNaN(monthsToAdd) || monthsToAdd < 0) {
+      return res.status(400).json({
+        message: "Invalid No_of_Calendar_Month value. It must be a positive number."
       });
     }
 
-    const existingMonitorMonths = existingCase.monitor_months || 0;
-    let finalMonitorMonths = existingMonitorMonths;
-
-    // Step 3: Validate No_of_Calendar_Month
-    let monthsToAdd = 0;
-    if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
-      if (isNaN(monthsToAdd) || monthsToAdd < 0) {
-        return res.status(400).json({
-          message: "Invalid No_of_Calendar_Month value. It must be a positive number."
-        });
-      }
-
-      finalMonitorMonths = existingMonitorMonths + monthsToAdd;
-      if (finalMonitorMonths > 5) {
-        return res.status(400).json({
-          message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
-        });
-      }
+    finalMonitorMonths = existingMonitorMonths + monthsToAdd;
+    if (finalMonitorMonths > 5) {
+      return res.status(400).json({
+        message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
+      });
     }
+  }
 
-    // Step 4: Prepare new case_status object
-    const newCaseStatus = {
-      case_status: "Accept",
-      status_reason: Reamrk || null,
-      created_dtm: new Date(),
-      created_by: create_by,
-      notified_dtm: null,
-      expire_dtm: null
-    };
+  // Step 5: Prepare new case_status object
+  const newCaseStatus = {
+    case_status: caseStatus, // Dynamically set case status
+    status_reason: Reamrk || null,
+    created_dtm: new Date(),
+    created_by: create_by,
+    notified_dtm: null,
+    expire_dtm: null
+  };
 
-    // Step 5: Prepare update object for CaseDetails
-    const updateFields = {
-      $push: { case_status: newCaseStatus },
-      $set: { 
-        case_current_status: "Accept",
-        monitor_months: finalMonitorMonths
+  // Step 6: Prepare update object for CaseDetails
+  const updateFields = {
+    $push: { case_status: newCaseStatus },
+    $set: { 
+      case_current_status: caseStatus, // Dynamically set case_current_status
+      monitor_months: finalMonitorMonths
+    }
+  };
+
+  // Step 7: Update CaseDetails
+  await Case_details.updateOne({ case_id: case_id }, updateFields);
+
+  // Step 8: Update User_Interaction_Log -> Set status to "Complete"
+  await User_Interaction_Log.updateOne(
+    { Interaction_Log_ID: Interaction_Log_ID },
+    { $set: { User_Interaction_Status: "Complete" } }
+  );
+
+    // Step 9: Update `completed_dtm` in `ro_requests`
+    const completedDate = new Date();
+
+    await Case_details.updateOne(
+      { 
+        case_id: case_id, 
+        "ro_requests.intraction_log_id": Interaction_Log_ID 
+      },
+      { 
+        $set: { "ro_requests.$.completed_dtm": completedDate } 
       }
-    };
-
-    // Step 6: Update CaseDetails
-    await Case_details.updateOne({ case_id: case_id }, updateFields);
-
-    // Step 7: Update User_Interaction_Log -> Set status to "Approved"
-    await User_Interaction_Log.updateOne(
-      { Interaction_Log_ID: Interaction_Log_ID },
-      { $set: { User_Interaction_Status: "Approved" } }
     );
 
-    // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
-    const drcArrayLength = existingCase.drc.length;
-    let extendedExpireDate = null;
+    // Fetch the document to get approver_type, created_on, and created_by
+    const approvalDoc = await User_Interaction_Log.findOne({ Interaction_Log_ID });
 
-    if (drcArrayLength > 0 && monthsToAdd > 0) {
-      const lastDrcIndex = drcArrayLength - 1;
-      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
-
-      if (lastExpireDtm) {
-        // Extend existing expire_dtm by No_of_Calendar_Month
-        extendedExpireDate = new Date(lastExpireDtm);
-        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
-
-        // Update specific drc element's expire_dtm in DB
-        await Case_details.updateOne(
-          { case_id: case_id },
-          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
-        );
-      }
+    if (!approvalDoc) {
+         await session.abortTransaction();
+        session.endSession();
+         return res.status(404).json({ message: "No matching Interaction_Log_ID found" });
     }
+    
+    // Assign created_by as delegate_id
+     const deligate_id = approvalDoc.Created_By;
 
-    // ✅ Final success response
-    return res.status(201).json({
-      message: "Mediation Board Acceptance Request submitted and case updated successfully.",
-      updates: {
-        case_id: case_id,
-        case_current_status: "Accept",
-        monitor_months: finalMonitorMonths,
-        added_case_status: newCaseStatus,
-        interaction_log_status: "Approved",
-        drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
-      },
-      request: {
-        RO_Request_Id: savedRequest.RO_Request_Id,
-        Request_Description: savedRequest.Request_Description,
-        created_dtm: savedRequest.created_dtm,
-        created_by: savedRequest.created_by,
-        Request_Mode: savedRequest.Request_Mode,
-        Intraction_ID: savedRequest.Intraction_ID,
-        parameters: savedRequest.parameters
-      }
+    // --- Create User Interaction Log ---
+    const interaction_id = 6; // This may need to be changed
+    const request_type = "Pending Approval Agent Distribution"; 
+    const created_by = create_by;
+    const dynamicParams = { Interaction_Log_ID };
+
+    await createUserInteractionFunction({
+      Interaction_ID: interaction_id,
+      User_Interaction_Type: request_type,
+      delegate_user_id: deligate_id,  // Now using created_by as delegate ID
+      Created_By: created_by,
+      User_Interaction_Status: "Open",
+      User_Interaction_Status_DTM: new Date(),
+      ...dynamicParams,
     });
 
-  } catch (error) {
-    console.error("Error submitting mediation board acceptance and updating case and interaction log:", error);
-    return res.status(500).json({
-      message: "Failed to submit Mediation Board Acceptance Request and update related records.",
-      error: error.message
-    });
+  // Step 9: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
+  const drcArrayLength = existingCase.drc.length;
+  let extendedExpireDate = null;
+
+  if (drcArrayLength > 0 && monthsToAdd > 0) {
+    const lastDrcIndex = drcArrayLength - 1;
+    const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
+
+    if (lastExpireDtm) {
+      // Extend existing expire_dtm by No_of_Calendar_Month
+      extendedExpireDate = new Date(lastExpireDtm);
+      extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+      // Update specific drc element's expire_dtm in DB
+      await Case_details.updateOne(
+        { case_id: case_id },
+        { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
+      );
+    }
   }
+
+  // ✅ Final success response
+  return res.status(201).json({
+    message: "Mediation Board Acceptance Request submitted and case updated successfully.",
+    updates: {
+      case_id: case_id,
+      case_current_status: caseStatus,
+      monitor_months: finalMonitorMonths,
+      added_case_status: newCaseStatus,
+      interaction_log_status: "Complete",
+      ro_request_completed_dtm: completedDate,
+      drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
+    },
+    request: {
+      RO_Request_Id: savedRequest.RO_Request_Id,
+      Request_Description: savedRequest.Request_Description,
+      created_dtm: savedRequest.created_dtm,
+      created_by: savedRequest.created_by,
+      Request_Mode: savedRequest.Request_Mode,
+      Intraction_ID: savedRequest.Intraction_ID,
+      parameters: savedRequest.parameters
+    }
+  });
+
+} catch (error) {
+  console.error("Error submitting mediation board acceptance and updating case and interaction log:", error);
+  return res.status(500).json({
+    message: "Failed to submit Mediation Board Acceptance Request and update related records.",
+    error: error.message
+  });
+}
 };
 
 
@@ -7301,11 +8862,53 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     // Step 6: Update CaseDetails
     await Case_details.updateOne({ case_id: case_id }, updateFields);
 
+    // Step 9: Update `completed_dtm` in `ro_requests`
+    const completedDate = new Date();
+
+    await Case_details.updateOne(
+      { 
+        case_id: case_id, 
+        "ro_requests.intraction_log_id": Interaction_Log_ID 
+      },
+      { 
+        $set: { "ro_requests.$.completed_dtm": completedDate } 
+      }
+    );
+
     // Step 7: Update User_Interaction_Log -> Set status to "Withdraw"
     await User_Interaction_Log.updateOne(
       { Interaction_Log_ID: Interaction_Log_ID },
-      { $set: { User_Interaction_Status: "Withdraw" } }
+      { $set: { User_Interaction_Status: "Complete" } }
     );
+
+
+    // Fetch the document to get approver_type, created_on, and created_by
+    const approvalDoc = await User_Interaction_Log.findOne({ Interaction_Log_ID });
+
+    if (!approvalDoc) {
+         await session.abortTransaction();
+        session.endSession();
+         return res.status(404).json({ message: "No matching Interaction_Log_ID found" });
+    }
+    
+    // Assign created_by as delegate_id
+     const deligate_id = approvalDoc.Created_By;
+
+    // --- Create User Interaction Log ---
+    const interaction_id = 6; // This may need to be changed
+    const request_type = "Pending Approval Agent Distribution"; 
+    const created_by = create_by;
+    const dynamicParams = { Interaction_Log_ID };
+
+    await createUserInteractionFunction({
+      Interaction_ID: interaction_id,
+      User_Interaction_Type: request_type,
+      delegate_user_id: deligate_id,  // Now using created_by as delegate ID
+      Created_By: created_by,
+      User_Interaction_Status: "Open",
+      User_Interaction_Status_DTM: new Date(),
+      ...dynamicParams,
+    });
 
     // Step 8: Extend expire_dtm of last element in drc array if No_of_Calendar_Month provided
     const drcArrayLength = existingCase.drc.length;
@@ -7374,6 +8977,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
         monitor_months: finalMonitorMonths,
         added_case_status: newCaseStatus,
         interaction_log_status: "Withdraw",
+        ro_request_completed_dtm: completedDate,
         forwarded_approver_id: savedForwardApprover._id,
         drc_expire_extended: extendedExpireDate ? extendedExpireDate : null
       },

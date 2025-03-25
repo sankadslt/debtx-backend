@@ -126,28 +126,138 @@ import MoneyTransaction from "../models/Money_transactions.js";
 // };
 
 
+// export const getAllPaymentCases = async (req, res) => {
+//   try {
+//     // Get parameters from request body
+//     const { 
+//       case_id, 
+//       account_num, 
+//       settlement_phase, 
+//       from_date, 
+//       to_date, 
+//       page = 1, 
+//       limit = 10, 
+//       recent = false 
+//     } = req.body;
+
+//     // Default query parameters
+//     const query = {};
+    
+//     // Initialize $and array if needed for date filtering
+//     if (from_date && to_date) {
+//       query.$and = [];
+//     }
+    
+//     let pageNum = Number(page);
+//     let limitNum = Number(limit);
+
+//     // Apply filters if they exist
+//     if (case_id) query.case_id = Number(case_id);
+//     if (account_num) query.account_num = Number(account_num);
+//     if (settlement_phase) query.settlement_phase = settlement_phase;
+//     if (from_date && to_date) {
+//       query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
+//       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+//     }
+
+//     const sortOptions = { money_transaction_id: -1 };
+
+//     // If recent is true, limit to 10 latest entries and ignore pagination
+//     if (recent === true) {
+//       limitNum = 10;
+//       pageNum = 1;
+//       // Clear any filters if we just want recent payments
+//       Object.keys(query).forEach(key => delete query[key]);
+//     }
+
+//     // Calculate skip for pagination
+//     const skip = (pageNum - 1) * limitNum;
+
+//     // Execute query with descending sort
+//     const transactions = await MoneyTransaction.find(query)
+//       .sort(sortOptions)
+//       .skip(skip)
+//       .limit(limitNum);
+
+//     // Format response data - include all fields from model
+//     const formattedTransactions = transactions.map(transaction => {
+//       // Convert Mongoose document to plain object
+//       const transactionObj = transaction.toObject();
+
+//       // Format date fields for better readability
+//       if (transactionObj.created_dtm) {
+//         transactionObj.created_dtm = transactionObj.created_dtm.toISOString();
+//       }
+
+//       if (transactionObj.money_transaction_date) {
+//         transactionObj.money_transaction_date = transactionObj.money_transaction_date.toISOString();
+//       }
+
+//       // Return all fields from model with properly formatted names
+//       return {
+//         Money_Transaction_ID: transactionObj.money_transaction_id,
+//         Case_ID: transactionObj.case_id,
+//         Account_No: transactionObj.account_num || '-',
+//         Created_DTM: transactionObj.created_dtm,
+//         Settlement_ID: transactionObj.settlement_id || '-',
+//         Installment_Seq: transactionObj.installment_seq || '-',
+//         Transaction_Type: transactionObj.transaction_type || '-',
+//         Money_Transaction_Ref: transactionObj.money_transaction_ref || '-',
+//         Money_Transaction_Amount: transactionObj.money_transaction_amount || '-',
+//         Money_Transaction_Date: transactionObj.money_transaction_date || '-',
+//         Bill_Payment_Status: transactionObj.bill_payment_status || '-',
+//         Settlement_Phase: transactionObj.settlement_phase || '-',
+//         Cummulative_Credit: transactionObj.cummulative_credit || '-',
+//         Cummulative_Debit: transactionObj.cummulative_debit || '-',
+//         Cummulative_Settled_Balance: transactionObj.cummulative_settled_balance || '-',
+//         Commissioned_Amount: transactionObj.commissioned_amount || '-'
+//       };
+//     });
+
+//     // Prepare response data
+//     const responseData = {
+//       message: recent === true ? 'Recent money transactions retrieved successfully' : 'Money transactions retrieved successfully',
+//       data: formattedTransactions,
+//     };
+
+//     // Add pagination info if not in recent mode
+//     if (recent !== true) {
+//       const total = await MoneyTransaction.countDocuments(query);
+//       responseData.pagination = {
+//         total,
+//         page: pageNum,
+//         limit: limitNum,
+//         pages: Math.ceil(total / limitNum)
+//       };
+//     } else {
+//       responseData.total = formattedTransactions.length;
+//     }
+
+//     return res.status(200).json(responseData);
+//   } catch (error) {
+//     return res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
+
+
 export const getAllPaymentCases = async (req, res) => {
+  // Get parameters from request body
+  const { 
+    case_id,
+    account_num, 
+    settlement_phase, 
+    from_date, 
+    to_date, 
+    page = 1, 
+    limit = 10, 
+    recent = false 
+  } = req.body;
+  
   try {
-    // Get parameters from request body
-    const { 
-      case_id, 
-      account_num, 
-      settlement_phase, 
-      from_date, 
-      to_date, 
-      page = 1, 
-      limit = 10, 
-      recent = false 
-    } = req.body;
 
     // Default query parameters
     const query = {};
-    
-    // Initialize $and array if needed for date filtering
-    if (from_date && to_date) {
-      query.$and = [];
-    }
-    
+
     let pageNum = Number(page);
     let limitNum = Number(limit);
 
@@ -156,11 +266,13 @@ export const getAllPaymentCases = async (req, res) => {
     if (account_num) query.account_num = Number(account_num);
     if (settlement_phase) query.settlement_phase = settlement_phase;
     if (from_date && to_date) {
-      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+      // Initialize the $and array before using push
+      query.$and = [];
+      query.$and.push({ created_dtm: { $gte: new Date(from_date) } });
+      query.$and.push({ created_dtm: { $lte: new Date(to_date) } });
     }
 
-    const sortOptions = { money_transaction_id: -1 };
+    const sortOptions = { created_dtm: -1 };
 
     // If recent is true, limit to 10 latest entries and ignore pagination
     if (recent === true) {

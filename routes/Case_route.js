@@ -71,6 +71,8 @@ import {
   Withdraw_CasesOwened_By_DRC,
   // List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
+  ListAllRequestLogFromRecoveryOfficers,
+  ListAllRequestLogFromRecoveryOfficersWithoutUserID,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
   getActiveNegotiations,
@@ -4481,6 +4483,12 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *           example: "Case Withdrawal Approval"
  *         description: Type of approval request.
  *       - in: query
+ *         name: approved_deligated_by
+ *         schema:
+ *           type: string
+ *           example: "super@gmail.com"
+ *         description: Approved Deligated Person.
+ *       - in: query
  *         name: date_from
  *         schema:
  *           type: string
@@ -4504,6 +4512,9 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *               approver_type:
  *                 type: string
  *                 example: "Case Withdrawal Approval"
+ *               approved_deligated_by:
+ *                 type: string
+ *                 example: "super@gmail.com"
  *               date_from:
  *                 type: string
  *                 format: date
@@ -6846,7 +6857,11 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *                   example: "Database connection failed"
  */
 
+router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecoveryOfficers);
+
 router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+
+router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllRequestLogFromRecoveryOfficersWithoutUserID);
 
 /**
  * @swagger
