@@ -2570,13 +2570,13 @@ router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule
  * @swagger
  * /api/case/List_All_Arrears_Bands:
  *   get:
- *     summary: Retrieve all arrears bands
+ *     summary: AR-1G01 Retrieve all arrears bands
  *     description: |
  *       Fetches arrears band details from the `Arrears_bands` collection in MongoDB.
  *
  *       | Version | Date        | Description                      | Changed By         |
  *       |---------|------------|----------------------------------|--------------------|
- *       | 01      | 2025-Mar-11 | Initial implementation          | Your Name         |
+ *       | 01      | 2025-Mar-11 | Initial implementation          | Ravindu Pathum Madushan |
  *
  *     tags: [Case Management]
  *     responses:
