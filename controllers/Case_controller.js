@@ -7336,14 +7336,14 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         
         const validUserInteractionTypes = [
             "Mediation board forward request letter",
-            "Request Settlement plan for Negotiation",
-            "Request period extend for Negotiation",
-            "Request customer further information for Negotiation",
-            "Customer request service for Negotiation",
-            "Request Settlement plan",
-            "Request period extend",
-            "Request customer further information",
-            "Customer request service"
+            "Negotiation Settlement plan Request",
+            "Negotiation period extend Request",
+            "Negotiation customer further information Request",
+            "Negotiation Customer request service",
+            "Mediation Board Settlement plan Request",
+            "Mediation Board period extend Request",
+            "Mediation Board customer further information request",
+            "Mediation Board Customer request service"
         ];
         
         let filter = { delegate_user_id };
@@ -7474,14 +7474,14 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       
       const validUserInteractionTypes = [
           "Mediation board forward request letter",
-          "Request Settlement plan for Negotiation",
-          "Request period extend for Negotiation",
-          "Request customer further information for Negotiation",
-          "Customer request service for Negotiation",
-          "Request Settlement plan",
-          "Request period extend",
-          "Request customer further information",
-          "Customer request service"
+          "Negotiation Settlement plan Request",
+          "Negotiation period extend Request",
+          "Negotiation customer further information Request",
+          "Negotiation Customer request service",
+          "Mediation Board Settlement plan Request",
+          "Mediation Board period extend Request",
+          "Mediation Board customer further information request",
+          "Mediation Board Customer request service"
       ];
       
       let filter = { delegate_user_id };
@@ -7608,14 +7608,14 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
       
       const validUserInteractionTypes = [
           "Mediation board forward request letter",
-          "Request Settlement plan for Negotiation",
-          "Request period extend for Negotiation",
-          "Request customer further information for Negotiation",
-          "Customer request service for Negotiation",
-          "Request Settlement plan",
-          "Request period extend",
-          "Request customer further information",
-          "Customer request service"
+          "Negotiation Settlement plan Request",
+          "Negotiation period extend Request",
+          "Negotiation customer further information Request",
+          "Negotiation Customer request service",
+          "Mediation Board Settlement plan Request",
+          "Mediation Board period extend Request",
+          "Mediation Board customer further information request",
+          "Mediation Board Customer request service"
       ];
       
       let filter = {};
@@ -8410,14 +8410,14 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
 // Define the status mapping based on User_Interaction_Type and Request Accept
 const statusMapping = {
   "Mediation board forward request letter": { Yes: "FMB", No: "RO Negotiation" },
-  "Request Settlement plan for Negotiation": { Yes: "RO Negotiation Settle Pending", No: "RO Negotiation" },
-  "Request period extend for Negotiation": { Yes: "RO Negotiation extended", No: "RO Negotiation" },
-  "Request customer further information for Negotiation": { Yes: "RO Negotiation", No: "RO Negotiation" },
-  "Customer request service for Negotiation": { Yes: "RO Negotiation", No: "RO Negotiation" },
-  "Request Settlement plan": { Yes: "MB Negotiation Settle Pending", No: "MB Negotiation" },
-  "Request period extend": { Yes: "MB Negotiation", No: "MB Negotiation" },
-  "Request customer further information": { Yes: "MB Negotiation", No: "MB Negotiation" },
-  "Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
+  "Negotiation Settlement plan Request": { Yes: "RO Negotiation Settle Pending", No: "RO Negotiation" },
+  "Negotiation period extend Request": { Yes: "RO Negotiation extended", No: "RO Negotiation" },
+  "Negotiation customer further information Request": { Yes: "RO Negotiation", No: "RO Negotiation" },
+  "Negotiation Customer request service": { Yes: "RO Negotiation", No: "RO Negotiation" },
+  "Mediation Board Settlement plan Request": { Yes: "MB Negotiation Settle Pending", No: "MB Negotiation" },
+  "Mediation Board period extend Request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+  "Mediation Board customer further information request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+  "Mediation Board Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
 };
 
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
