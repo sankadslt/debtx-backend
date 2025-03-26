@@ -2754,16 +2754,15 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
 
 /**
  * @swagger
- * /api/Case_Distribution_Among_Agents:
+ * /api/case/Case_Distribution_Among_Agents:
  *   post:
- *     summary: C-1P20 Distribute Cases Among Agents
+ *     summary: Distribute Cases Among Agents
  *     description: |
- *       Distribute Cases among Agents and case_status='Open Assign Agent'
+ *       This API distributes cases among agents based on the provided DRC commission rule, arrears band, and DRC list.
  *
- *
- *       | Version | Date        | Description                            | Changed By       |
- *       |---------|------------|----------------------------------------|------------------|
- *       | 01      | 2025-Jan-28 | Case distribution among agents        | Sanjaya Perera   |
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-26 | Initial creation                          | Your Name       |
  *
  *     tags: [Case Management]
  *     requestBody:
@@ -2780,81 +2779,85 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *             properties:
  *               drc_commision_rule:
  *                 type: string
- *                 description: The commission rule for distributing cases.
- *                 example: "VOICE"
+ *                 example: "BB"
+ *                 description: The commission rule applied for distribution.
  *               current_arrears_band:
  *                 type: string
- *                 description: The arrears band used for filtering cases.
- *                 example: "50000-100000"
+ *                 example: "AB-50_100"
+ *                 description: The arrears band for the distribution.
  *               drc_list:
  *                 type: array
- *                 description: List of DRCs and their case counts.
+ *                 description: List of DRCs involved in the distribution.
  *                 items:
  *                   type: object
  *                   properties:
  *                     DRC:
  *                       type: string
- *                       description: The agent or DRC handling cases.
  *                       example: "D3"
+ *                     DRC_Id:
+ *                       type: integer
+ *                       example: 3
  *                     Count:
  *                       type: integer
- *                       description: The number of cases assigned.
  *                       example: 3
  *               created_by:
  *                 type: string
- *                 description: The user who initiated the distribution.
- *                 example: "admin_user"
+ *                 example: "admin"
+ *                 description: The user who initiated the request.
  *     responses:
  *       200:
- *         description: Task successfully created for case distribution.
+ *         description: Case distribution task created successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
  *                 message:
  *                   type: string
- *                   example: Task successfully created.
- *                 data:
+ *                   example: "Task created successfully."
+ *                 taskData:
  *                   type: object
  *                   properties:
- *                     task_id:
- *                       type: string
- *                       description: Unique identifier for the created task.
- *                       example: "task_12345"
  *                     case_distribution_batch_id:
  *                       type: integer
- *                       description: Unique batch ID for case distribution.
- *                       example: 1001
+ *                       example: 101
+ *                     batch_seq_details:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           batch_seq:
+ *                             type: integer
+ *                             example: 1
+ *                           action_type:
+ *                             type: string
+ *                             example: "distribution"
+ *                     status:
+ *                       type: string
+ *                       example: "Open"
  *       400:
- *         description: Validation error - Missing or incorrect required parameters.
+ *         description: Validation error - Missing or incorrect parameters.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: error
  *                 message:
  *                   type: string
- *                   example: DRC commission rule, current arrears band, created by and DRC list fields are required.
+ *                   example: "DRC List should not be empty."
  *       500:
- *         description: Internal server error.
+ *         description: Server error occurred while processing the request.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: error
  *                 message:
  *                   type: string
- *                   example: An error occurred while creating the task.
+ *                   example: "An error occurred while creating the task."
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
  */
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
