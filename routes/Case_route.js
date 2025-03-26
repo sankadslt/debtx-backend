@@ -2779,11 +2779,11 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *               drc_commision_rule:
  *                 type: string
  *                 description: The commission rule for distributing cases.
- *                 example: "PEO TV"
+ *                 example: "VOICE"
  *               current_arrears_band:
  *                 type: string
  *                 description: The arrears band used for filtering cases.
- *                 example: "5000-10000"
+ *                 example: "50000-100000"
  *               drc_list:
  *                 type: array
  *                 description: List of DRCs and their case counts.
@@ -2793,11 +2793,11 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *                     DRC:
  *                       type: string
  *                       description: The agent or DRC handling cases.
- *                       example: "Agent_001"
+ *                       example: "D3"
  *                     Count:
  *                       type: integer
  *                       description: The number of cases assigned.
- *                       example: 5
+ *                       example: 3
  *               created_by:
  *                 type: string
  *                 description: The user who initiated the distribution.
