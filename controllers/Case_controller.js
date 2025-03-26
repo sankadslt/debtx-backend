@@ -7767,7 +7767,7 @@ export const Customer_Negotiations = async (req, res) => {
     if (!case_id || !drc_id || !field_reason) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ 
+      return res.status(404).json({ 
         status: "error",
         message: "Missing required fields: case_id, drc_id, field_reason" 
       });

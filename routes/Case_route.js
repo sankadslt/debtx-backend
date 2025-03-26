@@ -2505,7 +2505,7 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 /**
  * @swagger
- * /List_count_by_drc_commision_rule:
+ * /api/case/List_count_by_drc_commision_rule:
  *   get:
  *     summary: C-1G12 Get case count grouped by DRC commission rule
  *     description: Retrieves the count of cases grouped by `drc_commision_rule` where the `case_current_status` is "Open No Agent".
@@ -6838,13 +6838,17 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
 
 /**
  * @swagger
- * /Customer_Negotiations:
+ * /api/case/Customer_Negotiations:
  *   post:
- *     summary: Add a new customer negotiation case.
+ *     summary: C-3P66 Add or update customer negotiations
  *     description: |
- *       | Version | Date        | Description                                | Changed By             |
- *       |---------|-------------|--------------------------------------------|------------------------|
- *       | 01      | 2025-Mar-05 | Adds a new negotiation case for a customer.| Yevin Theenura         |
+ *       This endpoint handles creating new customer negotiations or updating existing ones.
+ *       It supports different negotiation scenarios including settlement agreements.
+ *       
+ *       ### Version History
+ *       | Version | Date        | Description                                | Author            |
+ *       |---------|-------------|--------------------------------------------|-------------------|
+ *       | 1.0     | 2025-Mar-05 | Initial version                            | Yevin Theenura    |
  *     tags:
  *       - Customer Negotiations
  *     requestBody:
@@ -6856,77 +6860,81 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *             required:
  *               - case_id
  *               - drc_id
- *               - ro_id
- *               - negotiation_details
- *               - request_details
+ *               - field_reason
  *             properties:
  *               case_id:
- *                 type: number
- *                 description: Unique identifier for the case.
- *                 example: 12345
+ *                 type: integer
+ *                 description: Unique identifier for the case
+ *                 example: 250
+ *               request_id:
+ *                 type: integer
+ *                 description: ID of the request (required if request_type is provided)
+ *                 example: 1
+ *               request_type:
+ *                 type: string
+ *                 description: Type of the request
+ *                 example: "Settlement Request"
+ *               request_comment:
+ *                 type: string
+ *                 description: Comments about the request
+ *                 example: "Customer requested a settlement."
  *               drc_id:
- *                 type: number
- *                 description: Unique identifier for the Debt Recovery Coordinator (DRC).
- *                 example: 67890
+ *                 type: integer
+ *                 description: ID of the Debt Recovery Coordinator
+ *                 example: 1
  *               ro_id:
+ *                 type: integer
+ *                 description: ID of the Recovery Officer
+ *                 example: 2
+ *               ro_name:
+ *                 type: string
+ *                 description: Name of the Recovery Officer
+ *                 example: "John Doe"
+ *               drc:
+ *                 type: string
+ *                 description: Information about the DRC
+ *                 example: "Some DRC Info"
+ *               field_reason:
+ *                 type: string
+ *                 description: Reason for the field negotiation
+ *                 example: "Agreed To Settle"
+ *               field_reason_remark:
+ *                 type: string
+ *                 description: Remarks about the field reason
+ *                 example: "Customer wants a discount"
+ *               intraction_id:
+ *                 type: integer
+ *                 description: Interaction ID (required if request_id is provided)
+ *                 example: 1
+ *               initial_amount:
  *                 type: number
- *                 description: Unique identifier for the Recovery Officer (RO).
- *                 example: 11223
- *               negotiation_details:
- *                 type: object
- *                 description: Details of the negotiation.
- *                 properties:
- *                   created_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of negotiation.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   field_reason_id:
- *                     type: number
- *                     description: ID of selected field reason.
- *                     example: 13
- *                   field_reason:
- *                     type: string
- *                     description: Field reason.
- *                     example: "Agreed To Settle"
- *                   field_reason_remarks:
- *                     type: string
- *                     description: Additional remarks about the negotiation.
- *                     example: "Customer agreed to settle the amount in installments."
- *               request_details:
- *                 type: object
- *                 description: Details of the requests.
- *                 properties:
- *                   created_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   ro_request_id:
- *                     type: number
- *                     description: ID of selected request.
- *                     example: 13
- *                   ro_request:
- *                     type: string
- *                     description: Request description.
- *                     example: "Request Settlement plan"
- *                   intraction_id:
- *                     type: number
- *                     description: ID regarding interaction.
- *                     example: 12
- *                   todo_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request reached.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   completed_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request completed.
- *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                 description: Initial settlement amount (required if field_reason is "Agreed To Settle")
+ *                 example: 5000
+ *               calender_month:
+ *                 type: integer
+ *                 description: Number of calendar months for settlement (required if field_reason is "Agreed To Settle")
+ *                 example: 3
+ *               duration_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date of settlement duration (required if field_reason is "Agreed To Settle")
+ *                 example: "2024-03-01"
+ *               duration_to:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of settlement duration (required if field_reason is "Agreed To Settle")
+ *                 example: "2024-06-01"
+ *               settlement_remark:
+ *                 type: string
+ *                 description: Remarks about the settlement
+ *                 example: "Agreed to settle with conditions"
+ *               created_by:
+ *                 type: string
+ *                 description: User who created the negotiation
+ *                 example: "admin"
  *     responses:
  *       200:
- *         description: Negotiation case added successfully.
+ *         description: Operation completed successfully
  *         content:
  *           application/json:
  *             schema:
@@ -6937,9 +6945,9 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Negotiation case added successfully."
+ *                   example: "Operation completed successfully"
  *       400:
- *         description: Validation error - Missing or invalid input.
+ *         description: Missing required fields or validation error
  *         content:
  *           application/json:
  *             schema:
@@ -6950,9 +6958,22 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Validation error - Invalid input."
+ *                   example: "Missing required fields: case_id, drc_id, field_reason"
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found for this case id"
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -6963,8 +6984,12 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Internal server error."
+ *                   example: "Server error"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message"
  */
+
 router.post("/Customer_Negotiations", Customer_Negotiations);
 
 router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
@@ -8009,7 +8034,7 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *
  * /api/case/RO_CPE_Collection:
  *   post:
- *     summary: Collect RO CPE data.
+ *     summary: C-1P41 Collect RO CPE data.
  *     description: |
  *       This endpoint is used to collect RO CPE data and update the case details.
  *       The system increments a counter to generate a unique `ro_cpe_collect_id` and updates
@@ -8030,7 +8055,7 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier of the case.
- *                 example: 5
+ *                 example: 1
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
