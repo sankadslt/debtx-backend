@@ -4904,7 +4904,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
   session.startTransaction();
 
   try {
-      const { drc_id, Created_By } = req.body;
+      const { drc_id, case_distribution_batch_id, Created_By } = req.body;
 
       if (!drc_id || !Created_By) {
           await session.abortTransaction();
@@ -4927,6 +4927,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
           task_type: "Create Case Distribution DRC Summary List for Downloard",
           drc_id,
           drc_name: drcDetails.drc_name, // Include DRC name
+          case_distribution_batch_id,
           created_on: currentDate.toISOString(),
           Created_By, // Assigned creator
           task_status: "open",
