@@ -2505,7 +2505,7 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
 
 /**
  * @swagger
- * /List_count_by_drc_commision_rule:
+ * /api/case/List_count_by_drc_commision_rule:
  *   get:
  *     summary: C-1G12 Get case count grouped by DRC commission rule
  *     description: Retrieves the count of cases grouped by `drc_commision_rule` where the `case_current_status` is "Open No Agent".
@@ -2570,13 +2570,13 @@ router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule
  * @swagger
  * /api/case/List_All_Arrears_Bands:
  *   get:
- *     summary: Retrieve all arrears bands
+ *     summary: AR-1G01 Retrieve all arrears bands
  *     description: |
  *       Fetches arrears band details from the `Arrears_bands` collection in MongoDB.
  *
  *       | Version | Date        | Description                      | Changed By         |
  *       |---------|------------|----------------------------------|--------------------|
- *       | 01      | 2025-Mar-11 | Initial implementation          | Your Name         |
+ *       | 01      | 2025-Mar-11 | Initial implementation          | Ravindu Pathum Madushan |
  *
  *     tags: [Case Management]
  *     responses:
@@ -2754,16 +2754,15 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
 
 /**
  * @swagger
- * /api/Case_Distribution_Among_Agents:
+ * /api/case/Case_Distribution_Among_Agents:
  *   post:
- *     summary: C-1P20 Distribute Cases Among Agents
+ *     summary: Distribute Cases Among Agents
  *     description: |
- *       Distribute Cases among Agents and case_status='Open Assign Agent'
+ *       This API distributes cases among agents based on the provided DRC commission rule, arrears band, and DRC list.
  *
- *
- *       | Version | Date        | Description                            | Changed By       |
- *       |---------|------------|----------------------------------------|------------------|
- *       | 01      | 2025-Jan-28 | Case distribution among agents        | Sanjaya Perera   |
+ *       | Version | Date        | Description                                | Changed By       |
+ *       |---------|------------|--------------------------------------------|------------------|
+ *       | 01      | 2025-Mar-26 | Initial creation                          | Your Name       |
  *
  *     tags: [Case Management]
  *     requestBody:
@@ -2780,81 +2779,85 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *             properties:
  *               drc_commision_rule:
  *                 type: string
- *                 description: The commission rule for distributing cases.
- *                 example: "VOICE"
+ *                 example: "BB"
+ *                 description: The commission rule applied for distribution.
  *               current_arrears_band:
  *                 type: string
- *                 description: The arrears band used for filtering cases.
- *                 example: "50000-100000"
+ *                 example: "AB-50_100"
+ *                 description: The arrears band for the distribution.
  *               drc_list:
  *                 type: array
- *                 description: List of DRCs and their case counts.
+ *                 description: List of DRCs involved in the distribution.
  *                 items:
  *                   type: object
  *                   properties:
  *                     DRC:
  *                       type: string
- *                       description: The agent or DRC handling cases.
  *                       example: "D3"
+ *                     DRC_Id:
+ *                       type: integer
+ *                       example: 3
  *                     Count:
  *                       type: integer
- *                       description: The number of cases assigned.
  *                       example: 3
  *               created_by:
  *                 type: string
- *                 description: The user who initiated the distribution.
- *                 example: "admin_user"
+ *                 example: "admin"
+ *                 description: The user who initiated the request.
  *     responses:
  *       200:
- *         description: Task successfully created for case distribution.
+ *         description: Case distribution task created successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
  *                 message:
  *                   type: string
- *                   example: Task successfully created.
- *                 data:
+ *                   example: "Task created successfully."
+ *                 taskData:
  *                   type: object
  *                   properties:
- *                     task_id:
- *                       type: string
- *                       description: Unique identifier for the created task.
- *                       example: "task_12345"
  *                     case_distribution_batch_id:
  *                       type: integer
- *                       description: Unique batch ID for case distribution.
- *                       example: 1001
+ *                       example: 101
+ *                     batch_seq_details:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           batch_seq:
+ *                             type: integer
+ *                             example: 1
+ *                           action_type:
+ *                             type: string
+ *                             example: "distribution"
+ *                     status:
+ *                       type: string
+ *                       example: "Open"
  *       400:
- *         description: Validation error - Missing or incorrect required parameters.
+ *         description: Validation error - Missing or incorrect parameters.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: error
  *                 message:
  *                   type: string
- *                   example: DRC commission rule, current arrears band, created by and DRC list fields are required.
+ *                   example: "DRC List should not be empty."
  *       500:
- *         description: Internal server error.
+ *         description: Server error occurred while processing the request.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: error
  *                 message:
  *                   type: string
- *                   example: An error occurred while creating the task.
+ *                   example: "An error occurred while creating the task."
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
  */
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
@@ -3863,150 +3866,6 @@ router.post("/Create_Task_For_case_distribution_transaction_array", Create_Task_
  *                   example: "An error occurred while creating the task."
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
-
-// /**
-//  * @swagger
-//  * tags:
-//  *   - name: Case Management
-//  *     description: Endpoints related to retrieving case details based on mediation board requests.
-//  *
-//  * /api/case/Case_Details_for_DRC:
-//  *   post:
-//  *     summary: Retrieve case details by Case ID and DRC ID.
-//  *     description: |
-//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
-//  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
-//  *       the system returns relevant case details.
-//  *
-//  *       | Version | Date       | Description                     | Changed By         |
-//  *       |---------|------------|---------------------------------|--------------------|
-//  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
-//  *     tags:
-//  *       - Case Management
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               case_id:
-//  *                 type: integer
-//  *                 description: Unique identifier for the case.
-//  *                 example: 101
-//  *               drc_id:
-//  *                 type: integer
-//  *                 description: Unique identifier for the Debt Recovery Company (DRC).
-//  *                 example: 5
-//  *     responses:
-//  *       200:
-//  *         description: Case details retrieved successfully.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: success
-//  *                 message:
-//  *                   type: string
-//  *                   example: Case details retrieved successfully.
-//  *                 data:
-//  *                   type: object
-//  *                   properties:
-//  *                     case_id:
-//  *                       type: integer
-//  *                       description: Case ID.
-//  *                       example: 101
-//  *                     customer_ref:
-//  *                       type: string
-//  *                       description: Customer reference number.
-//  *                       example: CUST-2024-001
-//  *                     account_no:
-//  *                       type: string
-//  *                       description: Customer's account number.
-//  *                       example: ACC-56789
-//  *                     current_arrears_amount:
-//  *                       type: number
-//  *                       description: The amount of arrears on the case.
-//  *                       example: 15000.75
-//  *                     last_payment_date:
-//  *                       type: string
-//  *                       format: date
-//  *                       description: Last payment date associated with the case.
-//  *                       example: "2025-01-15"
-//  *       400:
-//  *         description: Validation error - Case ID and DRC ID are required.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Both Case ID and DRC ID are required.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 400
-//  *                     description:
-//  *                       type: string
-//  *                       example: Please provide both case_id and drc_id in the request body.
-//  *       404:
-//  *         description: Case not found or DRC ID doesn't match.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Case not found or DRC ID doesn't match.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 404
-//  *                     description:
-//  *                       type: string
-//  *                       example: No case found with the provided Case ID and DRC ID combination.
-//  *       500:
-//  *         description: Internal server error occurred while fetching case details.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Failed to retrieve case details.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 500
-//  *                     description:
-//  *                       type: string
-//  *                       example: Internal server error occurred while fetching case details.
-//  */
-// router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
-// router.post(
-//   "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
-// );
 
 /**
  * @swagger
@@ -5679,7 +5538,7 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *
  * /api/case/Case_Details_for_DRC:
  *   post:
- *     summary: Retrieve case details by Case ID and DRC ID.
+ *     summary: C-1P35 Retrieve case details by Case ID and DRC ID.
  *     description: |
  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
@@ -5700,11 +5559,11 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier for the case.
- *                 example: 101
+ *                 example: 1
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier for the Debt Recovery Company (DRC).
- *                 example: 5
+ *                 example: 7
  *     responses:
  *       200:
  *         description: Case details retrieved successfully.
@@ -5810,6 +5669,7 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *                       type: string
  *                       example: Internal server error occurred while fetching case details.
  */
+
 router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
 
 /**
@@ -5820,7 +5680,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *
  * /api/case/List_Active_RO_Requests:
  *   post:
- *     summary: Retrieve all active RO requests by request_mode.
+ *     summary: C-1P64 Retrieve all active RO requests by request_mode.
  *     description: |
  *       This endpoint retrieves all active RO requests where the end_dtm field is null,
  *       indicating that the request is still ongoing, and filters by the provided request_mode.
@@ -5840,7 +5700,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *               request_mode:
  *                 type: string
  *                 description: The mode of the request to filter by.
- *                 example: "active"
+ *                 example: "Negotiation"
  *     responses:
  *       200:
  *         description: Active RO requests retrieved successfully.
@@ -6978,13 +6838,17 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
 
 /**
  * @swagger
- * /Customer_Negotiations:
+ * /api/case/Customer_Negotiations:
  *   post:
- *     summary: Add a new customer negotiation case.
+ *     summary: C-3P66 Add or update customer negotiations
  *     description: |
- *       | Version | Date        | Description                                | Changed By             |
- *       |---------|-------------|--------------------------------------------|------------------------|
- *       | 01      | 2025-Mar-05 | Adds a new negotiation case for a customer.| Yevin Theenura         |
+ *       This endpoint handles creating new customer negotiations or updating existing ones.
+ *       It supports different negotiation scenarios including settlement agreements.
+ *       
+ *       ### Version History
+ *       | Version | Date        | Description                                | Author            |
+ *       |---------|-------------|--------------------------------------------|-------------------|
+ *       | 1.0     | 2025-Mar-05 | Initial version                            | Yevin Theenura    |
  *     tags:
  *       - Customer Negotiations
  *     requestBody:
@@ -6996,77 +6860,81 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *             required:
  *               - case_id
  *               - drc_id
- *               - ro_id
- *               - negotiation_details
- *               - request_details
+ *               - field_reason
  *             properties:
  *               case_id:
- *                 type: number
- *                 description: Unique identifier for the case.
- *                 example: 12345
+ *                 type: integer
+ *                 description: Unique identifier for the case
+ *                 example: 250
+ *               request_id:
+ *                 type: integer
+ *                 description: ID of the request (required if request_type is provided)
+ *                 example: 1
+ *               request_type:
+ *                 type: string
+ *                 description: Type of the request
+ *                 example: "Settlement Request"
+ *               request_comment:
+ *                 type: string
+ *                 description: Comments about the request
+ *                 example: "Customer requested a settlement."
  *               drc_id:
- *                 type: number
- *                 description: Unique identifier for the Debt Recovery Coordinator (DRC).
- *                 example: 67890
+ *                 type: integer
+ *                 description: ID of the Debt Recovery Coordinator
+ *                 example: 1
  *               ro_id:
+ *                 type: integer
+ *                 description: ID of the Recovery Officer
+ *                 example: 2
+ *               ro_name:
+ *                 type: string
+ *                 description: Name of the Recovery Officer
+ *                 example: "John Doe"
+ *               drc:
+ *                 type: string
+ *                 description: Information about the DRC
+ *                 example: "Some DRC Info"
+ *               field_reason:
+ *                 type: string
+ *                 description: Reason for the field negotiation
+ *                 example: "Agreed To Settle"
+ *               field_reason_remark:
+ *                 type: string
+ *                 description: Remarks about the field reason
+ *                 example: "Customer wants a discount"
+ *               intraction_id:
+ *                 type: integer
+ *                 description: Interaction ID (required if request_id is provided)
+ *                 example: 1
+ *               initial_amount:
  *                 type: number
- *                 description: Unique identifier for the Recovery Officer (RO).
- *                 example: 11223
- *               negotiation_details:
- *                 type: object
- *                 description: Details of the negotiation.
- *                 properties:
- *                   created_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of negotiation.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   field_reason_id:
- *                     type: number
- *                     description: ID of selected field reason.
- *                     example: 13
- *                   field_reason:
- *                     type: string
- *                     description: Field reason.
- *                     example: "Agreed To Settle"
- *                   field_reason_remarks:
- *                     type: string
- *                     description: Additional remarks about the negotiation.
- *                     example: "Customer agreed to settle the amount in installments."
- *               request_details:
- *                 type: object
- *                 description: Details of the requests.
- *                 properties:
- *                   created_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   ro_request_id:
- *                     type: number
- *                     description: ID of selected request.
- *                     example: 13
- *                   ro_request:
- *                     type: string
- *                     description: Request description.
- *                     example: "Request Settlement plan"
- *                   intraction_id:
- *                     type: number
- *                     description: ID regarding interaction.
- *                     example: 12
- *                   todo_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request reached.
- *                     example: "2025-02-21T06:25:41.000+00:00"
- *                   completed_dtm:
- *                     type: string
- *                     format: date-time
- *                     description: Date of request completed.
- *                     example: "2025-02-21T06:25:41.000+00:00"
+ *                 description: Initial settlement amount (required if field_reason is "Agreed To Settle")
+ *                 example: 5000
+ *               calender_month:
+ *                 type: integer
+ *                 description: Number of calendar months for settlement (required if field_reason is "Agreed To Settle")
+ *                 example: 3
+ *               duration_from:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date of settlement duration (required if field_reason is "Agreed To Settle")
+ *                 example: "2024-03-01"
+ *               duration_to:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of settlement duration (required if field_reason is "Agreed To Settle")
+ *                 example: "2024-06-01"
+ *               settlement_remark:
+ *                 type: string
+ *                 description: Remarks about the settlement
+ *                 example: "Agreed to settle with conditions"
+ *               created_by:
+ *                 type: string
+ *                 description: User who created the negotiation
+ *                 example: "admin"
  *     responses:
  *       200:
- *         description: Negotiation case added successfully.
+ *         description: Operation completed successfully
  *         content:
  *           application/json:
  *             schema:
@@ -7077,9 +6945,9 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Negotiation case added successfully."
+ *                   example: "Operation completed successfully"
  *       400:
- *         description: Validation error - Missing or invalid input.
+ *         description: Missing required fields or validation error
  *         content:
  *           application/json:
  *             schema:
@@ -7090,9 +6958,22 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Validation error - Invalid input."
+ *                   example: "Missing required fields: case_id, drc_id, field_reason"
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found for this case id"
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -7103,8 +6984,12 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "Internal server error."
+ *                   example: "Server error"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message"
  */
+
 router.post("/Customer_Negotiations", Customer_Negotiations);
 
 router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
@@ -7114,7 +6999,7 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
  * @swagger
  * /api/case/list_Active_Customer_Negotiations:
  *   post:
- *     summary: Retrieve all active customer negotiations.
+ *     summary: C-1P67 Retrieve all active customer negotiations.
  *     description: |
  *       This endpoint retrieves all active customer negotiations.
  *
@@ -8149,7 +8034,7 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *
  * /api/case/RO_CPE_Collection:
  *   post:
- *     summary: Collect RO CPE data.
+ *     summary: C-1P41 Collect RO CPE data.
  *     description: |
  *       This endpoint is used to collect RO CPE data and update the case details.
  *       The system increments a counter to generate a unique `ro_cpe_collect_id` and updates
@@ -8170,7 +8055,7 @@ router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier of the case.
- *                 example: 5
+ *                 example: 1
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier of the DRC.
