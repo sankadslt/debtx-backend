@@ -3867,150 +3867,6 @@ router.post("/Create_Task_For_case_distribution_transaction_array", Create_Task_
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
 
-// /**
-//  * @swagger
-//  * tags:
-//  *   - name: Case Management
-//  *     description: Endpoints related to retrieving case details based on mediation board requests.
-//  *
-//  * /api/case/Case_Details_for_DRC:
-//  *   post:
-//  *     summary: Retrieve case details by Case ID and DRC ID.
-//  *     description: |
-//  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
-//  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
-//  *       the system returns relevant case details.
-//  *
-//  *       | Version | Date       | Description                     | Changed By         |
-//  *       |---------|------------|---------------------------------|--------------------|
-//  *       | 01      | 2025-Feb-08| Retrieve case details by mediation board request | U.H.Nandali Linara  |
-//  *     tags:
-//  *       - Case Management
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               case_id:
-//  *                 type: integer
-//  *                 description: Unique identifier for the case.
-//  *                 example: 101
-//  *               drc_id:
-//  *                 type: integer
-//  *                 description: Unique identifier for the Debt Recovery Company (DRC).
-//  *                 example: 5
-//  *     responses:
-//  *       200:
-//  *         description: Case details retrieved successfully.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: success
-//  *                 message:
-//  *                   type: string
-//  *                   example: Case details retrieved successfully.
-//  *                 data:
-//  *                   type: object
-//  *                   properties:
-//  *                     case_id:
-//  *                       type: integer
-//  *                       description: Case ID.
-//  *                       example: 101
-//  *                     customer_ref:
-//  *                       type: string
-//  *                       description: Customer reference number.
-//  *                       example: CUST-2024-001
-//  *                     account_no:
-//  *                       type: string
-//  *                       description: Customer's account number.
-//  *                       example: ACC-56789
-//  *                     current_arrears_amount:
-//  *                       type: number
-//  *                       description: The amount of arrears on the case.
-//  *                       example: 15000.75
-//  *                     last_payment_date:
-//  *                       type: string
-//  *                       format: date
-//  *                       description: Last payment date associated with the case.
-//  *                       example: "2025-01-15"
-//  *       400:
-//  *         description: Validation error - Case ID and DRC ID are required.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Both Case ID and DRC ID are required.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 400
-//  *                     description:
-//  *                       type: string
-//  *                       example: Please provide both case_id and drc_id in the request body.
-//  *       404:
-//  *         description: Case not found or DRC ID doesn't match.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Case not found or DRC ID doesn't match.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 404
-//  *                     description:
-//  *                       type: string
-//  *                       example: No case found with the provided Case ID and DRC ID combination.
-//  *       500:
-//  *         description: Internal server error occurred while fetching case details.
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: string
-//  *                   example: error
-//  *                 message:
-//  *                   type: string
-//  *                   example: Failed to retrieve case details.
-//  *                 errors:
-//  *                   type: object
-//  *                   properties:
-//  *                     code:
-//  *                       type: integer
-//  *                       example: 500
-//  *                     description:
-//  *                       type: string
-//  *                       example: Internal server error occurred while fetching case details.
-//  */
-// router.post("/Case_Details_for_DRC",getCaseDetailsbyMediationBoard);
-// router.post(
-//   "/List_All_DRC_Mediation_Board_Cases",listAllDRCMediationBoardCases
-// );
-
 /**
  * @swagger
  * tags:
@@ -5682,7 +5538,7 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *
  * /api/case/Case_Details_for_DRC:
  *   post:
- *     summary: Retrieve case details by Case ID and DRC ID.
+ *     summary: C-1P35 Retrieve case details by Case ID and DRC ID.
  *     description: |
  *       This endpoint retrieves case details based on the provided Case ID and DRC ID.
  *       If a case with the specified Case ID exists and is associated with the given DRC ID,
@@ -5703,11 +5559,11 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier for the case.
- *                 example: 101
+ *                 example: 1
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier for the Debt Recovery Company (DRC).
- *                 example: 5
+ *                 example: 7
  *     responses:
  *       200:
  *         description: Case details retrieved successfully.
@@ -5813,6 +5669,7 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *                       type: string
  *                       example: Internal server error occurred while fetching case details.
  */
+
 router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
 
 /**
@@ -5823,7 +5680,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *
  * /api/case/List_Active_RO_Requests:
  *   post:
- *     summary: Retrieve all active RO requests by request_mode.
+ *     summary: C-1P64 Retrieve all active RO requests by request_mode.
  *     description: |
  *       This endpoint retrieves all active RO requests where the end_dtm field is null,
  *       indicating that the request is still ongoing, and filters by the provided request_mode.
@@ -5843,7 +5700,7 @@ router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
  *               request_mode:
  *                 type: string
  *                 description: The mode of the request to filter by.
- *                 example: "active"
+ *                 example: "Negotiation"
  *     responses:
  *       200:
  *         description: Active RO requests retrieved successfully.
@@ -7117,7 +6974,7 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
  * @swagger
  * /api/case/list_Active_Customer_Negotiations:
  *   post:
- *     summary: Retrieve all active customer negotiations.
+ *     summary: C-1P67 Retrieve all active customer negotiations.
  *     description: |
  *       This endpoint retrieves all active customer negotiations.
  *

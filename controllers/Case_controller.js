@@ -6156,7 +6156,6 @@ export const listDRCAllCases = async (req, res) => {
 };
 
 // get CaseDetails for MediationBoard 
-// get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
@@ -7899,15 +7898,7 @@ export const Customer_Negotiations = async (req, res) => {
 //get active negotiations for the customer negotiations
 export const getActiveNegotiations = async (req, res) => {
   try {
-    // const currentDate = new Date();
-    // const activeNegotiations = await Field_Reasons.find
-    // ({
-    //   end_dtm: { $gte: currentDate },
-    // })
-    // .select("negotiation_id negotiation_description end_dtm");
-
     const activeNegotiations = await TemplateNegotiation.find();
-    // console.log("field reason ", activeNegotiations);
     return res.status(200).json({
       status: "success",
       message: "Active negotiations retrieved successfully.",
