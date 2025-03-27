@@ -1254,7 +1254,15 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
  *               drc_id:
  *                 type: integer
  *                 description: Unique identifier for the DRC.
- *                 example: 1
+ *                 example: 7
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier for the DRC.
  *     responses:
  *       200:
  *         description: Active RTOMs retrieved successfully.

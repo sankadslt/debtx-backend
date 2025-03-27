@@ -854,7 +854,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *
  * /api/case/Assign_RO_To_Case:
  *   patch:
- *     summary: xxxx Assign a Recovery Officer to cases.
+ *     summary: Assign a Recovery Officer to cases.
  *     description: |
  *       This endpoint assigns a Recovery Officer (RO) to multiple cases. The RO must be assigned to at least one RTOM area
  *       that matches the case's area. Cases that do not satisfy this condition or do not belong to the specified DRC will not be updated.
@@ -886,9 +886,31 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *                 description: The DRC ID to which the cases belong.
  *                 example: 7
  *               assigned_by:
- *                 type: String
+ *                 type: string
  *                 description: The user assigning the Recovery Officer.
  *                 example: "AdminUser"
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 15
+ *         description: Recovery Officer ID who will be assigned.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: The DRC ID to which the cases belong.
+ *       - in: query
+ *         name: assigned_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "AdminUser"
+ *         description: The user assigning the Recovery Officer.
  *     responses:
  *       200:
  *         description: Recovery Officer assigned successfully.
@@ -1002,7 +1024,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *     summary: Retrieve cases handled by a DRC with filtering options.
  *     description: |
  *       This endpoint retrieves cases handled by a specific Debt Recovery Company (DRC).
- *       Users can filter the cases based on optional parameters such as RTOM, Recovery Officer ID, arrears band, or a date range.
+ *       Users can filter the cases based on optional parameters such as **rtom**, **ro_id**, **arrears band**, the **from_date** and **to_date**.
  *       The cases must have a `case_current_status` in specific predefined statuses and belong to an active DRC.
  *
  *       | Version | Date       | Description                       | Changed By         |
@@ -1028,7 +1050,7 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID responsible for the case.
- *                 example: 15
+ *                 example: 17
  *               arrears_band:
  *                 type: string
  *                 description: Arrears category for filtering cases.
@@ -1043,6 +1065,44 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                 format: date
  *                 description: End date for filtering cases.
  *                 example: "2025-03-15"
+ *     parameters:
+ *      - in: query
+ *        name: drc_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 7
+ *        description: Unique identifier of the DRC. This is the ***Required Parameter***.
+ *      - in: query
+ *        name: ro_id
+ *        schema:
+ *          type: integer
+ *          example: 17
+ *        description: Unique identifier of the Recovery Officer. This is the *Optional Parameter*.
+ *      - in: query
+ *        name: rtom
+ *        schema:
+ *          type: string
+ *          example: Matara
+ *        description: Area name associated with the case. This is the *Optional Parameter*.
+ *      - in: query
+ *        name: arrears_band
+ *        schema:
+ *          type: string
+ *          example: AB-10_25
+ *        description: Arrears category for filtering cases. This is the *Optional Parameter*.
+ *      - in: query
+ *        name: from_date
+ *        schema:
+ *          format: date
+ *          example: "2025-02-25"
+ *        description: Start date for filtering cases. This is the *Optional Parameter*.
+ *      - in: query
+ *        name: to_date
+ *        schema:
+ *          format: date
+ *          example: "2025-03-15"
+ *        description: End date for filtering cases. This is the *Optional Parameter*.
  *     responses:
  *       200:
  *         description: Cases retrieved successfully.
@@ -1139,8 +1199,8 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *       This endpoint retrieves detailed behavior information about a case during a specified DRC period.
  *       It includes settlement details, payment history, and Recovery Officer information if available.
  *
- *       | Version | Date       | Description                       | Changed By         |
- *       |---------|------------|-----------------------------------|--------------------|
+ *       | Version | Date       | Description                            | Changed By         |
+ *       |---------|------------|----------------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| Retrieve case behavior during DRC era | Sasindu Srinayaka  |
  *     tags:
  *       - Case Management
@@ -1163,6 +1223,28 @@ router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
  *                 type: integer
  *                 description: (Optional) Recovery Officer ID for filtering.
  *                 example: 15
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 13
+ *         description: Unique identifier of the case. This is a ***Required Parameter***.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier of the DRC. This is a ***Required Parameter***.
+ *       - in: query
+ *         name: ro_id
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           example: 15
+ *         description: (Optional) Recovery Officer ID for filtering. This is an *Optional Parameter*.
  *     responses:
  *       200:
  *         description: Case behavior details retrieved successfully.
@@ -1274,6 +1356,28 @@ router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
  *                 type: string
  *                 description: Remark for the case removal related to the last Recovery Officer.
  *                 example: "Officer resigned from handling the case."
+ *     parameters:
+ *      - in: query
+ *        name: case_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 13
+ *        description: Unique identifier of the case. This is a ***Required Parameter***.
+ *      - in: query
+ *        name: drc_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 7
+ *        description: Unique identifier of the DRC. This is a ***Required Parameter***.
+ *      - in: query
+ *        name: remark
+ *        required: true
+ *        schema:
+ *          type: string
+ *          example: "Officer resigned from handling the case."
+ *        description: Remark for the case removal related to the last Recovery Officer. This is a ***Required Parameter***.
  *     responses:
  *       200:
  *         description: Recovery Officer details updated successfully.
@@ -3356,6 +3460,59 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                 format: date
  *                 description: End date for filtering cases.
  *                 example: "2025-01-31"
+  *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier of the DRC.
+ *       - in: query
+ *         name: ro_id
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           nullable: true
+ *           example: null
+ *         description: Recovery Officer ID responsible for the case.
+ *       - in: query
+ *         name: rtom
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Matara"
+ *         description: Area name associated with the case.
+ *       - in: query
+ *         name: action_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Arrears Collect"
+ *         description: Action type of the case.
+ *       - in: query
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Forward_to_Mediation_Board"
+ *         description: Current status of the case.
+ *       - in: query
+ *         name: from_date
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-01"
+ *         description: Start date for filtering cases.
+ *       - in: query  
+ *         name: to_date
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-31"
+ *         description: End date for filtering cases.
  *     responses:
  *       200:
  *         description: Mediation cases retrieved successfully.
@@ -4109,8 +4266,6 @@ router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribut
  *                   type: string
  *                   example: "Error fetching batch details."
  */
-
-
 router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
 /**
@@ -5425,7 +5580,7 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID responsible for the case.
- *                 example: 4
+ *                 example: 15
  *               rtom:
  *                 type: string
  *                 description: Area name associated with the case.
@@ -5444,6 +5599,51 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *                 format: date
  *                 description: End date for filtering cases.
  *                 example: "2025-01-31"
+ *     parameters:
+ *      - in: query
+ *        name: drc_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 7
+ *        description: Unique identifier of the DRC.
+ *      - in: query
+ *        name: ro_id
+ *        required: false
+ *        schema:
+ *          type: integer
+ *          example: 15
+ *        description: Recovery Officer ID responsible for the case.
+ *      - in: query
+ *        name: rtom
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Matara"
+ *        description: Area name associated with the case.
+ *      - in: query
+ *        name: action_type
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Arrears Collect"
+ *        description: Type of action performed on the case.
+ *      - in: query
+ *        name: from_date
+ *        required: false
+ *        schema:
+ *          type: string
+ *          format: date
+ *          example: "2025-01-01"
+ *        description: Start date for filtering cases.
+ *      - in: query
+ *        name: to_date
+ *        required: false
+ *        schema:
+ *          type: string
+ *          format: date
+ *          example: "2025-01-31"
+ *        description: End date for filtering cases.
  *     responses:
  *       200:
  *         description: Cases retrieved successfully.
@@ -5561,6 +5761,21 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *                 type: integer
  *                 description: Unique identifier for the Debt Recovery Company (DRC).
  *                 example: 7
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Unique identifier for the case.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier for the Debt Recovery Company (DRC).
  *     responses:
  *       200:
  *         description: Case details retrieved successfully.
@@ -5666,7 +5881,6 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *                       type: string
  *                       example: Internal server error occurred while fetching case details.
  */
-
 router.post("/Case_Details_for_DRC", CaseDetailsforDRC);
 
 /**
@@ -6239,6 +6453,77 @@ router.post("/Mediation_Board", Mediation_Board);
  *                 type: string
  *                 description: Remark related to the case.
  *                 example: "Address updated with new contact number."
+ *     parameters:
+ *      - in: query
+ *        name: drc_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 7
+ *        description: Unique identifier of the DRC.
+ *      - in: query
+ *        name: ro_id
+ *        required: true        
+ *        schema:
+ *          type: integer
+ *          example: 2
+ *        description: Recovery Officer ID responsible for the case.
+ *      - in: query
+ *        name: case_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 11
+ *        description: Unique identifier of the case.
+ *      - in: query
+ *        name: customer_identification
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "987654321V"
+ *        description: Customer identification number (e.g., NIC).
+ *      - in: query
+ *        name: customer_identification_type
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "NIC"
+ *        description: Type of customer identification.
+ *      - in: query
+ *        name: contact_no
+ *        required: false
+ *        schema:
+ *          type: integer
+ *          example: +94712345678
+ *        description: Contact number of the customer.
+ *      - in: query
+ *        name: contact_type
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Mobile"
+ *        description: Type of contact (e.g., Mobile, Landline).
+ *      - in: query
+ *        name: email
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "john.doe@example.com"
+ *        description: Email address of the customer.
+ *      - in: query
+ *        name: address
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "123 Main St, Matara"
+ *        description: Address of the customer.
+ *      - in: query
+ *        name: remark
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Address updated with new contact number."
+ *        description: Remark related to the case.
  *     responses:
  *       200:
  *         description: Case details updated successfully.
@@ -6355,7 +6640,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *     parameters:
  *       - in: body
  *         name: requestBody
- *         required: true
+ *         required: false
  *         description: The body contains the `approver_reference`, `remark`, `remark_edit_by`, and `created_by` values.
  *         schema:
  *           type: object
@@ -6876,7 +7161,6 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *                   type: string
  *                   example: "Detailed error message"
  */
-
 router.post("/Customer_Negotiations", Customer_Negotiations);
 
 router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
@@ -7535,10 +7819,7 @@ router.post( "/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Medi
  *                   type: string
  *                   example: "Error message details"
  */
-router.post(
-  "/Submit_Mediation_Board_Acceptance",
-  Submit_Mediation_Board_Acceptance
-);
+router.post("/Submit_Mediation_Board_Acceptance", Submit_Mediation_Board_Acceptance);
 
 /**
  * @swagger
