@@ -11,7 +11,6 @@
         Notes: This template uses Node. 
 */
 
-
 import express, { json } from "express";
 import { config } from "dotenv";
 import cors from "cors";

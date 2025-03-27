@@ -11,7 +11,7 @@
 // import db from "../config/db.js";
 import CaseSettlement from "../models/Case_settlement.js";
 
-export const List_All_Settlement_Cases = async (req, res) => {
+export const ListAllSettlementCases = async (req, res) => {
   const {
     case_id, 
     settlement_phase, 

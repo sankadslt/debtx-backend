@@ -10,7 +10,7 @@
 
 import { Router } from "express";
 import {
-  List_All_Settlement_Cases,
+  ListAllSettlementCases,
 } from "../controllers/Settlement_controller.js";
 
 const router = Router();
@@ -136,6 +136,6 @@ const router = Router();
  *                   type: string
  *                   example: "Internal Server error. Please try again later."
  */
-router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
+router.post("/List_All_Settlement_Cases", ListAllSettlementCases);
 
 export default router;
