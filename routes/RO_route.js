@@ -891,7 +891,7 @@ router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
  *         required: true
  *         schema:
  *           type: integer
- *           example: 10
+ *           example: 7
  *         description: ID of the Debt Recovery Company.
  *     requestBody:
  *       required: true
@@ -905,7 +905,7 @@ router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
  *               drc_id:
  *                 type: integer
  *                 description: The ID of the Debt Recovery Company whose active Recovery Officers are to be retrieved.
- *                 example: 10
+ *                 example: 7
  *     responses:
  *       200:
  *         description: Active Recovery Officers retrieved successfully.

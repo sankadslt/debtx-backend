@@ -19,7 +19,7 @@ const router = Router();
 /**
  * @swagger
  * tags:
- *   - name: Case Management
+ *   - name: Case Settlement
  *     description: Endpoints for retrieving all settlement cases based on various filters.
  * 
  * /api/case/List_All_Settlement_Cases:
@@ -34,7 +34,7 @@ const router = Router();
  *       |---------|------------|---------------------------------------|--------------------|
  *       | 01      | 2025-Mar-16| Retrieve settlement cases with filters | Sasindu Srinayaka  |
  *     tags:
- *       - Case Management
+ *       - Case Settlement
  *     requestBody:
  *       required: true
  *       content:
@@ -64,7 +64,7 @@ const router = Router();
  *                 format: date
  *                 description: End date for filtering settlement cases.
  *                 example: "2025-02-20"
- *     responses:
+  *     responses:
  *       200:
  *         description: Settlement cases retrieved successfully.
  *         content:
@@ -78,6 +78,28 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: Successfully retrieved case settlements.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         description: Unique identifier of the case.
+ *                       settlement_phase:
+ *                         type: string
+ *                         description: Phase of the settlement.
+ *                       settlement_status:
+ *                         type: string
+ *                         description: Current status of the settlement.
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time when the settlement was created.
+ *                       updated_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time when the settlement was last updated.
  *       400:
  *         description: Validation error - Missing required fields or no filtering parameters.
  *         content:
