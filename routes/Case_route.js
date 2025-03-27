@@ -69,7 +69,7 @@ import {
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
-  List_All_DRCs_Mediation_Board_Cases,
+  // List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListAllRequestLogFromRecoveryOfficers,
   ListAllRequestLogFromRecoveryOfficersWithoutUserID,
@@ -86,9 +86,6 @@ import {
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
-
-
-  List_All_Settlement_Cases,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -6470,117 +6467,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  */
 router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
-/**
- * @swagger
- * /api/case/List_All_DRCs_Mediation_Board_Cases:
- *   post:
- *     summary: Retrieve Mediation Board cases based on filters, excluding "MB Fail with Non-Settlement".
- *     tags:
- *       - Case Management
- *     parameters:
- *       - in: body
- *         name: case_current_status
- *         required: false
- *         schema:
- *           type: string
- *         description: Case status to filter cases.
- *       - in: body
- *         name: From_DAT
- *         required: false
- *         schema:
- *           type: string
- *           format: date
- *           example: "2024-01-01"
- *         description: Start date of the case creation range.
- *       - in: body
- *         name: To_DAT
- *         required: false
- *         schema:
- *           type: string
- *           format: date
- *           example: "2024-01-31"
- *         description: End date of the case creation range.
- *       - in: body
- *         name: rtom
- *         required: false
- *         schema:
- *           type: string
- *         description: Filter by RTOM.
- *       - in: body
- *         name: drc
- *         required: false
- *         schema:
- *           type: string
- *         description: Filter by DRC.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               case_current_status:
- *                 type: string
- *                 description: Case status to filter cases.
- *               From_DAT:
- *                 type: string
- *                 format: date
- *                 example: "2024-01-01"
- *                 description: Start date of the case creation range.
- *               To_DAT:
- *                 type: string
- *                 format: date
- *                 example: "2024-01-31"
- *                 description: End date of the case creation range.
- *               rtom:
- *                 type: string
- *                 description: Filter by RTOM.
- *               drc:
- *                 type: string
- *                 description: Filter by DRC.
- *     responses:
- *       200:
- *         description: Successfully retrieved Mediation Board cases.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Mediation Board cases retrieved successfully.
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       case_id:
- *                         type: string
- *                         example: "12345"
- *                       case_current_status:
- *                         type: string
- *                         example: "MB Negotiation"
- *                       created_dtm:
- *                         type: string
- *                         format: date-time
- *                         example: "2024-01-15T10:00:00Z"
- *                       rtom:
- *                         type: string
- *                         example: "RTOM123"
- *                       drc:
- *                         type: string
- *                         example: "DRC456"
- *       400:
- *         description: Invalid input, missing required fields, or incorrect date format.
- *       404:
- *         description: No cases found matching the criteria.
- *       500:
- *         description: Internal server error. Failed to retrieve cases.
- */
-router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+// router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
 
 /**
  * @swagger
@@ -7254,7 +7141,6 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
  *                   type: string
  *                   example: "Internal server error."
  */
-
 router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
 /**
@@ -7413,11 +7299,7 @@ router.post("/Create_task_for_Request_log_download_when_select_more_than_one_mon
  *                   type: string
  *                   example: "Error fetching case details"
  */
-
-router.post(
-  "/List_Details_Of_Mediation_Board_Acceptance",
-  List_Details_Of_Mediation_Board_Acceptance
-);
+router.post( "/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Mediation_Board_Acceptance);
 
 /**
  * @swagger
@@ -7653,7 +7535,6 @@ router.post(
  *                   type: string
  *                   example: "Error message details"
  */
-
 router.post(
   "/Submit_Mediation_Board_Acceptance",
   Submit_Mediation_Board_Acceptance
@@ -7904,127 +7785,6 @@ router.post(
 //payments
 // router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
-/**
- * @swagger
- * tags:
- *   - name: Case Management
- *     description: Endpoints for retrieving all settlement cases based on various filters.
- * 
- * /api/case/List_All_Settlement_Cases:
- *   post:
- *     summary: Retrieve settlement cases with filtering options.
- *     description: |
- *       This endpoint retrieves settlement cases associated with a specified case ID.
- *       Users can filter cases based on settlement phase, settlement status, and date range.
- *       The response will return the last 10 records sorted by the created date in descending order.
- *       
- *       | Version | Date       | Description                           | Changed By         |
- *       |---------|------------|---------------------------------------|--------------------|
- *       | 01      | 2025-Mar-16| Retrieve settlement cases with filters | Sasindu Srinayaka  |
- *     tags:
- *       - Case Management
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               case_id:
- *                 type: integer
- *                 description: Unique identifier of the case.
- *                 example: 12
- *               settlement_phase:
- *                 type: string
- *                 description: Phase of the settlement.
- *                 example: "Negotiation"
- *               settlement_status:
- *                 type: string
- *                 description: Current status of the settlement.
- *                 example: "Open_Pending"
- *               from_date:
- *                 type: string
- *                 format: date
- *                 description: Start date for filtering settlement cases.
- *                 example: "2025-02-01"
- *               to_date:
- *                 type: string
- *                 format: date
- *                 description: End date for filtering settlement cases.
- *                 example: "2025-02-20"
- *     responses:
- *       200:
- *         description: Settlement cases retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Successfully retrieved case settlements.
- *       400:
- *         description: Validation error - Missing required fields or no filtering parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: "Case Id is required."
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 400
- *                     description:
- *                       type: string
- *                       example: "Provide at least one of settlement_phase, settlement_status, or both from_date and to_date together."
- *       404:
- *         description: No settlement cases found for the given criteria.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: "No data found for the provided parameters."
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 404
- *                     description:
- *                       type: string
- *                       example: "No cases satisfy the provided criteria."
- *       500:
- *         description: Internal server error occurred while retrieving settlement cases.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: "Internal Server error. Please try again later."
- */
-router.post("/List_All_Settlement_Cases", List_All_Settlement_Cases);
 
 /**
  * @swagger
@@ -8298,7 +8058,6 @@ router.post("/RO_CPE_Collection", RO_CPE_Collection);
  *                   type: string
  *                   example: "Internal Server Error"
  */
-
 router.post(
   "/List_Request_Response_log",
   List_Request_Response_log
@@ -8440,8 +8199,6 @@ router.post(
  *                       type: string
  *                       example: "Error message details"
  */
-
-
 router.post(
   "/Create_Task_For_Request_Responce_Log_Download",
   Create_Task_For_Request_Responce_Log_Download
