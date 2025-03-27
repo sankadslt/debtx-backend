@@ -6,7 +6,6 @@ const casemonitorlogSchema = new Schema({
   case_id: { type: Number, required: true },
   Case_Phase: { type: String, required: true },
   created_dtm: { type: Date, required: true },
-  created_by: { type: String, required: true },
   Monitor_Expire_Dtm: { type: Date, required: true  },
   Last_Monitor_Dtm: { type: Date, required: true },
 },
