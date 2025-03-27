@@ -9,6 +9,7 @@ const casemonitorSchema = new Schema({
   created_by: { type: String, required: true },
   Monitor_Expire_Dtm: { type: Date, required: true  },
   Last_Monitor_Dtm: { type: Date, required: true },
+  Last_Request_On: { type: Date, required: true },
 },
 {
   collection: 'Case_Monitor',
