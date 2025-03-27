@@ -41,7 +41,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(json());
-app.use(cors({ origin:[ process.env.CLIENT_URL || "http://220.247.224.226:9781","http://dptestserver1.slt.lk:9781"],credentials: true,}));
+app.use(cors({ origin:[ process.env.CLIENT_URL || "http://124.43.177.52:8080"],credentials: true,}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
