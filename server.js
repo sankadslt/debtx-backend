@@ -11,7 +11,6 @@
         Notes: This template uses Node. 
 */
 
-
 import express, { json } from "express";
 import { config } from "dotenv";
 import cors from "cors";
@@ -34,7 +33,7 @@ import chartRouter from "./routes/chart.js";
 import commissionRouter from "./routes/Commission_route.js";
 import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
 import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
-
+import SettlementRouter from "./routes/Settlement_route.js";
 // Load environment variables
 config();
 
@@ -64,6 +63,7 @@ app.use("/api/taskList", taskListRouter);
 app.use("/api", chartRouter);
 app.use("/api", tmpSLTApprovalRouter);
 app.use("/api/money",MoneyTransactionRouter);
+app.use("/api/settlement", SettlementRouter);
 app.use("/api/commission", commissionRouter);
 
 // Start Server
