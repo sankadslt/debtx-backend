@@ -19,7 +19,7 @@ const remarkSchema = new Schema({
 const statusSchema = new Schema({
     status: {
         type: String,
-        enum: ['Open', 'Approve', 'Reject'],
+        enum: ['Open', 'Approve', 'Reject', 'Pending Case Withdrawal','Case Withdrawed'],
         required: true,
     },
     status_date: {
@@ -32,13 +32,14 @@ const statusSchema = new Schema({
     },
 });
 const temmplateForwardedApproverSchema = new Schema({
+  doc_version : {type:Number, required: true, default: 1},
   approver_reference: { type: Number, required: true },
   created_on: { type: Date, required: true, default: Date.now },
   created_by: { type: String, required: true },
   approve_status: { type: [statusSchema]},
   approver_type: { 
     type: String, 
-    enum: ['DRC_Distribution', 'DRC_ReAssign'], 
+    enum: ['DRC_Distribution', 'DRC Re-Assign Approval','DRC Assign Approval', 'Case Withdrawal Approval','Case Abandoned Approval','Case Write-Off Approval','Commission Approval' ], 
     required: true 
   }, 
   parameters: {
@@ -47,7 +48,7 @@ const temmplateForwardedApproverSchema = new Schema({
       default: {},
       default: {},
     },
-  approved_by: { type: String, default: null },
+  approved_deligated_by: { type: String, default: null },
   remark:  {type:[remarkSchema]},
 }, { 
   collection: 'Template_forwarded_approver', 

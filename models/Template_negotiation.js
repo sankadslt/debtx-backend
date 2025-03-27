@@ -1,7 +1,9 @@
-import mongoose from "mongoose";
+import { Schema, model } from 'mongoose';
+import mongoose from 'mongoose';
 
 const TemplateNegotiationSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     negotiation_id: 
     { 
         type: Number, 

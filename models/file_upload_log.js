@@ -55,6 +55,7 @@ import mongoose from "mongoose";
 // Define the Schema
 const fileUploadLogSchema = new mongoose.Schema(
   {
+    doc_version : {type:Number, required: true, default: 1},
     file_upload_seq: {
       type: Number,
       required: true,
