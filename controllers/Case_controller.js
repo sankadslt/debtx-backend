@@ -1323,7 +1323,8 @@ export const List_count_by_drc_commision_rule = async (req, res) => {
       const casesCount = await Case_details.aggregate([
         {
           $match: {
-            "case_current_status": case_status
+            "case_current_status": case_status,
+            "case_distribution_batch_id": null,
           }
         },
         {
