@@ -5990,11 +5990,11 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     }).lean();
 
     if (!caseDetails || caseDetails.length === 0) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: "error",
         message: "No Case Details Found.",
         errors: {
-          code: 404,
+          code: 200,
           description: "No data available for the provided parameters.",
         },
       });
