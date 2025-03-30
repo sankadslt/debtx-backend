@@ -2014,6 +2014,17 @@ export const updateLastRoDetails = async (req, res) => {
       });
     }
 
+    // Ensure remark is a valid text input (not just spaces or symbols)
+    const trimmedRemark = remark.trim();
+    const isValidRemark = /^[A-Za-z0-9\s.,!?]+$/.test(trimmedRemark); // Accepts letters, numbers, spaces, and common punctuation.
+
+    if (trimmedRemark.length === 0 || !isValidRemark) {
+      return res.status(400).json({
+        status: "error",
+        message: "Remark must contain valid text (letters or numbers).",
+      });
+    }
+
     // Find the case to get the last recovery officer's index
     const caseData = await Case_details.findOne({
       case_id,
@@ -2063,7 +2074,7 @@ export const updateLastRoDetails = async (req, res) => {
     // Update the case_removal_remark of the last recovery officer
     const updateCaseData = {
       $set: {
-        [`drc.${lastDRC}.recovery_officers.${lastRecoveryOfficer}.case_removal_remark`]: remark,
+        [`drc.${lastDRC}.recovery_officers.${lastRecoveryOfficer}.case_removal_remark`]: trimmedRemark,
       },
     };
 
