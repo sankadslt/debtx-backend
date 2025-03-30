@@ -7051,20 +7051,17 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *         description: ID of the delegate user to fetch interaction logs.
  *       - in: body
  *         name: User_Interaction_Type
- *         required: false
  *         schema:
  *           type: string
  *         description: Type of user interaction to filter logs.
  *       - in: body
  *         name: date_from
- *         required: false
  *         schema:
  *           type: string
  *           format: date
  *         description: Start date for filtering logs.
  *       - in: body
  *         name: date_to
- *         required: false
  *         schema:
  *           type: string
  *           format: date
@@ -7228,27 +7225,23 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *         description: ID of the delegate user to fetch interaction logs.
  *       - in: body
  *         name: User_Interaction_Type
- *         required: false
  *         schema:
  *           type: string
  *         description: Type of user interaction to filter logs.
  *       - in: body
  *         name: Request Accept
- *         required: false
  *         schema:
  *           type: string
  *           enum: [Approve, Reject]
  *         description: Filter logs based on approval status.
  *       - in: body
  *         name: date_from
- *         required: false
  *         schema:
  *           type: string
  *           format: date
  *         description: Start date for filtering logs.
  *       - in: body
  *         name: date_to
- *         required: false
  *         schema:
  *           type: string
  *           format: date
@@ -7394,33 +7387,29 @@ router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecov
  *
  *       | Version | Date        | Description                                | Changed By    |
  *       |---------|------------|--------------------------------------------|--------------|
- *       | 01      | 2025-Mar-28 | Initial implementation                    | User    |
+ *       | 01      | 2025-Mar-28 | Initial implementation                    | Dinusha Anupama    |
  *
  *     tags: [Case Management]
  *     parameters:
  *       - in: body
  *         name: User_Interaction_Type
- *         required: false
  *         schema:
  *           type: string
  *         description: Type of user interaction to filter logs.
  *       - in: body
  *         name: Request Accept
- *         required: false
  *         schema:
  *           type: string
  *           enum: [Approve, Reject]
  *         description: Filter logs based on approval status.
  *       - in: body
  *         name: date_from
- *         required: false
  *         schema:
  *           type: string
  *           format: date
  *         description: Start date for filtering logs.
  *       - in: body
  *         name: date_to
- *         required: false
  *         schema:
  *           type: string
  *           format: date
@@ -7830,6 +7819,7 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
  *     parameters:
  *       - in: query
  *         name: delegate_user_id
+ *         required: true
  *         schema:
  *           type: string
  *           example: "5"
@@ -7984,24 +7974,28 @@ router.post("/Create_task_for_Request_log_download_when_select_more_than_one_mon
  *     parameters:
  *       - in: query
  *         name: delegate_user_id
+ *         required: true
  *         schema:
  *           type: string
  *           example: "5"
  *         description: ID of the delegate user.
  *       - in: query
  *         name: User_Interaction_Type
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Mediation board forward request letter"
  *         description: User_Interaction_Type which we want to get documents.
  *       - in: query
  *         name: case_id
+ *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: ID of the case.
  *       - in: query
  *         name: Interaction_Log_ID
+ *         required: true
  *         schema:
  *           type: number
  *           example: "100"
@@ -8142,42 +8136,49 @@ router.post( "/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Medi
  *     parameters:
  *       - in: query
  *         name: create_by
+ *         required: true
  *         schema:
  *           type: string
  *           example: "admin"
  *         description: Person who accept the request.
  *       - in: query
  *         name: Interaction_Log_ID
+ *         required: true
  *         schema:
  *           type: number
  *           example: 55
  *         description: ID of the document in User Interaction Log.
  *       - in: query
  *         name: case_id
+ *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: ID of the case.
  *       - in: query
  *         name: User_Interaction_Type
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Mediation Board"
  *         description: User_Interaction_Type of the document in User Interaction Log.
  *       - in: query
  *         name: Request_Mode
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Negotiation"
  *         description: Request_Mode of the document.
  *       - in: query
  *         name: Interaction_ID
+ *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: Interaction_ID of the document.
  *       - in: query
  *         name: Request Accept
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Yes"
@@ -8378,42 +8379,49 @@ router.post("/Submit_Mediation_Board_Acceptance", Submit_Mediation_Board_Accepta
  *     parameters:
  *       - in: query
  *         name: create_by
+  *         required: true
  *         schema:
  *           type: string
  *           example: "User456"
  *         description: Person who withdraws the request.
  *       - in: query
  *         name: Interaction_Log_ID
+  *         required: true
  *         schema:
  *           type: number
  *           example: 55
  *         description: ID of the document in User Interaction Log.
  *       - in: query
  *         name: case_id
+  *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: ID of the case.
  *       - in: query
  *         name: User_Interaction_Type
+  *         required: true
  *         schema:
  *           type: string
  *           example: "Mediation Board"
  *         description: User interaction type for the document in User Interaction Log.
  *       - in: query
  *         name: Request_Mode
+  *         required: true
  *         schema:
  *           type: string
  *           example: "Negotiation"
  *         description: Request mode for the document.
  *       - in: query
  *         name: Interaction_ID
+  *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: Interaction ID of the document.
  *       - in: query
  *         name: Request Accept
+  *         required: true
  *         schema:
  *           type: string
  *           example: "Yes"
@@ -8761,7 +8769,7 @@ router.post("/RO_CPE_Collection", RO_CPE_Collection);
  *
  *       | Version | Date        | Description                                          | Changed By       |
  *       |---------|------------|------------------------------------------------------|------------------|
- *       | 01      | 2025-Mar-19 | Fetches request response log data for the given filters. | Your Name       |
+ *       | 01      | 2025-Mar-19 | Fetches request response log data for the given filters. | Dinusha Anupama      |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -8895,7 +8903,7 @@ router.post(
  *
  *       | Version | Date        | Description                                          | Changed By       |
  *       |---------|------------|------------------------------------------------------|------------------|
- *       | 01      | 2025-Mar-19 | Create a task for downloading request response log data. | Your Name       |
+ *       | 01      | 2025-Mar-19 | Create a task for downloading request response log data. | Dinusha Anupama       |
  *
  *     tags: [Case Management]
  *     parameters:
