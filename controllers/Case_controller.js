@@ -2152,7 +2152,7 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
     });
 
     if (!cases || cases.length === 0) {
-      return res.status(404).json({
+      return res.status(204).json({
         status: "error",
         message: "No cases found for the provided criteria.",
       });
@@ -2519,7 +2519,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     if (incompleteBatches.length > 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({
+      return res.status(204).json({
         message: "Some batch IDs do not have a 'Complete' status and cannot be proceeded.",
         incompleteBatchIds: incompleteBatches.map(batch => batch.case_distribution_batch_id),
       });
@@ -3127,7 +3127,7 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: "No matching approver references found" });
+      return res.status(204).json({ message: "No matching approver references found" });
     }
 
     // --- Create Tasks for Approved Approvers ---
@@ -3315,7 +3315,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       if (!approvalDoc) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(404).json({ message: "No matching approver reference found" });
+          return res.status(204).json({ message: "No matching approver reference found" });
       }
 
       // Assign created_by as delegate_id
@@ -3351,7 +3351,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       if (result.modifiedCount === 0) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(404).json({ message: "Approval update failed" });
+          return res.status(304).json({ message: "Approval update failed" });
       }
 
       // Update approve array in CaseDetails with requested_on and requested_by
@@ -3436,7 +3436,7 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
       if (!approverDocs.length) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(404).json({ message: "No matching approver references found" });
+          return res.status(204).json({ message: "No matching approver references found" });
       }
 
       // Map approver_reference to created_by directly
@@ -3466,7 +3466,7 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
       if (result.modifiedCount === 0) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(404).json({ message: "No matching approver references found" });
+          return res.status(204).json({ message: "No matching approver references found" });
       }
 
       // Update approve array in CaseDetails where case_id matches approver_reference
@@ -3653,7 +3653,7 @@ export const List_Case_Distribution_Details = async (req, res) => {
       const results = await caseDistributionDRCSummary.find(query);
 
       if (results.length === 0) {
-          return res.status(404).json({ message: "No records found for the given batch ID" });
+          return res.status(204).json({ message: "No records found for the given batch ID" });
       }
 
       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
@@ -3702,7 +3702,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       if (!drcDetails) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(404).json({ message: "DRC not found for the given drc_id" });
+          return res.status(204).json({ message: "DRC not found for the given drc_id" });
       }
 
       const currentDate = new Date();
@@ -3752,7 +3752,7 @@ export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
       const results = await caseDistributionDRCSummary.find({ case_distribution_batch_id, drc_id });
 
       if (results.length === 0) {
-          return res.status(404).json({ message: "No records found for the given batch ID and DRC ID" });
+          return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
       }
 
       const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
@@ -4774,7 +4774,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     }).lean();
 
     if (!caseDetails || caseDetails.length === 0) {
-      return res.status(200).json({
+      return res.status(204).json({
         status: "error",
         message: "No Case Details Found.",
         errors: {
@@ -5475,7 +5475,7 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
           approver_reference
       });
 
-      return res.status(201).json({
+      return res.status(200).json({
           message: "Case withdrawal request added successfully",
           data: newDocument
       });
@@ -5668,7 +5668,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         const interactionLogs = await User_Interaction_Log.find(filter);
         
         if (!interactionLogs.length) {
-            return res.status(404).json({ message: "No matching interactions found." });
+            return res.status(204).json({ message: "No matching interactions found." });
         }
         
         // Step 2: Fetch matching Request records based on Interaction_Log_ID
@@ -5690,7 +5690,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         }
         
         if (!filteredInteractionLogs.length) {
-            return res.status(404).json({ message: "No matching approved/rejected requests found." });
+            return res.status(204).json({ message: "No matching approved/rejected requests found." });
         }
         
         // Step 4: Fetch related case details
@@ -5809,7 +5809,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       const interactionLogs = await User_Interaction_Log.find(filter).sort({ CreateDTM: -1 }).limit(10);
       
       if (!interactionLogs.length) {
-          return res.status(404).json({ message: "No matching interactions found.", Request_Count: totalRequestCount });
+          return res.status(204).json({ message: "No matching interactions found.", Request_Count: totalRequestCount });
       }
       
       // Step 3: Fetch matching Request records based on Interaction_Log_ID
@@ -5831,7 +5831,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       }
       
       if (!filteredInteractionLogs.length) {
-          return res.status(404).json({ message: "No matching approved/rejected requests found.", Request_Count: totalRequestCount });
+          return res.status(204).json({ message: "No matching approved/rejected requests found.", Request_Count: totalRequestCount });
       }
       
       // Step 5: Fetch related case details
@@ -5944,7 +5944,7 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
       const interactionLogs = await User_Interaction_Log.find(filter);
       
       if (!interactionLogs.length) {
-          return res.status(404).json({ message: "No matching interactions found." });
+          return res.status(204).json({ message: "No matching interactions found." });
       }
       
       // Step 2: Fetch matching Request records based on Interaction_Log_ID
@@ -5966,7 +5966,7 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
       }
       
       if (!filteredInteractionLogs.length) {
-          return res.status(404).json({ message: "No matching approved/rejected requests found." });
+          return res.status(204).json({ message: "No matching approved/rejected requests found." });
       }
       
       // Step 4: Fetch related case details
@@ -6323,7 +6323,7 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       const interactionLog = await User_Interaction_Log.findOne(filter);
       
       if (!interactionLog) {
-          return res.status(404).json({ message: "No matching interaction found." });
+          return res.status(204).json({ message: "No matching interaction found." });
       }
       
       // Fetch all interactions related to delegate_user_id excluding the one with Interaction_Log_ID
@@ -6350,7 +6350,7 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       );
       
       if (!caseDetails) {
-          return res.status(404).json({ message: "No case details found." });
+          return res.status(204).json({ message: "No case details found." });
       }
       
       // Fetch incident details
@@ -6460,7 +6460,7 @@ try {
   const existingCase = await Case_details.findOne({ case_id: case_id });
 
   if (!existingCase) {
-    return res.status(404).json({
+    return res.status(204).json({
       message: `Case with case_id ${case_id} not found.`
     });
   }
@@ -6480,7 +6480,7 @@ try {
 
     finalMonitorMonths = existingMonitorMonths + monthsToAdd;
     if (finalMonitorMonths > 5) {
-      return res.status(400).json({
+      return res.status(405).json({
         message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
       });
     }
@@ -6603,7 +6603,7 @@ try {
   }
 
   // ✅ Final success response
-  return res.status(201).json({
+  return res.status(200).json({
     message: "Mediation Board Acceptance Request submitted and case updated successfully.",
     updates: {
       case_id: case_id,
@@ -6671,7 +6671,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     const existingCase = await Case_details.findOne({ case_id: case_id });
 
     if (!existingCase) {
-      return res.status(404).json({
+      return res.status(204).json({
         message: `Case with case_id ${case_id} not found.`
       });
     }
@@ -6691,7 +6691,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
 
       finalMonitorMonths = existingMonitorMonths + monthsToAdd;
       if (finalMonitorMonths > 5) {
-        return res.status(400).json({
+        return res.status(405).json({
           message: `Cannot update monitor_months beyond 5. Current: ${existingMonitorMonths}, Attempted Add: ${monthsToAdd}`
         });
       }
@@ -6745,7 +6745,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     if (!approvalDoc) {
          await session.abortTransaction();
         session.endSession();
-         return res.status(404).json({ message: "No matching Interaction_Log_ID found" });
+         return res.status(204).json({ message: "No matching Interaction_Log_ID found" });
     }
     
     // Assign created_by as delegate_id
@@ -6852,7 +6852,7 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     const savedForwardApprover = await forwardedApprover.save();
 
     // ✅ Final success response
-    return res.status(201).json({
+    return res.status(200).json({
       message: "Withdrawal mediation board request submitted and all records updated successfully.",
       updates: {
         case_id: case_id,
@@ -7088,7 +7088,7 @@ export const List_Request_Response_log = async (req, res) => {
     });
 
     if (!requests.length) {
-      return res.status(404).json({ message: "No requests found within the given date range." });
+      return res.status(204).json({ message: "No requests found within the given date range." });
     }
 
     const requestIds = requests.map(req => req.RO_Request_Id);
@@ -7099,7 +7099,7 @@ export const List_Request_Response_log = async (req, res) => {
     console.log("Interactions:", interactions);
 
     if (!interactions.length) {
-      return res.status(404).json({ message: "No related user interactions found." });
+      return res.status(204).json({ message: "No related user interactions found." });
     }
 
     // Extract case IDs from interaction logs (handling Map type correctly)
@@ -7112,14 +7112,14 @@ export const List_Request_Response_log = async (req, res) => {
     const allCases = await Case_details.find({ case_id: { $in: caseIds } });
 
     if (!allCases.length) {
-      return res.status(404).json({ message: "No related case details found." });
+      return res.status(204).json({ message: "No related case details found." });
     }
 
     // Step 4: Filter cases based on case_current_status
     const cases = allCases.filter(caseDoc => caseDoc.case_current_status === case_current_status);
 
     if (!cases.length) {
-      return res.status(404).json({ message: "No matching case details found." });
+      return res.status(204).json({ message: "No matching case details found." });
     }
 
     // Construct response, grouping data by DRC
