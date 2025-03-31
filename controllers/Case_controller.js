@@ -38,6 +38,8 @@ import Tmp_SLT_Approval from '../models/Tmp_SLT_Approval.js'; // Import the mode
 import { getApprovalUserIdService } from "../services/ApprovalService.js";
 import { getBatchApprovalUserIdService } from "../services/ApprovalService.js";
 import Incident from "../models/Incident.js";
+import CaseMonitor from "../models/Case_Monitor.js";
+import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
 
 export const ListAllArrearsBands = async (req, res) => {
@@ -6574,6 +6576,32 @@ try {
     }
   }
 
+  if (No_of_Calendar_Month) {
+    const caseMonitor = await CaseMonitor.findOne({ case_id: case_id });
+    if (caseMonitor) {
+      let newMonitorExpireDtm = new Date(caseMonitor.Monitor_Expire_Dtm);
+      newMonitorExpireDtm.setMonth(newMonitorExpireDtm.getMonth() + monthsToAdd);
+
+      await CaseMonitor.updateOne(
+        { case_id: case_id },
+        { $set: { Monitor_Expire_Dtm: newMonitorExpireDtm, Last_Request_On: new Date() } }
+      );
+    }
+  }
+
+  if (No_of_Calendar_Month) {
+    const caseMonitorLog = await CaseMonitorLog.findOne({ case_id: case_id });
+    if (caseMonitorLog) {
+      let newnewMonitorExpireDtm = new Date(caseMonitorLog.Monitor_Expire_Dtm);
+      newnewMonitorExpireDtm.setMonth(newnewMonitorExpireDtm.getMonth() + monthsToAdd);
+
+      await CaseMonitorLog.updateOne(
+        { case_id: case_id },
+        { $set: { Monitor_Expire_Dtm: newnewMonitorExpireDtm }}
+      );
+    }   
+  }
+
   // ✅ Final success response
   return res.status(201).json({
     message: "Mediation Board Acceptance Request submitted and case updated successfully.",
@@ -6758,6 +6786,32 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
           { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } }
         );
       }
+    }
+
+    if (No_of_Calendar_Month) {
+      const caseMonitor = await CaseMonitor.findOne({ case_id: case_id });
+      if (caseMonitor) {
+        let newMonitorExpireDtm = new Date(caseMonitor.Monitor_Expire_Dtm);
+        newMonitorExpireDtm.setMonth(newMonitorExpireDtm.getMonth() + monthsToAdd);
+  
+        await CaseMonitor.updateOne(
+          { case_id: case_id },
+          { $set: { Monitor_Expire_Dtm: newMonitorExpireDtm, Last_Request_On: new Date() } }
+        );
+      }
+    }
+  
+    if (No_of_Calendar_Month) {
+      const caseMonitorLog = await CaseMonitorLog.findOne({ case_id: case_id });
+      if (caseMonitorLog) {
+        let newnewMonitorExpireDtm = new Date(caseMonitorLog.Monitor_Expire_Dtm);
+        newnewMonitorExpireDtm.setMonth(newnewMonitorExpireDtm.getMonth() + monthsToAdd);
+  
+        await CaseMonitorLog.updateOne(
+          { case_id: case_id },
+          { $set: { Monitor_Expire_Dtm: newnewMonitorExpireDtm }}
+        );
+      }   
     }
 
     // Step 9: Get approver user_id dynamically
