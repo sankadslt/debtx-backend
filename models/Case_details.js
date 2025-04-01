@@ -176,11 +176,78 @@ const moneytransactionsschema = new Schema({
   payment : { type: Number, required: true },
   case_phase : {type: String, required:true},
   settle_balanced : { type: Number, required: true },
-})
+});
+
+const FTL_LOD_Schema = new Schema({
+  pdf_by: {type: String, required: true, unique: true},
+  pdf_on: {type: Date, required:true},
+  expire_date : {type: Date, required:true},
+  signed_by : { type: String, required: true },
+  ftl_lod_letter_details : [FLT_LOD_letter_details_schema],
+  customer_response : [customer_response_of_LOD_schema],
+});
+
+const FLT_LOD_letter_details_schema = new Schema({
+  created_on: {type: Date, required:true},
+  created_by:{type: String, required:true},
+  tele_no: {type:String, required:true},
+  customer_name: {type:String, required:true},
+  postal_address: {type:Array, required:true},
+},{_id: false });
+
+const customer_response_of_LOD_schema = new Schema({
+  response_seq: {type: Number, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true},
+  response: {type:String, required:true},
+},{_id: false });
+
+const document_type_schema = new Schema({
+  document_seq: {type: Number, required:true},
+  document_type:{type: String, required:true},
+  change_by:{type: String, required:true},
+  changed_dtm: {type:Date, required:true},
+  changed_type_remark: {type:String, required:true},
+},{_id: false });
+
+const lod_submission_schema = new Schema({
+  lod_distribution_id: {type: Number, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true}, //file download by
+},{_id: false });
+
+const lod_response_schema = new Schema({
+  lod_response_seq: {type: Number, required:true},
+  response_type: {type:String, required:true},
+  lod_remark: {type:String, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true},
+},{_id: false });
+
+const lod_final_reminder_Schema = new Schema({
+  source_type: {
+    type: String,
+    enum: ["Direct LOD", "DRC Fail", "MB Fail"],
+    required: true,
+  },
+  current_document_type: {
+    type: String,
+    enum: ["LOD", "Final Reminder"],
+    required: true,
+  },
+  lod_expire_on : {type: Date, required:true},
+  document_type : [document_type_schema],
+  lod_submission : [lod_submission_schema],
+  lod_response : [lod_response_schema],
+  lod_notification : [{
+    notification_seq : {type:Number, required: true},
+    notification_on :{ type: Date, required: true }
+  }],
+});
 
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
-  doc_version : {type:Number, required: true, default: 2},
+  doc_version : {type:Number, required: true, default: 3},
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
   case_distribution_batch_id: {type: Number, default: null},
@@ -218,6 +285,8 @@ const caseDetailsSchema = new Schema({
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
   money_transactions	: [moneytransactionsschema],
+  ftl_lod: [FTL_LOD_Schema],
+  lod_final_reminder: [lod_final_reminder_Schema],
 },
 {
   collection: 'Case_details', 
