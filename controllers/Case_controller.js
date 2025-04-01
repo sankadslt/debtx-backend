@@ -3826,6 +3826,15 @@ export const Mediation_Board = async (req, res) => {
           message: "Missing required fields: request_id, request_type, intraction_id" 
         });
       }
+      let case_status_with_request =  "MB Negotiaion";
+      const statusMap = {
+        "Mediation Board Settlement plan Request": "MB Negotiaion",
+        "Mediation Board period extend Request": "MB Negotiaion",
+        "Mediation Board customer further information request": "MB Negotiaion",
+        "Mediation Board Customer request service": "MB Negotiaion",
+      };
+      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
+
       const dynamicParams = {
         case_id,
         drc_id,
@@ -3853,7 +3862,7 @@ export const Mediation_Board = async (req, res) => {
       }
       const intraction_log_id = result.Interaction_Log_ID;
       const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id }, 
+        { case_id: case_id, 'drc.drc_id': drc_id}, 
         { 
             $push: { 
                 mediation_board: mediationBoardData,
@@ -3867,19 +3876,15 @@ export const Mediation_Board = async (req, res) => {
                     intraction_id: intraction_id,
                     intraction_log_id,
                 },
-                ...(handed_over_non_settlemet === "yes" && {
-                  case_status: {
-                    case_status: "MB Fail with Pending Non-Settlement",
-                    created_dtm: new Date(),
-                    created_by: created_by,
-                  },
-                }),
+                case_status: {
+                  case_status: case_status_with_request,
+                  created_dtm: new Date(),
+                  created_by: created_by,
+                }
             },
-            ...(handed_over_non_settlemet === "yes" && {
-              $set: {
-                case_current_status: "MB Fail with Pending Non-Settlement",
-              },
-            }),
+            $set: {
+                  case_current_status: case_status_with_request,
+            }
         },
         { new: true, session } // Correct placement of options
       );
