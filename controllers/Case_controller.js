@@ -6197,22 +6197,39 @@ export const Customer_Negotiations = async (req, res) => {
         });
       }
       const intraction_log_id = result.Interaction_Log_ID;
+      let case_status_with_request =  "RO Negotiation";
+      const statusMap = {
+        "Mediation board forward request letter": "RO Negotiation FMB Pending",
+        "Negotiation Settlement plan Request": "RO Negotiation",
+        "Negotiation period extend Request": "RO Negotiation extension Pending",
+        "Negotiation customer further information Request": "RO Negotiation",
+        "Negotiation Customer request service": "RO Negotiation",
+      };
+      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
       const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id }, 
+        { case_id: case_id, 'drc.drc_id': drc_id }, 
         { 
             $push: { 
               ro_negotiation: negotiationData,
-                ro_requests: {
-                    drc_id,
-                    ro_id,
-                    created_dtm: new Date(),
-                    ro_request_id: request_id,
-                    ro_request: request_type,
-                    request_remark:request_comment,
-                    intraction_id: intraction_id,
-                    intraction_log_id,
-                },
+              ro_requests: {
+                  drc_id,
+                  ro_id,
+                  created_dtm: new Date(),
+                  ro_request_id: request_id,
+                  ro_request: request_type,
+                  request_remark:request_comment,
+                  intraction_id: intraction_id,
+                  intraction_log_id,
+              },
+              case_status:{
+                case_status:case_status_with_request,
+                created_dtm: new Date(),
+                created_by:created_by,
+              }
             },
+            $set: {
+              case_current_status: case_status_with_request,
+            }
         },
         { new: true, session } // Correct placement of options
       );
@@ -6227,7 +6244,7 @@ export const Customer_Negotiations = async (req, res) => {
     }
     else{
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id }, 
+        { case_id: case_id, 'drc.drc_id': drc_id }, 
         {
           $push: {
             ro_negotiation: negotiationData,
