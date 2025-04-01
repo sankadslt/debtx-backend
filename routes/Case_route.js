@@ -2866,45 +2866,76 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *       | 01      | 2025-Mar-26 | Initial creation                          | Your Name       |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: drc_commision_rule
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "BB"
+ *         description: drc coomition rule.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Admin"
+ *         description: who is created.
+ *       - in: query
+ *         name: current_arrears_band
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "AB-50_100"
+ *         description: arreas band
+ *       - in: query
+ *         name: drc_list
+ *         required: true
+ *         schema:
+ *           type: Array
+ *           example: []
+ *         description: distribution array.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - drc_commision_rule
- *               - current_arrears_band
- *               - drc_list
- *               - created_by
  *             properties:
  *               drc_commision_rule:
  *                 type: string
  *                 example: "BB"
- *                 description: The commission rule applied for distribution.
+ *                 description: DRC commission rule code
+ *               created_by:
+ *                 type: string
+ *                 example: "Admin"
+ *                 description: Creator of the record
  *               current_arrears_band:
  *                 type: string
  *                 example: "AB-50_100"
- *                 description: The arrears band for the distribution.
+ *                 description: Arrears band classification
  *               drc_list:
  *                 type: array
- *                 description: List of DRCs involved in the distribution.
  *                 items:
  *                   type: object
  *                   properties:
  *                     DRC:
  *                       type: string
- *                       example: "D3"
+ *                       example: "D1"
+ *                       description: DRC code
  *                     DRC_Id:
  *                       type: integer
- *                       example: 3
+ *                       example: 1
+ *                       description: DRC identifier
  *                     Count:
  *                       type: integer
- *                       example: 3
- *               created_by:
- *                 type: string
- *                 example: "admin"
- *                 description: The user who initiated the request.
+ *                       example: 1
+ *                       description: Count of DRC entries
+ *             required:
+ *               - drc_commision_rule
+ *               - created_by
+ *               - current_arrears_band
+ *               - drc_list
  *     responses:
  *       200:
  *         description: Case distribution task created successfully.
@@ -3611,6 +3642,14 @@ router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedby
  *       | 01      | 2025-feb-06 | List all transactions by batch ID     | Sanjaya Perera   |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_distribution_batch_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 16
+ *         description: ID of the batch.
  *     requestBody:
  *       required: true
  *       content:
@@ -3619,9 +3658,9 @@ router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedby
  *             type: object
  *             properties:
  *               case_distribution_batch_id:
- *                 type: string
+ *                 type: integer
  *                 description: The batch ID for which transactions should be retrieved.
- *                 example: "65a1b2c3d4e5f67890123456"
+ *                 example: 5
  *     responses:
  *       200:
  *         description: Transactions retrieved successfully.
@@ -3718,6 +3757,14 @@ router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of
  *       | 01      | 2025-Feb-10 | Initial creation of task for case distribution     | Sanjaya Perera   |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_distribution_batch_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 16
+ *         description: ID of the batch.
  *     requestBody:
  *       required: true
  *       content:
@@ -3797,6 +3844,151 @@ router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of
  */
 router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_case_distribution_transaction ); 
 
+
+/**
+ * @swagger
+ * /api/get_distribution_array_of_a_transaction:
+ *   post:
+ *     summary: Get distribution array of a transaction
+ *     description: |
+ *       Retrieves distribution transaction details based on batch ID and sequence.
+ *
+ *       | Version | Date        | Description                     | Changed By       |
+ *       |---------|------------|---------------------------------|------------------|
+ *       | 01      | 2025-04-01 | Initial creation               | Ravindu pathum  |
+ *
+ *     tags: [Case Distribution]
+ *     parameters:
+ *       - in: query
+ *         name: case_distribution_batch_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 16
+ *         description: ID of the batch.
+ *       - in: query
+ *         name: batch_seq
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: batch sequence id.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: integer
+ *                 example: 12345
+ *                 description: Unique ID of the distribution batch
+ *               batch_seq:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Sequence number within the batch
+ *             required:
+ *               - case_distribution_batch_id
+ *               - batch_seq
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved distribution records
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Successfully retrieved 5 records"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_distribution_batch_id:
+ *                         type: integer
+ *                         example: 12345
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-07-01T10:30:00Z"
+ *                       created_by:
+ *                         type: string
+ *                         example: "Admin"
+ *                       rulebase_count:
+ *                         type: integer
+ *                         example: 10
+ *                       rulebase_arrears_sum:
+ *                         type: number
+ *                         example: 5000.50
+ *                       status:
+ *                         type: string
+ *                         example: "Approved"
+ *                       drc_commision_rule:
+ *                         type: string
+ *                         example: "BB"
+ *                       forward_for_approvals_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-07-01T11:00:00Z"
+ *                       approved_by:
+ *                         type: string
+ *                         example: "Supervisor"
+ *                       approved_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-07-01T11:30:00Z"
+ *                       proceed_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-07-01T12:00:00Z"
+ *                       tmp_record_remove_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-07-02T00:00:00Z"
+ *                       current_arrears_band:
+ *                         type: string
+ *                         example: "AB-50_100"
+ *                       batch_seq_details:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             batch_seq:
+ *                               type: integer
+ *                               example: 1
+ *       400:
+ *         description: Bad request - Missing required parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "case_distribution_batch_id and batch_seq are required parameters."
+ *       500:
+ *         description: Server error occurred while processing the request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Server error. Please try again later."
+ */
 router.post("/get_distribution_array_of_a_transaction", list_distribution_array_of_a_transaction);
 
 /**
@@ -3812,6 +4004,28 @@ router.post("/get_distribution_array_of_a_transaction", list_distribution_array_
  *       | 01      | 2025-Feb-10 | Initial creation of task for batch list distribution array  | Sanjaya Perera   |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_distribution_batch_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 16
+ *         description: ID of the batch.
+ *       - in: query
+ *         name: batch_seq
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: batch sequence id.
+ *       - in: query
+ *         name: Created_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Admin"
+ *         description: who is created.
  *     requestBody:
  *       required: true
  *       content:
