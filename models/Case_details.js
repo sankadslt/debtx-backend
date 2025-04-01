@@ -178,15 +178,6 @@ const moneytransactionsschema = new Schema({
   settle_balanced : { type: Number, required: true },
 });
 
-const FTL_LOD_Schema = new Schema({
-  pdf_by: {type: String, required: true, unique: true},
-  pdf_on: {type: Date, required:true},
-  expire_date : {type: Date, required:true},
-  signed_by : { type: String, required: true },
-  ftl_lod_letter_details : [FLT_LOD_letter_details_schema],
-  customer_response : [customer_response_of_LOD_schema],
-});
-
 const FLT_LOD_letter_details_schema = new Schema({
   created_on: {type: Date, required:true},
   created_by:{type: String, required:true},
@@ -201,6 +192,15 @@ const customer_response_of_LOD_schema = new Schema({
   created_on: {type:Date, required:true},
   response: {type:String, required:true},
 },{_id: false });
+
+const FTL_LOD_Schema = new Schema({
+  pdf_by: {type: String, required: true, unique: true},
+  pdf_on: {type: Date, required:true},
+  expire_date : {type: Date, required:true},
+  signed_by : { type: String, required: true },
+  ftl_lod_letter_details : [FLT_LOD_letter_details_schema],
+  customer_response : [customer_response_of_LOD_schema],
+});
 
 const document_type_schema = new Schema({
   document_seq: {type: Number, required:true},
