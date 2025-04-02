@@ -7212,47 +7212,50 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *
  *       | Version | Date        | Description                                      | Changed By |
  *       |---------|------------|--------------------------------------------------|-----------|
- *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama      |
+ *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama |
+ *       | 02      | 2025-Apr-02 | Updated parameters and required fields          | Sanjaya Perera |
  *
  *     tags: [Case Management]
  *     parameters:
  *       - in: query
  *         name: drc_id
- *         required: true
  *         schema:
  *           type: integer
  *           example: 7
- *         description: The DRC ID
+ *         description: The DRC ID (Optional)
  *       - in: query
  *         name: case_id
  *         schema:
  *           type: integer
  *           example: 9
- *         description: The Case ID
+ *         description: The Case ID (Optional)
  *       - in: query
  *         name: account_no
  *         schema:
  *           type: string
  *           example: "101112"
- *         description: The Account Number
+ *         description: The Account Number (Optional)
  *       - in: query
  *         name: from_date
  *         schema:
- *           type: date
+ *           type: string
+ *           format: date
  *           example: "2023-01-01"
- *         description: Start date for filtering cases
+ *         description: Start date for filtering cases (Optional)
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
+ *           format: date
  *           example: "2025-03-31"
- *         description: End date for filtering cases
+ *         description: End date for filtering cases (Optional)
  *       - in: query
  *         name: Created_By
+ *         required: true
  *         schema:
  *           type: string
  *           example: "admin_user"
- *         description: Person who creates the task.
+ *         description: The user creating the task (Required)
  *     requestBody:
  *       required: true
  *       content:
@@ -7263,31 +7266,31 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *               - Created_By
  *             properties:
  *               drc_id:
- *                 type: string
- *                 example: "1"
- *                 description: The DRC ID (Optional).
+ *                 type: integer
+ *                 example: 1
+ *                 description: The DRC ID (Optional)
  *               case_id:
- *                 type: string
- *                 example: "1"
- *                 description: The Case ID (Optional).
+ *                 type: integer
+ *                 example: 1
+ *                 description: The Case ID (Optional)
  *               account_no:
  *                 type: string
- *                 example: "1"
- *                 description: The Account Number (Optional).
+ *                 example: "101112"
+ *                 description: The Account Number (Optional)
  *               from_date:
  *                 type: string
  *                 format: date
  *                 example: "2025-02-28"
- *                 description: Start date for the task (Optional).
+ *                 description: Start date for the task (Optional)
  *               to_date:
  *                 type: string
  *                 format: date
- *                 example: "2025-01-01"
- *                 description: End date for the task (Optional).
+ *                 example: "2025-03-31"
+ *                 description: End date for the task (Optional)
  *               Created_By:
  *                 type: string
  *                 example: "admin_user"
- *                 description: The user creating the task (Required).
+ *                 description: The user creating the task (Required)
  *     responses:
  *       201:
  *         description: Task successfully created.
@@ -7310,16 +7313,16 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *                       example: 35
  *                     task_type:
  *                       type: string
- *                       example: "Create task for download the Assigned DRC's case list when selected date range is higher that one month"
+ *                       example: "Create task for download the Assigned DRC's case list when selected date range is higher than one month"
  *                     drc_id:
- *                       type: string
- *                       example: "1"
+ *                       type: integer
+ *                       example: 1
  *                     case_id:
- *                       type: string
- *                       example: "1"
+ *                       type: integer
+ *                       example: 1
  *                     account_no:
  *                       type: string
- *                       example: "1"
+ *                       example: "101112"
  *                     from_date:
  *                       type: string
  *                       format: date-time
@@ -7327,7 +7330,7 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *                     to_date:
  *                       type: string
  *                       format: date-time
- *                       example: "2025-01-01T00:00:00.000Z"
+ *                       example: "2025-03-31T00:00:00.000Z"
  *                     Created_By:
  *                       type: string
  *                       example: "admin_user"
