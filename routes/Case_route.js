@@ -4208,9 +4208,24 @@ router.post(
  *
  *       | Version | Date        | Description                                     | Changed By       |
  *       |---------|------------|-------------------------------------------------|------------------|
- *       | 01      | 2025-Feb-11 | Initial creation of Exchange DRC cases API     | Sanjaya Perera   |
+ *       | 01      | 2025-April-02 | Initial creation of Exchange DRC cases API     | Sanjaya Perera   |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_distribution_batch_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1001
+ *         description: Unique batch ID for case distribution.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "admin_user"
+ *         description: User who initiated the request.
  *     requestBody:
  *       required: true
  *       content:
@@ -4297,7 +4312,7 @@ router.post(
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: "case distribution batch id, created by, and DRC list fields are required."
+ *                   example: "case_distribution_batch_id, created_by, and drc_list fields are required."
  *       500:
  *         description: Internal server error.
  *         content:
