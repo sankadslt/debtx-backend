@@ -3138,6 +3138,7 @@ router.post(
  *       | Version | Date        | Description                          | Changed By       |
  *       |---------|-------------|--------------------------------------|------------------|
  *       | 01      | 2025-Mar-11 | Batch Forward for Proceed            | Dinusha Anupama        |
+ *       | 02      | 2025-Apr-02 | Added billing_center parameter and validation | Sanjaya Perera    |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -3181,12 +3182,23 @@ router.post(
  *           type: integer
  *           example: 9
  *         description: Minus DRC ID.
+ *       - in: query
+ *         name: billing_center
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Billing Center 1"
+ *         description: Billing center related to the batch processing.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - Proceed_by
+ *               - billing_center
  *             properties:
  *               case_distribution_batch_id:
  *                 type: array
@@ -3208,6 +3220,9 @@ router.post(
  *               minus_drc_id:
  *                 type: integer
  *                 example: 9
+ *               billing_center:
+ *                 type: string
+ *                 example: "Billing Center 1"
  *     responses:
  *       200:
  *         description: Batches successfully forwarded for proceed.
@@ -5762,6 +5777,7 @@ router.post(
  *       | Version | Date        | Description                                      | Changed By |
  *       |---------|------------|--------------------------------------------------|-----------|
  *       | 01      | 2025-Mar-28 | Initial implementation                           | Dinusha Anupama     |
+ *       | 02      | 2025-Apr-02 | Added required parameters and updates           | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -5779,6 +5795,13 @@ router.post(
  *           type: integer
  *           example: 1
  *         description: ID of the DRC for case distribution.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Admin"
+ *         description: User who requested the case distribution details.
  *     requestBody:
  *       required: true
  *       content:
@@ -5788,6 +5811,7 @@ router.post(
  *             required:
  *               - case_distribution_batch_id
  *               - drc_id
+ *               - created_by
  *             properties:
  *               case_distribution_batch_id:
  *                 type: integer
@@ -5797,6 +5821,10 @@ router.post(
  *                 type: integer
  *                 description: The DRC ID for which the data is fetched.
  *                 example: 1
+ *               created_by:
+ *                 type: string
+ *                 description: User who requested the data.
+ *                 example: "Admin"
  *     responses:
  *       200:
  *         description: Successfully retrieved case distribution details with RTOMs.
@@ -5853,10 +5881,10 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: "Missing required fields: case_distribution_batch_id, drc_id"
+ *                   example: "Missing required fields: case_distribution_batch_id, drc_id, created_by"
  *       204:
  *         description: No records found for the given batch ID and DRC ID.
  *         content:
@@ -5866,10 +5894,10 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: "No records found for the given batch ID and DRC ID"
+ *                   example: "No records found for the given batch ID and DRC ID."
  *       500:
  *         description: Internal server error due to database or application failure.
  *         content:
@@ -5879,7 +5907,7 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
  *                   example: "Server error"
