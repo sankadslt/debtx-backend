@@ -3664,6 +3664,7 @@ router.post(
  *       | Version | Date        | Description                            | Changed By       |
  *       |---------|------------|----------------------------------------|------------------|
  *       | 01      | 2025-feb-06 | List all transactions by batch ID     | Sanjaya Perera   |
+ *       | 02      | 2025-Apr-02 | Added required parameters and updates | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -3687,13 +3688,16 @@ router.post(
  *         schema:
  *           type: string
  *           example: "Allocation"
- *         description: Type of transaction (optional filter)
+ *         description: Type of transaction (optional filter).
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - created_by
  *             properties:
  *               case_distribution_batch_id:
  *                 type: integer
@@ -3707,9 +3711,6 @@ router.post(
  *                 type: string
  *                 description: Type of transaction (optional).
  *                 example: "Reallocation"
- *             required:
- *               - case_distribution_batch_id
- *               - created_by
  *     responses:
  *       200:
  *         description: Transactions retrieved successfully.
@@ -3720,10 +3721,10 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: success
+ *                   example: "success"
  *                 message:
  *                   type: string
- *                   example: Successfully retrieved 5 records.
+ *                   example: "Successfully retrieved 5 records."
  *                 data:
  *                   type: array
  *                   items:
@@ -3760,10 +3761,19 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: case_distribution_batch_id is a required parameter.
+ *                   example: "case_distribution_batch_id and created_by are required parameters."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "case_distribution_batch_id is missing or invalid."
  *       404:
  *         description: No transactions found for the given batch ID.
  *         content:
@@ -3773,10 +3783,10 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: No data found for this batch ID.
+ *                   example: "No data found for this batch ID."
  *       500:
  *         description: Internal server error.
  *         content:
@@ -3786,10 +3796,10 @@ router.post(
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: Server error. Please try again later.
+ *                   example: "Server error. Please try again later."
  */
 router.post(
   "/List_all_transaction_seq_of_batch_id",
@@ -5281,35 +5291,77 @@ router.post(
  *       | Version | Date        | Description                                | Changed By       |
  *       |---------|------------|--------------------------------------------|------------------|
  *       | 01      | 2025-Feb-25 | Initial creation of Assign DRC API       | Sanjaya Perera   |
+ *       | 02      | 2025-Apr-02 | Added required parameters and updates | Sanjaya Perera   |
  *
  *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "CASE_12345"
+ *         description: The unique ID of the case to assign a DRC.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "DRC_67890"
+ *         description: The unique ID of the DRC being assigned.
+ *       - in: query
+ *         name: drc_name
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "John Doe"
+ *         description: The name of the DRC being assigned.
+ *       - in: query
+ *         name: assigned_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "admin_user"
+ *         description: The user who is assigning the DRC.
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Reassigning due to workload redistribution."
+ *         description: Any additional remarks regarding the assignment.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_id
+ *               - drc_id
+ *               - assigned_by
+ *               - drc_name
  *             properties:
  *               case_id:
  *                 type: string
- *                 description: The unique ID of the case to assign a DRC.
  *                 example: "CASE_12345"
+ *                 description: The unique ID of the case to assign a DRC.
  *               drc_id:
  *                 type: string
- *                 description: The unique ID of the DRC being assigned.
  *                 example: "DRC_67890"
+ *                 description: The unique ID of the DRC being assigned.
  *               drc_name:
  *                 type: string
- *                 description: The name of the DRC being assigned.
  *                 example: "John Doe"
+ *                 description: The name of the DRC being assigned.
  *               assigned_by:
  *                 type: string
- *                 description: The user who is assigning the DRC.
  *                 example: "admin_user"
+ *                 description: The user who is assigning the DRC.
  *               remark:
  *                 type: string
- *                 description: Any additional remarks regarding the assignment.
  *                 example: "Reassigning due to workload redistribution."
+ *                 description: Additional remarks regarding the assignment.
  *     responses:
  *       200:
  *         description: DRC reassignment sent to the approver successfully.
@@ -5362,6 +5414,9 @@ router.post(
  *                         drc_name:
  *                           type: string
  *                           example: "John Doe"
+ *                         case_id:
+ *                           type: string
+ *                           example: "CASE_12345"
  *                     remark:
  *                       type: object
  *                       properties:
@@ -5387,7 +5442,7 @@ router.post(
  *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: "case_id and drc_id is required."
+ *                   example: "case_id and drc_id are required."
  *                 errors:
  *                   type: object
  *                   properties:
@@ -5396,7 +5451,7 @@ router.post(
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: "case_id and drc_id is required."
+ *                       example: "case_id and drc_id are required."
  *       500:
  *         description: Internal server error.
  *         content:
