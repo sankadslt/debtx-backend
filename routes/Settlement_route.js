@@ -12,6 +12,9 @@ import { Router } from "express";
 import {
   ListAllSettlementCases,
 } from "../controllers/Settlement_controller.js";
+import {
+  Case_Details_Settlement_Phase,
+} from "../controllers/Settlement_controller.js";
 
 const router = Router();
 
@@ -159,5 +162,7 @@ const router = Router();
  *                   example: "Internal Server error. Please try again later."
  */
 router.post("/List_All_Settlement_Cases", ListAllSettlementCases);
+
+router.post("/Case_Details_Settlement_Phase", Case_Details_Settlement_Phase);
 
 export default router;
