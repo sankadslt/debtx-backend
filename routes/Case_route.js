@@ -5849,60 +5849,64 @@ router.post(
  *
  *       | Version | Date        | Description                                      | Changed By |
  *       |---------|------------|--------------------------------------------------|-----------|
- *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama     |
+ *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama|
+ *       | 02      | 2025-Apr-02 | Added required parameters and refinements        | Sanjaya Perera |
  *
  *     tags: [Case Management]
  *     parameters:
  *       - in: query
  *         name: drc_id
- *         required: true
  *         schema:
  *           type: integer
  *           example: 7
- *         description: The DRC ID
+ *         description: The DRC ID (Required if `case_id` or `account_no` is not provided).
  *       - in: query
  *         name: case_id
  *         schema:
  *           type: integer
  *           example: 9
- *         description: The Case ID
+ *         description: The Case ID (Required if `drc_id` or `account_no` is not provided).
  *       - in: query
  *         name: account_no
  *         schema:
  *           type: string
  *           example: "101112"
- *         description: The Account Number
+ *         description: The Account Number (Required if `drc_id` or `case_id` is not provided).
  *       - in: query
  *         name: from_date
  *         schema:
- *           type: date
+ *           type: string
+ *           format: date
  *           example: "2023-01-01"
- *         description: Start date for filtering cases
+ *         description: Start date for filtering cases (Optional).
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
+ *           format: date
  *           example: "2025-03-31"
- *         description: End date for filtering cases
+ *         description: End date for filtering cases (Optional).
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - drc_id
  *             properties:
  *               drc_id:
  *                 type: integer
  *                 example: 7
- *                 description: The DRC ID.
+ *                 description: The DRC ID (Required if `case_id` or `account_no` is not provided).
  *               case_id:
  *                 type: integer
  *                 example: 9
- *                 description: The Case ID.
+ *                 description: The Case ID (Required if `drc_id` or `account_no` is not provided).
  *               account_no:
  *                 type: string
  *                 example: "101112"
- *                 description: The Account Number.
+ *                 description: The Account Number (Required if `drc_id` or `case_id` is not provided).
  *               from_date:
  *                 type: string
  *                 format: date
@@ -6000,6 +6004,28 @@ router.post(
  *                     description:
  *                       type: string
  *                       example: "At least one of drc_id, case_id, or account_no is required."
+ *       204:
+ *         description: No data found for the given parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "No Case Details Found."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 204
+ *                     description:
+ *                       type: string
+ *                       example: "No data available for the provided parameters."
  *       500:
  *         description: Internal server error due to database or application failure.
  *         content:
