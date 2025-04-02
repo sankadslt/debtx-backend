@@ -7793,7 +7793,8 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *
  *       | Version | Date        | Description                                      | Changed By |
  *       |---------|------------|--------------------------------------------------|-----------|
- *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama      |
+ *       | 01      | 2025-Mar-30 | Initial implementation                           | Dinusha Anupama  |
+ *       | 02      | 2025-Apr-02 | Added new parameters and required validations   |Sanjaya perera |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -7803,28 +7804,40 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *         schema:
  *           type: integer
  *           example: 7
- *         description: Case_id
+ *         description: Unique reference number for approval.
  *       - in: query
  *         name: remark
  *         required: true
  *         schema:
  *           type: string
  *           example: "Withdraw"
- *         description: Reamark when adding withdraw the case.
+ *         description: Remark when adding withdraw the case.
  *       - in: query
  *         name: remark_edit_by
  *         required: true
  *         schema:
  *           type: string
  *           example: "John"
- *         description: Person who adding the remark.
+ *         description: Person who added the remark.
  *       - in: query
  *         name: created_by
  *         required: true
  *         schema:
  *           type: string
  *           example: "Cena"
- *         description: Person who done the action.
+ *         description: Person who performed the action.
+ *       - in: query
+ *         name: approved_deligated_by
+ *         schema:
+ *           type: string
+ *           example: "Manager123"
+ *         description: ID of the delegated approver.
+ *       - in: query
+ *         name: approve_status
+ *         schema:
+ *           type: string
+ *           example: "Pending Case Withdrawal"
+ *         description: Status of the approval request.
  *     requestBody:
  *       required: true
  *       content:
@@ -7836,6 +7849,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *               - remark
  *               - remark_edit_by
  *               - created_by
+ *               - approved_deligated_by
  *             properties:
  *               approver_reference:
  *                 type: integer
@@ -7853,6 +7867,25 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *                 type: string
  *                 example: "JohnDoe"
  *                 description: User who created the request.
+ *               approved_deligated_by:
+ *                 type: string
+ *                 example: "Manager123"
+ *                 description: The delegated approver.
+ *               approve_status:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "Pending Case Withdrawal"
+ *                     status_date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-03-30T08:02:38.990Z"
+ *                     status_edit_by:
+ *                       type: string
+ *                       example: "JohnDoe"
  *     responses:
  *       201:
  *         description: Case withdrawal request successfully added.
@@ -7896,7 +7929,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *                       example: "Case Withdrawal Approval"
  *                     approved_deligated_by:
  *                       type: string
- *                       example: "1"
+ *                       example: "Manager123"
  *                     remark:
  *                       type: array
  *                       items:
