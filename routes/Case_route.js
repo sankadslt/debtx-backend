@@ -7459,6 +7459,238 @@ router.post(
   Create_Task_For_Assigned_drc_case_list_download
 );
 
+/**
+ * @swagger
+ * /api/case/mediation-board:
+ *   post:
+ *     summary: xxxx Mediation Board Processing
+ *     description: |
+ *       Handles mediation board processes, including customer availability, settlement agreements,
+ *       interaction logging, and updating case statuses.
+ *
+ *       | Version | Date        | Description                              | Changed By       |
+ *       |---------|------------|------------------------------------------|------------------|
+ *       | 01      | 2025-Apr-02 | Mediation Board API Implementation      | Sanjaya Perera  |
+ *
+ *     tags: [Case Management]
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1001
+ *         description: Unique identifier of the case.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 2001
+ *         description: Unique identifier of the DRC (Debt Recovery Center).
+ *       - in: query
+ *         name: customer_available
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [yes, no]
+ *           example: "yes"
+ *         description: Whether the customer is available for mediation.
+ *       - in: query
+ *         name: request_id
+ *         schema:
+ *           type: integer
+ *           example: 5005
+ *         description: Unique identifier of the request (if applicable).
+ *       - in: query
+ *         name: request_type
+ *         schema:
+ *           type: string
+ *           example: "Mediation Board Settlement plan Request"
+ *         description: Type of mediation board request.
+ *       - in: query
+ *         name: intraction_id
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *         description: Unique identifier for user interaction.
+ *       - in: query
+ *         name: settle
+ *         schema:
+ *           type: string
+ *           enum: [yes, no]
+ *           example: "no"
+ *         description: Whether the customer agrees to settle.
+ *       - in: query
+ *         name: settlement_count
+ *         schema:
+ *           type: integer
+ *           example: 3
+ *         description: Number of settlement installments.
+ *       - in: query
+ *         name: initial_amount
+ *         schema:
+ *           type: number
+ *           example: 5000.00
+ *         description: Initial amount for the settlement.
+ *       - in: query
+ *         name: calendar_month
+ *         schema:
+ *           type: integer
+ *           example: 6
+ *         description: Number of months for the settlement.
+ *       - in: query
+ *         name: duration_start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-04-01"
+ *         description: Start date of the settlement duration.
+ *       - in: query
+ *         name: duration_end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-10-01"
+ *         description: End date of the settlement duration.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "manager_1"
+ *         description: User initiating the mediation board process.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 example: 1001
+ *               drc_id:
+ *                 type: integer
+ *                 example: 2001
+ *               ro_id:
+ *                 type: integer
+ *                 example: 3001
+ *               next_calling_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-04-15"
+ *               request_id:
+ *                 type: integer
+ *                 example: 5005
+ *               request_type:
+ *                 type: string
+ *                 example: "Mediation Board Settlement plan Request"
+ *               request_comment:
+ *                 type: string
+ *                 example: "Requesting a settlement plan for the customer."
+ *               handed_over_non_settlemet:
+ *                 type: string
+ *                 enum: [yes, no]
+ *                 example: "no"
+ *               intraction_id:
+ *                 type: integer
+ *                 example: 10
+ *               customer_available:
+ *                 type: string
+ *                 enum: [yes, no]
+ *                 example: "yes"
+ *               comment:
+ *                 type: string
+ *                 example: "Customer agreed to discuss settlement."
+ *               settle:
+ *                 type: string
+ *                 enum: [yes, no]
+ *                 example: "yes"
+ *               settlement_count:
+ *                 type: integer
+ *                 example: 3
+ *               initial_amount:
+ *                 type: number
+ *                 example: 5000.00
+ *               calendar_month:
+ *                 type: integer
+ *                 example: 6
+ *               duration_start_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-04-01"
+ *               duration_end_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-10-01"
+ *               remark:
+ *                 type: string
+ *                 example: "Final settlement agreement in progress."
+ *               fail_reason:
+ *                 type: string
+ *                 example: "Customer unable to pay due to financial hardship."
+ *               created_by:
+ *                 type: string
+ *                 example: "manager_1"
+ *     responses:
+ *       200:
+ *         description: Mediation board process successfully completed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Operation completed successfully"
+ *       400:
+ *         description: Validation error - Missing or incorrect parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields: case_id, drc_id, customer_available"
+ *       404:
+ *         description: Case not found for the given case_id.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found for this case id"
+ *       500:
+ *         description: Server error occurred during the mediation board process.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Server error"
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error."
+ */
+
 router.post("/Mediation_Board", Mediation_Board);
 
 /**
