@@ -130,41 +130,6 @@ export const ListAllSettlementCases = async (req, res) => {
 };
 
 
-// export const Case_Details_Settlement_Phase = async (req, res) => {
-//   try {
-//       const { case_id } = req.body;
-
-//       if (!case_id) {
-//           return res.status(400).json({ message: "case_id is required" });
-//       }
-
-//       // Fetch case details
-//       const caseDetails = await Case_details.findOne({ case_id });
-//       if (!caseDetails) {
-//           return res.status(404).json({ message: "Case not found" });
-//       }
-
-//       // Fetch settlement details
-//       const settlements = await CaseSettlement.find({ case_id });
-
-//       // Prepare response
-//       const response = {
-//           case_id: caseDetails.case_id,
-//           customer_ref: caseDetails.customer_ref,
-//           account_no: caseDetails.account_no,
-//           current_arrears_amount: caseDetails.current_arrears_amount,
-//           last_payment_date: caseDetails.last_payment_date,
-//           case_current_status: caseDetails.case_current_status,
-//           settlement_count: settlements.length
-//       };
-
-//       return res.status(200).json(response);
-//   } catch (error) {
-//       console.error("Error fetching case details:", error);
-//       return res.status(500).json({ message: "Internal server error" });
-//   }
-// };
-
 export const Case_Details_Settlement_Phase = async (req, res) => {
   try {
     const { case_id } = req.body;
