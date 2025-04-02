@@ -2890,7 +2890,7 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *         description: arreas band
  *       - in: query
  *         name: drc_list
- *         required: true
+ *         required: false
  *         schema:
  *           type: Array
  *           example: []
