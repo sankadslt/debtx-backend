@@ -61,13 +61,7 @@ export const F2_selection_cases_count = async (req, res) => {
             },
             {
                 $group: {
-                    _id: {
-                        $cond: { 
-                            if: { $isArray: "$lod_final_reminder.current_document_type" }, 
-                            then: { $arrayElemAt: ["$lod_final_reminder.current_document_type", 0] }, 
-                            else: "$lod_final_reminder.current_document_type"
-                        }
-                    },
+                    _id: "$lod_final_reminder.current_document_type", // No need for $arrayElemAt
                     count: { $sum: 1 }
                 }
             },
@@ -169,7 +163,7 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(201).json({
+    return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
       data: taskData,
@@ -224,7 +218,7 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases = async 
       await session.commitTransaction();
       session.endSession();
   
-      return res.status(201).json({
+      return res.status(200).json({
         status: "success",
         message: "Task created successfully.",
         data: taskData,
@@ -253,7 +247,13 @@ export const Change_Document_Type = async (req, res) => {
             });
         }
         const Lod_cases = await Case_details.findOne({case_id});
-
+        let next_document_type;
+        if (current_document_type === "LOD") {
+            next_document_type = "Final Reminder";
+        }
+        else if (current_document_type === "Final Reminder") {
+            next_document_type = "LOD";
+        } 
         if(!Lod_cases){
             return res.status(404).json({
                 status: "error",
@@ -261,18 +261,20 @@ export const Change_Document_Type = async (req, res) => {
             });
         }
 
-        const last_document_type_seq_of_case = Lod_cases.lod_final_reminder[Lod_cases.lod_final_reminder.length];
+        const last_document_seq = Lod_cases.lod_final_reminder.document_type.length > 0 
+            ? Lod_cases.lod_final_reminder.document_type[Lod_cases.lod_final_reminder.document_type.length - 1].document_seq 
+            : 0;
 
         const updatedCase = await Case_details.findOneAndUpdate(
             { case_id },
             {
               $set: {
-                'lod_final_reminder.current_document_type':current_document_type,
+                'lod_final_reminder.current_document_type':next_document_type,
               },
               $push: {
                 'lod_final_reminder.document_type': {
-                    document_seq: last_document_type_seq_of_case + 1,
-                    document_type: current_document_type,
+                    document_seq: last_document_seq + 1,
+                    document_type: next_document_type,
                     change_by: Created_By,
                     changed_dtm: new Date(),
                     changed_type_remark,
@@ -297,19 +299,30 @@ export const Change_Document_Type = async (req, res) => {
 
 export const Create_LOD_List = async (req, res) => {
     const session = await mongoose.startSession();
-    session.startTransaction();
     try {
+      session.startTransaction();
       const { Created_By, Case_count, current_document_type } = req.body;
   
       if (!Created_By || !current_document_type || !Case_count) {
         await session.abortTransaction();
-        session.endSession();
+        await session.endSession();
         return res.status(400).json({
           status: "error",
-          message: "All parameters are required",
+          message: "All parameters are required parameters.",
         });
       }
-  
+      const existingTask = await mongo.collection("System_tasks").findOne({
+        task_status: { $ne: "Complete" },
+        "parameters.current_document_type": current_document_type,
+      });
+      if (existingTask) {
+        await session.abortTransaction();
+        await session.endSession();
+        return res.status(400).json({
+          status: "error",
+          message: "Already has not complete tasks with this current_document_type ",
+        });
+      }
       // Flatten the parameters structure
       const parameters = {
         case_current_status : "LIT Prescribed",
@@ -329,7 +342,7 @@ export const Create_LOD_List = async (req, res) => {
       await createTaskFunction(taskData, session);
   
       await session.commitTransaction();
-      session.endSession();
+      await session.endSession();
   
       return res.status(201).json({
         status: "success",
@@ -337,14 +350,16 @@ export const Create_LOD_List = async (req, res) => {
         data: taskData,
       });
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        status: "error",
-        message: error.message || "Internal server error.",
-        errors: {
-          exception: error.message,
-        },
-      });
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        await session.endSession();
+        return res.status(500).json({
+            status: "error",
+            message: error.message || "Internal server error",
+            errors: {
+                exception: error.message,
+            },
+        });
     }
 };
