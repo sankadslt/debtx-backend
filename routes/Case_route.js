@@ -5701,29 +5701,32 @@ router.post(
  *         schema:
  *           type: integer
  *           example: 1
- *         description: Case_id of the approve case.
+ *         description: Unique batch ID for case distribution.
  *       - in: query
  *         name: drc_id
  *         required: true
  *         schema:
  *           type: integer
  *           example: 1
- *         description: DRC ID
+ *         description: ID of the DRC for case distribution.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *               - drc_id
  *             properties:
  *               case_distribution_batch_id:
- *                 type: string
- *                 example: "1"
- *                 description: The batch ID for case distribution (Required).
+ *                 type: integer
+ *                 description: The batch ID for case distribution.
+ *                 example: 1
  *               drc_id:
- *                 type: string
- *                 example: "1"
- *                 description: The DRC ID for which the data is fetched (Required).
+ *                 type: integer
+ *                 description: The DRC ID for which the data is fetched.
+ *                 example: 1
  *     responses:
  *       200:
  *         description: Successfully retrieved case distribution details with RTOMs.
@@ -5778,16 +5781,22 @@ router.post(
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "Missing required fields: case_distribution_batch_id, drc_id"
- *       404:
+ *       204:
  *         description: No records found for the given batch ID and DRC ID.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "No records found for the given batch ID and DRC ID"
@@ -5798,6 +5807,9 @@ router.post(
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "Server error"
