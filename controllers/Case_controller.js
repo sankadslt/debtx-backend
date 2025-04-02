@@ -4947,6 +4947,396 @@ export const listDRCAllCases = async (req, res) => {
   }
 };
 
+// Description: Get details of all Mediation Board Phase Cases assigned to a specific DRC with optional filters
+// Table: Case_details
+// Inputs:
+//    drc_id: Required
+//    ro_id: Optional
+//    rtom: Optional
+//    case_current_status: Optional
+//    action_type: Optional
+//    from_date: Optional
+//    to_date: Optional
+// Outputs:
+//    case_id: caseData.case_id,
+//    customer_name
+//    status
+//    created_dtm
+//    ro_name
+//    area
+//    mediation_board_count
+//    next_calling_date
+//    current_contact
+//    account_no
+//API ID: C-1P80
+export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (req, res) => {
+  const { drc_id, ro_id, rtom, case_current_status, action_type, from_date, to_date } = req.body;
+
+  try {
+    // Validate input parameters
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Case details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
+    }
+
+    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+        },
+      });
+    }
+
+    // Build query dynamically
+    let query = {
+      $and: [
+        { "drc.drc_id": drc_id },
+        {
+          case_current_status: {
+            $in: [
+              "Forward_to_Mediation_Board",
+              "MB_Negotiation",
+              "MB_Request_Customer_Info",
+              "MB_Handed_Customer_Info",
+              "MB_Settle_pending",
+              "MB_Settle_open_pending",
+              "MB_Settle_Active",
+              "MB_fail_with_pending_non_settlement",
+            ],
+          },
+        },
+      ],
+    };
+
+    // Add optional filters dynamically
+    if (rtom) query.$and.push({ area: rtom });
+    if (ro_id) {
+      query.$and.push({
+        $expr: {
+          $eq: [
+            ro_id,
+            { $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ], },
+          ],
+        },
+      });
+    };    
+    if (action_type) query.$and.push({ action_type });
+    if (case_current_status) query.$and.push({ case_current_status });
+    if (from_date && to_date) {
+      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+    }
+
+    // Fetch cases based on the query
+    const cases = await Case_details.find(query);
+
+    // Handle case where no matching cases are found
+    if (!cases || cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching cases found for the given criteria.",
+        errors: {
+          code: 404,
+          description: "No cases satisfy the provided criteria.",
+        },
+      });
+    }
+
+    // Format cases based on drc_id or ro_id
+    const formattedCases = await Promise.all(
+      cases.map(async (caseData) => {
+        const findDRC = Array.isArray(caseData.drc) ? caseData.drc.find((drc) => drc.drc_id === drc_id) : null;
+
+        const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
+
+        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
+
+        const mediationBoardCount = caseData.mediation_board?.length || 0;
+
+        return {
+          case_id: caseData.case_id,
+          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          status: caseData.case_current_status,
+          created_dtm: findDRC?.created_dtm || null,
+          ro_name: matchingRecoveryOfficer?.ro_name || null,
+          area: caseData.area,
+          mediation_board_count: mediationBoardCount,
+          next_calling_date: caseData.mediation_board?.[mediationBoardCount - 1]?.mediation_board_calling_dtm || null,
+          current_contact:caseData.current_contact || null,
+          account_no: caseData.account_no || null
+        };
+      })
+    );
+
+  // Return response
+  return res.status(200).json({
+    status: "success",
+    message: "Cases retrieved successfully.",
+    data: formattedCases.filter(Boolean), // Filter out null/undefined values
+  });
+
+  } catch (error) {
+    console.error("Error in function:", error); // Log the full error for debugging
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving cases.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+// Description: Get details of all Negotiation Phase Cases assigned to a specific DRC with optional filters
+// Table: Case_details
+// Inputs:
+//    drc_id: Required
+//    ro_id: Optional
+//    rtom: Optional
+//    action_type: Optional
+//    from_date: Optional
+//    to_date: Optional
+// Outputs:
+//    case_id
+//    account_no
+//    customer_name
+//    status
+//    created_dtm
+//    ro_name
+//    contact_no
+//    area
+//    action_type
+//API ID: C-1P72
+export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
+  const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
+
+  try {
+    // Validate input parameters
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Case details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
+    }
+
+    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filtering parameter is required.",
+        errors: {
+          code: 400,
+          description: "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+        },
+      });
+    }
+
+    // Define the query with the required filters
+    let query = {
+      $and: [
+        { "drc.drc_id": drc_id },
+        {
+          case_current_status: {
+            $in: [
+              "RO Negotiation",
+              "Negotiation Settle Pending",
+              "Negotiation Settle Open-Pending",
+              "Negotiation Settle Active",
+              "RO Negotiation Extension Pending",
+              "RO Negotiation Extended",
+              "RO Negotiation FMB Pending",
+            ],
+          },
+        },
+      ],
+    };
+
+    // Add optional filters dynamically
+    if (rtom) query.$and.push({ area: rtom });
+    if (ro_id) query.$and.push({ "drc.recovery_officers.ro_id": ro_id });
+    if (action_type) query.$and.push({ action_type });
+    if (from_date && to_date) {
+      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+    }
+
+    // Fetch cases based on the query
+    const cases = await Case_details.find(query);
+
+    // Handle case where no matching cases are found
+    if (!cases || cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching cases found for the given criteria.",
+        errors: {
+          code: 404,
+          description: "No cases satisfy the provided criteria.",
+        },
+      });
+    }
+
+    // Return the retrieved cases
+    const formattedCases = await Promise.all(
+      cases.map(async (caseData) => {
+        const findDRC = Array.isArray(caseData.drc) ? caseData.drc.find((drc) => drc.drc_id === drc_id) : null;
+
+        const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
+
+        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
+
+        // const matchingIncident = await Incident.findOne({ incident_id: caseData.incident_id });
+
+        return {
+          case_id: caseData.case_id,
+          account_no: caseData.account_no,
+          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          status: caseData.case_current_status,
+          created_dtm: findDRC?.created_dtm || null,
+          ro_name: matchingRecoveryOfficer?.ro_name || null,
+          contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.contact_no || null,
+          area: caseData.area,
+          action_type: caseData.action_type,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: formattedCases,
+    });
+  } catch (error) {
+    console.error("Error fetching cases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve cases.",
+      errors: error.message,
+    });
+  }
+};
+
+// Description: Count all Negotiation Phase Cases
+// Table: Case_details
+// Inputs:
+//    drc_id: Required
+//    ro_id: Required
+// Outputs:
+//    count
+//API ID: C-1P82
+export const Count_Negotiation_Phase_Cases = async (req, res) => {
+  const { drc_id, ro_id } = req.body;
+  try {
+    if (!drc_id || !ro_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Case details.",
+        errors: {
+          code: 400,
+          description: "DRC ID and RO ID is required.",
+        },
+      });
+    }
+
+    // Query the database to count cases with the specified statuses
+    const caseCount = await Case_details.countDocuments({
+      "drc.drc_id": drc_id,
+      "drc.recovery_officers.ro_id": ro_id,
+      case_current_status: { $in: [
+        "RO Negotiation",
+        "Negotiation Settle Pending",
+        "Negotiation Settle Open-Pending",
+        "Negotiation Settle Active",
+        "RO Negotiation Extension Pending",
+        "RO Negotiation Extended",
+        "RO Negotiation FMB Pending",
+      ]},
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case count retrieved successfully.",
+      data: { count: caseCount },
+    });
+
+
+  } catch (error) {
+    console.error("Error fetching cases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to count cases.",
+      errors: error.message,
+    });
+  }
+};
+
+// Description: Count all Mediation Board Phase Cases
+// Table: Case_details
+// Inputs:
+//    drc_id: Required
+//    ro_id: Required
+// Outputs:
+//    count
+//API ID: C-1P81
+export const Count_Mediation_Board_Phase_Cases = async (req, res) => {
+  const { drc_id, ro_id } = req.body;
+  try {
+    if (!drc_id || !ro_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Case details.",
+        errors: {
+          code: 400,
+          description: "DRC ID and RO ID is required.",
+        },
+      });
+    }
+
+    // Query the database to count cases with the specified statuses
+    const caseCount = await Case_details.countDocuments({
+      "drc.drc_id": drc_id,
+      "drc.recovery_officers.ro_id": ro_id,
+      case_current_status: { $in: [
+        "Forward to Mediation Board",
+        "MB Negotiation",
+        "MB Request Customer-Info",
+        "MB Handover Customer-Info",
+        "MB Settle Pending",
+        "MB Settle Open-Pending",
+        "MB Settle Active",
+        "MB Fail with Pending Non-Settlement",
+      ]},
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case count retrieved successfully.",
+      data: { count: caseCount },
+    });
+
+
+  } catch (error) {
+    console.error("Error fetching cases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to count cases.",
+      errors: error.message,
+    });
+  }
+};
+
 // get CaseDetails for MediationBoard 
 export const CaseDetailsforDRC = async (req, res) => {
   try {
