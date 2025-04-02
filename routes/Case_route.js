@@ -3806,7 +3806,7 @@ router.post(
  *
  *       | Version | Date        | Description                                          | Changed By       |
  *       |---------|------------|------------------------------------------------------|------------------|
- *       | 01      | 2025-Feb-10 | Initial creation of task for case distribution     | Sanjaya Perera   |
+ *       | 01      | 2025-april-02 | Initial creation of task for case distribution     | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -3816,7 +3816,14 @@ router.post(
  *         schema:
  *           type: integer
  *           example: 16
- *         description: ID of the batch.
+ *         description: Unique identifier of the batch.
+ *       - in: query
+ *         name: Created_By
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Admin"
+ *         description: The user who created the task.
  *     requestBody:
  *       required: true
  *       content:
@@ -3825,6 +3832,7 @@ router.post(
  *             type: object
  *             required:
  *               - case_distribution_batch_id
+ *               - Created_By
  *
  *
  *             properties:
@@ -3832,6 +3840,10 @@ router.post(
  *                 type: integer
  *                 description: Unique batch ID for case distribution.
  *                 example: 1001
+ *               Created_By:
+ *                 type: string
+ *                 description: The user who created the task.
+ *                 example: "Admin"
  *     responses:
  *       201:
  *         description: Task successfully created for case distribution transaction.
@@ -3856,11 +3868,15 @@ router.post(
  *                     task_type:
  *                       type: string
  *                       description: The type of task created.
- *                       example: "Create Case distribution DRC Transaction_1 _Batch List for Download"
+ *                       example: "Create Case distribution DRC Transaction_1_Batch List for Download"
  *                     case_distribution_batch_id:
  *                       type: integer
  *                       description: The batch ID associated with the task.
  *                       example: 1001
+ *                     Created_By:
+ *                       type: string
+ *                       description: The user who created the task.
+ *                       example: "Admin"
  *       400:
  *         description: Validation error - Missing required parameters.
  *         content:
