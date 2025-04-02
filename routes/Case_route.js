@@ -2868,8 +2868,8 @@ router.post(
   count_cases_rulebase_and_arrears_band
 );
 
-/** 
-@swagger
+/**
+ * @swagger
  * /api/case/Case_Distribution_Among_Agents:
  *   post:
  *     summary: Distribute Cases Among Agents
@@ -2878,8 +2878,7 @@ router.post(
  *
  *       | Version | Date        | Description                                | Changed By       |
  *       |---------|------------|--------------------------------------------|------------------|
- *       | 01      | 2025-Mar-26 | Initial creation                          | Ravindu Pathum   |
- *       | 02      | 2025-Apr-02 | Added validation and additional parameters | Sanjaya Perera   |
+ *       | 01      | 2025-Mar-26 | Initial creation                          | Ravindu Pathum     |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -2889,28 +2888,28 @@ router.post(
  *         schema:
  *           type: string
  *           example: "BB"
- *         description: DRC commission rule.
+ *         description: drc coomition rule.
  *       - in: query
  *         name: created_by
  *         required: true
  *         schema:
  *           type: string
  *           example: "Admin"
- *         description: The user who created the distribution.
+ *         description: who is created.
  *       - in: query
  *         name: current_arrears_band
  *         required: true
  *         schema:
  *           type: string
  *           example: "AB-50_100"
- *         description: The arrears band classification.
+ *         description: arreas band
  *       - in: query
  *         name: drc_list
  *         required: false
  *         schema:
- *           type: array
+ *           type: Array
  *           example: []
- *         description: A list of DRC objects involved in the distribution.
+ *         description: distribution array.
  *     requestBody:
  *       required: true
  *       content:
@@ -2921,15 +2920,15 @@ router.post(
  *               drc_commision_rule:
  *                 type: string
  *                 example: "BB"
- *                 description: DRC commission rule code.
+ *                 description: DRC commission rule code
  *               created_by:
  *                 type: string
  *                 example: "Admin"
- *                 description: The user who created the distribution.
+ *                 description: Creator of the record
  *               current_arrears_band:
  *                 type: string
  *                 example: "AB-50_100"
- *                 description: The arrears band classification.
+ *                 description: Arrears band classification
  *               drc_list:
  *                 type: array
  *                 items:
@@ -2938,16 +2937,15 @@ router.post(
  *                     DRC:
  *                       type: string
  *                       example: "D1"
- *                       description: DRC code.
+ *                       description: DRC code
  *                     DRC_Id:
  *                       type: integer
  *                       example: 1
- *                       description: DRC identifier.
+ *                       description: DRC identifier
  *                     Count:
  *                       type: integer
  *                       example: 1
- *                       description: Count of DRC entries.
- *                 description: List of DRC distributions.
+ *                       description: Count of DRC entries
  *             required:
  *               - drc_commision_rule
  *               - created_by
@@ -2993,17 +2991,7 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "DRC commission rule, current arrears band, created by, and DRC list fields are required."
- *       409:
- *         description: Conflict - Task with similar parameters already exists.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Already has tasks with this commission rule and arrears band."
+ *                   example: "DRC List should not be empty."
  *       500:
  *         description: Server error occurred while processing the request.
  *         content:
@@ -3017,7 +3005,7 @@ router.post(
  *                 error:
  *                   type: string
  *                   example: "Internal server error."
-**/
+ */
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
 /**
