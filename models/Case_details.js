@@ -176,11 +176,145 @@ const moneytransactionsschema = new Schema({
   payment : { type: Number, required: true },
   case_phase : {type: String, required:true},
   settle_balanced : { type: Number, required: true },
-})
+});
+
+
+// Define the schema and sub-schemas for litigation schema
+const rtomCustomerFileSchema = new Schema({
+  file_status: { type: String, required: true, enum: ['Requested', 'Collected', 'Without Agreement'] },
+  file_status_on: { type: Date, required: true },
+  file_status_by: { type: String, required: true },
+  pages_count: { type: Number, required: true },
+});
+
+const drcFileSchema = new Schema({
+  file_status: { type: String, required: true, enum: ['Requested', 'Collected'] },
+  file_status_on: { type: Date, required: true },
+  file_status_by: { type: String, required: true },
+  pages_count: { type: Number, required: true },
+});
+
+const supportDocumentsSchema = new Schema({
+  rtom_customer_file: [rtomCustomerFileSchema],
+  drc_file: [drcFileSchema],
+  document_submitted_on: { type: Date, required: true },
+});
+
+const hsFilesInformationSchema = new Schema({
+  created_on: { type: Date, required: true },
+  created_by: { type: String, required: true },
+  tele_no: { type: String, required: true },
+  customer_name: { type: String, required: true },
+  postal_address: { type: String, required: true },
+  proprietorship_name: { type: String, required: true },
+  proprietorship_address: { type: String, required: true },
+  rtom_area: { type: String, required: true },
+  agreement_date: { type: Date, required: true },
+  mediation_board_area: { type: String, required: true },
+  date_of_mediation_board_certificate: { type: Date, required: true },
+  date_service_provided: { type: Date, required: true },
+  amount_outstanding: { type: Number, required: true },
+  month_of_last_usage: { type: String, required: true },
+  month_of_last_payment: { type: Number, required: true },
+  the_customer_is_a_corperate_customer: { type: String, required: true, enum: ['yes', 'no'] },
+  it_concern: { type: String, required: true, enum: ['yes', 'no'] },
+});
+
+const legalSubmissionSchema = new Schema({
+  submission: { type: String, required: true, enum: ['Legal Accepted', 'Legal Rejected'] },
+  submission_on: { type: Date, required: true },
+  submission_by: { type: String, required: true },
+  submission_remark: { type: String, required: true },
+});
+
+const legalDetailsSchema = new Schema({
+  legal_sequence: { type: Number, required: true },
+  action_type: { type: String, required: true, enum: ['Court details', 'Reject Details', 'Court Information', 'Legal Fail'] },
+  court_no: { type: Number, required: true },
+  court_registered_date: { type: Date, required: true },
+  case_handling_officer: { type: String, required: true },
+  remark: { type: String, required: true },
+  created_on: { type: Date, required: true },
+  created_by: { type: String, required: true },
+});
+
+const litigationSchema = new Schema({
+  forward_on: { type: Date, required: true },
+  support_documents: [supportDocumentsSchema],
+  hs_files_information: [hsFilesInformationSchema],
+  legal_submission: [legalSubmissionSchema],
+  legal_details: [legalDetailsSchema],
+});
+const FLT_LOD_letter_details_schema = new Schema({
+  created_on: {type: Date, required:true},
+  created_by:{type: String, required:true},
+  tele_no: {type:String, required:true},
+  customer_name: {type:String, required:true},
+  postal_address: {type:Array, required:true},
+},{_id: false });
+
+const customer_response_of_LOD_schema = new Schema({
+  response_seq: {type: Number, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true},
+  response: {type:String, required:true},
+},{_id: false });
+
+const FTL_LOD_Schema = new Schema({
+  pdf_by: {type: String, required: true, unique: true},
+  pdf_on: {type: Date, required:true},
+  expire_date : {type: Date, required:true},
+  signed_by : { type: String, required: true },
+  ftl_lod_letter_details : [FLT_LOD_letter_details_schema],
+  customer_response : [customer_response_of_LOD_schema],
+});
+
+const document_type_schema = new Schema({
+  document_seq: {type: Number, required:true},
+  document_type:{type: String, required:true},
+  change_by:{type: String, required:true},
+  changed_dtm: {type:Date, required:true},
+  changed_type_remark: {type:String, required:true},
+},{_id: false });
+
+const lod_submission_schema = new Schema({
+  lod_distribution_id: {type: Number, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true}, //file download by
+},{_id: false });
+
+const lod_response_schema = new Schema({
+  lod_response_seq: {type: Number, required:true},
+  response_type: {type:String, required:true},
+  lod_remark: {type:String, required:true},
+  created_by:{type: String, required:true},
+  created_on: {type:Date, required:true},
+},{_id: false });
+
+const lod_final_reminder_Schema = new Schema({
+  source_type: {
+    type: String,
+    enum: ["Direct LOD", "DRC Fail", "MB Fail"],
+    required: true,
+  },
+  current_document_type: {
+    type: String,
+    enum: ["LOD", "Final Reminder"],
+    required: true,
+  },
+  lod_expire_on : {type: Date, required:true},
+  document_type : [document_type_schema],
+  lod_submission : [lod_submission_schema],
+  lod_response : [lod_response_schema],
+  lod_notification : [{
+    notification_seq : {type:Number, required: true},
+    notification_on :{ type: Date, required: true }
+  }],
+});
 
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
-  doc_version : {type:Number, required: true, default: 2},
+  doc_version : {type:Number, required: true, default: 3},
   case_id: { type: Number, required: true,unique: true },
   incident_id: { type: Number, required: true },
   case_distribution_batch_id: {type: Number, default: null},
@@ -218,6 +352,9 @@ const caseDetailsSchema = new Schema({
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
   money_transactions	: [moneytransactionsschema],
+  litigation: [litigationSchema],
+  ftl_lod: [FTL_LOD_Schema],
+  lod_final_reminder: [lod_final_reminder_Schema],
 },
 {
   collection: 'Case_details', 
