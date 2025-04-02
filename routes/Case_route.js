@@ -57,6 +57,7 @@ import {
   Create_Task_For_case_distribution_drc_summery,
   List_Case_Distribution_Details_With_Rtoms,
   List_CasesOwened_By_DRC,
+  List_All_DRC_Negotiation_Cases_ext_1,
   listDRCAllCases,
   ListActiveMediationResponse,
   ListActiveRORequests,
@@ -64,6 +65,7 @@ import {
   // addCpeToNegotiation,
   Create_Task_For_Assigned_drc_case_list_download,
   // listAllDRCMediationBoardCases,
+  List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01,
   // drcCaseDetails,
   Mediation_Board,
   updateDrcCaseDetails,
@@ -80,6 +82,8 @@ import {
   List_Details_Of_Mediation_Board_Acceptance,
   Submit_Mediation_Board_Acceptance,
   Withdraw_Mediation_Board_Acceptance,
+  Count_Mediation_Board_Phase_Cases,
+  Count_Negotiation_Phase_Cases,
 
 
 //   getAllPaymentCases,
@@ -5885,6 +5889,607 @@ router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution
  */
 
 router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
+ * 
+ * /api/case/List_All_DRC_Mediation_Board_Cases:
+ *   post:
+ *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
+ *     description: |
+ *       This endpoint retrieves mediation cases associated with a specified DRC ID and optional filters.
+ *       Users can filter cases based on RTOM, Recovery Officer ID, action type, case current status, and date range.
+ *       
+ *       | Version | Date       | Description                                     | Changed By         |
+ *       |---------|------------|-------------------------------------------------|--------------------|
+ *       | 01      | 2025-Apr-01 | List mediation cases owned by DRC and RO         | Janani Kumarasiri  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: null
+ *               rtom:
+ *                 type: string
+ *                 description: Area name associated with the case.
+ *                 example: "Matara"
+ *               action_type:
+ *                 type: string
+ *                 description: Action type of the case.
+ *                 example: "Arrears Collect"
+ *               case_current_status:
+ *                 type: string
+ *                 description: Current status of the case.
+ *                 example: "Forward_to_Mediation_Board"
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering cases.
+ *                 example: "2025-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering cases.
+ *                 example: "2025-01-31"
+  *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier of the DRC.
+ *       - in: query
+ *         name: ro_id
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           nullable: true
+ *           example: null
+ *         description: Recovery Officer ID responsible for the case.
+ *       - in: query
+ *         name: rtom
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Matara"
+ *         description: Area name associated with the case.
+ *       - in: query
+ *         name: action_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Arrears Collect"
+ *         description: Action type of the case.
+ *       - in: query
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Forward_to_Mediation_Board"
+ *         description: Current status of the case.
+ *       - in: query
+ *         name: from_date
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-01"
+ *         description: Start date for filtering cases.
+ *       - in: query  
+ *         name: to_date
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-31"
+ *         description: End date for filtering cases.
+ *     responses:
+ *       200:
+ *         description: Mediation cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 
+ *       400:
+ *         description: Validation error - Missing required fields or no filter parameters provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: At least one filtering parameter is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.
+ *       404:
+ *         description: No matching mediation cases found for the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error occurred while retrieving mediation cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving mediation cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while retrieving mediation cases.
+ */
+router.post("/List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01", List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01)
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints for retrieving all cases handled by a specific DRC.
+ * 
+ * /api/case/List_All_DRC_Negotiation_Cases_ext_1:
+ *   post:
+ *     summary: Retrieve all cases handled by a DRC with filtering options.
+ *     description: |
+ *       This endpoint retrieves all cases associated with a specified DRC ID. 
+ *       Users can filter cases based on RTOM, Recovery Officer ID, action type, and date range.
+ *       
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Apr-01| List all cases handled by a DRC      | Janani Kumarasiri  |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique identifier of the DRC.
+ *                 example: 7
+ *               ro_id:
+ *                 type: integer
+ *                 description: Recovery Officer ID responsible for the case.
+ *                 example: 15
+ *               rtom:
+ *                 type: string
+ *                 description: Area name associated with the case.
+ *                 example: "Matara"
+ *               action_type:
+ *                 type: string
+ *                 description: Type of action performed on the case.
+ *                 example: "Arrears Collect"
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering cases.
+ *                 example: "2025-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering cases.
+ *                 example: "2025-01-31"
+ *     parameters:
+ *      - in: query
+ *        name: drc_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 7
+ *        description: Unique identifier of the DRC.
+ *      - in: query
+ *        name: ro_id
+ *        required: false
+ *        schema:
+ *          type: integer
+ *          example: 15
+ *        description: Recovery Officer ID responsible for the case.
+ *      - in: query
+ *        name: rtom
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Matara"
+ *        description: Area name associated with the case.
+ *      - in: query
+ *        name: action_type
+ *        required: false
+ *        schema:
+ *          type: string
+ *          example: "Arrears Collect"
+ *        description: Type of action performed on the case.
+ *      - in: query
+ *        name: from_date
+ *        required: false
+ *        schema:
+ *          type: string
+ *          format: date
+ *          example: "2025-01-01"
+ *        description: Start date for filtering cases.
+ *      - in: query
+ *        name: to_date
+ *        required: false
+ *        schema:
+ *          type: string
+ *          format: date
+ *          example: "2025-01-31"
+ *        description: End date for filtering cases.
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: integer
+ *                       description: Case ID.
+ *                       example: 101
+ *                     account_no:
+ *                       type: string
+ *                       description: Customer's SLT account number.
+ *                       example: 123456789
+ *                     customer_name:
+ *                       type: string
+ *                       description: Customer's name.
+ *                       example: John Doe
+ *                     status:
+ *                       type: string
+ *                       description: Current case status.
+ *                       example: RO Negotiation Extended
+ *                     created_dtm:
+ *                       type: date
+ *                       description: Case created date and time.
+ *                       example: 2024-12-01 10:00:00
+ *                     ro_name:
+ *                       type: string
+ *                       description: Name of last ro.
+ *                       example: Nimal
+ *                     contact_no:
+ *                       type: number
+ *                       description: Customer's current contact number.
+ *                       example: 1234567890
+ *                     area:
+ *                       type: string
+ *                       description: Customer's area.
+ *                       example: "Matara"
+ *                     action_type:
+ *                       type: string
+ *                       description: Action type taken for the case.
+ *                       example: "Negotiate"
+ *       400:
+ *         description: Validation error - Missing required fields or no filter parameters provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: At least one filtering parameter is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: Provide at least one of rtom, ro_id, action_type, or both from_date and to_date together.
+ *       404:
+ *         description: No matching cases found for the given criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Internal server error occurred while retrieving cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error while retrieving cases.
+ */
+router.post("/List_All_DRC_Negotiation_Cases_ext_1", List_All_DRC_Negotiation_Cases_ext_1);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Mediation Board Cases
+ *     description: Endpoints related to cases in the Mediation Board phase.
+ *
+ * /api/case/Count_Mediation_Board_Phase_Cases:
+ *   post:
+ *     summary: C-1P81 Count cases in Mediation Board phase.
+ *     description: |
+ *       This endpoint counts all cases that are in specific statuses related to the Mediation Board phase
+ *       based on the provided `drc_id` and `ro_id`.
+ *
+ *       | Version | Date       | Description                                 | Changed By         |
+ *       |---------|------------|---------------------------------------------|--------------------|
+ *       | 01      | 2025-Apr-01| Count mediation board phase cases by status | Janani Kumarasiri  |
+ *     tags:
+ *       - Mediation Board Cases
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: Number
+ *                 description: The DRC (Debt Recovery Center) ID.
+ *                 example: "123"
+ *               ro_id:
+ *                 type: Number
+ *                 description: The Recovery Officer ID.
+ *                 example: "456"
+ *     responses:
+ *       200:
+ *         description: Case count retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case count retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: integer
+ *                       example: 25
+ *       400:
+ *         description: |
+ *           Missing required fields: drc_id and ro_id.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve Case details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "DRC ID and RO ID is required."
+ *       500:
+ *         description: |
+ *           Internal server error occurred while counting cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to count cases."
+ *                 errors:
+ *                   type: string
+ *                   example: "Internal server error message."
+ */
+router.post("/Count_Mediation_Board_Phase_Cases", Count_Mediation_Board_Phase_Cases);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Management
+ *     description: Endpoints related to case management and negotiation phase case counting.
+ *
+ * /api/case/Count_Negotiation_Phase_Cases:
+ *   post:
+ *     summary: C-1P82 Count negotiation phase cases.
+ *     description: |
+ *       This endpoint counts the number of cases in various negotiation phases for a given DRC ID and RO ID.
+ *
+ *       | Version | Date       | Description                         | Changed By         |
+ *       |---------|------------|-------------------------------------|--------------------|
+ *       | 01      | 2025-Apr-01| Count cases in negotiation phase   | Janani Kumarasiri   |
+ *     tags:
+ *       - Case Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: Number
+ *                 description: The DRC ID to filter cases by.
+ *                 example: "12345"
+ *               ro_id:
+ *                 type: Number
+ *                 description: The Recovery Officer ID to filter cases by.
+ *                 example: "6789"
+ *     responses:
+ *       200:
+ *         description: Case count retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Case count retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: integer
+ *                       description: The number of cases in the specified negotiation phases.
+ *                       example: 42
+ *       400:
+ *         description: Missing required fields (drc_id or ro_id).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve Case details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "DRC ID and RO ID is required."
+ *       500:
+ *         description: Internal server error while counting cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to count cases."
+ *                 errors:
+ *                   type: string
+ *                   example: "Internal server error message."
+ */
+router.post("/Count_Negotiation_Phase_Cases", Count_Negotiation_Phase_Cases);
+
 
 /**
  * @swagger
