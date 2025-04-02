@@ -5565,7 +5565,8 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *
  *       | Version | Date        | Description                                      | Changed By |
  *       |---------|------------|--------------------------------------------------|-----------|
- *       | 01      | 2025-Mar-28 | Initial implementation                           | Dinusha Anupama     |
+ *       | 01      | 2025-Mar-28 | Initial implementation                           | Dinusha Anupama  |
+ *       | 02      | 2025-april-02 | Updated the description                          | sanjaya perera |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -5574,33 +5575,38 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
- *         description: Case_id of the approve case.
+ *           example: 10
+ *         description: Unique batch ID for case distribution.
  *       - in: query
  *         name: drc_id
+ *         required: true
  *         schema:
  *           type: integer
  *           example: 1
- *         description: DRC ID
+ *         description: ID of the DRC for case distribution.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - drc_id
+ *               - case_distribution_batch_id
+ *               - Created_By
  *             properties:
  *               drc_id:
- *                 type: string
- *                 example: "1"
- *                 description: The DRC ID for which the task is created (Required).
+ *                 type: integer
+ *                 description: The DRC ID for which the task is created.
+ *                 example: 1
  *               case_distribution_batch_id:
  *                 type: integer
- *                 example: 10
  *                 description: The batch ID for case distribution.
+ *                 example: 10
  *               Created_By:
  *                 type: string
+ *                 description: The user who created the task.
  *                 example: "User123"
- *                 description: The user who created the task (Required).
  *     responses:
  *       201:
  *         description: Task for batch approval created successfully.
@@ -5620,10 +5626,10 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *                       example: 32
  *                     task_type:
  *                       type: string
- *                       example: "Create Case Distribution DRC Summary List for Downloard"
+ *                       example: "Create Case Distribution DRC Summary List for Download"
  *                     drc_id:
- *                       type: string
- *                       example: "1"
+ *                       type: integer
+ *                       example: 1
  *                     drc_name:
  *                       type: string
  *                       example: "D1"
@@ -5647,16 +5653,22 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "Missing required fields: drc_id, Created_By"
- *       404:
+ *       204:
  *         description: DRC not found for the given drc_id.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "DRC not found for the given drc_id"
@@ -5667,6 +5679,9 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
  *                 message:
  *                   type: string
  *                   example: "Error creating batch approval task"
