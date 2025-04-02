@@ -4084,21 +4084,21 @@ router.post(
  *         schema:
  *           type: integer
  *           example: 16
- *         description: ID of the batch.
+ *         description: Unique identifier of the batch.
  *       - in: query
  *         name: batch_seq
  *         required: true
  *         schema:
  *           type: integer
  *           example: 1
- *         description: batch sequence id.
+ *         description: Batch sequence identifier.
  *       - in: query
  *         name: Created_By
  *         required: true
  *         schema:
  *           type: string
  *           example: "Admin"
- *         description: who is created.
+ *         description: User who created the task.
  *     requestBody:
  *       required: true
  *       content:
@@ -4146,7 +4146,7 @@ router.post(
  *                     task_type:
  *                       type: string
  *                       description: The type of task created.
- *                       example: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download"
+ *                       example: "Create Case distribution DRC Transaction_1_Batch List distribution array for Download"
  *                     case_distribution_batch_id:
  *                       type: integer
  *                       description: The batch ID associated with the task.
@@ -4192,6 +4192,7 @@ router.post(
  *                       type: string
  *                       example: Error message details.
  */
+
 router.post(
   "/Create_Task_For_case_distribution_transaction_array",
   Create_Task_For_case_distribution_transaction_array
