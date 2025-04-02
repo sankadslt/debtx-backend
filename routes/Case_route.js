@@ -880,7 +880,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *               ro_id:
  *                 type: integer
  *                 description: Recovery Officer ID who will be assigned.
- *                 example: 15
+ *                 example: 17
  *               drc_id:
  *                 type: integer
  *                 description: The DRC ID to which the cases belong.
@@ -895,7 +895,7 @@ router.post("/Case_Current_Status", Case_Current_Status);
  *         required: true
  *         schema:
  *           type: integer
- *           example: 15
+ *           example: 17
  *         description: Recovery Officer ID who will be assigned.
  *       - in: query
  *         name: drc_id
