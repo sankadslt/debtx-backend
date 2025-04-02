@@ -186,3 +186,165 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     });
   }
 };
+
+export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+  
+    try {
+      const { Created_By, current_document_type } = req.body;
+  
+      if (!Created_By || !current_document_type) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          status: "error",
+          message: "created by and current document type are required parameters.",
+        });
+      }
+  
+      // Flatten the parameters structure
+      const parameters = {
+        case_current_status : "LIT Prescribed",
+        current_document_type,
+        Created_By,
+        task_status: "open"
+      };
+  
+      // Pass parameters directly (without nesting it inside another object)
+      const taskData = {
+        Template_Task_Id: 40,
+        task_type: "Create Task For Downloard Each Digital Signature LOD Cases",
+        ...parameters, 
+      };
+  
+      // Call createTaskFunction
+      await createTaskFunction(taskData, session);
+  
+      await session.commitTransaction();
+      session.endSession();
+  
+      return res.status(201).json({
+        status: "success",
+        message: "Task created successfully.",
+        data: taskData,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        status: "error",
+        message: error.message || "Internal server error.",
+        errors: {
+          exception: error.message,
+        },
+      });
+    }
+};
+
+export const Change_Document_Type = async (req, res) => {
+    try {
+        const { case_id, current_document_type, Created_By, changed_type_remark } = req.body;
+
+        if (!case_id || !current_document_type || !Created_By || !changed_type_remark) {
+            return res.status(400).json({
+                status: "error",
+                message: "All parammeters are required."
+            });
+        }
+        const Lod_cases = await Case_details.findOne({case_id});
+
+        if(!Lod_cases){
+            return res.status(404).json({
+                status: "error",
+                message: "Case is not found with that case id"
+            });
+        }
+
+        const last_document_type_seq_of_case = Lod_cases.lod_final_reminder[Lod_cases.lod_final_reminder.length];
+
+        const updatedCase = await Case_details.findOneAndUpdate(
+            { case_id },
+            {
+              $set: {
+                'lod_final_reminder.current_document_type':current_document_type,
+              },
+              $push: {
+                'lod_final_reminder.document_type': {
+                    document_seq: last_document_type_seq_of_case + 1,
+                    document_type: current_document_type,
+                    change_by: Created_By,
+                    changed_dtm: new Date(),
+                    changed_type_remark,
+                },
+              },
+            },
+            { new: true, runValidators: true }
+          );
+        res.status(200).json({
+            status: "success",
+            message: "Cases updated successfully.",
+            data: updatedCase,
+        });
+
+    }catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message,
+        });
+    }
+};
+
+export const Create_LOD_List = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const { Created_By, Case_count, current_document_type } = req.body;
+  
+      if (!Created_By || !current_document_type || !Case_count) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          status: "error",
+          message: "All parameters are required",
+        });
+      }
+  
+      // Flatten the parameters structure
+      const parameters = {
+        case_current_status : "LIT Prescribed",
+        current_document_type,
+        Created_By,
+        task_status: "open"
+      };
+  
+      // Pass parameters directly (without nesting it inside another object)
+      const taskData = {
+        Template_Task_Id: 41,
+        task_type: "Create_LOD_List",
+        ...parameters, 
+      };
+  
+      // Call createTaskFunction
+      await createTaskFunction(taskData, session);
+  
+      await session.commitTransaction();
+      session.endSession();
+  
+      return res.status(201).json({
+        status: "success",
+        message: "Task created successfully.",
+        data: taskData,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        status: "error",
+        message: error.message || "Internal server error.",
+        errors: {
+          exception: error.message,
+        },
+      });
+    }
+};
