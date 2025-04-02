@@ -85,8 +85,7 @@ import {
   Count_Mediation_Board_Phase_Cases,
   Count_Negotiation_Phase_Cases,
 
-
-//   getAllPaymentCases,
+  //   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
@@ -1328,14 +1327,14 @@ router.post("/List_Behaviors_Of_Case_During_DRC", listBehaviorsOfCaseDuringDRC);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for managing recovery officer details related to cases.
- * 
+ *
  * /api/case/Update_case_last_Ro_Details:
  *   patch:
  *     summary: Update the last Recovery Officer's details for a given case.
  *     description: |
  *       This endpoint updates the last Recovery Officer's `case_removal_remark` for a specific case and DRC ID.
  *       It identifies the most recent Recovery Officer entry and updates the associated remark.
- *       
+ *
  *       | Version | Date       | Description                       | Changed By         |
  *       |---------|------------|-----------------------------------|--------------------|
  *       | 01      | 2025-Feb-28| Update Recovery Officer details   | Sasindu Srinayaka  |
@@ -1826,7 +1825,10 @@ router.patch("/Update_case_last_Ro_Details", updateLastRoDetails);
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByServiceTypeRulebase);
+router.post(
+  "/Open_No_Agent_Cases_ALL_By_Rulebase",
+  openNoAgentCasesAllByServiceTypeRulebase
+);
 
 /**
  * @swagger
@@ -1953,7 +1955,10 @@ router.post("/Open_No_Agent_Cases_ALL_By_Rulebase", openNoAgentCasesAllByService
  *                       type: string
  *                       example: "An unexpected error occurred. Please try again later."
  */
-router.post( "/Open_No_Agent_Count_Arrears_Band_By_Rulebase", openNoAgentCountArrearsBandByServiceType );
+router.post(
+  "/Open_No_Agent_Count_Arrears_Band_By_Rulebase",
+  openNoAgentCountArrearsBandByServiceType
+);
 
 /**
  * @swagger
@@ -2669,7 +2674,10 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *                   example: "Error details here."
  */
 
-router.get("/List_count_by_drc_commision_rule", List_count_by_drc_commision_rule);
+router.get(
+  "/List_count_by_drc_commision_rule",
+  List_count_by_drc_commision_rule
+);
 
 /**
  * @swagger
@@ -2855,10 +2863,13 @@ router.get("/List_All_Arrears_Bands", ListAllArrearsBands);
  *                       type: string
  *                       example: Detailed error message.
  */
-router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_arrears_band);
+router.post(
+  "/count_cases_rulebase_and_arrears_band",
+  count_cases_rulebase_and_arrears_band
+);
 
-/**
- * @swagger
+/** 
+@swagger
  * /api/case/Case_Distribution_Among_Agents:
  *   post:
  *     summary: Distribute Cases Among Agents
@@ -2867,7 +2878,8 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *
  *       | Version | Date        | Description                                | Changed By       |
  *       |---------|------------|--------------------------------------------|------------------|
- *       | 01      | 2025-Mar-26 | Initial creation                          | Ravindu Pathum     |
+ *       | 01      | 2025-Mar-26 | Initial creation                          | Ravindu Pathum   |
+ *       | 02      | 2025-Apr-02 | Added validation and additional parameters | Sanjaya Perera   |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -2877,28 +2889,28 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *         schema:
  *           type: string
  *           example: "BB"
- *         description: drc coomition rule.
+ *         description: DRC commission rule.
  *       - in: query
  *         name: created_by
  *         required: true
  *         schema:
  *           type: string
  *           example: "Admin"
- *         description: who is created.
+ *         description: The user who created the distribution.
  *       - in: query
  *         name: current_arrears_band
  *         required: true
  *         schema:
  *           type: string
  *           example: "AB-50_100"
- *         description: arreas band
+ *         description: The arrears band classification.
  *       - in: query
  *         name: drc_list
  *         required: false
  *         schema:
- *           type: Array
+ *           type: array
  *           example: []
- *         description: distribution array.
+ *         description: A list of DRC objects involved in the distribution.
  *     requestBody:
  *       required: true
  *       content:
@@ -2909,15 +2921,15 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *               drc_commision_rule:
  *                 type: string
  *                 example: "BB"
- *                 description: DRC commission rule code
+ *                 description: DRC commission rule code.
  *               created_by:
  *                 type: string
  *                 example: "Admin"
- *                 description: Creator of the record
+ *                 description: The user who created the distribution.
  *               current_arrears_band:
  *                 type: string
  *                 example: "AB-50_100"
- *                 description: Arrears band classification
+ *                 description: The arrears band classification.
  *               drc_list:
  *                 type: array
  *                 items:
@@ -2926,15 +2938,16 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *                     DRC:
  *                       type: string
  *                       example: "D1"
- *                       description: DRC code
+ *                       description: DRC code.
  *                     DRC_Id:
  *                       type: integer
  *                       example: 1
- *                       description: DRC identifier
+ *                       description: DRC identifier.
  *                     Count:
  *                       type: integer
  *                       example: 1
- *                       description: Count of DRC entries
+ *                       description: Count of DRC entries.
+ *                 description: List of DRC distributions.
  *             required:
  *               - drc_commision_rule
  *               - created_by
@@ -2980,7 +2993,17 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "DRC List should not be empty."
+ *                   example: "DRC commission rule, current arrears band, created by, and DRC list fields are required."
+ *       409:
+ *         description: Conflict - Task with similar parameters already exists.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Already has tasks with this commission rule and arrears band."
  *       500:
  *         description: Server error occurred while processing the request.
  *         content:
@@ -2994,7 +3017,7 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *                 error:
  *                   type: string
  *                   example: "Internal server error."
- */
+**/
 router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
 
 /**
@@ -3110,7 +3133,10 @@ router.post("/Case_Distribution_Among_Agents", Case_Distribution_Among_Agents);
  *                   type: string
  *                   example: "Database connection failed"
  */
-router.post("/List_Case_Distribution_DRC_Summary", List_Case_Distribution_DRC_Summary);
+router.post(
+  "/List_Case_Distribution_DRC_Summary",
+  List_Case_Distribution_DRC_Summary
+);
 
 /**
  * @swagger
@@ -3118,7 +3144,7 @@ router.post("/List_Case_Distribution_DRC_Summary", List_Case_Distribution_DRC_Su
  *   post:
  *     summary: C-2P01 Batch Forward for Proceed
  *     description: |
- *       Forwards batches for proceeding after validating their completion status. 
+ *       Forwards batches for proceeding after validating their completion status.
  *       Also creates a task, records approval, and logs user interaction.
  *
  *       | Version | Date        | Description                          | Changed By       |
@@ -3440,21 +3466,24 @@ router.post("/Batch_Forward_for_Proceed", Batch_Forward_for_Proceed);
  *                       type: string
  *                       example: Error details here.
  */
-router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribution);
+router.post(
+  "/Create_Task_For_case_distribution",
+  Create_Task_For_case_distribution
+);
 
 /**
  * @swagger
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
- * 
+ *
  * /api/case/List_All_DRC_Mediation_Board_Cases:
  *   post:
  *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
  *     description: |
  *       This endpoint retrieves mediation cases associated with a specified DRC ID and optional filters.
  *       Users can filter cases based on RTOM, Recovery Officer ID, action type, case current status, and date range.
- *       
+ *
  *       | Version | Date       | Description                                     | Changed By         |
  *       |---------|------------|-------------------------------------------------|--------------------|
  *       | 01      | 2025-Feb-02| List mediation cases owned by DRC and RO         | Sasindu Srinayaka  |
@@ -3497,7 +3526,7 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                 format: date
  *                 description: End date for filtering cases.
  *                 example: "2025-01-31"
-  *     parameters:
+ *     parameters:
  *       - in: query
  *         name: drc_id
  *         required: true
@@ -3542,7 +3571,7 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *           format: date
  *           example: "2025-01-01"
  *         description: Start date for filtering cases.
- *       - in: query  
+ *       - in: query
  *         name: to_date
  *         required: false
  *         schema:
@@ -3631,7 +3660,10 @@ router.post("/Create_Task_For_case_distribution", Create_Task_For_case_distribut
  *                       type: string
  *                       example: Internal server error while retrieving mediation cases.
  */
-router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedbyDRCRO);
+router.post(
+  "/List_All_DRC_Mediation_Board_Cases",
+  ListALLMediationCasesownnedbyDRCRO
+);
 
 /**
  * @swagger
@@ -3746,7 +3778,10 @@ router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedby
  *                   type: string
  *                   example: Server error. Please try again later.
  */
-router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of_batch_id);
+router.post(
+  "/List_all_transaction_seq_of_batch_id",
+  List_all_transaction_seq_of_batch_id
+);
 
 /**
  * @swagger
@@ -3846,8 +3881,10 @@ router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of
  *                       type: string
  *                       example: Error message details.
  */
-router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_case_distribution_transaction ); 
-
+router.post(
+  "/Create_Task_For_case_distribution_transaction",
+  Create_Task_For_case_distribution_transaction
+);
 
 /**
  * @swagger
@@ -3993,7 +4030,10 @@ router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_ca
  *                   type: string
  *                   example: "Server error. Please try again later."
  */
-router.post("/get_distribution_array_of_a_transaction", list_distribution_array_of_a_transaction);
+router.post(
+  "/get_distribution_array_of_a_transaction",
+  list_distribution_array_of_a_transaction
+);
 
 /**
  * @swagger
@@ -4123,7 +4163,10 @@ router.post("/get_distribution_array_of_a_transaction", list_distribution_array_
  *                       type: string
  *                       example: Error message details.
  */
-router.post("/Create_Task_For_case_distribution_transaction_array", Create_Task_For_case_distribution_transaction_array);
+router.post(
+  "/Create_Task_For_case_distribution_transaction_array",
+  Create_Task_For_case_distribution_transaction_array
+);
 
 /**
  * @swagger
@@ -4362,7 +4405,10 @@ router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
  *       500:
  *         $ref: '#/components/responses/500'
  */
-router.post("/Case_Distribution_Details_With_Drc_Rtom_ByBatchId", Case_Distribution_Details_With_Drc_Rtom_ByBatchId);
+router.post(
+  "/Case_Distribution_Details_With_Drc_Rtom_ByBatchId",
+  Case_Distribution_Details_With_Drc_Rtom_ByBatchId
+);
 
 /**
  * @swagger
@@ -4845,7 +4891,10 @@ router.post("/Create_task_for_batch_approval", Create_task_for_batch_approval);
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/List_DRC_Assign_Manager_Approval", List_DRC_Assign_Manager_Approval);
+router.post(
+  "/List_DRC_Assign_Manager_Approval",
+  List_DRC_Assign_Manager_Approval
+);
 
 /**
  * @swagger
@@ -4936,7 +4985,10 @@ router.post("/List_DRC_Assign_Manager_Approval", List_DRC_Assign_Manager_Approva
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/Approve_DRC_Assign_Manager_Approval", Approve_DRC_Assign_Manager_Approval);
+router.post(
+  "/Approve_DRC_Assign_Manager_Approval",
+  Approve_DRC_Assign_Manager_Approval
+);
 
 /**
  * @swagger
@@ -5033,7 +5085,10 @@ router.post("/Approve_DRC_Assign_Manager_Approval", Approve_DRC_Assign_Manager_A
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/Reject_DRC_Assign_Manager_Approval", Reject_DRC_Assign_Manager_Approval);
+router.post(
+  "/Reject_DRC_Assign_Manager_Approval",
+  Reject_DRC_Assign_Manager_Approval
+);
 
 /**
  * @swagger
@@ -5166,7 +5221,10 @@ router.post("/Reject_DRC_Assign_Manager_Approval", Reject_DRC_Assign_Manager_App
  *                   example: "Internal server error."
  */
 
-router.post("/Create_task_for_DRC_Assign_Manager_Approval", Create_task_for_DRC_Assign_Manager_Approval);
+router.post(
+  "/Create_task_for_DRC_Assign_Manager_Approval",
+  Create_task_for_DRC_Assign_Manager_Approval
+);
 
 /**
  * @swagger
@@ -5346,7 +5404,7 @@ router.post("/Assign_DRC_To_Case", Assign_DRC_To_Case);
  *         schema:
  *           type: integer
  *           example: 1
- *         description: DRC ID 
+ *         description: DRC ID
  *     requestBody:
  *       required: true
  *       content:
@@ -5478,7 +5536,7 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *         schema:
  *           type: integer
  *           example: 1
- *         description: DRC ID 
+ *         description: DRC ID
  *     requestBody:
  *       required: true
  *       content:
@@ -5572,7 +5630,10 @@ router.post("/List_Case_Distribution_Details", List_Case_Distribution_Details);
  *                   example: "Internal server error."
  */
 
-router.post("/Create_Task_For_case_distribution_drc_summery", Create_Task_For_case_distribution_drc_summery);
+router.post(
+  "/Create_Task_For_case_distribution_drc_summery",
+  Create_Task_For_case_distribution_drc_summery
+);
 
 /**
  * @swagger
@@ -5602,7 +5663,7 @@ router.post("/Create_Task_For_case_distribution_drc_summery", Create_Task_For_ca
  *         schema:
  *           type: integer
  *           example: 1
- *         description: DRC ID 
+ *         description: DRC ID
  *     requestBody:
  *       required: true
  *       content:
@@ -5700,7 +5761,10 @@ router.post("/Create_Task_For_case_distribution_drc_summery", Create_Task_For_ca
  *                   example: "Internal server error."
  */
 
-router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution_Details_With_Rtoms);
+router.post(
+  "/List_Case_Distribution_Details_With_Rtoms",
+  List_Case_Distribution_Details_With_Rtoms
+);
 
 /**
  * @swagger
@@ -5735,19 +5799,19 @@ router.post("/List_Case_Distribution_Details_With_Rtoms", List_Case_Distribution
  *         schema:
  *           type: string
  *           example: "101112"
- *         description: The Account Number 
+ *         description: The Account Number
  *       - in: query
  *         name: from_date
  *         schema:
  *           type: date
  *           example: "2023-01-01"
- *         description: Start date for filtering cases 
+ *         description: Start date for filtering cases
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
  *           example: "2025-03-31"
- *         description: End date for filtering cases 
+ *         description: End date for filtering cases
  *     requestBody:
  *       required: true
  *       content:
@@ -5895,14 +5959,14 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
- * 
+ *
  * /api/case/List_All_DRC_Mediation_Board_Cases:
  *   post:
  *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
  *     description: |
  *       This endpoint retrieves mediation cases associated with a specified DRC ID and optional filters.
  *       Users can filter cases based on RTOM, Recovery Officer ID, action type, case current status, and date range.
- *       
+ *
  *       | Version | Date       | Description                                     | Changed By         |
  *       |---------|------------|-------------------------------------------------|--------------------|
  *       | 01      | 2025-Apr-01 | List mediation cases owned by DRC and RO         | Janani Kumarasiri  |
@@ -5945,7 +6009,7 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *                 format: date
  *                 description: End date for filtering cases.
  *                 example: "2025-01-31"
-  *     parameters:
+ *     parameters:
  *       - in: query
  *         name: drc_id
  *         required: true
@@ -5990,7 +6054,7 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *           format: date
  *           example: "2025-01-01"
  *         description: Start date for filtering cases.
- *       - in: query  
+ *       - in: query
  *         name: to_date
  *         required: false
  *         schema:
@@ -6012,7 +6076,7 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *                 message:
  *                   type: string
  *                   example: Cases retrieved successfully.
- *                 
+ *
  *       400:
  *         description: Validation error - Missing required fields or no filter parameters provided.
  *         content:
@@ -6080,21 +6144,24 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *                       type: string
  *                       example: Internal server error while retrieving mediation cases.
  */
-router.post("/List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01", List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01)
+router.post(
+  "/List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01",
+  List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01
+);
 
 /**
  * @swagger
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving all cases handled by a specific DRC.
- * 
+ *
  * /api/case/List_All_DRC_Negotiation_Cases_ext_1:
  *   post:
  *     summary: Retrieve all cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves all cases associated with a specified DRC ID. 
+ *       This endpoint retrieves all cases associated with a specified DRC ID.
  *       Users can filter cases based on RTOM, Recovery Officer ID, action type, and date range.
- *       
+ *
  *       | Version | Date       | Description                         | Changed By         |
  *       |---------|------------|-------------------------------------|--------------------|
  *       | 01      | 2025-Apr-01| List all cases handled by a DRC      | Janani Kumarasiri  |
@@ -6298,7 +6365,10 @@ router.post("/List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01", List_Al
  *                       type: string
  *                       example: Internal server error while retrieving cases.
  */
-router.post("/List_All_DRC_Negotiation_Cases_ext_1", List_All_DRC_Negotiation_Cases_ext_1);
+router.post(
+  "/List_All_DRC_Negotiation_Cases_ext_1",
+  List_All_DRC_Negotiation_Cases_ext_1
+);
 
 /**
  * @swagger
@@ -6394,7 +6464,10 @@ router.post("/List_All_DRC_Negotiation_Cases_ext_1", List_All_DRC_Negotiation_Ca
  *                   type: string
  *                   example: "Internal server error message."
  */
-router.post("/Count_Mediation_Board_Phase_Cases", Count_Mediation_Board_Phase_Cases);
+router.post(
+  "/Count_Mediation_Board_Phase_Cases",
+  Count_Mediation_Board_Phase_Cases
+);
 
 /**
  * @swagger
@@ -6490,20 +6563,19 @@ router.post("/Count_Mediation_Board_Phase_Cases", Count_Mediation_Board_Phase_Ca
  */
 router.post("/Count_Negotiation_Phase_Cases", Count_Negotiation_Phase_Cases);
 
-
 /**
  * @swagger
  * tags:
  *   - name: Case Management
  *     description: Endpoints for retrieving all cases handled by a specific DRC.
- * 
+ *
  * /api/case/List_All_DRC_Negotiation_Cases:
  *   post:
  *     summary: Retrieve all cases handled by a DRC with filtering options.
  *     description: |
- *       This endpoint retrieves all cases associated with a specified DRC ID. 
+ *       This endpoint retrieves all cases associated with a specified DRC ID.
  *       Users can filter cases based on RTOM, Recovery Officer ID, action type, and date range.
- *       
+ *
  *       | Version | Date       | Description                         | Changed By         |
  *       |---------|------------|-------------------------------------|--------------------|
  *       | 01      | 2025-Mar-03| List all cases handled by a DRC      | Sasindu Srinayaka  |
@@ -7064,25 +7136,25 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *         schema:
  *           type: string
  *           example: "101112"
- *         description: The Account Number 
+ *         description: The Account Number
  *       - in: query
  *         name: from_date
  *         schema:
  *           type: date
  *           example: "2023-01-01"
- *         description: Start date for filtering cases 
+ *         description: Start date for filtering cases
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
  *           example: "2025-03-31"
- *         description: End date for filtering cases 
+ *         description: End date for filtering cases
  *       - in: query
  *         name: Created_By
  *         schema:
  *           type: string
  *           example: "admin_user"
- *         description: Person who creates the task. 
+ *         description: Person who creates the task.
  *     requestBody:
  *       required: true
  *       content:
@@ -7198,7 +7270,10 @@ router.get("/List_Active_Mediation_Response", ListActiveMediationResponse);
  *                       example: "Error message describing the failure."
  */
 
-router.post("/Create_Task_For_Assigned_drc_case_list_download", Create_Task_For_Assigned_drc_case_list_download);
+router.post(
+  "/Create_Task_For_Assigned_drc_case_list_download",
+  Create_Task_For_Assigned_drc_case_list_download
+);
 
 router.post("/Mediation_Board", Mediation_Board);
 
@@ -7375,7 +7450,7 @@ router.post("/Mediation_Board", Mediation_Board);
  * tags:
  *   - name: Case Management
  *     description: Endpoints for updating case details related to DRC and RO.
- * 
+ *
  * /api/case/Update_Customer_Contacts:
  *   patch:
  *     summary: Update case details for a specific DRC or Recovery Officer.
@@ -7383,7 +7458,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *       This endpoint updates case details related to a specific DRC or Recovery Officer.
  *       It handles updating customer contact details, address, email, and remark.
  *       The endpoint also checks for duplicate data to avoid conflicts.
- *       
+ *
  *       | Version | Date       | Description                         | Changed By         |
  *       |---------|------------|-------------------------------------|--------------------|
  *       | 01      | 2025-Mar-16| Update DRC case details              | Sasindu Srinayaka  |
@@ -7446,7 +7521,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *        description: Unique identifier of the DRC.
  *      - in: query
  *        name: ro_id
- *        required: true        
+ *        required: true
  *        schema:
  *          type: integer
  *          example: 2
@@ -7602,7 +7677,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *                       example: Internal server error while updating the case.
  */
 // POST route to update customer contacts or remarks for a specific case.
-router.patch("/Update_Customer_Contacts",updateDrcCaseDetails);
+router.patch("/Update_Customer_Contacts", updateDrcCaseDetails);
 
 router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
@@ -7612,7 +7687,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
  *   post:
  *     summary: C-1P79 Withdraw cases owned by DRC
  *     description: |
- *       Submits a request to withdraw cases owned by the DRC, requiring approval. 
+ *       Submits a request to withdraw cases owned by the DRC, requiring approval.
  *       The request is logged and sent for manager approval.
  *
  *       | Version | Date        | Description                                      | Changed By |
@@ -7845,7 +7920,10 @@ router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
  *                   type: string
  *                   example: Internal server error.
  */
-router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Settlement_Request_from_Mediation_Board);
+router.put(
+  "/Accept_Non_Settlement_Request_from_Mediation_Board",
+  Accept_Non_Settlement_Request_from_Mediation_Board
+);
 
 /**
  * @swagger
@@ -7861,7 +7939,7 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *       | 01      | 2025-Mar-17 | Initial implementation                    | Dinusha Anupama    |
  *
  *     tags: [Case Management]
-  *     parameters:
+ *     parameters:
  *       - in: body
  *         name: delegate_user_id
  *         required: true
@@ -8019,7 +8097,10 @@ router.put("/Accept_Non_Settlement_Request_from_Mediation_Board", Accept_Non_Set
  *                   example: "Database connection failed"
  */
 
-router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOfficers);
+router.post(
+  "/ListRequestLogFromRecoveryOfficers",
+  ListRequestLogFromRecoveryOfficers
+);
 
 /**
  * @swagger
@@ -8027,7 +8108,7 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *   post:
  *     summary: Retrieve all request logs from recovery officers
  *     description: |
- *       Fetches request logs from the `User_Interaction_Log` collection based on filters such as delegate user ID, interaction type, date range, and request acceptance status. 
+ *       Fetches request logs from the `User_Interaction_Log` collection based on filters such as delegate user ID, interaction type, date range, and request acceptance status.
  *       It also retrieves related request records and case details.
  *
  *       | Version | Date        | Description                                | Changed By    |
@@ -8192,8 +8273,10 @@ router.post("/ListRequestLogFromRecoveryOfficers", ListRequestLogFromRecoveryOff
  *                   example: "Database connection failed"
  */
 
-
-router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecoveryOfficers);
+router.post(
+  "/ListAllRequestLogFromRecoveryOfficers",
+  ListAllRequestLogFromRecoveryOfficers
+);
 
 /**
  * @swagger
@@ -8201,7 +8284,7 @@ router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecov
  *   post:
  *     summary: Retrieve all request logs from recovery officers without filtering by user ID
  *     description: |
- *       Fetches request logs from the `User_Interaction_Log` collection based on filters such as interaction type, date range, and request acceptance status. 
+ *       Fetches request logs from the `User_Interaction_Log` collection based on filters such as interaction type, date range, and request acceptance status.
  *       It also retrieves related request records and case details without requiring a delegate user ID.
  *
  *       | Version | Date        | Description                                | Changed By    |
@@ -8354,8 +8437,10 @@ router.post("/ListAllRequestLogFromRecoveryOfficers", ListAllRequestLogFromRecov
  *                   example: "Database connection failed"
  */
 
-
-router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllRequestLogFromRecoveryOfficersWithoutUserID);
+router.post(
+  "/ListAllRequestLogFromRecoveryOfficersWithoutUserID",
+  ListAllRequestLogFromRecoveryOfficersWithoutUserID
+);
 
 /**
  * @swagger
@@ -8365,7 +8450,7 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  *     description: |
  *       This endpoint handles creating new customer negotiations or updating existing ones.
  *       It supports different negotiation scenarios including settlement agreements.
- *       
+ *
  *       ### Version History
  *       | Version | Date        | Description                                | Author            |
  *       |---------|-------------|--------------------------------------------|-------------------|
@@ -8512,7 +8597,10 @@ router.post("/ListAllRequestLogFromRecoveryOfficersWithoutUserID", ListAllReques
  */
 router.post("/Customer_Negotiations", Customer_Negotiations);
 
-router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation);
+router.post(
+  "/List_Active_RO_Requests_Mediation",
+  ListActiveRORequestsMediation
+);
 // router.post("/add-cpecollect", addCpeToNegotiation);
 
 /**
@@ -8603,7 +8691,6 @@ router.post("/List_Active_RO_Requests_Mediation", ListActiveRORequestsMediation)
  */
 router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 
-
 // router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
 
 // router.post(
@@ -8620,7 +8707,6 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
 //   "/Withdraw_Mediation_Board_Acceptance",
 //   Withdraw_Mediation_Board_Acceptance
 // );
-
 
 /**
  * @swagger
@@ -8775,7 +8861,10 @@ router.post("/list_Active_Customer_Negotiations", getActiveNegotiations);
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/Create_task_for_Request_log_download_when_select_more_than_one_month", Create_task_for_Request_log_download_when_select_more_than_one_month);
+router.post(
+  "/Create_task_for_Request_log_download_when_select_more_than_one_month",
+  Create_task_for_Request_log_download_when_select_more_than_one_month
+);
 
 /**
  * @swagger
@@ -8937,7 +9026,10 @@ router.post("/Create_task_for_Request_log_download_when_select_more_than_one_mon
  *                   type: string
  *                   example: "Error fetching case details"
  */
-router.post( "/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Mediation_Board_Acceptance);
+router.post(
+  "/List_Details_Of_Mediation_Board_Acceptance",
+  List_Details_Of_Mediation_Board_Acceptance
+);
 
 /**
  * @swagger
@@ -9180,7 +9272,10 @@ router.post( "/List_Details_Of_Mediation_Board_Acceptance", List_Details_Of_Medi
  *                   type: string
  *                   example: "Error message details"
  */
-router.post("/Submit_Mediation_Board_Acceptance", Submit_Mediation_Board_Acceptance);
+router.post(
+  "/Submit_Mediation_Board_Acceptance",
+  Submit_Mediation_Board_Acceptance
+);
 
 /**
  * @swagger
@@ -9198,49 +9293,49 @@ router.post("/Submit_Mediation_Board_Acceptance", Submit_Mediation_Board_Accepta
  *     parameters:
  *       - in: query
  *         name: create_by
-  *         required: true
+ *         required: true
  *         schema:
  *           type: string
  *           example: "User456"
  *         description: Person who withdraws the request.
  *       - in: query
  *         name: Interaction_Log_ID
-  *         required: true
+ *         required: true
  *         schema:
  *           type: number
  *           example: 55
  *         description: ID of the document in User Interaction Log.
  *       - in: query
  *         name: case_id
-  *         required: true
+ *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: ID of the case.
  *       - in: query
  *         name: User_Interaction_Type
-  *         required: true
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Mediation Board"
  *         description: User interaction type for the document in User Interaction Log.
  *       - in: query
  *         name: Request_Mode
-  *         required: true
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Negotiation"
  *         description: Request mode for the document.
  *       - in: query
  *         name: Interaction_ID
-  *         required: true
+ *         required: true
  *         schema:
  *           type: number
  *           example: 1
  *         description: Interaction ID of the document.
  *       - in: query
  *         name: Request Accept
-  *         required: true
+ *         required: true
  *         schema:
  *           type: string
  *           example: "Yes"
@@ -9434,7 +9529,6 @@ router.post(
 //payments
 // router.post("/List_All_Payment_Cases", getAllPaymentCases);
 
-
 /**
  * @swagger
  * tags:
@@ -9448,7 +9542,7 @@ router.post(
  *       This endpoint is used to collect RO CPE data and update the case details.
  *       The system increments a counter to generate a unique `ro_cpe_collect_id` and updates
  *       the specified case with the provided details.
- *       
+ *
  *       | Version | Date       | Description                        | Changed By         |
  *       |---------|------------|------------------------------------|--------------------|
  *       | 01      | 2025-Mar-19| Initial implementation of the API | H.B.R.P.Madushan   |
@@ -9707,10 +9801,7 @@ router.post("/RO_CPE_Collection", RO_CPE_Collection);
  *                   type: string
  *                   example: "Internal Server Error"
  */
-router.post(
-  "/List_Request_Response_log",
-  List_Request_Response_log
-);
+router.post("/List_Request_Response_log", List_Request_Response_log);
 
 /**
  * @swagger
