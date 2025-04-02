@@ -13,10 +13,14 @@
 import { Router } from "express";
 const router = Router();
 
-import {Retrive_logic, lod_customer_response} from "../controllers/FTL_LOD_controller.js";
+import {Retrive_logic, F2_selection_cases_count, List_F2_Selection_Cases, Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases} from "../controllers/FTL_LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
 
-router.post("/lod_customer_response", lod_customer_response);
+router.get("/F2_selection_cases_count", F2_selection_cases_count);
+
+router.post("/List_F2_Selection_Cases", List_F2_Selection_Cases);
+
+router.post("/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases", Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases);
 
 export default router;

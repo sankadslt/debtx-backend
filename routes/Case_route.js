@@ -2611,8 +2611,8 @@ router.post("/Acivite_Case_Details", Acivite_Case_Details);
  *     summary: C-1G12 Get case count grouped by DRC commission rule
  *     description: Retrieves the count of cases grouped by `drc_commision_rule` where the `case_current_status` is "Open No Agent".
  *
- *       | Version | Date        | Description                                        | Changed By       |
- *       |---------|------------|----------------------------------------------------|------------------|
+ *       | Version | Date        | Description                                        | Changed By     |
+ *       |---------|------------|----------------------------------------------------|-----------------|
  *       | 01      | 2025-mar-10 | Initial creation of API for case count retrieval | Sanjaya Perera   |
  *
  *     tags: [DRC Mediation Board Cases]
@@ -2863,7 +2863,7 @@ router.post("/count_cases_rulebase_and_arrears_band", count_cases_rulebase_and_a
  *
  *       | Version | Date        | Description                                | Changed By       |
  *       |---------|------------|--------------------------------------------|------------------|
- *       | 01      | 2025-Mar-26 | Initial creation                          | Your Name       |
+ *       | 01      | 2025-Mar-26 | Initial creation                          | Ravindu Pathum     |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -3631,7 +3631,7 @@ router.post("/List_All_DRC_Mediation_Board_Cases", ListALLMediationCasesownnedby
 
 /**
  * @swagger
- * /api/List_all_transaction_seq_of_batch_id:
+ * /api/case/List_all_transaction_seq_of_batch_id:
  *   post:
  *     summary: C-1P062 List All Transactions of a Batch
  *     description: |
@@ -3746,7 +3746,7 @@ router.post("/List_all_transaction_seq_of_batch_id", List_all_transaction_seq_of
 
 /**
  * @swagger
- * /api/Create_Task_For_case_distribution_transaction:
+ * /api/case/Create_Task_For_case_distribution_transaction:
  *   post:
  *     summary: xxxx Create Task for Case Distribution Transaction
  *     description: |
@@ -3847,7 +3847,7 @@ router.post("/Create_Task_For_case_distribution_transaction", Create_Task_For_ca
 
 /**
  * @swagger
- * /api/get_distribution_array_of_a_transaction:
+ * /api/case/get_distribution_array_of_a_transaction:
  *   post:
  *     summary: Get distribution array of a transaction
  *     description: |
@@ -3993,7 +3993,7 @@ router.post("/get_distribution_array_of_a_transaction", list_distribution_array_
 
 /**
  * @swagger
- * /api/Create_Task_For_case_distribution_transaction_array:
+ * /api/case/Create_Task_For_case_distribution_transaction_array:
  *   post:
  *     summary: xxxx Create Task for Case Distribution Transaction Array
  *     description: |
@@ -4123,7 +4123,7 @@ router.post("/Create_Task_For_case_distribution_transaction_array", Create_Task_
 
 /**
  * @swagger
- * /Exchange_DRC_RTOM_Cases:
+ * /api/case/Exchange_DRC_RTOM_Cases:
  *   post:
  *     summary: C-1P24 Exchange Case Distribution Planning among DRC
  *     description: |
@@ -5166,7 +5166,7 @@ router.post("/Create_task_for_DRC_Assign_Manager_Approval", Create_task_for_DRC_
 
 /**
  * @swagger
- * /Assign_DRC_To_Case:
+ * /api/case/Assign_DRC_To_Case:
  *   post:
  *     summary: Assign a DRC to a case
  *     description: Assigns a Debt Recovery Coordinator (DRC) to a specific case and records the assignment details for approval.
@@ -6599,7 +6599,7 @@ router.post("/Mediation_Board", Mediation_Board);
 
 /**
  * @swagger
- * /api/Case_Details_for_DRC:
+ * /api/case/Case_Details_for_DRC:
  *   post:
  *     summary: Fetch and Edit Case Details for DRC
  *     description: |

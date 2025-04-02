@@ -12,7 +12,8 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
-
+import mongoose from "mongoose";
+import { createTaskFunction } from "../services/TaskService.js";
 
 
 /*  This is the function with the data retriving logic. first time load the 10 rows and second time load next 30 rows
@@ -21,15 +22,17 @@ import Case_details from "../models/Case_details.js";
 */
 export const Retrive_logic = async (req, res) => {
     try {
-        let { status, pages } = req.body;
+        const { status, pages } = req.body;
         if (!status) {
             res.status(400).json({
                 status:"error",
                 message: "All fields are required."
             });
         };
-        let page = parseInt(pages) || 1;
-        const limit = page === 1 ? 10 : 30; // 10 on first load, 30 on next clicks
+        let page = Number(pages);
+        if (isNaN(page) || page < 1) page = 1;
+
+        const limit = page === 1 ? 10 : 30;
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
         const query = status ? {case_current_status: status} : {};
@@ -50,33 +53,136 @@ export const Retrive_logic = async (req, res) => {
     }
 };
 
+export const F2_selection_cases_count = async (req, res) => {
+    try {
+        const case_counts = await Case_details.aggregate([
+            {
+                $match: { case_current_status: "LIT Prescribed" }
+            },
+            {
+                $group: {
+                    _id: {
+                        $cond: { 
+                            if: { $isArray: "$lod_final_reminder.current_document_type" }, 
+                            then: { $arrayElemAt: ["$lod_final_reminder.current_document_type", 0] }, 
+                            else: "$lod_final_reminder.current_document_type"
+                        }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total_count: { $sum: "$count" },
+                    cases: { $push: { document_type: "$_id", count: "$count" } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    total_count: 1,
+                    cases: 1
+                }
+            }
+        ]).exec();
+        return res.status(200).json({
+            status: "success",
+            data: case_counts.length > 0 ? case_counts[0] : { total_count: 0, cases: [] }
+        });
+    }catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Server error while fetching case counts"
+        });
+    }
+};
 
-export const lod_customer_response = async (req, res) => {
+export const List_F2_Selection_Cases = async (req, res) => {
+    try {
+        const { current_document_type, pages } = req.body;
+
+        if (!current_document_type) {
+            return res.status(400).json({
+                status: "error",
+                message: "current document type is required."
+            });
+        }
+        let page = Number(pages);
+        if (isNaN(page) || page < 1) page = 1;
+        // Define pagination limits
+        const limit = page === 1 ? 10 : 30;
+        const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+        // Fetch cases from database
+        const Lod_cases = await Case_details.find({ 'lod_final_reminder.current_document_type': current_document_type })
+            .skip(skip)
+            .limit(limit)
+            .sort({ case_id: -1 });
+
+        res.status(200).json({
+            status: "success",
+            message: "Cases retrieved successfully.",
+            data: Lod_cases,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message,
+        });
+    }
+};
+
+export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-      const { case_id, remark } = req.body;
-      if (!case_id) {
-        res.status(400).json({
-            status:"error",
-            message: "case_id is required"
-        });
-      }
-      if (!remark) {
-        res.status(400).json({
-            status:"error",
-            message: "remark is required"
-        });
-      }
-      const caseRecord = await Case_details.findOne({ case_id });
-      
-    //   if (caseRecord.case_current_status !== 'MB Fail with Pending Non-Settlement') {
-    //       return res.status(400).json({ message: 'Case status does not match the required condition' });
-    //   }
-    //   return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
+    const { Created_By } = req.body;
 
-  }catch(error) {
-    res.status(500).json({
-        status:"error",
-        message: error.message,
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Created_By is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      case_current_status : "LIT Prescribed",
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 39,
+      task_type: "Create Task For Downloard All Digital Signature LOD Cases",
+      ...parameters, 
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
     });
   }
 };
