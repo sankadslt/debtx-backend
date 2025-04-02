@@ -3673,7 +3673,21 @@ router.post(
  *         schema:
  *           type: integer
  *           example: 16
- *         description: ID of the batch.
+ *         description: Unique identifier of the batch.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Admin"
+ *         description: User who requested the transaction retrieval.
+ *       - in: query
+ *         name: transaction_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Allocation"
+ *         description: Type of transaction (optional filter)
  *     requestBody:
  *       required: true
  *       content:
@@ -3685,6 +3699,17 @@ router.post(
  *                 type: integer
  *                 description: The batch ID for which transactions should be retrieved.
  *                 example: 5
+ *               created_by:
+ *                 type: string
+ *                 description: User who created or requested the transactions.
+ *                 example: "Admin"
+ *               transaction_type:
+ *                 type: string
+ *                 description: Type of transaction (optional).
+ *                 example: "Reallocation"
+ *             required:
+ *               - case_distribution_batch_id
+ *               - created_by
  *     responses:
  *       200:
  *         description: Transactions retrieved successfully.
