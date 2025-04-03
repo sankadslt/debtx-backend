@@ -354,7 +354,7 @@ const caseDetailsSchema = new Schema({
   money_transactions	: [moneytransactionsschema],
   litigation: [litigationSchema],
   ftl_lod: [FTL_LOD_Schema],
-  lod_final_reminder: [lod_final_reminder_Schema],
+  lod_final_reminder: {type: lod_final_reminder_Schema, default: null},
 },
 {
   collection: 'Case_details', 
