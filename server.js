@@ -35,7 +35,7 @@ import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
 import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
 import fileDownloadRouter from "./routes/File_Download_Log_route.js"
 import SettlementRouter from "./routes/Settlement_route.js";
-import LodRoutes from "./routes/FTL_LOD_route.js";
+import LodRoutes from "./routes/LOD_route.js";
 // Load environment variables
 config();
 

@@ -19,8 +19,8 @@ import { Retrive_logic,
          Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases,
          Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases,
          Change_Document_Type,
-         Create_LOD_List,
-        } from "../controllers/FTL_LOD_controller.js";
+         Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
+        } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
 
@@ -499,7 +499,120 @@ router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Creat
  */
 router.post("/Change_Document_Type", Change_Document_Type);
 
-router.post("/Create_LOD_List",Create_LOD_List);
+/**
+ * @swagger
+ * /api/lod/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List:
+ *   post:
+ *     summary:  Create a Task to proceed the Lod or final reminder for this case with has given current_document_type
+ *     description: |
+ *       Create a Task to proceed the Lod or final reminder for this case with has given current_document_type
+ *
+ *       | Version | Date        | Description                          | Changed By       |
+ *       |---------|-------------|--------------------------------------|------------------|
+ *       | 01      | 2025-Apr-03 | Create Task for Lod case download    | Ravindu Pathum   |
+ *
+ *     tags: [SLT LOD]
+ *     parameters:
+ *       - in: query
+ *         name: Created_By
+ *         schema:
+ *           type: string
+ *           example: "admin_user"
+ *         description: User who creates the task.
+ *       - in: query
+ *         name: current_document_type
+ *         schema:
+ *           type: string
+ *           example: "LOD"
+ *         description: The current_document_type of the cases thats wants to download. 
+ *       - in: query
+ *         name: Case_count
+ *         schema:
+ *           type: number
+ *           example: 2500
+ *         description: The case count that try to create lod or final reminder 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Created_By:
+ *                 type: string
+ *                 example: "admin_user"
+ *               current_document_type:
+ *                 type: string
+ *                 example: "LOD"
+ *               Case_count:
+ *                 type: number
+ *                 example: 5000
+ *     responses:
+ *       200:
+ *         description: Task created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task created successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 41
+ *                     task_type:
+ *                       type: string
+ *                       example: Create Task for Proceed LOD OR Final_Reminder List
+ *                     case_current_status:
+ *                       type: string
+ *                       example: "LIT Prescribed"
+ *                     Created_By:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     task_status:
+ *                       type: string
+ *                       example: open
+ *       400:
+ *         description: Validation error - Missing required parameters or existing incomplete task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "All parameters are required parameters or existing incomplete task."
+ *       500:
+ *         description: Server error occurred while creating the task.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Error details here.
+ */
+router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_for_Proceed_LOD_OR_Final_Reminder_List);
 
 
 export default router;

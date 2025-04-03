@@ -297,7 +297,7 @@ export const Change_Document_Type = async (req, res) => {
     }
 };
 
-export const Create_LOD_List = async (req, res) => {
+export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, res) => {
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
@@ -311,6 +311,7 @@ export const Create_LOD_List = async (req, res) => {
           message: "All parameters are required parameters.",
         });
       }
+      const mongo = await db.connectMongoDB();
       const existingTask = await mongo.collection("System_tasks").findOne({
         task_status: { $ne: "Complete" },
         "parameters.current_document_type": current_document_type,
@@ -328,13 +329,14 @@ export const Create_LOD_List = async (req, res) => {
         case_current_status : "LIT Prescribed",
         current_document_type,
         Created_By,
-        task_status: "open"
+        task_status: "open",
+        Case_count,
       };
   
       // Pass parameters directly (without nesting it inside another object)
       const taskData = {
         Template_Task_Id: 41,
-        task_type: "Create_LOD_List",
+        task_type: "Create Task for Proceed LOD OR Final_Reminder List",
         ...parameters, 
       };
   
@@ -344,7 +346,7 @@ export const Create_LOD_List = async (req, res) => {
       await session.commitTransaction();
       await session.endSession();
   
-      return res.status(201).json({
+      return res.status(200).json({
         status: "success",
         message: "Task created successfully.",
         data: taskData,
