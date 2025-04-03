@@ -7461,7 +7461,7 @@ router.post(
 
 /**
  * @swagger
- * /api/case/mediation-board:
+ * /api/case/mediation_board:
  *   post:
  *     summary: xxxx Mediation Board Processing
  *     description: |
