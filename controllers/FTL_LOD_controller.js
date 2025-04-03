@@ -13,7 +13,7 @@
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import mongoose from "mongoose";
-import { createTaskFunction } from "../services/TaskService.js";
+
 
 /*  This is the function with the data retriving logic. first time load the 10 rows and second time load next 30 rows
     The variable named 'pages' should be maintain in the frontend and pass to the backend
@@ -50,4 +50,9 @@ export const Retrive_logic = async (req, res) => {
             message: error.message,
         });
     }
+};
+
+
+export const List_FTL_LOD_Cases = async (req, res) => {
+
 };
