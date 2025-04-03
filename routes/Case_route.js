@@ -6141,7 +6141,7 @@ router.post("/List_CasesOwened_By_DRC", List_CasesOwened_By_DRC);
  *   - name: Case Management
  *     description: Endpoints for retrieving mediation cases owned by DRC and RO.
  *
- * /api/case/List_All_DRC_Mediation_Board_Cases:
+ * /api/case/List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01:
  *   post:
  *     summary: Retrieve mediation cases owned by a DRC and optionally filtered by RO.
  *     description: |
