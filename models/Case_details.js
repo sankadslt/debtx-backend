@@ -302,6 +302,7 @@ const lod_final_reminder_Schema = new Schema({
     enum: ["LOD", "Final Reminder"],
     required: true,
   },
+  lod_distribution_id : {type:Number, default:null},
   lod_expire_on : {type: Date, required:true},
   document_type : [document_type_schema],
   lod_submission : [lod_submission_schema],
@@ -354,7 +355,7 @@ const caseDetailsSchema = new Schema({
   money_transactions	: [moneytransactionsschema],
   litigation: [litigationSchema],
   ftl_lod: [FTL_LOD_Schema],
-  lod_final_reminder: [lod_final_reminder_Schema],
+  lod_final_reminder: {type: lod_final_reminder_Schema, default: null},
 },
 {
   collection: 'Case_details', 

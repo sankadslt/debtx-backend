@@ -35,8 +35,9 @@ import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
 import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
 import fileDownloadRouter from "./routes/File_Download_Log_route.js"
 import SettlementRouter from "./routes/Settlement_route.js";
-import LodRoutes from "./routes/FTL_LOD_route.js";
 import litigationRouter from "./routes/Litigation_route.js";
+import LodRoutes from "./routes/LOD_route.js";
+import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 // Load environment variables
 config();
 
@@ -45,7 +46,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(json());
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173",credentials: true,}));
+app.use(cors({ origin:[ process.env.CLIENT_URL || "http://220.247.224.226:9561","http://220.247.224.226:9562","http://220.247.224.226:9563","http://dptestserver1.slt.lk:9561","http://dptestserver1.slt.lk:9562","http://dptestserver1.slt.lk:9563"],credentials: true,}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -71,6 +72,7 @@ app.use("/api/commission", commissionRouter);
 app.use("/api/file", fileDownloadRouter );
 app.use("/api/lod",LodRoutes);
 app.use("/api/litigation", litigationRouter);
+app.use("/api/ftl_lod",FTL_LODRoutes);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
