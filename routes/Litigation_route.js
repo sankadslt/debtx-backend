@@ -9,3 +9,13 @@
     Related Files: Litigation_controller.js
     Notes:  
 */
+
+import { Router } from "express";
+
+import { ListAllLitigationCases } from "../controllers/Litigation_controller.js";
+
+const router = Router();
+
+router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
+
+export default router;
