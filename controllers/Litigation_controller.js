@@ -120,6 +120,9 @@ export const ListAllLitigationCases = async (req, res) => {
             }
         }
 
+        // Fetch the total count of cases that match the filter criteria (without pagination)
+        const totalCount = await LitigationDetails.countDocuments(query);
+
         // Fetch cases with pagination
         const cases = await LitigationDetails.find(query)
             .skip(skip)
@@ -143,7 +146,7 @@ export const ListAllLitigationCases = async (req, res) => {
             status: "success",
             message: "Cases retrieved successfully.",
             current_page: page,
-            total_cases: cases.length,
+            total_cases: totalCount,
             data: cases,
         });
 
