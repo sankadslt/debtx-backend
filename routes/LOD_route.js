@@ -20,7 +20,7 @@ import { Retrive_logic,
          Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases,
          Change_Document_Type,
          Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
-         List_Lod_Cases,
+         List_Final_Reminder_Lod_Cases,
         } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
@@ -615,5 +615,5 @@ router.post("/Change_Document_Type", Change_Document_Type);
  */
 router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_for_Proceed_LOD_OR_Final_Reminder_List);
 
-router.post("/List_Lod_Cases",List_Lod_Cases);
+router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
 export default router;
