@@ -5064,7 +5064,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
 
         return {
           case_id: caseData.case_id,
-          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          customer_name: caseData.customer_name|| null,
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
@@ -5202,7 +5202,7 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
         return {
           case_id: caseData.case_id,
           account_no: caseData.account_no,
-          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          customer_name: caseData.customer_name || null,
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
