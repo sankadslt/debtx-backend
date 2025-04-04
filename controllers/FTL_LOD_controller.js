@@ -69,7 +69,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
   
       const validStatuses = [
         "Pending FTL LOD",
-        "initial FLT LOD",
+        "Initial FLT LOD",
         "FTL LOD Settle Pending",
         "FTL LOD Settle Open-Pending",
         "FTL LOD Settle Active"
