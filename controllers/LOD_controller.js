@@ -366,9 +366,48 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
     }
 };
 
-export const List_Lod_Cases = async (req, res) => {
+export const List_Lod_Cases2 = async (req, res) => {
   try {
-      const { case_status, date_type, date_from, date_to} = req.body;
+      const { case_status, date_type, date_from, date_to, pages} = req.body;
+
+      if (!case_status && !date_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "At least one filter parameter (case_status or date_type) is required"
+        });
+      }
+
+      let page = Number(pages);
+      if (isNaN(page) || page < 1) page = 1;
+      const limit = page === 1 ? 10 : 30;
+      const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+      if (date_type) {
+        if (date_type==="created_date") {
+          if (date_from) {
+            
+          } else if(date_to){
+            
+          }
+          const Lod_cases = await Case_details.find({ 'lod_final_reminder.lod_submission.created_on': { $gte: new Date(date_from), $lte: new Date(date_to) } })
+              .skip(skip)
+              .limit(limit)
+              .sort({ case_id: -1 });
+        }
+        else if (date_type==="expair_date") {
+          const Lod_cases = await Case_details.find({ 'lod_final_reminder.lod_expire_on': { $gte: new Date(date_from), $lte: new Date(date_to) } })
+              .skip(skip)
+              .limit(limit)
+              .sort({ case_id: -1 });
+        }
+        else if (date_type==="last_response_date") {
+          const Lod_cases = await Case_details.find({ 'lod_final_reminder.lod_response[lod_final_reminder.lod_response.length - 1].created_on': { $gte: new Date(date_from), $lte: new Date(date_to) } })
+              .skip(skip)
+              .limit(limit)
+              .sort({ case_id: -1 });
+        }
+      };
+
       const allowedApproverTypes = [
           "DRC Re-Assign Approval",
           "DRC Assign Approval",
@@ -376,6 +415,170 @@ export const List_Lod_Cases = async (req, res) => {
           "Case Abandoned Approval",
           "Case Write-Off Approval",
           "Commission Approval"
+      ];
+
+      let filter = { approver_type: { $in: allowedApproverTypes } }; // Filter only allowed approver types
+
+      // Filter based on approver_type
+      if (approver_type && allowedApproverTypes.includes(approver_type)) {
+          filter.approver_type = approver_type;
+      }
+
+      // Filter based on date range
+      if (date_from && date_to) {
+          filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      } else if (date_from) {
+          filter.created_on = { $gte: new Date(date_from) };
+      } else if (date_to) {
+          filter.created_on = { $lte: new Date(date_to) };
+      }
+
+      // Filter based on approved_deligated_by
+      if (approved_deligated_by) {
+          filter.approved_deligated_by = approved_deligated_by;
+      }
+
+      // Fetch data from Template_forwarded_approver collection
+      const approvals = await TmpForwardedApprover.find(filter);
+
+      // Process results to extract only the last element of approve_status array
+      const response = approvals.map(doc => {
+          const lastApproveStatus = doc.approve_status?.length 
+              ? doc.approve_status[doc.approve_status.length - 1] 
+              : null;
+
+          return {
+              ...doc.toObject(),
+              approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Keep only the last approve_status
+          };
+      });
+
+      res.status(200).json(response);
+  } catch (error) {
+      console.error("Error fetching DRC Assign Manager Approvals:", error);
+      res.status(500).json({ message: "Server Error", error });
+  }
+};
+
+export const List_Lod_Cases3 = async (req, res) => {    
+  try {
+    const { case_status, date_type, date_from, date_to } = req.query;
+
+    // Validate at least one filter parameter is provided
+    if (!case_status && !date_type) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filter parameter (case_status or date_type) is required"
+      });
+    }
+
+    // Build the query dynamically
+    const query = {};
+
+    if (case_status) {
+      query.case_status = case_status;
+    }
+
+    if (date_type) {
+      let dateField;
+      
+      // Determine which field to filter based on date_type
+      switch(date_type) {
+        case 'created_date':
+          dateField = 'lod_final_reminder.lod_submission.created_on';
+          break;
+        case 'expiry_date':
+          dateField = 'lod_final_reminder.lod_expire_on';
+          break;
+        case 'last_response_date':
+          // Special handling for array's last element
+          dateField = 'lod_final_reminder.lod_response.created_on';
+          break;
+        default:
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid date_type. Must be one of: created_date, expiry_date, last_response_date"
+          });
+      }
+
+      // Initialize date filter
+      const dateFilter = {};
+
+      if (date_from) {
+        if (isNaN(Date.parse(date_from))) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid date_from format"
+          });
+        }
+        dateFilter.$gte = new Date(date_from);
+      }
+
+      if (date_to) {
+        if (isNaN(Date.parse(date_to))) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid date_to format"
+          });
+        }
+        dateFilter.$lte = new Date(date_to);
+      }
+
+      // Special handling for last_response_date in array
+      if (date_type === 'last_response_date') {
+        query.$expr = {
+          $let: {
+            vars: {
+              lastResponse: { $arrayElemAt: ['$lod_final_reminder.lod_response', -1] }
+            },
+            in: {
+              $and: [
+                { $ne: ['$$lastResponse', null] },
+                ...(date_from ? [{ $gte: ['$$lastResponse.created_on', new Date(date_from)] }] : []),
+                ...(date_to ? [{ $lte: ['$$lastResponse.created_on', new Date(date_to)] }] : [])
+              ]
+            }
+          }
+        };
+      } else {
+        // Regular date field filtering
+        query[dateField] = dateFilter;
+      }
+
+      // Validate at least one date parameter was provided
+      if (!date_from && !date_to) {
+        return res.status(400).json({
+          status: "error",
+          message: "At least one date parameter (date_from or date_to) is required when using date_type"
+        });
+      }
+    }
+
+    // Execute the query
+    const cases = await Case_details.find(query);
+
+    res.status(200).json({
+      status: "success",
+      count: cases.length,
+      data: cases
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: error.message
+    });
+  }
+};
+
+export const List_Lod_Cases = async (req, res) => {
+  try {
+      const { case_status, date_type, date_from, date_to } = req.body;
+      const allowedStatusTypes = [
+          "Initial LOD",
+          "LOD Settle Pending",
+          "LOD Settle Open-Pending",
+          "LOD Settle Active",
       ];
 
       let filter = { approver_type: { $in: allowedApproverTypes } }; // Filter only allowed approver types

@@ -305,7 +305,7 @@ const lod_final_reminder_Schema = new Schema({
   lod_distribution_id : {type:Number, default:null},
   lod_expire_on : {type: Date, required:true},
   document_type : [document_type_schema],
-  lod_submission : [lod_submission_schema],
+  lod_submission : {type:lod_submission_schema, default:null},
   lod_response : [lod_response_schema],
   lod_notification : [{
     notification_seq : {type:Number, required: true},
