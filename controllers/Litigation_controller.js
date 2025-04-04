@@ -81,6 +81,8 @@ import LitigationDetails from "../models/Case_details.js";
 //     }
 // };
 
+
+// Function to list all litigation cases with pagination and filtering
 export const ListAllLitigationCases = async (req, res) => {
     try {
         const { case_current_status, date_type, from_date, to_date, pages } = req.body;
@@ -94,18 +96,17 @@ export const ListAllLitigationCases = async (req, res) => {
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
         // Construct base query
-        const query = {};
-
-        // Apply case status filter if provided
-        if (case_current_status) {
-            query.case_current_status = {
+        const query = {
+            case_current_status : {
                 $in: [
                     "Initial Litigation", "Pending FTL", "Forward To Litigation", "Fail from Legal Unit", 
                     "Fail Legal Action", "Litigation", "Litigation Settle Pending", 
                     "Litigation Settle Open-Pending", "Litigation Settle Active"
                 ],
-            };
-        }
+            },
+        };
+
+        if (case_current_status) query.case_current_status = case_current_status;
 
         // Apply date filtering based on `date_type`
         if (date_type && from_date && to_date) {
