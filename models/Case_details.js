@@ -320,6 +320,7 @@ const caseDetailsSchema = new Schema({
   incident_id: { type: Number, required: true },
   case_distribution_batch_id: {type: Number, default: null},
   account_no: { type: String, required: true },
+  customer_name: { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
