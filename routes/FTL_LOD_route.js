@@ -1,46 +1,231 @@
 /* 
-    Purpose: This template is used for the LOD Route.
-    Created Date: 2025-04-01
-    Created By:  Ravindu Pathum(ravindupathumiit@gmail.com)
+    Purpose: This template is used for the FTL LOD Route.
+    Created Date: 2025-04-03
+    Created By:  Dinusha Anupama (dinushanupama@gmail.com)
     Last Modified Date: 2025-04-01
-    Modified By: Ravindu Pathum (ravindupathumiit@gmail.com)
+    Modified By: Dinusha Anupama (dinushanupama@gmail.com)
     Version: Node.js v20.11.1
     Dependencies: axios , mongoose
-    Related Files: Case_route.js
+    Related Files: FTL_controller.js
     Notes:  
 */
 
 import { Router } from "express";
 const router = Router();
 
-import { Retrive_logic,
-         F2_selection_cases_count, 
-         List_F2_Selection_Cases, 
-         Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases,
-         Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases,
-         Change_Document_Type,
-         Create_LOD_List,
-        } from "../controllers/FTL_LOD_controller.js";
+import { Retrive_logic} from "../controllers/FTL_LOD_controller.js";
+import { List_FTL_LOD_Cases} from "../controllers/FTL_LOD_controller.js";
+import { Create_Customer_Response} from "../controllers/FTL_LOD_controller.js";
+
+
 
 router.post("/Retrive_logic", Retrive_logic);
 
 /**
  * @swagger
- * /api/lod/F2_selection_cases_count:
- *   get:
- *     summary:  Count Cases by current_document_type
+ * /api/ftl_lod/List_FTL_LOD_Cases:
+ *   post:
+ *     summary: Retrieve a paginated list of FTL LOD cases with filters
  *     description: |
- *       Retrieve counts of cases grouped by current_document_type and.
- *       This endpoint also ensures only cases with the latest status as `LIT Prescribed` are considered.
+ *       Fetches FTL LOD case details based on filters such as case status, arrears band, and date range.
+ *       It also returns the filtered case data including relevant details such as account number, arrears amount, and FTL LOD expiry date.
  *
- *       | Version | Date        | Description                    | Changed By       |
- *       |---------|-------------|--------------------------------|------------------|
- *       | 01      | 2025-apr-02 | initialize                     | RAVINDU PATHUM   |
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|-------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-April-06 | Initial creation of API for case retrieval         | Dinusha Anupama   |
  *
- *     tags: [SLT LOD]
+ *     tags: [FTL LOD Cases]
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         schema:
+ *           type: String
+ *           example: "Pending FTL LOD"
+ *         description: Filter by the case current status
+ *       - in: query
+ *         name: current_arrears_band
+ *         schema:
+ *           type: String
+ *           example: "AB-10_25"
+ *         description: Filter by current arrears band.
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: date
+ *           example: "2024-03-01"
+ *         description: Start date for filtering logs
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: date
+ *           example: "2024-03-31"
+ *         description: End date for filtering logs
+ *       - in: query
+ *         name: pages
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Page number for pagination
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 enum: [Pending FTL LOD, Initial FLT LOD, FTL LOD Settle Pending, FTL LOD Settle Open-Pending, FTL LOD Settle Active]
+ *                 description: Filter by the case current status
+ *               current_arrears_band:
+ *                 type: string
+ *                 example: AB-10_25
+ *                 description: Filter by current arrears band
+ *               date_from:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2024-03-01T00:00:00Z"
+ *                 description: Start date for filtering logs
+ *               date_to:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2024-03-31T23:59:59Z"
+ *                 description: End date for filtering logs
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination
  *     responses:
  *       200:
- *         description: Successfully retrieved the case count grouped by `current_document_type`.
+ *         description: Successfully retrieved FTL LOD cases
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "FTL LOD cases retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         example: 1524
+ *                       account_no:
+ *                         type: string
+ *                         example: ACC123456
+ *                       current_arrears_amount:
+ *                         type: number
+ *                         example: 5200
+ *                       case_current_status:
+ *                         type: string
+ *                         example: "Pending FTL LOD"
+ *                       ftl_lod:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             expire_date:
+ *                               type: string
+ *                               format: date-time
+ *                               example: "2024-06-01T00:00:00Z"
+ *       400:
+ *         description: Invalid case_current_status or other invalid filters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid case_current_status value."
+ *       500:
+ *         description: Internal server error due to database or application failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ */
+
+router.post("/List_FTL_LOD_Cases", List_FTL_LOD_Cases);
+
+/**
+ * @swagger
+ * /api/ftl_lod/Create_Customer_Response:
+ *   post:
+ *     summary: Create a customer response for a given case
+ *     description: |
+ *       Adds a new customer response for the given case. The `case_id`, `created_by`, and `response` are required fields. 
+ *       If the `case_id` is valid and contains an FTL LOD entry, the response will be added to the corresponding case. 
+ *       The response will include a unique sequence number (`response_seq`).
+ *       
+ *       | Version | Date        | Description                                        | Changed By       |
+ *       |---------|-------------|----------------------------------------------------|------------------|
+ *       | 01      | 2025-April-06 | Initial creation of API for adding customer response | Dinusha Anupama   |
+ *
+ *     tags: [FTL LOD Cases]
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         schema:
+ *           type: integer
+ *           example: 1510
+ *         description: The ID of the case the response is associated with.
+ *       - in: query
+ *         name: created_by
+ *         schema:
+ *           type: String
+ *           example: "manager"
+ *         description: The user who created the response.
+ *       - in: query
+ *         name: response
+ *         schema:
+ *           type: String
+ *           example: "Acknowledged the letter"
+ *         description: The actual response to the case
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - created_by
+ *               - response
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 description: The ID of the case the response is associated with.
+ *                 example: 1510
+ *               created_by:
+ *                 type: string
+ *                 description: The user who created the response.
+ *                 example: "manager1"
+ *               response:
+ *                 type: string
+ *                 description: The actual response to the case.
+ *                 example: "Acknowledged the letter"
+ *     responses:
+ *       200:
+ *         description: Customer response added successfully
  *         content:
  *           application/json:
  *             schema:
@@ -49,25 +234,27 @@ router.post("/Retrive_logic", Retrive_logic);
  *                 status:
  *                   type: string
  *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Customer response added successfully."
  *                 data:
  *                   type: object
  *                   properties:
- *                     total_count:
+ *                     response_seq:
  *                       type: integer
- *                       example: 25
- *                     cases:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           document_type:
- *                             type: string
- *                             example: "Final Notice"
- *                           count:
- *                             type: integer
- *                             example: 12
- *       500:
- *         description: Internal server error.
+ *                       example: 3
+ *                     created_by:
+ *                       type: string
+ *                       example: "manager1"
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-06T06:54:51.825Z"
+ *                     response:
+ *                       type: string
+ *                       example: "Acknowledged the letter"
+ *       400:
+ *         description: Missing required fields or invalid request
  *         content:
  *           application/json:
  *             schema:
@@ -78,400 +265,9 @@ router.post("/Retrive_logic", Retrive_logic);
  *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: "Server error while fetching case counts"
- */
-router.get("/F2_selection_cases_count", F2_selection_cases_count);
-
-/**
- * @swagger
- * /api/lod/List_F2_Selection_Cases:
- *   post:
- *     summary:  list of the cases which has the case_current_status as the LIT Prescribed
- *     description: |
- *       Retrieve cases which has the provided `current_document_type` 
- *
- *       | Version | Date        | Description                    | Changed By       |
- *       |---------|-------------|--------------------------------|------------------|
- *       | 01      | 2025-apr-02 | list lod cases                 | Ravindu          |
- *
- *     tags: [SLT LOD]
- *     parameters:
- *       - in: query
- *         name: current_document_type
- *         required: true
- *         schema:
- *           type: string
- *           example: LOD
- *         description: document type to filter cases.
- *       - in: query
- *         name: pages
- *         required: false
- *         schema:
- *           type: Number
- *           example: 1
- *         description: this is the number to limit the retrive data rows
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - current_document_type
- *             properties:
- *               current_document_type:
- *                 type: string
- *                 description: document type to filter cases.
- *                 example: LOD
- *     responses:
- *       200:
- *         description: Cases retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Cases retrieved successfully.
- *                 data:
- *                   type: array
- *                   description: List of retrieved cases.
- *                   items:
- *                     type: object
- *       400:
- *         description: Validation error - Missing required parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: current document type is required.
- *       500:
- *         description: Database or internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Failed to retrieve cases.
- */
-router.post("/List_F2_Selection_Cases", List_F2_Selection_Cases); 
-
-/**
- * @swagger
- * /api/lod/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases:
- *   post:
- *     summary:  Create Task for download all the Lod cases
- *     description: |
- *       Creates a task for download all the Lod cases with no filtering.
- *
- *       | Version | Date        | Description                          | Changed By       |
- *       |---------|-------------|--------------------------------------|------------------|
- *       | 01      | 2025-Apr-02 | Create Task for Lod case download    | Ravindu Pathum   |
- *
- *     tags: [SLT LOD]
- *     parameters:
- *       - in: query
- *         name: Created_By
- *         schema:
- *           type: string
- *           example: "admin_user"
- *         description: User who creates the task.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               Created_By:
- *                 type: string
- *                 example: "admin_user"
- *     responses:
- *       200:
- *         description: Task created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Task created successfully.
- *                 data:
- *                   type: object
- *                   properties:
- *                     Template_Task_Id:
- *                       type: integer
- *                       example: 39
- *                     task_type:
- *                       type: string
- *                       example: Create Task For Downloard All Digital Signature LOD Cases
- *                     case_current_status:
- *                       type: string
- *                       example: "LIT Prescribed"
- *                     Created_By:
- *                       type: string
- *                       example: "admin_user"
- *                     task_status:
- *                       type: string
- *                       example: open
- *       400:
- *         description: Validation error - Missing required parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Created_By is a required parameter.
- *       500:
- *         description: Server error occurred while creating the task.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Internal server error.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     exception:
- *                       type: string
- *                       example: Error details here.
- */
-router.post("/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases", Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases);
-
-/**
- * @swagger
- * /api/lod/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases:
- *   post:
- *     summary:  Create Task for download the Lod cases which has given current_document_type
- *     description: |
- *       Create Task for download the Lod cases which has given current_document_type
- *
- *       | Version | Date        | Description                          | Changed By       |
- *       |---------|-------------|--------------------------------------|------------------|
- *       | 01      | 2025-Apr-02 | Create Task for Lod case download    | Ravindu Pathum   |
- *
- *     tags: [SLT LOD]
- *     parameters:
- *       - in: query
- *         name: Created_By
- *         schema:
- *           type: string
- *           example: "admin_user"
- *         description: User who creates the task.
- *       - in: query
- *         name: current_document_type
- *         schema:
- *           type: string
- *           example: "LOD"
- *         description: The current_document_type of the cases thats wants to download. 
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               Created_By:
- *                 type: string
- *                 example: "admin_user"
- *               current_document_type:
- *                 type: string
- *                 example: "LOD"
- *     responses:
- *       200:
- *         description: Task created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Task created successfully.
- *                 data:
- *                   type: object
- *                   properties:
- *                     Template_Task_Id:
- *                       type: integer
- *                       example: 39
- *                     task_type:
- *                       type: string
- *                       example: Create Task For Downloard All Digital Signature LOD Cases
- *                     case_current_status:
- *                       type: string
- *                       example: "LIT Prescribed"
- *                     Created_By:
- *                       type: string
- *                       example: "admin_user"
- *                     task_status:
- *                       type: string
- *                       example: open
- *       400:
- *         description: Validation error - Missing required parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Created_By is a required parameter.
- *       500:
- *         description: Server error occurred while creating the task.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Internal server error.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     exception:
- *                       type: string
- *                       example: Error details here.
- */
-router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases);
-
-/**
- * @swagger
- * /api/lod/Change_Document_Type:
- *   post:
- *     summary:  Change the Change_Document_Type of the Cases
- *     description: |
- *       Change the Change_Document_Type of the Cases
- *
- *       | Version | Date        | Description                    | Changed By       |
- *       |---------|-------------|--------------------------------|------------------|
- *       | 01      | 2025-apr-02 | list lod cases                 | Ravindu          |
- *
- *     tags: [SLT LOD]
- *     parameters:
- *       - in: query
- *         name: current_document_type
- *         required: true
- *         schema:
- *           type: string
- *           example: LOD
- *         description: document type to filter cases.
- *       - in: query
- *         name: case_id
- *         required: true
- *         schema:
- *           type: number
- *           example: 1
- *         description: this is the case id 
- *       - in: query
- *         name: Created_By
- *         required: true
- *         schema:
- *           type: string
- *           example: Admin
- *         description: this is one who change the Change_Document_Type 
- *       - in: query
- *         name: changed_type_remark
- *         required: true
- *         schema:
- *           type: string
- *           example: any things
- *         description: this is comment to that change 
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               case_id:
- *                 type: number
- *                 example: 1
- *                 description: The ID of the case to update.
- *               current_document_type:
- *                 type: string
- *                 enum: ["LOD", "Final Reminder"]
- *                 example: "LOD"
- *                 description: The current document type of the case.
- *               Created_By:
- *                 type: string
- *                 example: "Admin"
- *                 description: The user making the change.
- *               changed_type_remark:
- *                 type: string
- *                 example: "Updated due to new regulations."
- *                 description: A remark explaining the change.
- *     responses:
- *       200:
- *         description: Case document type updated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Cases updated successfully.
- *                 data:
- *                   type: object
- *                   description: Updated case details.
- *       400:
- *         description: Validation error - Missing required parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: All parameters are required.
+ *                   example: "case_id, created_by, and response are required."
  *       404:
- *         description: Case not found.
+ *         description: Case not found or FTL LOD not found for the case
  *         content:
  *           application/json:
  *             schema:
@@ -479,12 +275,12 @@ router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Creat
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: Case is not found with that case ID.
+ *                   example: "FTL LOD not found for this case."
  *       500:
- *         description: Database or internal server error.
+ *         description: Internal server error
  *         content:
  *           application/json:
  *             schema:
@@ -492,14 +288,13 @@ router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Creat
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: An error occurred while updating the case.
+ *                   example: "Internal server error."
  */
-router.post("/Change_Document_Type", Change_Document_Type);
 
-router.post("/Create_LOD_List",Create_LOD_List);
+router.post("/Create_Customer_Response", Create_Customer_Response);
 
 
 export default router;

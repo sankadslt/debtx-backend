@@ -1,19 +1,18 @@
 /* 
-    Purpose: This template is used for the LOD Controllers.
-    Created Date: 2025-04-01
-    Created By:  Ravindu Pathum(ravindupathumiit@gmail.com)
+    Purpose: This template is used for the FTL LOD Route.
+    Created Date: 2025-04-03
+    Created By:  Dinusha Anupama (dinushanupama@gmail.com)
     Last Modified Date: 2025-04-01
-    Modified By: Ravindu Pathum (ravindupathumiit@gmail.com)
+    Modified By: Dinusha Anupama (dinushanupama@gmail.com)
     Version: Node.js v20.11.1
     Dependencies: axios , mongoose
-    Related Files: Case_route.js
+    Related Files: FTL_LOD_route.js
     Notes:  
 */
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import mongoose from "mongoose";
-import { createTaskFunction } from "../services/TaskService.js";
 
 
 /*  This is the function with the data retriving logic. first time load the 10 rows and second time load next 30 rows
@@ -53,313 +52,173 @@ export const Retrive_logic = async (req, res) => {
     }
 };
 
-export const F2_selection_cases_count = async (req, res) => {
-    try {
-        const case_counts = await Case_details.aggregate([
-            {
-                $match: { case_current_status: "LIT Prescribed" }
-            },
-            {
-                $group: {
-                    _id: "$lod_final_reminder.current_document_type", // No need for $arrayElemAt
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    total_count: { $sum: "$count" },
-                    cases: { $push: { document_type: "$_id", count: "$count" } }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    total_count: 1,
-                    cases: 1
-                }
-            }
-        ]).exec();
-        return res.status(200).json({
-            status: "success",
-            data: case_counts.length > 0 ? case_counts[0] : { total_count: 0, cases: [] }
-        });
-    }catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Server error while fetching case counts"
-        });
-    }
-};
 
-export const List_F2_Selection_Cases = async (req, res) => {
-    try {
-        const { current_document_type, pages } = req.body;
-
-        if (!current_document_type) {
-            return res.status(400).json({
-                status: "error",
-                message: "current document type is required."
-            });
-        }
-        let page = Number(pages);
-        if (isNaN(page) || page < 1) page = 1;
-        // Define pagination limits
-        const limit = page === 1 ? 10 : 30;
-        const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
-        // Fetch cases from database
-        const Lod_cases = await Case_details.find({ 'lod_final_reminder.current_document_type': current_document_type })
-            .skip(skip)
-            .limit(limit)
-            .sort({ case_id: -1 });
-
-        res.status(200).json({
-            status: "success",
-            message: "Cases retrieved successfully.",
-            data: Lod_cases,
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: "error",
-            message: error.message,
-        });
-    }
-};
-
-export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { Created_By } = req.body;
-
-    if (!Created_By) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        status: "error",
-        message: "Created_By is a required parameter.",
-      });
-    }
-
-    // Flatten the parameters structure
-    const parameters = {
-      case_current_status : "LIT Prescribed",
-      Created_By,
-      task_status: "open"
-    };
-
-    // Pass parameters directly (without nesting it inside another object)
-    const taskData = {
-      Template_Task_Id: 39,
-      task_type: "Create Task For Downloard All Digital Signature LOD Cases",
-      ...parameters, 
-    };
-
-    // Call createTaskFunction
-    await createTaskFunction(taskData, session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      status: "success",
-      message: "Task created successfully.",
-      data: taskData,
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(500).json({
-      status: "error",
-      message: error.message || "Internal server error.",
-      errors: {
-        exception: error.message,
-      },
-    });
-  }
-};
-
-export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases = async (req, res) => {
+export const List_FTL_LOD_Cases = async (req, res) => {
     const session = await mongoose.startSession();
-    session.startTransaction();
   
     try {
-      const { Created_By, current_document_type } = req.body;
+      session.startTransaction();
   
-      if (!Created_By || !current_document_type) {
+      const {
+        case_current_status,
+        current_arrears_band,
+        date_from,
+        date_to,
+        pages
+      } = req.body;
+  
+      const validStatuses = [
+        "Pending FTL LOD",
+        "Initial FLT LOD",
+        "FTL LOD Settle Pending",
+        "FTL LOD Settle Open-Pending",
+        "FTL LOD Settle Active"
+      ];
+  
+      if (case_current_status && !validStatuses.includes(case_current_status)) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({
           status: "error",
-          message: "created by and current document type are required parameters.",
+          message: "Invalid case_current_status value."
         });
       }
   
-      // Flatten the parameters structure
-      const parameters = {
-        case_current_status : "LIT Prescribed",
-        current_document_type,
-        Created_By,
-        task_status: "open"
-      };
+      let page = Number(pages);
+      if (isNaN(page) || page < 1) page = 1;
   
-      // Pass parameters directly (without nesting it inside another object)
-      const taskData = {
-        Template_Task_Id: 40,
-        task_type: "Create Task For Downloard Each Digital Signature LOD Cases",
-        ...parameters, 
-      };
+      const limit = page === 1 ? 10 : 30;
+      const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
   
-      // Call createTaskFunction
-      await createTaskFunction(taskData, session);
+      const matchQuery = {};
+  
+      if (case_current_status) {
+        matchQuery.case_current_status = case_current_status;
+      }
+  
+      if (current_arrears_band) {
+        matchQuery.current_arrears_band = current_arrears_band;
+      }
+  
+      if (date_from || date_to) {
+        matchQuery.created_dtm = {};
+        if (date_from) matchQuery.created_dtm.$gte = new Date(date_from);
+        if (date_to) matchQuery.created_dtm.$lte = new Date(date_to);
+      }
+  
+      const result = await Case_details.aggregate([
+        { $match: matchQuery },
+        { $sort: { case_id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            _id: 0,
+            case_id: 1,
+            case_current_status: 1,
+            account_no: 1,
+            current_arrears_amount: 1,
+            ftl_lod: {
+              $map: {
+                input: {
+                  $sortArray: {
+                    input: {
+                      $filter: {
+                        input: "$ftl_lod",
+                        as: "lod",
+                        cond: { $ifNull: ["$$lod.expire_date", false] }
+                      }
+                    },
+                    sortBy: { expire_date: 1 }
+                  }
+                },
+                as: "item",
+                in: { expire_date: "$$item.expire_date" }
+              }
+            }
+          }
+        }
+      ]).session(session);
   
       await session.commitTransaction();
       session.endSession();
   
-      return res.status(200).json({
+      res.status(200).json({
         status: "success",
-        message: "Task created successfully.",
-        data: taskData,
+        message: "FTL LOD cases retrieved successfully.",
+        data: result
       });
+  
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
+      res.status(500).json({
+        status: "error",
+        message: error.message
+      });
+    }
+  };
+
+
+  export const Create_Customer_Response = async (req, res) => {
+    try {
+      const { case_id, created_by, response } = req.body;
+  
+      if (!case_id || !created_by || !response) {
+        return res.status(400).json({
+          status: "error",
+          message: "case_id, created_by, and response are required.",
+        });
+      }
+  
+      // Find the case and ensure ftl_lod exists
+      const caseDoc = await Case_details.findOne({ case_id });
+  
+      if (!caseDoc || !Array.isArray(caseDoc.ftl_lod) || caseDoc.ftl_lod.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "FTL LOD not found for this case.",
+        });
+      }
+  
+      // Get current customer_response length for response_seq
+      const currentResponses = caseDoc.ftl_lod[0].customer_response || [];
+      const response_seq = currentResponses.length + 1;
+  
+      const newResponse = {
+        response_seq,
+        created_by,
+        created_on: new Date(),
+        response,
+      };
+  
+      // Update using positional operator to push into the correct nested array
+      await Case_details.updateOne(
+        { case_id },
+        { $push: { "ftl_lod.0.customer_response": newResponse } }
+      );
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Customer response added successfully.",
+        data: newResponse,
+      });
+  
+    } catch (error) {
+      console.error(error);
       return res.status(500).json({
         status: "error",
-        message: error.message || "Internal server error.",
-        errors: {
-          exception: error.message,
-        },
+        message: error.message,
       });
     }
-};
-
-export const Change_Document_Type = async (req, res) => {
-    try {
-        const { case_id, current_document_type, Created_By, changed_type_remark } = req.body;
-
-        if (!case_id || !current_document_type || !Created_By || !changed_type_remark) {
-            return res.status(400).json({
-                status: "error",
-                message: "All parammeters are required."
-            });
-        }
-        const Lod_cases = await Case_details.findOne({case_id});
-        let next_document_type;
-        if (current_document_type === "LOD") {
-            next_document_type = "Final Reminder";
-        }
-        else if (current_document_type === "Final Reminder") {
-            next_document_type = "LOD";
-        } 
-        if(!Lod_cases){
-            return res.status(404).json({
-                status: "error",
-                message: "Case is not found with that case id"
-            });
-        }
-
-        const last_document_seq = Lod_cases.lod_final_reminder.document_type.length > 0 
-            ? Lod_cases.lod_final_reminder.document_type[Lod_cases.lod_final_reminder.document_type.length - 1].document_seq 
-            : 0;
-
-        const updatedCase = await Case_details.findOneAndUpdate(
-            { case_id },
-            {
-              $set: {
-                'lod_final_reminder.current_document_type':next_document_type,
-              },
-              $push: {
-                'lod_final_reminder.document_type': {
-                    document_seq: last_document_seq + 1,
-                    document_type: next_document_type,
-                    change_by: Created_By,
-                    changed_dtm: new Date(),
-                    changed_type_remark,
-                },
-              },
-            },
-            { new: true, runValidators: true }
-          );
-        res.status(200).json({
-            status: "success",
-            message: "Cases updated successfully.",
-            data: updatedCase,
-        });
-
-    }catch (error) {
-        res.status(500).json({
-            status: "error",
-            message: error.message,
-        });
-    }
-};
-
-export const Create_LOD_List = async (req, res) => {
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-      const { Created_By, Case_count, current_document_type } = req.body;
+  };
   
-      if (!Created_By || !current_document_type || !Case_count) {
-        await session.abortTransaction();
-        await session.endSession();
-        return res.status(400).json({
-          status: "error",
-          message: "All parameters are required parameters.",
-        });
-      }
-      const existingTask = await mongo.collection("System_tasks").findOne({
-        task_status: { $ne: "Complete" },
-        "parameters.current_document_type": current_document_type,
-      });
-      if (existingTask) {
-        await session.abortTransaction();
-        await session.endSession();
-        return res.status(400).json({
-          status: "error",
-          message: "Already has not complete tasks with this current_document_type ",
-        });
-      }
-      // Flatten the parameters structure
-      const parameters = {
-        case_current_status : "LIT Prescribed",
-        current_document_type,
-        Created_By,
-        task_status: "open"
-      };
   
-      // Pass parameters directly (without nesting it inside another object)
-      const taskData = {
-        Template_Task_Id: 41,
-        task_type: "Create_LOD_List",
-        ...parameters, 
-      };
   
-      // Call createTaskFunction
-      await createTaskFunction(taskData, session);
   
-      await session.commitTransaction();
-      await session.endSession();
   
-      return res.status(201).json({
-        status: "success",
-        message: "Task created successfully.",
-        data: taskData,
-      });
-    } catch (error) {
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
-        await session.endSession();
-        return res.status(500).json({
-            status: "error",
-            message: error.message || "Internal server error",
-            errors: {
-                exception: error.message,
-            },
-        });
-    }
-};
+  
+  
+  
+  
+  

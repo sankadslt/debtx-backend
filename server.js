@@ -35,7 +35,9 @@ import tmpSLTApprovalRouter from "./routes/Tmp_SLT_Approval_routes.js";
 import MoneyTransactionRouter from "./routes/Money_Transaction_route.js";
 import fileDownloadRouter from "./routes/File_Download_Log_route.js"
 import SettlementRouter from "./routes/Settlement_route.js";
-import LodRoutes from "./routes/FTL_LOD_route.js";
+import litigationRouter from "./routes/Litigation_route.js";
+import LodRoutes from "./routes/LOD_route.js";
+import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 // Load environment variables
 config();
 
@@ -69,6 +71,8 @@ app.use("/api/settlement", SettlementRouter);
 app.use("/api/commission", commissionRouter);
 app.use("/api/file", fileDownloadRouter );
 app.use("/api/lod",LodRoutes);
+app.use("/api/litigation", litigationRouter);
+app.use("/api/ftl_lod",FTL_LODRoutes);
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -2204,6 +2204,11 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
         let filter = {};
 
+        // Ensure at least one filter is present; otherwise, return an empty array
+        if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
+            return res.status(200).json([]); // No filters provided, return an empty result
+        }
+
         // Filter based on date range
         if (date_from && date_to) {
             filter.created_dtm = { $gte: new Date(date_from), $lte: new Date(date_to) };

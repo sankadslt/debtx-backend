@@ -6963,7 +6963,7 @@ router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
+ *           example: 12
  *         description: Unique identifier for the case.
  *       - in: query
  *         name: drc_id
@@ -7461,7 +7461,7 @@ router.post(
 
 /**
  * @swagger
- * /api/case/mediation-board:
+ * /api/case/mediation_board:
  *   post:
  *     summary: xxxx Mediation Board Processing
  *     description: |
