@@ -615,5 +615,144 @@ router.post("/Change_Document_Type", Change_Document_Type);
  */
 router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_for_Proceed_LOD_OR_Final_Reminder_List);
 
+/**
+ * @swagger
+ * /api/lod/List_Final_Reminder_Lod_Cases:
+ *   post:
+ *     summary:  Retrive the lod and final reminder case list which has the give status
+ *     description: |
+ *       Change the Change_Document_Type of the Cases
+ *
+ *       | Version | Date        | Description                    | Changed By       |
+ *       |---------|-------------|--------------------------------|------------------|
+ *       | 01      | 2025-apr-09 |list lod and final reminder cases| Ravindu          |
+ *
+ *     tags: [SLT LOD]
+ *     parameters:
+ *       - in: query
+ *         name: current_document_type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: LOD
+ *         description: document type to filter cases.
+ *       - in: query
+ *         name: case_status
+ *         required: false
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: this is the case current status 
+ *       - in: query
+ *         name: date_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: Admin
+ *         description: this is the type of the date how can filter 
+ *       - in: query
+ *         name: date_to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "2025-03-31"
+ *         description: the last date of the range to filter
+ *       - in: query
+ *         name: date_from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "2025-03-31"
+ *         description: the first date of the range to filter 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               current_document_type:
+ *                 type: string
+ *                 enum: ["LOD", "Final Reminder"]
+ *                 example: "LOD"
+ *                 description: Document type to filter cases
+ *               case_status:
+ *                 type: string
+ *                 enum: ["Initial LOD", "LOD Settle Pending", "LOD Settle Open-Pending", "LOD Settle Active"]
+ *                 example: "Initial LOD"
+ *                 description: Specific case status to filter (optional)
+ *               date_type:
+ *                 type: string
+ *                 enum: ["created_date", "expiry_date", "last_response_date"]
+ *                 example: "created_date"
+ *                 description: Type of date to filter by (optional)
+ *               date_from:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-01"
+ *                 description: Start date for filtering (YYYY-MM-DD, optional)
+ *               date_to:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-03-31"
+ *                 description: End date for filtering (YYYY-MM-DD, optional)
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination (defaults to 1)
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: string
+ *                       case_current_status:
+ *                         type: string
+ *                       lod_final_reminder:
+ *                         type: object
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "Invalid date_type. Must be one of: created_date, expiry_date, last_response_date"
+ *                     - "There should be at least one parameters, date_from or date_to"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: There is an error
+ */
 router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
 export default router;
