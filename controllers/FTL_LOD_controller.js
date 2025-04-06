@@ -158,6 +158,62 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       });
     }
   };
+
+
+  export const Create_Customer_Response = async (req, res) => {
+    try {
+      const { case_id, created_by, response } = req.body;
+  
+      if (!case_id || !created_by || !response) {
+        return res.status(400).json({
+          status: "error",
+          message: "case_id, created_by, and response are required.",
+        });
+      }
+  
+      // Find the case and ensure ftl_lod exists
+      const caseDoc = await Case_details.findOne({ case_id });
+  
+      if (!caseDoc || !Array.isArray(caseDoc.ftl_lod) || caseDoc.ftl_lod.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "FTL LOD not found for this case.",
+        });
+      }
+  
+      // Get current customer_response length for response_seq
+      const currentResponses = caseDoc.ftl_lod[0].customer_response || [];
+      const response_seq = currentResponses.length + 1;
+  
+      const newResponse = {
+        response_seq,
+        created_by,
+        created_on: new Date(),
+        response,
+      };
+  
+      // Update using positional operator to push into the correct nested array
+      await Case_details.updateOne(
+        { case_id },
+        { $push: { "ftl_lod.0.customer_response": newResponse } }
+      );
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Customer response added successfully.",
+        data: newResponse,
+      });
+  
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+  };
+  
+  
   
   
   
