@@ -325,7 +325,6 @@ const caseDetailsSchema = new Schema({
   customer_name: { type: String, required: true },
   customer_type_name: { type: String, required: true },
   account_manager_code : { type: String, required: true },
-  billing_centre : {type: String, required: true},
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
