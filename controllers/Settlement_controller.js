@@ -130,7 +130,7 @@ export const ListAllSettlementCases = async (req, res) => {
 };
 
 
-// (SET-2P02) This function retreves Case and Case_Settlement data from getting settlement_id from the settlement array in case.
+
 export const Case_Details_Settlement_Phase_v2 = async (req, res) => {
   try {
     const { case_id } = req.body;
@@ -178,7 +178,7 @@ export const Case_Details_Settlement_Phase_v2 = async (req, res) => {
   }
 };
 
-
+// (SET-2P02) This function retreves Case and Case_Settlement data from getting settlement_id from the settlement array in case.
 export const Case_Details_Settlement_Phase = async (req, res) => {
   try {
     const { case_id } = req.body;
