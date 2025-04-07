@@ -16,7 +16,7 @@ import {
   Case_Details_Settlement_Phase,
 } from "../controllers/Settlement_controller.js";
 import {
-  Case_Details_Settlement_Phase_v2,
+  Case_Details_Settlement_LOD_FTL_LOD,
 } from "../controllers/Settlement_controller.js";
 
 
@@ -314,6 +314,6 @@ router.post("/List_All_Settlement_Cases", ListAllSettlementCases);
 
 router.post("/Case_Details_Settlement_Phase", Case_Details_Settlement_Phase);
 
-router.post("/Case_Details_Settlement_Phase_v2", Case_Details_Settlement_Phase_v2);
+router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_FTL_LOD);
 
 export default router;
