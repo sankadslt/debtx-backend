@@ -379,7 +379,17 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
           "LOD Settle Pending",
           "LOD Settle Open-Pending",
           "LOD Settle Active",
+          "Final Reminder",
+          "Final Reminder Settle Pending",
+          "Final Reminder Settle Open-Pending",
+          "Final Reminder Settle Active",
       ];
+      if (!current_document_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "The current document type is required ",
+        });
+      }
       if (!case_status && !date_type) {
         return res.status(400).json({
           status: "error",
