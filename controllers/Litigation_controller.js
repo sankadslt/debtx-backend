@@ -141,13 +141,32 @@ export const ListAllLitigationCases = async (req, res) => {
             });
         }
 
+        // Use Promise.all to handle asynchronous operations
+        const formattedCases = await Promise.all(
+            cases.map(async (caseData) => {
+                const lastLitigation = caseData.litigation[caseData.litigation.length - 1];
+                const lastLitigationSubmission = lastLitigation.legal_submission[lastLitigation.legal_submission.length - 1];
+
+                const lastSettlement = caseData.settlement[caseData.settlement.length - 1]; 
+    
+            return {
+                case_id: caseData.case_id,
+                status: caseData.case_current_status,
+                account_no: caseData.account_no,
+                current_arreas_amount: caseData.current_arrears_amount,
+                legal_accepted_date: lastLitigationSubmission.submission_on,
+                settlement_created_date: lastSettlement.settlement_created_dtm,
+            };
+            })
+        );
+
         // Return paginated response
         return res.status(200).json({
             status: "success",
             message: "Cases retrieved successfully.",
             current_page: page,
             total_cases: totalCount,
-            data: cases,
+            data: formattedCases,
         });
 
     } catch (error) {
@@ -162,3 +181,83 @@ export const ListAllLitigationCases = async (req, res) => {
         });
     }
 };
+
+export const createLitigationDocument = async (req, res) => {
+    try {
+        const {
+            case_id,
+            rtom_customer_file_status,
+            rtom_file_status_by,
+            rtom_pages_count,
+            drc_file_status,
+            drc_file_status_by,
+            drc_pages_count,
+        } = req.body;
+
+        if (!case_id || !rtom_customer_file_status || !drc_file_status || !rtom_file_status_by || !drc_file_status_by) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required fields.",
+                errors: {
+                    code: 400,
+                    description: "case_id, rtom_customer_file_status, drc_file_status, rtom_file_status_by, drc_file_status_by are required.",
+                },
+            });
+        }
+
+        const rtomDocument = {
+            file_status: rtom_customer_file_status,
+            file_status_on: new Date(),
+            file_status_by: rtom_file_status_by,
+            pages_count: rtom_pages_count,
+        };
+
+        const drcDocument = {
+            file_status: drc_file_status,
+            file_status_on: new Date(),
+            file_status_by: drc_file_status_by,
+            pages_count: drc_pages_count,
+        };
+
+        const updatedCase = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            {
+                $push: {
+                    "litigation.0.support_documents.rtom_customer_file": rtomDocument,
+                    "litigation.0.support_documents.drc_file": drcDocument,
+                },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation document created successfully.",
+            data: updatedCase,
+        });
+
+    } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while creating the litigation document.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+};
+
+

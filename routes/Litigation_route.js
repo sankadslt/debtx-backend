@@ -12,10 +12,15 @@
 
 import { Router } from "express";
 
-import { ListAllLitigationCases } from "../controllers/Litigation_controller.js";
+import { 
+    ListAllLitigationCases,
+    createLitigationDocument,
+ } from "../controllers/Litigation_controller.js";
 
 const router = Router();
 
 router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
+
+router.patch( "/Create_Litigation_Document", createLitigationDocument );
 
 export default router;
