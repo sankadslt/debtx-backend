@@ -182,16 +182,16 @@ const moneytransactionsschema = new Schema({
 // Define the schema and sub-schemas for litigation schema
 const rtomCustomerFileSchema = new Schema({
   file_status: { type: String, required: true, enum: ['Requested', 'Collected', 'Without Agreement'] },
-  file_status_on: { type: Date, required: true },
-  file_status_by: { type: String, required: true },
-  pages_count: { type: Number, required: true },
+  file_status_on: { type: Date },
+  file_status_by: { type: String },
+  pages_count: { type: Number },
 });
 
 const drcFileSchema = new Schema({
   file_status: { type: String, required: true, enum: ['Requested', 'Collected'] },
-  file_status_on: { type: Date, required: true },
-  file_status_by: { type: String, required: true },
-  pages_count: { type: Number, required: true },
+  file_status_on: { type: Date },
+  file_status_by: { type: String },
+  pages_count: { type: Number },
 });
 
 const supportDocumentsSchema = new Schema({
