@@ -21,6 +21,7 @@ import { Retrive_logic,
          Change_Document_Type,
          Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
          List_Final_Reminder_Lod_Cases,
+         creat_Customer_Responce,
         } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
@@ -755,4 +756,7 @@ router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_fo
  *                   example: There is an error
  */
 router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
+
+router.post("/Creat_Customer_Responce",creat_Customer_Responce);
+
 export default router;

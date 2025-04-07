@@ -377,7 +377,18 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
           "LOD Settle Open-Pending",
           "LOD Settle Active",
       ];
-
+      if (!case_status && !date_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "There should be at least one parameter case status or date type ",
+        });
+      }
+      if (date_type && (!date_from && !date_to)) {
+        return res.status(400).json({
+          status: "error",
+          message: "There should be at least one parameter date from or date to ",
+        });
+      }
       let page = Number(pages);
       if (isNaN(page) || page < 1) page = 1;
       const limit = page === 1 ? 10 : 30;
@@ -410,9 +421,9 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
         if (date_from) dateFilter.$gte = new Date(date_from);
         if (date_to) dateFilter.$lte = new Date(date_to);
         if (!date_from && !date_to){
-          res.status(400).json({
+          return res.status(400).json({
             status: "error",
-            message: "There should be at least one parameters, date_from or date_to",
+            message: "There should be at least one parameter, date_from or date_to",
           });
         }
         if (Object.keys(dateFilter).length > 0) {
@@ -435,6 +446,52 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
       res.status(500).json({
         status: "error",
         message: "There is an error "
+      });
+  }
+};
+
+export const creat_Customer_Responce = async (req, res) => {
+  try {
+      const { case_id, customer_responce, remark, created_by } = req.body;
+
+      if (!case_id || !customer_responce || !created_by) {
+          return res.status(400).json({
+              status: "error",
+              message: "All parammeters are required."
+          });
+      }
+      const Lod_cases = await Case_details.findOne({case_id});
+      const last_responce_seq = Lod_cases.lod_final_reminder.lod_response.length > 0 
+          ? Lod_cases.lod_final_reminder.lod_response[Lod_cases.lod_final_reminder.lod_response.length - 1].lod_response_seq 
+          : 0;
+      const updatedCase = await Case_details.findOneAndUpdate(
+          { case_id },
+          {
+            $push: {
+              'lod_final_reminder.lod_response': {
+                  lod_response_seq: last_responce_seq + 1,
+                  response_type: customer_responce,
+                  lod_remark: remark,
+                  created_by,
+                  created_on : new Date(),
+              },
+            },
+          },
+          { new: true,
+            runValidators: true,
+            fields: { 'lod_final_reminder.lod_response': 1 }
+          }
+      );
+      res.status(200).json({
+          status: "success",
+          message: "Cases updated successfully.",
+          data: updatedCase,
+      });
+  }catch(error) 
+  {
+      res.status(500).json({
+          status: "error",
+          message: error.message,
       });
   }
 };
