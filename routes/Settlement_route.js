@@ -15,6 +15,11 @@ import {
 import {
   Case_Details_Settlement_Phase,
 } from "../controllers/Settlement_controller.js";
+import {
+  Case_Details_Settlement_Phase_v2,
+} from "../controllers/Settlement_controller.js";
+
+
 
 const router = Router();
 
@@ -308,5 +313,7 @@ router.post("/List_All_Settlement_Cases", ListAllSettlementCases);
 
 
 router.post("/Case_Details_Settlement_Phase", Case_Details_Settlement_Phase);
+
+router.post("/Case_Details_Settlement_Phase_v2", Case_Details_Settlement_Phase_v2);
 
 export default router;

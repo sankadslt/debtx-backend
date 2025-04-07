@@ -104,6 +104,8 @@ const productDetailsSchema = new Schema({
   rtom: { type: String, required: true },
   product_ownership: { type: String, required: true },
   service_address: { type: String, required: true },
+  account_no: { type: String, required: true}
+
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
@@ -248,7 +250,7 @@ const litigationSchema = new Schema({
 const FLT_LOD_letter_details_schema = new Schema({
   created_on: {type: Date, required:true},
   created_by:{type: String, required:true},
-  tele_no: {type:String, required:true},
+  event_source: {type:String, required:true},
   customer_name: {type:String, required:true},
   postal_address: {type:Array, required:true},
 },{_id: false });
