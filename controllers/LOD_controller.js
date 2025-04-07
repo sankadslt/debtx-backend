@@ -36,6 +36,8 @@ export const Retrive_logic = async (req, res) => {
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
         const query = status ? {case_current_status: status} : {};
+        // Fetch the total count of cases that match the filter criteria (without pagination)
+        const totalCount = await Case_details.countDocuments(query);
         const distributions = await Case_details.find(query)
             .skip(skip)
             .limit(limit)
@@ -44,6 +46,7 @@ export const Retrive_logic = async (req, res) => {
             status:"success",
             message: "Cases retrieved successfully.",
             data: distributions,
+            total_cases: totalCount,
         });
     } catch (error) {
         res.status(500).json({
