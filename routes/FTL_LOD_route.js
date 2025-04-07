@@ -16,6 +16,8 @@ const router = Router();
 import { Retrive_logic} from "../controllers/FTL_LOD_controller.js";
 import { List_FTL_LOD_Cases} from "../controllers/FTL_LOD_controller.js";
 import { Create_Customer_Response} from "../controllers/FTL_LOD_controller.js";
+import { FLT_LOD_Case_Details} from "../controllers/FTL_LOD_controller.js";
+
 
 
 
@@ -295,6 +297,8 @@ router.post("/List_FTL_LOD_Cases", List_FTL_LOD_Cases);
  */
 
 router.post("/Create_Customer_Response", Create_Customer_Response);
+
+router.post("/FLT_LOD_Case_Details", FLT_LOD_Case_Details);
 
 
 export default router;

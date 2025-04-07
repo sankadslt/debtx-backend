@@ -212,6 +212,10 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       });
     }
   };
+
+  export const FLT_LOD_Case_Details = async (req, res) => {
+
+  };
   
   
   
