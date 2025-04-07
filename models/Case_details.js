@@ -321,6 +321,8 @@ const caseDetailsSchema = new Schema({
   case_distribution_batch_id: {type: Number, default: null},
   account_no: { type: String, required: true },
   customer_name: { type: String, required: true },
+  customer_type_name: { type: String, required: true },
+  account_manager_code : { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
