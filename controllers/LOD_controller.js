@@ -24,7 +24,7 @@ export const Retrive_logic = async (req, res) => {
     try {
         const { status, pages } = req.body;
         if (!status) {
-            res.status(400).json({
+            return res.status(400).json({
                 status:"error",
                 message: "All fields are required."
             });
@@ -36,17 +36,20 @@ export const Retrive_logic = async (req, res) => {
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
         const query = status ? {case_current_status: status} : {};
+        // Fetch the total count of cases that match the filter criteria (without pagination)
+        const totalCount = await Case_details.countDocuments(query);
         const distributions = await Case_details.find(query)
             .skip(skip)
             .limit(limit)
             .sort({ case_id: -1 });
-        res.status(200).json({
+        return res.status(200).json({
             status:"success",
             message: "Cases retrieved successfully.",
             data: distributions,
+            total_cases: totalCount,
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status:"error",
             message: error.message,
         });
@@ -109,18 +112,19 @@ export const List_F2_Selection_Cases = async (req, res) => {
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
         // Fetch cases from database
         const Lod_cases = await Case_details.find({ 'lod_final_reminder.current_document_type': current_document_type })
+            .select('case_id current_arrears_amount rtom customer_name lod_final_reminder')
             .skip(skip)
             .limit(limit)
             .sort({ case_id: -1 });
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Cases retrieved successfully.",
             data: Lod_cases,
         });
 
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: error.message,
         });
@@ -247,7 +251,12 @@ export const Change_Document_Type = async (req, res) => {
             });
         }
         const Lod_cases = await Case_details.findOne({case_id});
-        
+        if(!Lod_cases){
+          return res.status(404).json({
+            status: "error",
+            message: "Case has not found with this case_id."
+        });
+        };
         let next_document_type;
         if (current_document_type === "LOD") {
             next_document_type = "Final Reminder";
@@ -260,7 +269,7 @@ export const Change_Document_Type = async (req, res) => {
         const last_document_seq = Lod_cases.lod_final_reminder.document_type.length > 0 
             ? Lod_cases.lod_final_reminder.document_type[Lod_cases.lod_final_reminder.document_type.length - 1].document_seq 
             : 0;
-
+        console.log("this is the log ", last_document_seq);
         const updatedCase = await Case_details.findOneAndUpdate(
             { case_id },
             {
@@ -279,14 +288,14 @@ export const Change_Document_Type = async (req, res) => {
             },
             { new: true, runValidators: true }
           );
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Cases updated successfully.",
             data: updatedCase,
         });
 
     }catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: error.message,
         });
@@ -362,164 +371,58 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
     }
 };
 
-export const List_Lod_Cases3 = async (req, res) => {    
+export const List_Final_Reminder_Lod_Cases = async (req, res) => {
   try {
-    const { case_status, date_type, date_from, date_to } = req.query;
-
-    // Validate at least one filter parameter is provided
-    if (!case_status && !date_type) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filter parameter (case_status or date_type) is required"
-      });
-    }
-
-    // Build the query dynamically
-    const query = {};
-
-    if (case_status) {
-      query.case_status = case_status;
-    }
-
-    if (date_type) {
-      let dateField;
-      
-      // Determine which field to filter based on date_type
-      switch(date_type) {
-        case 'created_date':
-          dateField = 'lod_final_reminder.lod_submission.created_on';
-          break;
-        case 'expiry_date':
-          dateField = 'lod_final_reminder.lod_expire_on';
-          break;
-        case 'last_response_date':
-          // Special handling for array's last element
-          dateField = 'lod_final_reminder.lod_response.created_on';
-          break;
-        default:
-          return res.status(400).json({
-            status: "error",
-            message: "Invalid date_type. Must be one of: created_date, expiry_date, last_response_date"
-          });
-      }
-
-      // Initialize date filter
-      const dateFilter = {};
-
-      if (date_from) {
-        if (isNaN(Date.parse(date_from))) {
-          return res.status(400).json({
-            status: "error",
-            message: "Invalid date_from format"
-          });
-        }
-        dateFilter.$gte = new Date(date_from);
-      }
-
-      if (date_to) {
-        if (isNaN(Date.parse(date_to))) {
-          return res.status(400).json({
-            status: "error",
-            message: "Invalid date_to format"
-          });
-        }
-        dateFilter.$lte = new Date(date_to);
-      }
-
-      // Special handling for last_response_date in array
-      if (date_type === 'last_response_date') {
-        query.$expr = {
-          $let: {
-            vars: {
-              lastResponse: { $arrayElemAt: ['$lod_final_reminder.lod_response', -1] }
-            },
-            in: {
-              $and: [
-                { $ne: ['$$lastResponse', null] },
-                ...(date_from ? [{ $gte: ['$$lastResponse.created_on', new Date(date_from)] }] : []),
-                ...(date_to ? [{ $lte: ['$$lastResponse.created_on', new Date(date_to)] }] : [])
-              ]
-            }
-          }
-        };
-      } else {
-        // Regular date field filtering
-        query[dateField] = dateFilter;
-      }
-
-      // Validate at least one date parameter was provided
-      if (!date_from && !date_to) {
-        return res.status(400).json({
-          status: "error",
-          message: "At least one date parameter (date_from or date_to) is required when using date_type"
-        });
-      }
-    }
-
-    // Execute the query
-    const cases = await Case_details.find(query);
-
-    res.status(200).json({
-      status: "success",
-      count: cases.length,
-      data: cases
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: error.message
-    });
-  }
-};
-
-export const List_Lod_Cases = async (req, res) => {
-  try {
-      const { case_status, date_type, date_from, date_to } = req.body;
+      const { case_status, date_type, date_from, date_to, current_document_type, pages } = req.body;
       const allowedStatusTypes = [
           "Initial LOD",
           "LOD Settle Pending",
           "LOD Settle Open-Pending",
           "LOD Settle Active",
+          "Final Reminder",
+          "Final Reminder Settle Pending",
+          "Final Reminder Settle Open-Pending",
+          "Final Reminder Settle Active",
       ];
+      if (!current_document_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "The current document type is required ",
+        });
+      }
+      if (!case_status && !date_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "There should be at least one parameter case status or date type ",
+        });
+      }
+      if (date_type && (!date_from && !date_to)) {
+        return res.status(400).json({
+          status: "error",
+          message: "There should be at least one parameter date from or date to ",
+        });
+      }
+      let page = Number(pages);
+      if (isNaN(page) || page < 1) page = 1;
+      const limit = page === 1 ? 10 : 30;
+      const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-      let filter = { case_status: { $in: allowedStatusTypes } };
-
+      let filter = { case_current_status: { $in: allowedStatusTypes } };
+      filter["lod_final_reminder.current_document_type"] = current_document_type;
       if (case_status && allowedStatusTypes.includes(case_status)) {
           filter.case_current_status = case_status;
       }
-
       if (date_type) {
-        switch(date_type) {
+        let dateField;
+        switch (date_type) {
           case 'created_date':
             dateField = 'lod_final_reminder.lod_submission.created_on';
-            if (date_from && date_to) {
-              filter.dateField = { $gte: new Date(date_from), $lte: new Date(date_to) };
-            } else if (date_from) {
-                filter.dateField = { $gte: new Date(date_from) };
-            } else if (date_to) {
-                filter.dateField = { $lte: new Date(date_to) };
-            }
             break;
-          case 'expiry_date':
+          case 'expire_date':
             dateField = 'lod_final_reminder.lod_expire_on';
-            if (date_from && date_to) {
-              filter.dateField = { $gte: new Date(date_from), $lte: new Date(date_to) };
-            } else if (date_from) {
-                filter.dateField = { $gte: new Date(date_from) };
-            } else if (date_to) {
-                filter.dateField = { $lte: new Date(date_to) };
-            }
             break;
           case 'last_response_date':
             dateField = 'lod_final_reminder.lod_response.created_on';
-            if (date_from && date_to) {
-              filter.dateField = { $gte: new Date(date_from), $lte: new Date(date_to) };
-            } else if (date_from) {
-                filter.dateField = { $gte: new Date(date_from) };
-            } else if (date_to) {
-                filter.dateField = { $lte: new Date(date_to) };
-            }
             break;
           default:
             return res.status(400).json({
@@ -527,75 +430,132 @@ export const List_Lod_Cases = async (req, res) => {
               message: "Invalid date_type. Must be one of: created_date, expiry_date, last_response_date"
             });
         }
+        const dateFilter = {};
+        if (date_from) dateFilter.$gte = new Date(date_from);
+        if (date_to) dateFilter.$lte = new Date(date_to);
+        if (!date_from && !date_to){
+          return res.status(400).json({
+            status: "error",
+            message: "There should be at least one parameter, date_from or date_to",
+          });
+        }
+        if (Object.keys(dateFilter).length > 0) {
+          filter[dateField] = dateFilter;
+        }
       }
+      const filtered_cases = await Case_details.find(filter)
+        .select('case_id case_current_status lod_final_reminder')
+        .skip(skip)
+        .limit(limit)
+        .sort({ case_id: -1 });
 
-      const filtered_cases = await Case_details.find(filter);
-
-      res.status(200).json({
+      return res.status(200).json({
             status: "success",
             message: "Cases retrieved successfully.",
             data: filtered_cases,
-        });
+      });
   } catch (error) {
       console.error("Error fetching DRC Assign Manager Approvals:", error.message);
-      res.status(500).json({
+      return res.status(500).json({
         status: "error",
         message: "There is an error "
       });
   }
 };
 
-export const List_Final_Reminder_Cases = async (req, res) => {
+export const creat_Customer_Responce = async (req, res) => {
   try {
-      const { approver_type, date_from, date_to, approved_deligated_by } = req.body;
-      const allowedApproverTypes = [
-          "DRC Re-Assign Approval",
-          "DRC Assign Approval",
-          "Case Withdrawal Approval",
-          "Case Abandoned Approval",
-          "Case Write-Off Approval",
-          "Commission Approval"
+      const { case_id, customer_responce, remark, created_by } = req.body;
+      const valid_customer_responce = [
+        "Agree to Settle",
+        "Customer Dispute",
+        "Request More Information",
       ];
-
-      let filter = { approver_type: { $in: allowedApproverTypes } }; // Filter only allowed approver types
-
-      // Filter based on approver_type
-      if (approver_type && allowedApproverTypes.includes(approver_type)) {
-          filter.approver_type = approver_type;
+      if (!case_id || !customer_responce || !created_by) {
+          return res.status(400).json({
+              status: "error",
+              message: "All parammeters are required."
+          });
       }
-
-      // Filter based on date range
-      if (date_from && date_to) {
-          filter.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
-      } else if (date_from) {
-          filter.created_on = { $gte: new Date(date_from) };
-      } else if (date_to) {
-          filter.created_on = { $lte: new Date(date_to) };
+      if (!valid_customer_responce.includes(customer_responce)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid customer_responce. Allowed values are: ${valid_customer_responce.join(
+            ", "
+          )}`,
+        });
       }
-
-      // Filter based on approved_deligated_by
-      if (approved_deligated_by) {
-          filter.approved_deligated_by = approved_deligated_by;
-      }
-
-      // Fetch data from Template_forwarded_approver collection
-      const approvals = await TmpForwardedApprover.find(filter);
-
-      // Process results to extract only the last element of approve_status array
-      const response = approvals.map(doc => {
-          const lastApproveStatus = doc.approve_status?.length 
-              ? doc.approve_status[doc.approve_status.length - 1] 
-              : null;
-
-          return {
-              ...doc.toObject(),
-              approve_status: lastApproveStatus ? [lastApproveStatus] : [], // Keep only the last approve_status
-          };
+      const Lod_cases = await Case_details.findOne({case_id});
+      const last_responce_seq = Lod_cases.lod_final_reminder.lod_response.length > 0 
+          ? Lod_cases.lod_final_reminder.lod_response[Lod_cases.lod_final_reminder.lod_response.length - 1].lod_response_seq 
+          : 0;
+      const updatedCase = await Case_details.findOneAndUpdate(
+          { case_id },
+          {
+            $push: {
+              'lod_final_reminder.lod_response': {
+                  lod_response_seq: last_responce_seq + 1,
+                  response_type: customer_responce,
+                  lod_remark: remark,
+                  created_by,
+                  created_on : new Date(),
+              },
+            },
+          },
+          { new: true,
+            runValidators: true,
+            fields: { 'lod_final_reminder.lod_response': 1 }
+          }
+      );
+      return res.status(200).json({
+          status: "success",
+          message: "Cases updated successfully.",
+          data: updatedCase,
       });
-
-      res.status(200).json(response);
-  } catch (error) {
-      console.error("Error fetching DRC Assign Manager Approvals:", error);
-      res.status(500).json({ message: "Server Error", error });
+  }catch(error) 
+  {
+    return res.status(500).json({
+          status: "error",
+          message: error.message,
+    });
   }
 };
+
+export const case_details_for_lod_final_reminder = async (req, res) => {
+  try {
+    const {case_id} = req.body;
+    if (!case_id) {
+      return res.status(400).json({
+          status: "error",
+          message: "case id i required."
+      });
+    }
+    const case_detais = await Case_details.findOne(
+      {case_id},
+      {
+        case_id: 1,
+        customer_ref: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+        last_payment_date: 1,
+        lod_final_reminder: 1,
+      }
+    )
+    if (!case_detais) {
+      return res.status(404).json({
+        status: "error",
+        message: "There is no case with this case id."
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "case retrive successfully ",
+      data: case_detais,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+});
+  }
+}
