@@ -12,6 +12,7 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
+import Incident from '../models/Incident.js';
 import mongoose from "mongoose";
 
 
@@ -213,8 +214,96 @@ export const List_FTL_LOD_Cases = async (req, res) => {
     }
   };
 
-  export const FLT_LOD_Case_Details = async (req, res) => {
 
+
+  
+  // export const FLT_LOD_Case_Details = async (req, res) => {
+  //   try {
+  //     const { case_id } = req.body;
+  //     if (!case_id) {
+  //       return res.status(400).json({ error: 'Missing case_id in request body' });
+  //     }
+  
+  //     // Step 1: Find the CaseDetails document by case_id
+  //     const caseDoc = await Case_details.findOne({ case_id }).lean();
+  //     if (!caseDoc) {
+  //       return res.status(404).json({ error: 'Case not found' });
+  //     }
+  
+  //     const { account_no, current_arrears_band, rtom, area, incident_id } = caseDoc;
+  
+  //     // Step 2: Find the Incident document using incident_id
+  //     const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
+  //     if (!incidentDoc) {
+  //       return res.status(404).json({ error: 'Related incident not found' });
+  //     }
+  
+  //     const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
+  
+  //     // Step 3: Prepare response data
+  //     const result = {
+  //       account_no,
+  //       current_arrears_band,
+  //       rtom,
+  //       area,
+  //       incident_id,
+  //       customer_name: Customer_Name,
+  //       full_address: Full_Address,
+  //       customer_type_name: Customer_Type_Name,
+  //     };
+  
+  //     return res.status(200).json(result);
+  
+  //   } catch (err) {
+  //     console.error('Error fetching FLT LOD case details:', err);
+  //     return res.status(500).json({ error: 'Internal server error' });
+  //   }
+  // };
+
+  export const FLT_LOD_Case_Details = async (req, res) => {
+    try {
+      const { case_id } = req.body;
+      if (!case_id) {
+        return res.status(400).json({ error: 'Missing case_id in request body' });
+      }
+  
+      const caseDoc = await Case_details.findOne({ case_id }).lean();
+      if (!caseDoc) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+  
+      const { account_no, current_arrears_band, rtom, area, incident_id, ref_products } = caseDoc;
+  
+      const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
+      if (!incidentDoc) {
+        return res.status(404).json({ error: 'Related incident not found' });
+      }
+  
+      const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
+  
+      // Filter ref_products by matching account_no
+      const matchingServices = (ref_products || [])
+        .filter(product => product.account_no === account_no)
+        .map(product => product.service);
+  
+      const result = {
+        account_no,
+        current_arrears_band,
+        rtom,
+        area,
+        incident_id,
+        customer_name: Customer_Name,
+        full_address: Full_Address,
+        customer_type_name: Customer_Type_Name,
+        event_source: matchingServices
+      };
+  
+      return res.status(200).json(result);
+  
+    } catch (err) {
+      console.error('Error fetching FLT LOD case details:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   };
   
   
