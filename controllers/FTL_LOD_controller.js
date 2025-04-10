@@ -305,6 +305,56 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       return res.status(500).json({ error: 'Internal server error' });
     }
   };
+
+  export const Create_FLT_LOD = async (req, res) => {
+    try {
+      const { case_id, pdf_by, signed_by, customer_name, created_by, postal_address, event_source } = req.body;
+  
+      if (!case_id || !pdf_by || !signed_by || !customer_name || !created_by || !postal_address || !event_source) {
+        return res.status(400).json({ error: 'Missing required fields in request body' });
+      }
+  
+      const now = new Date();
+      // const expire_date = new Date();
+      // expire_date.setMonth(expire_date.getMonth() + 3);
+
+      const expire_date = null;
+  
+      const ftlEntry = {
+        pdf_by,
+        pdf_on: now,
+        expire_date,
+        signed_by,
+        ftl_lod_letter_details: [
+          {
+            created_on: now,
+            created_by,
+            customer_name,
+            postal_address: [postal_address],
+            event_source
+          }
+        ],
+        customer_response: []
+      };
+  
+      const updateResult = await Case_details.updateOne(
+        { case_id },
+        { $push: { ftl_lod: ftlEntry } }
+      );
+  
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+  
+      return res.status(200).json({ message: 'FTL LOD entry added successfully' });
+  
+    } catch (err) {
+      console.error('Error creating FTL LOD entry:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+  
+  
   
   
   
