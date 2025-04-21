@@ -12,6 +12,7 @@
 
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
+import Incident from '../models/Incident.js';
 import mongoose from "mongoose";
 
 
@@ -69,7 +70,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
   
       const validStatuses = [
         "Pending FTL LOD",
-        "initial FLT LOD",
+        "Initial FLT LOD",
         "FTL LOD Settle Pending",
         "FTL LOD Settle Open-Pending",
         "FTL LOD Settle Active"
@@ -158,6 +159,204 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       });
     }
   };
+
+
+  export const Create_Customer_Response = async (req, res) => {
+    try {
+      const { case_id, created_by, response } = req.body;
+  
+      if (!case_id || !created_by || !response) {
+        return res.status(400).json({
+          status: "error",
+          message: "case_id, created_by, and response are required.",
+        });
+      }
+  
+      // Find the case and ensure ftl_lod exists
+      const caseDoc = await Case_details.findOne({ case_id });
+  
+      if (!caseDoc || !Array.isArray(caseDoc.ftl_lod) || caseDoc.ftl_lod.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "FTL LOD not found for this case.",
+        });
+      }
+  
+      // Get current customer_response length for response_seq
+      const currentResponses = caseDoc.ftl_lod[0].customer_response || [];
+      const response_seq = currentResponses.length + 1;
+  
+      const newResponse = {
+        response_seq,
+        created_by,
+        created_on: new Date(),
+        response,
+      };
+  
+      // Update using positional operator to push into the correct nested array
+      await Case_details.updateOne(
+        { case_id },
+        { $push: { "ftl_lod.0.customer_response": newResponse } }
+      );
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Customer response added successfully.",
+        data: newResponse,
+      });
+  
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+  };
+
+
+
+  
+  // export const FLT_LOD_Case_Details = async (req, res) => {
+  //   try {
+  //     const { case_id } = req.body;
+  //     if (!case_id) {
+  //       return res.status(400).json({ error: 'Missing case_id in request body' });
+  //     }
+  
+  //     // Step 1: Find the CaseDetails document by case_id
+  //     const caseDoc = await Case_details.findOne({ case_id }).lean();
+  //     if (!caseDoc) {
+  //       return res.status(404).json({ error: 'Case not found' });
+  //     }
+  
+  //     const { account_no, current_arrears_band, rtom, area, incident_id } = caseDoc;
+  
+  //     // Step 2: Find the Incident document using incident_id
+  //     const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
+  //     if (!incidentDoc) {
+  //       return res.status(404).json({ error: 'Related incident not found' });
+  //     }
+  
+  //     const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
+  
+  //     // Step 3: Prepare response data
+  //     const result = {
+  //       account_no,
+  //       current_arrears_band,
+  //       rtom,
+  //       area,
+  //       incident_id,
+  //       customer_name: Customer_Name,
+  //       full_address: Full_Address,
+  //       customer_type_name: Customer_Type_Name,
+  //     };
+  
+  //     return res.status(200).json(result);
+  
+  //   } catch (err) {
+  //     console.error('Error fetching FLT LOD case details:', err);
+  //     return res.status(500).json({ error: 'Internal server error' });
+  //   }
+  // };
+
+  export const FLT_LOD_Case_Details = async (req, res) => {
+    try {
+      const { case_id } = req.body;
+      if (!case_id) {
+        return res.status(400).json({ error: 'Missing case_id in request body' });
+      }
+  
+      const caseDoc = await Case_details.findOne({ case_id }).lean();
+      if (!caseDoc) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+  
+      const { account_no, current_arrears_band, rtom, area, incident_id, ref_products } = caseDoc;
+  
+      const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
+      if (!incidentDoc) {
+        return res.status(404).json({ error: 'Related incident not found' });
+      }
+  
+      const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
+  
+      // Filter ref_products by matching account_no
+      const matchingServices = (ref_products || [])
+        .filter(product => product.account_no === account_no)
+        .map(product => product.service);
+  
+      const result = {
+        account_no,
+        current_arrears_band,
+        rtom,
+        area,
+        incident_id,
+        customer_name: Customer_Name,
+        full_address: Full_Address,
+        customer_type_name: Customer_Type_Name,
+        event_source: matchingServices
+      };
+  
+      return res.status(200).json(result);
+  
+    } catch (err) {
+      console.error('Error fetching FLT LOD case details:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+
+  export const Create_FLT_LOD = async (req, res) => {
+    try {
+      const { case_id, pdf_by, signed_by, customer_name, created_by, postal_address, event_source } = req.body;
+  
+      if (!case_id || !pdf_by || !signed_by || !customer_name || !created_by || !postal_address || !event_source) {
+        return res.status(400).json({ error: 'Missing required fields in request body' });
+      }
+  
+      const now = new Date();
+      // const expire_date = new Date();
+      // expire_date.setMonth(expire_date.getMonth() + 3);
+
+      const expire_date = null;
+  
+      const ftlEntry = {
+        pdf_by,
+        pdf_on: now,
+        expire_date,
+        signed_by,
+        ftl_lod_letter_details: [
+          {
+            created_on: now,
+            created_by,
+            customer_name,
+            postal_address: [postal_address],
+            event_source
+          }
+        ],
+        customer_response: []
+      };
+  
+      const updateResult = await Case_details.updateOne(
+        { case_id },
+        { $push: { ftl_lod: ftlEntry } }
+      );
+  
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: 'Case not found' });
+      }
+  
+      return res.status(200).json({ message: 'FTL LOD entry added successfully' });
+  
+    } catch (err) {
+      console.error('Error creating FTL LOD entry:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+  
+  
+  
+  
   
   
   
