@@ -11,6 +11,7 @@
 // import db from "../config/db.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import Case_details from "../models/Case_details.js";
+import CasePayment from "../models/Case_payments.js";
 
 export const ListAllSettlementCases = async (req, res) => {
   const {
@@ -126,6 +127,69 @@ export const ListAllSettlementCases = async (req, res) => {
       status: "error",
       message: "Internal Server error. Please try again later.",
     });
+  }
+};
+
+
+export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
+  try {
+    const { case_id } = req.body;
+
+    if (!case_id) {
+      return res.status(400).json({ message: "case_id is required" });
+    }
+
+    const caseDetails = await Case_details.findOne({ case_id });
+    if (!caseDetails) {
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    const settlementIds = caseDetails.settlement?.map(s => s.settlement_id) || [];
+    const settlements = await CaseSettlement.find({ settlement_id: { $in: settlementIds } });
+
+    const settlementPlans = settlements.map(s => ({
+      settlement_id: s.settlement_id,
+      settlement_plan: s.settlement_plan,
+      last_monitoring_dtm: s.last_monitoring_dtm || null
+    }));
+
+    const moneyTransactions = caseDetails.money_transactions || [];
+    const transactionIds = moneyTransactions.map(txn => txn.money_transaction_id);
+
+    const payments = await CasePayment.find({ money_transaction_id: { $in: transactionIds } });
+
+    const paymentDetails = moneyTransactions.map(txn => {
+      const paymentDoc = payments.find(p => p.money_transaction_id === txn.money_transaction_id);
+      return {
+        money_transaction_id: txn.money_transaction_id,
+        payment: txn.payment,
+        payment_Dtm: txn.payment_Dtm,
+        cummilative_settled_balance: paymentDoc?.cummilative_settled_balance || null,
+        installment_seq: paymentDoc?.installment_seq || null,
+        money_transaction_type: paymentDoc?.money_transaction_type || null,
+        money_transaction_amount: paymentDoc?.money_transaction_amount || null,
+        money_transaction_date: paymentDoc?.money_transaction_date || null
+      };
+    });
+
+    const response = {
+      case_id: caseDetails.case_id,
+      customer_ref: caseDetails.customer_ref,
+      account_no: caseDetails.account_no,
+      current_arrears_amount: caseDetails.current_arrears_amount,
+      last_payment_date: caseDetails.last_payment_date,
+      case_current_status: caseDetails.case_current_status,
+      lod_response: caseDetails.lod_final_reminder,
+      ftl_lod_responce: caseDetails.ftl_lod,
+      settlement_count: settlements.length,
+      settlement_plans: settlementPlans,
+      payment_details: paymentDetails
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 

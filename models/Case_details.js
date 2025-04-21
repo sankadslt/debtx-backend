@@ -104,6 +104,8 @@ const productDetailsSchema = new Schema({
   rtom: { type: String, required: true },
   product_ownership: { type: String, required: true },
   service_address: { type: String, required: true },
+  account_no: { type: String, required: true}
+
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
@@ -182,16 +184,16 @@ const moneytransactionsschema = new Schema({
 // Define the schema and sub-schemas for litigation schema
 const rtomCustomerFileSchema = new Schema({
   file_status: { type: String, required: true, enum: ['Requested', 'Collected', 'Without Agreement'] },
-  file_status_on: { type: Date, required: true },
-  file_status_by: { type: String, required: true },
-  pages_count: { type: Number, required: true },
+  file_status_on: { type: Date },
+  file_status_by: { type: String },
+  pages_count: { type: Number },
 });
 
 const drcFileSchema = new Schema({
   file_status: { type: String, required: true, enum: ['Requested', 'Collected'] },
-  file_status_on: { type: Date, required: true },
-  file_status_by: { type: String, required: true },
-  pages_count: { type: Number, required: true },
+  file_status_on: { type: Date },
+  file_status_by: { type: String },
+  pages_count: { type: Number },
 });
 
 const supportDocumentsSchema = new Schema({
@@ -248,7 +250,7 @@ const litigationSchema = new Schema({
 const FLT_LOD_letter_details_schema = new Schema({
   created_on: {type: Date, required:true},
   created_by:{type: String, required:true},
-  tele_no: {type:String, required:true},
+  event_source: {type:String, required:true},
   customer_name: {type:String, required:true},
   postal_address: {type:Array, required:true},
 },{_id: false });
@@ -321,6 +323,8 @@ const caseDetailsSchema = new Schema({
   case_distribution_batch_id: {type: Number, default: null},
   account_no: { type: String, required: true },
   customer_name: { type: String, required: true },
+  customer_type_name: { type: String, required: true },
+  account_manager_code : { type: String, required: true },
   customer_ref: { type: String, required: true },
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },

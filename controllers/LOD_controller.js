@@ -24,7 +24,7 @@ export const Retrive_logic = async (req, res) => {
     try {
         const { status, pages } = req.body;
         if (!status) {
-            res.status(400).json({
+            return res.status(400).json({
                 status:"error",
                 message: "All fields are required."
             });
@@ -42,14 +42,14 @@ export const Retrive_logic = async (req, res) => {
             .skip(skip)
             .limit(limit)
             .sort({ case_id: -1 });
-        res.status(200).json({
+        return res.status(200).json({
             status:"success",
             message: "Cases retrieved successfully.",
             data: distributions,
             total_cases: totalCount,
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status:"error",
             message: error.message,
         });
@@ -117,14 +117,14 @@ export const List_F2_Selection_Cases = async (req, res) => {
             .limit(limit)
             .sort({ case_id: -1 });
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Cases retrieved successfully.",
             data: Lod_cases,
         });
 
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: error.message,
         });
@@ -288,14 +288,14 @@ export const Change_Document_Type = async (req, res) => {
             },
             { new: true, runValidators: true }
           );
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Cases updated successfully.",
             data: updatedCase,
         });
 
     }catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
             message: error.message,
         });
@@ -379,7 +379,17 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
           "LOD Settle Pending",
           "LOD Settle Open-Pending",
           "LOD Settle Active",
+          "Final Reminder",
+          "Final Reminder Settle Pending",
+          "Final Reminder Settle Open-Pending",
+          "Final Reminder Settle Active",
       ];
+      if (!current_document_type) {
+        return res.status(400).json({
+          status: "error",
+          message: "The current document type is required ",
+        });
+      }
       if (!case_status && !date_type) {
         return res.status(400).json({
           status: "error",
@@ -408,7 +418,7 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
           case 'created_date':
             dateField = 'lod_final_reminder.lod_submission.created_on';
             break;
-          case 'expiry_date':
+          case 'expire_date':
             dateField = 'lod_final_reminder.lod_expire_on';
             break;
           case 'last_response_date':
@@ -439,14 +449,14 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
         .limit(limit)
         .sort({ case_id: -1 });
 
-      res.status(200).json({
+      return res.status(200).json({
             status: "success",
             message: "Cases retrieved successfully.",
             data: filtered_cases,
       });
   } catch (error) {
       console.error("Error fetching DRC Assign Manager Approvals:", error.message);
-      res.status(500).json({
+      return res.status(500).json({
         status: "error",
         message: "There is an error "
       });
@@ -456,12 +466,24 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
 export const creat_Customer_Responce = async (req, res) => {
   try {
       const { case_id, customer_responce, remark, created_by } = req.body;
-
+      const valid_customer_responce = [
+        "Agree to Settle",
+        "Customer Dispute",
+        "Request More Information",
+      ];
       if (!case_id || !customer_responce || !created_by) {
           return res.status(400).json({
               status: "error",
               message: "All parammeters are required."
           });
+      }
+      if (!valid_customer_responce.includes(customer_responce)) {
+        return res.status(400).json({
+          status: "error",
+          message: `Invalid customer_responce. Allowed values are: ${valid_customer_responce.join(
+            ", "
+          )}`,
+        });
       }
       const Lod_cases = await Case_details.findOne({case_id});
       const last_responce_seq = Lod_cases.lod_final_reminder.lod_response.length > 0 
@@ -485,16 +507,55 @@ export const creat_Customer_Responce = async (req, res) => {
             fields: { 'lod_final_reminder.lod_response': 1 }
           }
       );
-      res.status(200).json({
+      return res.status(200).json({
           status: "success",
           message: "Cases updated successfully.",
           data: updatedCase,
       });
   }catch(error) 
   {
-      res.status(500).json({
+    return res.status(500).json({
           status: "error",
           message: error.message,
-      });
+    });
   }
 };
+
+export const case_details_for_lod_final_reminder = async (req, res) => {
+  try {
+    const {case_id} = req.body;
+    if (!case_id) {
+      return res.status(400).json({
+          status: "error",
+          message: "case id i required."
+      });
+    }
+    const case_detais = await Case_details.findOne(
+      {case_id},
+      {
+        case_id: 1,
+        customer_ref: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+        last_payment_date: 1,
+        lod_final_reminder: 1,
+      }
+    )
+    if (!case_detais) {
+      return res.status(404).json({
+        status: "error",
+        message: "There is no case with this case id."
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      message: "case retrive successfully ",
+      data: case_detais,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+});
+  }
+}
