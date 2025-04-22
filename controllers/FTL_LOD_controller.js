@@ -53,6 +53,28 @@ export const Retrive_logic = async (req, res) => {
     }
 };
 
+/*  
+  This function is responsible for retrieving FTL LOD case details from the database.
+
+  It uses MongoDB's aggregation pipeline to filter, sort, and paginate the results.
+  
+  - First time page load (page = 1) returns 10 rows.
+  - From the second page onward (page > 1), it loads 30 rows per page.
+  
+  The frontend must maintain a variable named 'pages' and pass it in the request body.
+  - On every "Next" button click, increment 'pages' by 1 and call this function again.
+
+  Filters Supported:
+  - case_current_status: Should match one of the predefined valid status values.
+  - current_arrears_band: Filter by arrears band.
+  - date_from and date_to: Filter based on the created_dtm date range.
+
+  The function also includes a projection to only return required fields and sorts 
+  embedded ftl_lod documents by their expire_date.
+
+  The function is wrapped in a MongoDB session for transaction safety.
+*/
+
 
 export const List_FTL_LOD_Cases = async (req, res) => {
     const session = await mongoose.startSession();
@@ -160,6 +182,27 @@ export const List_FTL_LOD_Cases = async (req, res) => {
     }
   };
 
+/*  
+  This function is responsible for adding a new customer response to a specific FTL LOD case.
+
+  Required fields in the request body:
+  - case_id: Unique identifier of the case.
+  - created_by: The user who is submitting the response.
+  - response: The content of the customer response.
+
+  Logic:
+  - First, it validates the presence of case_id, created_by, and response.
+  - Then it fetches the case document using the case_id.
+  - If the case does not exist or does not have an FTL LOD entry, it returns a 404 error.
+  - It calculates the `response_seq` based on the existing number of customer responses.
+  - A new response object is created with `response_seq`, `created_by`, `created_on`, and `response`.
+  - It updates the case document by pushing the new response into the first `ftl_lod` entry using MongoDB’s positional operator.
+
+  On success:
+  - Returns a success status with the newly added response object.
+
+  This ensures that customer responses are correctly added to the nested `customer_response` array within the first FTL LOD entry of the case.
+*/
 
   export const Create_Customer_Response = async (req, res) => {
     try {
@@ -215,50 +258,28 @@ export const List_FTL_LOD_Cases = async (req, res) => {
   };
 
 
+/*  
+  This function retrieves detailed information for a specific FTL LOD case using the provided case_id.
 
-  
-  // export const FLT_LOD_Case_Details = async (req, res) => {
-  //   try {
-  //     const { case_id } = req.body;
-  //     if (!case_id) {
-  //       return res.status(400).json({ error: 'Missing case_id in request body' });
-  //     }
-  
-  //     // Step 1: Find the CaseDetails document by case_id
-  //     const caseDoc = await Case_details.findOne({ case_id }).lean();
-  //     if (!caseDoc) {
-  //       return res.status(404).json({ error: 'Case not found' });
-  //     }
-  
-  //     const { account_no, current_arrears_band, rtom, area, incident_id } = caseDoc;
-  
-  //     // Step 2: Find the Incident document using incident_id
-  //     const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
-  //     if (!incidentDoc) {
-  //       return res.status(404).json({ error: 'Related incident not found' });
-  //     }
-  
-  //     const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
-  
-  //     // Step 3: Prepare response data
-  //     const result = {
-  //       account_no,
-  //       current_arrears_band,
-  //       rtom,
-  //       area,
-  //       incident_id,
-  //       customer_name: Customer_Name,
-  //       full_address: Full_Address,
-  //       customer_type_name: Customer_Type_Name,
-  //     };
-  
-  //     return res.status(200).json(result);
-  
-  //   } catch (err) {
-  //     console.error('Error fetching FLT LOD case details:', err);
-  //     return res.status(500).json({ error: 'Internal server error' });
-  //   }
-  // };
+  Required field in the request body:
+  - case_id: Unique identifier of the case to fetch details for.
+
+  Logic:
+  - Validates the presence of case_id.
+  - Finds the case document from the `Case_details` collection using case_id.
+  - If not found, returns a 404 error ("Case not found").
+  - Extracts key details from the case: account_no, current_arrears_band, rtom, area, incident_id, and ref_products.
+  - Fetches the related incident document from the `Incident` collection using incident_id.
+  - If the related incident is not found, returns a 404 error ("Related incident not found").
+  - Extracts customer details: Customer_Name, Full_Address, and Customer_Type_Name.
+  - Filters the `ref_products` array to match the case's account_no and collects the corresponding service(s).
+
+  Final Response:
+  - Returns a structured object containing both case and customer details, along with the filtered service list under `event_source`.
+
+  This function is useful for displaying complete case and customer details in a case details view page.
+*/
+
 
   export const FLT_LOD_Case_Details = async (req, res) => {
     try {
@@ -306,54 +327,34 @@ export const List_FTL_LOD_Cases = async (req, res) => {
     }
   };
 
-  // export const Create_FLT_LOD = async (req, res) => {
-  //   try {
-  //     const { case_id, pdf_by, signed_by, customer_name, created_by, postal_address, event_source } = req.body;
-  
-  //     if (!case_id || !pdf_by || !signed_by || !customer_name || !created_by || !postal_address || !event_source) {
-  //       return res.status(400).json({ error: 'Missing required fields in request body' });
-  //     }
-  
-  //     const now = new Date();
-  //     // const expire_date = new Date();
-  //     // expire_date.setMonth(expire_date.getMonth() + 3);
+/*  
+  This function creates a new FTL LOD (Final Termination Letter of Demand) entry for a specific case.
 
-  //     const expire_date = null;
-  
-  //     const ftlEntry = {
-  //       pdf_by,
-  //       pdf_on: now,
-  //       expire_date,
-  //       signed_by,
-  //       ftl_lod_letter_details: [
-  //         {
-  //           created_on: now,
-  //           created_by,
-  //           customer_name,
-  //           postal_address: [postal_address],
-  //           event_source
-  //         }
-  //       ],
-  //       customer_response: []
-  //     };
-  
-  //     const updateResult = await Case_details.updateOne(
-  //       { case_id },
-  //       { $push: { ftl_lod: ftlEntry } }
-  //     );
-  
-  //     if (updateResult.matchedCount === 0) {
-  //       return res.status(404).json({ error: 'Case not found' });
-  //     }
-  
-  //     return res.status(200).json({ message: 'FTL LOD entry added successfully' });
-  
-  //   } catch (err) {
-  //     console.error('Error creating FTL LOD entry:', err);
-  //     return res.status(500).json({ error: 'Internal server error' });
-  //   }
-  // };
-  
+  Required fields in the request body:
+  - case_id: Unique identifier of the case.
+  - pdf_by: The user who generated the PDF.
+  - signed_by: The user who signed the letter.
+  - customer_name: Name of the customer.
+  - created_by: The user creating this entry.
+  - postal_address: Postal address of the customer.
+  - event_source: Source of the event related to the case.
+
+  Logic:
+  - Validates all required fields.
+  - Constructs a new `ftl_lod` entry with PDF metadata and initial `ftl_lod_letter_details`.
+  - Initializes the `customer_response` array as empty.
+  - Creates a corresponding `case_status` entry indicating that the FTL LOD was created.
+  - Updates the `Case_details` document:
+    - Pushes the new `ftl_lod` entry into the `ftl_lod` array.
+    - Pushes the new `case_status` entry into the `case_status` array.
+    - Sets `case_current_status` to `"Initial FTL LOD"`.
+
+  Behavior:
+  - If the case is not found, responds with 404.
+  - If successful, responds with a 200 and a success message.
+
+  This function is used when initiating an FTL LOD process for a customer, and it updates both the letter and case status history accordingly.
+*/
 
   export const Create_FLT_LOD = async (req, res) => {
     try {
