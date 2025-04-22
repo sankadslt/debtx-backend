@@ -26,6 +26,13 @@ export const ListAllSettlementCases = async (req, res) => {
   } = req.body;
 
   try {
+    // Validate required fields
+    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one of case_id, settlement_phase, settlement_status, from_date or to_date is required."
+      });
+    }
     // Query
     const query = {};
 
@@ -35,7 +42,8 @@ export const ListAllSettlementCases = async (req, res) => {
     // }
 
     let pageNum = Number(page);
-    let limitNum = Number(limit);
+    // let limitNum = Number(limit);
+    let limitNum = Number(page) === 1 ? 10 : 30;
 
     if (case_id) query.case_id = case_id;
     if (settlement_phase) query.settlement_phase = settlement_phase;
@@ -46,7 +54,7 @@ export const ListAllSettlementCases = async (req, res) => {
       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
     }
 
-    const sortOptions = { created_dtm: -1 };
+    const sortOptions = { created_dtm: -1, settlement_id: 1 };
 
     // If recent is true, limit to 10 latest entries and ignore pagination
     if (recent === true) {
@@ -57,7 +65,8 @@ export const ListAllSettlementCases = async (req, res) => {
     }
     
     // Calculate skip for pagination
-    const skip = (pageNum - 1) * limitNum;
+    // const skip = (pageNum - 1) * limitNum;
+    const skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
 
     // Execute query with descending sort
     const settlements = await CaseSettlement.find(query)
@@ -109,7 +118,8 @@ export const ListAllSettlementCases = async (req, res) => {
         total,
         page: pageNum,
         limit: limitNum,
-        pages: Math.ceil(total / limitNum)
+        // pages: Math.ceil(total / limitNum)
+        pages: total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1
       };
     } else {
       responseData.total = formattedSettlements.length;
