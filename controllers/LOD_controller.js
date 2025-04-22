@@ -111,8 +111,14 @@ export const List_F2_Selection_Cases = async (req, res) => {
         const limit = page === 1 ? 10 : 30;
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
         // Fetch cases from database
-        const Lod_cases = await Case_details.find({ 'lod_final_reminder.current_document_type': current_document_type })
-            .select('case_id current_arrears_amount rtom customer_name lod_final_reminder')
+        // const Lod_cases = await Case_details.find({ 'lod_final_reminder.current_document_type': current_document_type })
+        const Lod_cases = await Case_details.find({
+          $and: [
+            { 'lod_final_reminder.current_document_type': current_document_type },
+            { case_current_status: "LIT Prescribed" }
+          ]
+        })
+            .select('case_id current_arrears_amount customer_type_name account_manager_code lod_final_reminder')
             .skip(skip)
             .limit(limit)
             .sort({ case_id: -1 });
