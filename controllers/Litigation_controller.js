@@ -259,5 +259,3 @@ export const createLitigationDocument = async (req, res) => {
         });
     }
 };
-
-
