@@ -2204,6 +2204,11 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
         let filter = {};
 
+        // Ensure at least one filter is present; otherwise, return an empty array
+        if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
+            return res.status(200).json([]); // No filters provided, return an empty result
+        }
+
         // Filter based on date range
         if (date_from && date_to) {
             filter.created_dtm = { $gte: new Date(date_from), $lte: new Date(date_to) };
@@ -3145,8 +3150,8 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     }
 
     // --- Create User Interaction Logs ---
-    const interaction_id = 6; // this must be changed
-    const request_type = "Pending Approval Agent Distribution"; 
+    const interaction_id = 15; // this must be changed
+    const request_type = "Agent Distribution Batch Approved"; 
     
     for (const reference of approver_references) {
       if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
@@ -3373,8 +3378,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       );
 
       // --- Create User Interaction Log ---
-      const interaction_id = 6; // This may need to be changed
-      const request_type = "Pending Approval Agent Distribution"; 
+      const interaction_id = 16; // This may need to be changed
+      const request_type = "Approved DRC Assign Manager Approval"; 
       const created_by = approved_by;
       const dynamicParams = { approver_reference };
 
@@ -3485,8 +3490,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
       );
 
       // --- Create User Interaction Logs ---
-      const interaction_id = 6; // This may need to be changed
-      const request_type = "Pending Approval Agent Distribution"; 
+      const interaction_id = 17; // This may need to be changed
+      const request_type = "Rejected DRC Assign Manager Approval"; 
 
       for (const reference of approver_references) {
           if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
@@ -5064,7 +5069,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
 
         return {
           case_id: caseData.case_id,
-          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          customer_name: caseData.customer_name|| null,
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
@@ -5202,7 +5207,7 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
         return {
           case_id: caseData.case_id,
           account_no: caseData.account_no,
-          customer_name: caseData.Customer_Details?.Customer_Name || null,
+          customer_name: caseData.customer_name || null,
           status: caseData.case_current_status,
           created_dtm: findDRC?.created_dtm || null,
           ro_name: matchingRecoveryOfficer?.ro_name || null,
@@ -5923,8 +5928,8 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
 
       // --- Interaction Log ---
       const interactionResult = await createUserInteractionFunction({
-          Interaction_ID: 6,
-          User_Interaction_Type: "Pending Approval Agent Destribution",
+          Interaction_ID: 18,
+          User_Interaction_Type: "Pending approval for Case Withdraw",
           delegate_user_id: delegate_id, 
           Created_By: created_by,
           User_Interaction_Status: "Open",
@@ -7003,8 +7008,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
     const deligate_id = approvalDoc.Created_By;
 
     // --- Create User Interaction Log ---
-    const interaction_id = 6; // This may need to be changed
-    const request_type = "Pending Approval Agent Distribution"; 
+    const interaction_id = 19; // This may need to be changed
+    const request_type = "Approved Mediation Board forward request"; 
     const created_by = create_by;
     const dynamicParams = { Interaction_Log_ID };
 
@@ -7173,8 +7178,8 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     const deligate_id = approvalDoc.Created_By;
 
     // --- Create User Interaction Log ---
-    const interaction_id = 6; // This may need to be changed
-    const request_type = "Pending Approval Agent Distribution"; 
+    const interaction_id = 20; // This may need to be changed
+    const request_type = "Withdraw Mediation Board forward request"; 
     const created_by = create_by;
     const dynamicParams = { Interaction_Log_ID };
 
