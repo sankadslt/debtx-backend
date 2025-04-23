@@ -12,13 +12,15 @@
 import CaseSettlement from "../models/Case_settlement.js";
 import Case_details from "../models/Case_details.js";
 import CasePayment from "../models/Case_payments.js";
+import { createTaskFunction } from "../services/TaskService.js";
+import mongoose from "mongoose";
 
 export const ListAllSettlementCases = async (req, res) => {
   const {
-    case_id, 
-    settlement_phase, 
-    settlement_status, 
-    from_date, 
+    case_id,
+    settlement_phase,
+    settlement_status,
+    from_date,
     to_date,
     page = 1,  // Add default value
     limit = 10,  // Add default value
@@ -63,13 +65,14 @@ export const ListAllSettlementCases = async (req, res) => {
       // Clear any filters if we just want recent payments
       Object.keys(query).forEach(key => delete query[key]);
     }
-    
+
     // Calculate skip for pagination
     // const skip = (pageNum - 1) * limitNum;
     const skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
 
     // Execute query with descending sort
     const settlements = await CaseSettlement.find(query)
+      .populate('case_id', 'account_no')
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
@@ -98,6 +101,7 @@ export const ListAllSettlementCases = async (req, res) => {
       // Return all fields from model with properly formatted names
       return {
         case_id: SettlementDetails.case_id,
+        account_no: SettlementDetails.case_id.account_no || '-',
         settlement_status: SettlementDetails.settlement_status,
         created_dtm: SettlementDetails.created_dtm,
         settlement_phase: SettlementDetails.settlement_phase,
@@ -247,5 +251,58 @@ export const Case_Details_Settlement_Phase = async (req, res) => {
   } catch (error) {
     console.error("Error fetching case details:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Created_By, Phase, Case_Status, from_date, to_date, Case_ID, Account_Number } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "created by is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      Created_By,
+      task_status: "open"
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 42,
+      task_type: "Create task for Download Settlement Case List",
+      ...parameters
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
   }
 };
