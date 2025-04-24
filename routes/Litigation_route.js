@@ -15,6 +15,8 @@ import { Router } from "express";
 import { 
     ListAllLitigationCases,
     createLitigationDocument,
+    updateLegalSubmission,
+    listLitigationPhaseCaseDetails,
  } from "../controllers/Litigation_controller.js";
 
 const router = Router();
@@ -22,5 +24,9 @@ const router = Router();
 router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
 
 router.patch( "/Create_Litigation_Document", createLitigationDocument );
+
+router.patch( "/Create_Legal_Submission", updateLegalSubmission );
+
+router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPhaseCaseDetails)
 
 export default router;

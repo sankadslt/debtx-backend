@@ -260,4 +260,142 @@ export const createLitigationDocument = async (req, res) => {
     }
 };
 
+export const updateLegalSubmission = async (req, res) => {
+    try {
+        const { case_id, submission, submission_on, submission_by, submission_remark } = req.body;
 
+        if (!case_id || !submission || !submission_on || !submission_by || !submission_remark) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required fields.",
+                errors: {
+                    code: 400,
+                    description: "case_id, submission, submission_on, submission_by, submission_remark are required.",
+                },
+            });
+        }
+
+        const legalSubmission = {
+            submission,
+            submission_on: new Date(submission_on),
+            submission_by,
+            submission_remark,
+        };
+
+        const updatedCase = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            {
+                $push: {
+                    "litigation.legal_submission": legalSubmission,
+                },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+
+        // const litigation = updatedCase.litigation[0];
+
+        // if (litigation.legal_submission.length > 1) {
+        //     litigation.legal_submission.sort((a, b) => {
+        //         const dateA = new Date(a.submission_on);
+        //         const dateB = new Date(b.submission_on);
+        //         return dateB - dateA;
+        //     });
+        // }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation document updated successfully.",
+            data: updatedCase,
+        });
+
+    } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while updating the litigation document.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+};
+
+export const listLitigationPhaseCaseDetails = async (req, res) => {
+    try {
+        const { case_id } = req.body;
+
+        if (!case_id) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required field: case_id.",
+                errors: {
+                    code: 400,
+                    description: "case_id is required.",
+                },
+            });
+        }
+
+        const caseDetails = await LitigationDetails.findOne(
+            { case_id },
+            {
+                case_id: 1,
+                account_no: 1,
+                customer_ref: 1,
+                current_arrears_amount: 1,
+                last_payment_date: 1,
+                // litigation: {`
+                //     $slice: [
+                //         {
+                //             $filter: {
+                //                 input: "$litigation",
+                //                 as: "litigation",
+                //                 cond: { $eq: ["$$litigation.litigation_phase", "Litigation"] },
+                //             },
+                //         },
+                //         -1,
+                //     ],
+                // },
+            } 
+        );
+
+        if (!caseDetails) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation phase case details retrieved successfully.",
+            data: caseDetails,
+        });
+
+    } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while retrieving litigation phase case details.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+};

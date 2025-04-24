@@ -15,6 +15,44 @@ import CasePayment from "../models/Case_payments.js";
 import { createTaskFunction } from "../services/TaskService.js";
 import mongoose from "mongoose";
 
+/*  
+  This API endpoint retrieves a list of settlement cases from the `CaseSettlement` collection, 
+  with support for filtering, pagination, date range, and a "recent" flag to get the latest entries.
+
+  Request Body Parameters:
+  - case_id (optional): Filter by specific case ID.
+  - settlement_phase (optional): Filter by settlement phase (e.g., initial, final).
+  - settlement_status (optional): Filter by status (e.g., active, closed).
+  - from_date & to_date (optional): Filter by creation date range (`created_dtm`).
+  - page (optional, default = 1): For pagination - which page to return.
+  - limit (optional, default = 10): For pagination - number of items per page.
+  - recent (optional, default = false): If true, fetches 10 latest settlements and ignores filters/pagination.
+
+  Functionality:
+  - Constructs a dynamic MongoDB query based on provided filters.
+  - If `recent` is true, it overrides all filters and returns the latest 10 settlements.
+  - Executes the query, sorts by `created_dtm` in descending order, applies pagination or recent limit.
+  - If no records found, returns 404 with an error message.
+
+  Response:
+  - Returns a list of matching settlement entries with fields:
+    - `case_id`
+    - `settlement_status`
+    - `created_dtm` (ISO formatted)
+    - `settlement_phase`
+    - `settlement_id`
+  - If `recent` is false, includes pagination metadata: `total`, `page`, `limit`, `pages`.
+
+  Usage:
+  - Ideal for admin dashboards, monitoring tools, or audit panels to view settlement history.
+  - Supports both filtered and quick-view recent mode for efficient access.
+
+  Status Codes:
+  - 200: Success with results
+  - 404: No matching settlements found
+  - 500: Internal server error
+*/
+
 export const ListAllSettlementCases = async (req, res) => {
   const {
     account_no,
@@ -159,6 +197,36 @@ export const ListAllSettlementCases = async (req, res) => {
   }
 };
 
+/*  
+  This function fetches a complete overview of a case including settlement details, LOD responses, FTL LOD data, and payment history.
+
+  Required:
+  - The frontend must pass `case_id` in the request body.
+
+  Functionality:
+  - Checks for a valid `case_id`.
+  - Retrieves the case details from the `Case_details` collection.
+  - If not found, returns a 404 response.
+
+  Process:
+  - Extracts `settlement_id`s from the case and queries the `CaseSettlement` collection to get related settlement plans.
+  - Extracts `money_transaction_id`s and queries the `CasePayment` collection to get the payment data.
+  - Constructs a detailed payment object by matching each transaction with its corresponding payment document.
+  - Gathers all relevant data including:
+    - Case basic details (ID, customer ref, account number, arrears, last payment date, and current status)
+    - LOD response and FTL LOD data
+    - Number of settlements and list of settlement plans
+    - Full payment history with additional payment-related fields from `CasePayment`
+
+  Returns:
+  - A consolidated response object with all the above data.
+  - If successful, responds with status 200.
+  - If any error occurs, logs it and returns a 500 response.
+
+  Usage:
+  - This API is used when you need full insights into a case’s financial journey, especially for displaying settlement status, LOD and FTL interactions, and payment breakdown in detail views.
+*/
+
 
 export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
   try {
@@ -221,6 +289,27 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+/*
+  API Endpoint: Case_Details_Settlement_Phase
+
+  Description:
+  This endpoint retrieves detailed information about the settlement phases (plans) 
+  related to a specific case, identified by the `case_id`.
+
+  Request Body:
+  - case_id (required): The unique identifier of the case for which the settlement 
+    details need to be fetched.
+
+  Functionality:
+  - Validates the presence of `case_id` in the request body.
+  - Fetches the case document from the `Case_details` collection.
+  - Extracts all related `settlement_id`s from the `settlement` array in the case document.
+  - Retrieves corresponding settlement documents from the `CaseSettlement` collection.
+  - Maps and returns the essential fields such as:
+    - `settlement_id`
+    - `settlement_plan`
+*/
 
 
 // (SET-2P02) This function retreves Case and Case_Settlement data from getting settlement_id from the settlement array in case.
