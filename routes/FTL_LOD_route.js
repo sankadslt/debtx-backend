@@ -18,6 +18,7 @@ import { List_FTL_LOD_Cases} from "../controllers/FTL_LOD_controller.js";
 import { Create_Customer_Response} from "../controllers/FTL_LOD_controller.js";
 import { FLT_LOD_Case_Details} from "../controllers/FTL_LOD_controller.js";
 import { Create_FLT_LOD} from "../controllers/FTL_LOD_controller.js";
+import { Case_Details_Settlement_LOD_FTL_LOD} from "../controllers/FTL_LOD_controller.js";
 
 
 
@@ -27,7 +28,7 @@ router.post("/Retrive_logic", Retrive_logic);
  * @swagger
  * /api/ftl_lod/List_FTL_LOD_Cases:
  *   post:
- *     summary: Retrieve a paginated list of FTL LOD cases with filters
+ *     summary: FLT-1P01 Retrieve a paginated list of FTL LOD cases with filters
  *     description: |
  *       Fetches FTL LOD case details based on filters such as case status, arrears band, and date range.
  *       It also returns the filtered case data including relevant details such as account number, arrears amount, and FTL LOD expiry date.
@@ -172,7 +173,7 @@ router.post("/List_FTL_LOD_Cases", List_FTL_LOD_Cases);
  * @swagger
  * /api/ftl_lod/Create_Customer_Response:
  *   post:
- *     summary: Create a customer response for a given case
+ *     summary:  FLT-1P04 Create a customer response for a given case
  *     description: |
  *       Adds a new customer response for the given case. The `case_id`, `created_by`, and `response` are required fields. 
  *       If the `case_id` is valid and contains an FTL LOD entry, the response will be added to the corresponding case. 
@@ -302,7 +303,7 @@ router.post("/Create_Customer_Response", Create_Customer_Response);
  * @swagger
  * /api/ftl_lod/FLT_LOD_Case_Details:
  *   post:
- *     summary: Retrieve full FLT LOD case details
+ *     summary: FLT-1P04 Retrieve full FLT LOD case details
  *     description: |
  *       Returns complete FLT LOD case details based on the provided `case_id`. 
  *       Includes customer details, arrears band, RTOM, area, and matched event sources.
@@ -408,7 +409,7 @@ router.post("/FLT_LOD_Case_Details", FLT_LOD_Case_Details);
  * @swagger
  * /api/ftl_lod/Create_FLT_LOD:
  *   post:
- *     summary: Create a new FTL LOD entry and update case status
+ *     summary: FLT-1P02 Create a new FTL LOD entry and update case status
  *     description: |
  *       Creates a new FTL LOD entry for a given case and updates the case status to "Initial FTL LOD".
  *       Includes details such as PDF generator, signature authority, customer info, and event source.
@@ -558,6 +559,160 @@ router.post("/FLT_LOD_Case_Details", FLT_LOD_Case_Details);
 
 
 router.post("/Create_FLT_LOD", Create_FLT_LOD);
+
+/**
+ * @swagger
+ * /api/ftl_lod/Case_Details_Settlement_LOD_FTL_LOD:
+ *   post:
+ *     summary: Get case details including settlement, LOD, and FTL LOD data
+ *     description: |
+ *       Fetches a case's settlement details, payment history, final LOD response, and FTL LOD information using the `case_id`.
+ *
+ *       | Version | Date         | Description                                               | Changed By       |
+ *       |---------|--------------|-----------------------------------------------------------|------------------|
+ *       | 01      | 2025-April-22 | Initial version - fetch case, settlement, and payment info | Dinusha Anupama  |
+ * 
+ *     tags: [FTL LOD Cases]
+ *     parameters:
+ *      - in: query
+ *        name: case_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 4
+ *        description: The Case ID.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 example: 1510
+ *                 description: Unique case identifier
+ *     responses:
+ *       200:
+ *         description: Case details with settlement and payment data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 case_id:
+ *                   type: integer
+ *                   example: 1510
+ *                 customer_ref:
+ *                   type: string
+ *                   example: "CUST-1234"
+ *                 account_no:
+ *                   type: string
+ *                   example: "ACC-5678"
+ *                 current_arrears_amount:
+ *                   type: number
+ *                   example: 5400.75
+ *                 last_payment_date:
+ *                   type: string
+ *                   format: date
+ *                   example: "2025-04-15"
+ *                 case_current_status:
+ *                   type: string
+ *                   example: "FTL LOD Final Notice"
+ *                 lod_response:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   example: []
+ *                 ftl_lod_responce:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   example: []
+ *                 settlement_count:
+ *                   type: integer
+ *                   example: 2
+ *                 settlement_plans:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       settlement_id:
+ *                         type: string
+ *                         example: "SETT-7890"
+ *                       settlement_plan:
+ *                         type: string
+ *                         example: "3-month installment plan"
+ *                       last_monitoring_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-04-01T10:00:00Z"
+ *                 payment_details:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       money_transaction_id:
+ *                         type: string
+ *                         example: "TXN-001"
+ *                       payment:
+ *                         type: number
+ *                         example: 1000.00
+ *                       payment_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-03-01T14:00:00Z"
+ *                       cummilative_settled_balance:
+ *                         type: number
+ *                         example: 2000.00
+ *                       installment_seq:
+ *                         type: integer
+ *                         example: 2
+ *                       money_transaction_type:
+ *                         type: string
+ *                         example: "Installment"
+ *                       money_transaction_amount:
+ *                         type: number
+ *                         example: 1000.00
+ *                       money_transaction_date:
+ *                         type: string
+ *                         format: date
+ *                         example: "2025-03-01"
+ *       400:
+ *         description: Missing case_id in request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "case_id is required"
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+
+router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_FTL_LOD);
 
 
 export default router;

@@ -56,7 +56,7 @@ export const Retrive_logic = async (req, res) => {
 };
 
 /*
-  Function: List_FTL_LOD_Cases
+  Function: List_FTL_LOD_Cases (FLT-1P01)
 
   Description:
   This function retrieves FTL LOD (Final Term Letter of Demand) case details from the MongoDB database.
@@ -234,7 +234,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
 
 
 /*
-  Function: Create_Customer_Response
+  Function: Create_Customer_Response (FLT-1P04)
 
   Description:
   This function allows users to append a new customer response to the first `ftl_lod` entry of a case in the database.
@@ -318,7 +318,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
 
 
 /*
-  Function: FLT_LOD_Case_Details
+  Function: FLT_LOD_Case_Details (FLT-1P04)
 
   Description:
   This function retrieves detailed information for a given FTL LOD case, enriching it with related incident and customer data.
@@ -403,7 +403,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
   };
 
 /*
-  Function: Create_FLT_LOD
+  Function: Create_FLT_LOD (FLT-1P02)
 
   Description:
   This function creates a new FTL LOD (Final Term Letter of Demand) entry for a case, and updates its case status accordingly.
