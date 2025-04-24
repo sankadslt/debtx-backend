@@ -17,6 +17,7 @@ import mongoose from "mongoose";
 
 export const ListAllSettlementCases = async (req, res) => {
   const {
+    account_no,
     case_id,
     settlement_phase,
     settlement_status,
@@ -29,7 +30,7 @@ export const ListAllSettlementCases = async (req, res) => {
 
   try {
     // Validate required fields
-    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date) {
+    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
       return res.status(400).json({
         status: "error",
         message: "At least one of case_id, settlement_phase, settlement_status, from_date or to_date is required."
@@ -42,6 +43,12 @@ export const ListAllSettlementCases = async (req, res) => {
     // if (from_date && to_date) {
     //   query.$and = [];
     // }
+
+    if (account_no) {
+      const matchedCases = await Case_details.find({ account_no }, 'case_id');
+      const caseIds = matchedCases.map(c => c.case_id);
+      query.case_id = { $in: caseIds };
+    }
 
     let pageNum = Number(page);
     // let limitNum = Number(limit);
@@ -72,10 +79,17 @@ export const ListAllSettlementCases = async (req, res) => {
 
     // Execute query with descending sort
     const settlements = await CaseSettlement.find(query)
-      .populate('case_id', 'account_no')
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
+
+    const caseIds = settlements.map(s => s.case_id);
+    const caseDetailsMap = {};
+      
+    const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, 'case_id account_no');
+    caseDetails.forEach(cd => {
+      caseDetailsMap[cd.case_id.toString()] = cd.account_no;
+    });
 
     if (settlements.length === 0) {
       return res.status(404).json({
@@ -88,6 +102,7 @@ export const ListAllSettlementCases = async (req, res) => {
     const formattedSettlements = settlements.map(settlement => {
       // Convert Mongoose document to plain object
       const SettlementDetails = settlement.toObject();
+      const caseIdStr = SettlementDetails.case_id.toString();
 
       // Format date fields for better readability
       if (SettlementDetails.created_dtm) {
@@ -101,7 +116,7 @@ export const ListAllSettlementCases = async (req, res) => {
       // Return all fields from model with properly formatted names
       return {
         case_id: SettlementDetails.case_id,
-        account_no: SettlementDetails.case_id.account_no || '-',
+        account_no: caseDetailsMap[caseIdStr] || '-',
         settlement_status: SettlementDetails.settlement_status,
         created_dtm: SettlementDetails.created_dtm,
         settlement_phase: SettlementDetails.settlement_phase,
@@ -273,7 +288,13 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     // Flatten the parameters structure
     const parameters = {
       Created_By,
-      task_status: "open"
+      task_status: "open",
+      Account_No: Account_Number,
+      case_ID: Case_ID,
+      Phase: Phase,
+      Case_Status: Case_Status,
+      from_date: from_date,
+      to_date: to_date,
     };
 
     // Pass parameters directly (without nesting it inside another object)
