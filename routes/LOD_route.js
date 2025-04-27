@@ -22,7 +22,6 @@ import { Retrive_logic,
          Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
          List_Final_Reminder_Lod_Cases,
          create_Customer_Responce,
-         creat_Customer_Responce,
          case_details_for_lod_final_reminder,
         } from "../controllers/LOD_controller.js";
 
@@ -34,7 +33,7 @@ router.post("/Retrive_logic", Retrive_logic);
  *   get:
  *     summary:  Count Cases by current_document_type
  *     description: |
- *       Retrieve counts of cases grouped by current_document_type and.
+ *       Retrieve counts of cases grouped by current_document_type.
  *       This endpoint also ensures only cases with the latest status as `LIT Prescribed` are considered.
  *
  *       | Version | Date        | Description                    | Changed By       |
@@ -900,7 +899,7 @@ router.post("/Create_Customer_Responce",create_Customer_Responce);
  *   post:
  *     summary:  case details for lod final reminder pages
  *     description: |
- *        case details for lod final reminder pages
+ *       Case details for LOD final reminder pages.
  *
  *       | Version | Date        | Description                    | Changed By       |
  *       |---------|-------------|--------------------------------|------------------|
