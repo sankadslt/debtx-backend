@@ -21,7 +21,8 @@ import { Retrive_logic,
          Change_Document_Type,
          Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
          List_Final_Reminder_Lod_Cases,
-         creat_Customer_Responce,
+         create_Customer_Responce,
+         case_details_for_lod_final_reminder,
         } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
@@ -757,6 +758,245 @@ router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_fo
  */
 router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
 
-router.post("/Creat_Customer_Responce",creat_Customer_Responce);
+/**
+ * @swagger
+ * /api/lod/Create_Customer_Responce:
+ *   post:
+ *     summary:  create the customer responce for the case
+ *     description: |
+ *       create the customer responce for the case for given case_id
+ *
+ *       | Version | Date        | Description                    | Changed By       |
+ *       |---------|-------------|--------------------------------|------------------|
+ *       | 01      | 2025-apr-07 | create the customer responce   | Ravindu          |
+ *
+ *     tags: [SLT LOD]
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: case id to filter cases.
+ *       - in: query
+ *         name: customer_responce
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "any response"
+ *         description: this is the response that come from front end drop down 
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "this is the remark"
+ *         description: this is the remark to the responce
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "admin"
+ *         description: this is the one who add the responce
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - customer_responce
+ *               - created_by
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 example: 1
+ *                 description: ID of the case to add the response to.
+ *               customer_responce:
+ *                 type: string
+ *                 enum: ["Agree to Settle", "Customer Dispute", "Request More Information"]
+ *                 example: "Agree to Settle"
+ *                 description: The response type from the customer.
+ *               remark:
+ *                 type: string
+ *                 example: "Customer agrees but needs time"
+ *                 description: Optional remark from the user.
+ *               created_by:
+ *                 type: string
+ *                 example: "admin"
+ *                 description: The user who is creating this response.
+ *     responses:
+ *       200:
+ *         description: Case updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases updated successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     lod_final_reminder:
+ *                       type: object
+ *                       properties:
+ *                         lod_response:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               lod_response_seq:
+ *                                 type: number
+ *                               response_type:
+ *                                 type: string
+ *                               lod_remark:
+ *                                 type: string
+ *                               created_by:
+ *                                 type: string
+ *                               created_on:
+ *                                 type: string
+ *                                 format: date-time
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All parammeters are required.
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: There is an error
+ */
+router.post("/Create_Customer_Responce",create_Customer_Responce); 
+
+/**
+ * @swagger
+ * /api/lod/Case_details_for_lod_final_reminder:
+ *   post:
+ *     summary:  case details for lod final reminder pages
+ *     description: |
+ *        case details for lod final reminder pages
+ *
+ *       | Version | Date        | Description                    | Changed By       |
+ *       |---------|-------------|--------------------------------|------------------|
+ *       | 01      | 2025-apr-07 | case details                   | Ravindu          |
+ *
+ *     tags: [SLT LOD]
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 1
+ *         description: case id to filter cases.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *             properties:
+ *               case_id:
+ *                 type: number
+ *                 example: 1
+ *                 description: ID of the case to retrieve.
+ *     responses:
+ *       200:
+ *         description: Case retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: case retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     case_id:
+ *                       type: number
+ *                     customer_ref:
+ *                       type: string
+ *                     account_no:
+ *                       type: string
+ *                     current_arrears_amount:
+ *                       type: number
+ *                     last_payment_date:
+ *                       type: string
+ *                       format: date
+ *                     lod_final_reminder:
+ *                       type: object
+ *       400:
+ *         description: Missing required case_id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: case id i required.
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: There is no case with this case id.
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Error message
+ */
+router.post("/Case_details_for_lod_final_reminder",case_details_for_lod_final_reminder); 
 
 export default router;

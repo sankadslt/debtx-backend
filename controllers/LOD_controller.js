@@ -463,7 +463,7 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
   }
 };
 
-export const creat_Customer_Responce = async (req, res) => {
+export const create_Customer_Responce = async (req, res) => {
   try {
       const { case_id, customer_responce, remark, created_by } = req.body;
       const valid_customer_responce = [
