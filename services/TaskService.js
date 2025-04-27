@@ -140,7 +140,7 @@ export const createTask = async (req, res) => {
     }
   };
 
-  export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By }) => {
+export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By }) => {
   if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
     throw new Error("Missing required parameters");
   }
