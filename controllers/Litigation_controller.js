@@ -260,7 +260,7 @@ export const createLitigationDocument = async (req, res) => {
     }
 };
 
-export const updateLegalSubmission = async (req, res) => {
+export const createLegalSubmission = async (req, res) => {
     try {
         const { case_id, submission, submission_on, submission_by, submission_remark } = req.body;
 
@@ -303,15 +303,22 @@ export const updateLegalSubmission = async (req, res) => {
             });
         }
 
-        // const litigation = updatedCase.litigation[0];
+        // Update the case_current_status in Case_details
+        const caseStatusUpdate = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            { $set: { case_current_status: "Forward To Litigation" } }
+        );
 
-        // if (litigation.legal_submission.length > 1) {
-        //     litigation.legal_submission.sort((a, b) => {
-        //         const dateA = new Date(a.submission_on);
-        //         const dateB = new Date(b.submission_on);
-        //         return dateB - dateA;
-        //     });
-        // }
+        if (!caseStatusUpdate) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found in Case_details for status update.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id} in Case_details.`,
+                },
+            });
+        }
 
         return res.status(200).json({
             status: "success",
@@ -355,18 +362,7 @@ export const listLitigationPhaseCaseDetails = async (req, res) => {
                 customer_ref: 1,
                 current_arrears_amount: 1,
                 last_payment_date: 1,
-                // litigation: {`
-                //     $slice: [
-                //         {
-                //             $filter: {
-                //                 input: "$litigation",
-                //                 as: "litigation",
-                //                 cond: { $eq: ["$$litigation.litigation_phase", "Litigation"] },
-                //             },
-                //         },
-                //         -1,
-                //     ],
-                // },
+                litigation: 1,
             } 
         );
 
@@ -388,6 +384,219 @@ export const listLitigationPhaseCaseDetails = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while retrieving litigation phase case details.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+};
+
+export const createLeagalDetails = async (req, res) => {
+    try {
+        const { case_id, court_no, case_handling_officer, remark, created_by } = req.body;
+
+        if (!case_id || !court_no || !case_handling_officer || !remark || !created_by) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required fields.",
+                errors: {
+                    code: 400,
+                    description: "case_id, court_no, court_registered_date, case_handling_officer, remark are required.",
+                },
+            });
+        }
+
+        const legalDetails = {
+            court_no,
+            court_registered_date: new Date(),
+            case_handling_officer,
+            remark,
+            created_on: new Date(),
+            created_by
+        };
+
+        const updatedCase = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            {
+                $push: {
+                    "litigation.legal_details": legalDetails,
+                },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+
+        // Update the case_current_status in Case_details
+        const caseStatusUpdate = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            { $set: { case_current_status: "Litigation" } }
+        );
+
+        if (!caseStatusUpdate) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found in Case_details for status update.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id} in Case_details.`,
+                },
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation document updated successfully.",
+            data: updatedCase,
+        });
+    } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while creating legal details.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+}
+
+export const createLeagalFail = async (req, res) => {
+    try {
+        const { case_id, action_type, remark, created_by } = req.body;
+
+        
+
+        if (!case_id || !action_type || !remark || !created_by) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required fields.",
+                errors: {
+                    code: 400,
+                    description: "case_id, action_type, remark are required.",
+                },
+            });
+        }
+        const legalDetails = {
+            action_type,
+            remark,
+            created_on: new Date(),
+            created_by
+        };
+
+        const updatedCase = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            {
+                $push: {
+                    "litigation.legal_details": legalDetails,
+                },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+
+        // Update the case_current_status in Case_details
+        const caseStatusUpdate = await LitigationDetails.findOneAndUpdate(
+            { case_id },
+            { $set: { case_current_status: "Pending  Approval Write-Off" } }
+        );
+
+        if (!caseStatusUpdate) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found in Case_details for status update.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id} in Case_details.`,
+                },
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation document updated successfully.",
+            data: updatedCase,
+        });
+    } catch (error) {
+        console.error("Error in function:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "An error occurred while creating legal details.",
+            errors: {
+                code: 500,
+                description: error.message,
+            },
+        });
+    }
+}
+
+export const listLitigationPhaseCaseSettlementAndPaymentDetails = async (req, res) => {
+    try {
+        const { case_id } = req.body;
+
+        if (!case_id) {
+            return res.status(400).json({
+                status: "error",
+                message: "Missing required field: case_id.",
+                errors: {
+                    code: 400,
+                    description: "case_id is required.",
+                },
+            });
+        }
+        const caseDetails = await LitigationDetails.findOne(
+            { case_id },
+            {
+                case_id: 1,
+                account_no: 1,
+                customer_ref: 1,
+                current_arrears_amount: 1,
+                last_payment_date: 1,
+                settlement: 1,
+            } 
+        );
+        if (!caseDetails) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+                errors: {
+                    code: 404,
+                    description: `No case found with case_id ${case_id}.`,
+                },
+            });
+        }
+        return res.status(200).json({
+            status: "success",
+            message: "Litigation phase case details retrieved successfully.",
+            data: caseDetails,
+        });
+    }
+    catch (error) {
         console.error("Error in function:", error);
         return res.status(500).json({
             status: "error",
