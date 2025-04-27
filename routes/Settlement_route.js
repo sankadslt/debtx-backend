@@ -10,15 +10,16 @@
 
 import { Router } from "express";
 import {
+  Create_Task_For_Downloard_Settlement_List,
   ListAllSettlementCases,
 } from "../controllers/Settlement_controller.js";
 import {
   Case_Details_Settlement_Phase,
 } from "../controllers/Settlement_controller.js";
 import {
-  Case_Details_Settlement_Phase_v2,
+  Case_Details_Settlement_LOD_FTL_LOD,
 } from "../controllers/Settlement_controller.js";
-
+import { Case_Details_Settlement_LOD_FTL_LOD_Ext_01 } from "../controllers/Settlement_controller.js";
 
 
 const router = Router();
@@ -314,6 +315,163 @@ router.post("/List_All_Settlement_Cases", ListAllSettlementCases);
 
 router.post("/Case_Details_Settlement_Phase", Case_Details_Settlement_Phase);
 
-router.post("/Case_Details_Settlement_Phase_v2", Case_Details_Settlement_Phase_v2);
+/**
+ * @swagger
+ * /api/settlement/Case_Details_Settlement_LOD_FTL_LOD:
+ *   post:
+ *     summary: Get case details including settlement, LOD, and FTL LOD data
+ *     description: |
+ *       Fetches a case's settlement details, payment history, final LOD response, and FTL LOD information using the `case_id`.
+ *
+ *       | Version | Date         | Description                                               | Changed By       |
+ *       |---------|--------------|-----------------------------------------------------------|------------------|
+ *       | 01      | 2025-April-22 | Initial version - fetch case, settlement, and payment info | Dinusha Anupama  |
+ * 
+ *     tags: [Case Settlement]
+ *     parameters:
+ *      - in: query
+ *        name: case_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 4
+ *        description: The Case ID.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 example: 1510
+ *                 description: Unique case identifier
+ *     responses:
+ *       200:
+ *         description: Case details with settlement and payment data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 case_id:
+ *                   type: integer
+ *                   example: 1510
+ *                 customer_ref:
+ *                   type: string
+ *                   example: "CUST-1234"
+ *                 account_no:
+ *                   type: string
+ *                   example: "ACC-5678"
+ *                 current_arrears_amount:
+ *                   type: number
+ *                   example: 5400.75
+ *                 last_payment_date:
+ *                   type: string
+ *                   format: date
+ *                   example: "2025-04-15"
+ *                 case_current_status:
+ *                   type: string
+ *                   example: "FTL LOD Final Notice"
+ *                 lod_response:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   example: []
+ *                 ftl_lod_responce:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   example: []
+ *                 settlement_count:
+ *                   type: integer
+ *                   example: 2
+ *                 settlement_plans:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       settlement_id:
+ *                         type: string
+ *                         example: "SETT-7890"
+ *                       settlement_plan:
+ *                         type: string
+ *                         example: "3-month installment plan"
+ *                       last_monitoring_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-04-01T10:00:00Z"
+ *                 payment_details:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       money_transaction_id:
+ *                         type: string
+ *                         example: "TXN-001"
+ *                       payment:
+ *                         type: number
+ *                         example: 1000.00
+ *                       payment_Dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-03-01T14:00:00Z"
+ *                       cummilative_settled_balance:
+ *                         type: number
+ *                         example: 2000.00
+ *                       installment_seq:
+ *                         type: integer
+ *                         example: 2
+ *                       money_transaction_type:
+ *                         type: string
+ *                         example: "Installment"
+ *                       money_transaction_amount:
+ *                         type: number
+ *                         example: 1000.00
+ *                       money_transaction_date:
+ *                         type: string
+ *                         format: date
+ *                         example: "2025-03-01"
+ *       400:
+ *         description: Missing case_id in request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "case_id is required"
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Case not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+
+
+router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_FTL_LOD);
+
+router.post("/Create_Task_For_Downloard_Settlement_List", Create_Task_For_Downloard_Settlement_List);
+
+router.post("/Case_Details_Settlement_LOD_FTL_LOD_Ext_01", Case_Details_Settlement_LOD_FTL_LOD_Ext_01);
 
 export default router;

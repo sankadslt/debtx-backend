@@ -22,6 +22,7 @@ import { Retrive_logic,
          Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
          List_Final_Reminder_Lod_Cases,
          create_Customer_Responce,
+         creat_Customer_Responce,
          case_details_for_lod_final_reminder,
         } from "../controllers/LOD_controller.js";
 
@@ -998,5 +999,7 @@ router.post("/Create_Customer_Responce",create_Customer_Responce);
  *                   example: Error message
  */
 router.post("/Case_details_for_lod_final_reminder",case_details_for_lod_final_reminder); 
+
+router.post("/case_details_for_lod_final_reminder", case_details_for_lod_final_reminder);
 
 export default router;
