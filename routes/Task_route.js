@@ -1,9 +1,10 @@
 import express from 'express';
-import { createTask,getOpenTaskCount,Task_for_Download_Incidents } from '../services/TaskService.js';
-
+import { createTask,getOpenTaskCount } from '../services/TaskService.js';
+import {Task_for_Download_Incidents } from '../controllers/Incident_controller.js';
 const router = express.Router();
 
 router.post('/Create_Task', createTask);
+
 /**
  * @swagger
  * /api/task/Task_for_Download_Incidents:

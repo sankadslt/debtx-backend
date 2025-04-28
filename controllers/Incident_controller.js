@@ -140,19 +140,19 @@ export const Create_Incident = async (req, res) => {
     const newIncident = new Incident_log(newIncidentData);
     await newIncident.save({ session });
 
-    try {
-      await Request_Incident_External_information({
-        Account_Num,
-        Monitor_Months: monitorMonths,
-      });
-    } catch (apiError) {
-      console.error("Error calling external API:", apiError.message);
-      await session.abortTransaction(); // Rollback transaction
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to request external incident information.",
-      });
-    }
+    // try {
+    //   await Request_Incident_External_information({
+    //     Account_Num,
+    //     Monitor_Months: monitorMonths,
+    //   });
+    // } catch (apiError) {
+    //   console.error("Error calling external API:", apiError.message);
+    //   await session.abortTransaction(); // Rollback transaction
+    //   return res.status(500).json({
+    //     status: "error",
+    //     message: "Failed to request external incident information.",
+    //   });
+    // }
 
     try {
       const taskData = {
@@ -208,69 +208,6 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
-
-
-
-
-// export const Reject_Case = async (req, res) => {
-//   try {
-//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-//       return res.status(400).json({
-//         message:
-//           "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-//       });
-//     }
-
-//     const incidentUpdateResult = await Incident.findOneAndUpdate(
-//       { Incident_Id },
-//       {
-//         $set: {
-//           Incident_Status: "Incident Reject",
-//           Rejected_Reason: Reject_Reason,
-//           Rejected_By,
-//           Rejected_Dtm: new Date(),
-//         },
-//       },
-//       { new: true }
-//     );
-
-//     if (!incidentUpdateResult) {
-//       return res.status(404).json({ message: "Incident not found." });
-//     }
-
-//     const caseUserInteractionUpdateResult =
-//       await System_Case_User_Interaction.findOneAndUpdate(
-//         { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-//         {
-//           $set: {
-//             User_Interaction_status: "close",
-//             User_Interaction_status_changed_dtm: new Date(),
-//           },
-//         },
-//         { new: true }
-//       );
-
-//     if (!caseUserInteractionUpdateResult) {
-//       return res
-//         .status(404)
-//         .json({ message: "System Case User Interaction not found." });
-//     }
-
-//     res.status(200).json({
-//       message: "Incident rejected and status updated successfully.",
-//       incident: incidentUpdateResult,
-//       caseUserInteraction: caseUserInteractionUpdateResult,
-//     });
-//   } catch (error) {
-//     console.error("Error rejecting the case:", error);
-//     res
-//       .status(500)
-//       .json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
 
 export const Reject_Case = async (req, res) => {
   try {
@@ -367,105 +304,6 @@ export const Reject_Case = async (req, res) => {
   }
 };
 
-// export const Reject_Case = async (req, res) => {
-//   try {
-//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-//     // Validate required fields
-//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-//       return res.status(400).json({
-//         message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-//       });
-//     }
-
-//     // Log the query filter for debugging
-//     console.log('Query Filter:', { Incident_Id });
-//     console.log('Type of Incident_Id:', typeof Incident_Id);
-
-//     // Start a session for the transaction
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     try {
-//       // Update Incident status
-//       const incidentUpdateResult = await Incident.findOneAndUpdate(
-//         { Incident_Id: Number(Incident_Id) }, // Ensure correct type
-//         {
-//           $set: {
-//             Incident_Status: "Incident Reject",
-//             Rejected_Reason: Reject_Reason,
-//             Rejected_By,
-//             Rejected_Dtm: new Date(),
-//           },
-//         },
-//         { new: true, session }
-//       );
-
-//       console.log('Incident Update Result:', incidentUpdateResult);
-
-//       if (!incidentUpdateResult) {
-//         throw new Error("Incident not found or failed to update.");
-//       }
-
-//       // Update User_Interaction_Log
-//       const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
-//         {
-//           "parameters.Incident_Id": Incident_Id,
-//           Templete_User_Interaction_ID: 5,
-//           User_Interaction_Type: "Validate Incident",
-//         },
-//         {
-//           $set: {
-//             User_Interaction_Status: "close",
-//             User_Interaction_Status_DTM: new Date(),
-//             Rejected_Reason: Reject_Reason,
-//             Rejected_By,
-//           },
-//         },
-//         { new: true, session }
-//       );
-
-//       if (!logUpdateResult) {
-//         throw new Error("No matching record found in User_Interaction_Log.");
-//       }
-
-//       // Delete from User_Interaction_Progress_Log
-//       const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
-//         {
-//           "parameters.Incident_Id": Incident_Id,
-//           Templete_User_Interaction_ID: 5,
-//           User_Interaction_Type: "Validate Incident",
-//         },
-//         { session }
-//       );
-
-//       if (!progressLogDeleteResult) {
-//         throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
-//       }
-
-//       // Commit the transaction
-//       await session.commitTransaction();
-
-//       // Return success response
-//       res.status(200).json({
-//         message: "Incident rejected and status updated successfully.",
-//         updatedLog: logUpdateResult,
-//       });
-//     } catch (innerError) {
-//       // Abort the transaction on error
-//       await session.abortTransaction();
-//       throw innerError;
-//     } finally {
-//       session.endSession();
-//     }
-//   } catch (error) {
-//     console.error("Error rejecting the case:", error);
-//     res.status(500).json({
-//       message: "Internal Server Error",
-//       error: error.message,
-//     });
-//   }
-// };
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
@@ -2109,5 +1947,49 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
         description: error.message,
       },
     });
+  }
+};
+
+export const Task_for_Download_Incidents = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+    if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    }
+    const taskData = {
+      Template_Task_Id: 20, // Placeholder, adjust if needed
+      task_type: "Create Incident list for download",
+      parameters: {
+          DRC_Action,
+          Incident_Status,
+          Source_Type,
+          From_Date,
+          To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+       ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  }finally {
+    session.endSession();
   }
 };
