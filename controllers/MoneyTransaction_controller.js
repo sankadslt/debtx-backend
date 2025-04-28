@@ -254,12 +254,19 @@ export const getAllPaymentCases = async (req, res) => {
   } = req.body;
   
   try {
+    // Validate required fields
+    if (!case_id && !settlement_phase && !account_num && !from_date && !to_date) {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one of case_id, settlement_phase, settlement_status, from_date or to_date is required."
+      });
+    }
 
     // Default query parameters
     const query = {};
 
     let pageNum = Number(page);
-    let limitNum = Number(limit);
+    let limitNum = Number(page) === 1 ? 10 : 30;
 
     // Apply filters if they exist
     if (case_id) query.case_id = Number(case_id);
@@ -283,7 +290,8 @@ export const getAllPaymentCases = async (req, res) => {
     }
 
     // Calculate skip for pagination
-    const skip = (pageNum - 1) * limitNum;
+    // const skip = (pageNum - 1) * limitNum;
+    const skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
 
     // Execute query with descending sort
     const transactions = await MoneyTransaction.find(query)
@@ -339,7 +347,7 @@ export const getAllPaymentCases = async (req, res) => {
         total,
         page: pageNum,
         limit: limitNum,
-        pages: Math.ceil(total / limitNum)
+        pages: total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1
       };
     } else {
       responseData.total = formattedTransactions.length;

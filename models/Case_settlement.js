@@ -5,6 +5,7 @@ const settlementPlanSchema = new Schema({
   Installment_Settle_Amount: { type: Number, required: true },
   Plan_Date: {type: Date, required: true},
   Payment_Seq: {type: Number, required: true},
+  Cumulative_Settle_Amount: {type: Number, required: true},
   Installment_Paid_Amount: {type: Number, required: true}
 });
 
