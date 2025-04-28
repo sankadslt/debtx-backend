@@ -107,7 +107,7 @@ const incidentSchema = new Schema(
         Rejected_Dtm: { type: Date, required: null },
         Incident_Forwarded_By: { type: String, required: true },
         Incident_Forwarded_On: { type: Date, required: true },
-        Actions: {
+        Actions: { 
             type: String,
             required: true,
             enum: ["collect arrears", "collect arrears and CPE", "collect CPE"], // Enum validation
