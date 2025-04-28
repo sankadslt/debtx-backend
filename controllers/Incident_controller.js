@@ -1951,75 +1951,44 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
 };
 
 export const Task_for_Download_Incidents = async (req, res) => {
-  const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
-
-  if (!From_Date || !To_Date || !Created_By ) {
-      return res.status(400).json({ error: "Missing required parameters From Date To Date" });
-  }
-
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
-      // Generate unique Task_Id
-      const mongoConnection = await mongoose.connection;
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-          { _id: "task_id" },
-          { $inc: { seq: 1 } },
-          { returnDocument: "after", session, upsert: true }
-      );
-
-      const Task_Id = counterResult.seq;
-
-      // Task object
-      const taskData = {
-          Task_Id,
-          Template_Task_Id: 20, // Placeholder, adjust if needed
-          task_type: "Create Incident list for download",
-          parameters: {
-              DRC_Action,
-              Incident_Status,
-              Source_Type,
-              From_Date,
-              To_Date,
-          },
-          Created_By,
-          Execute_By: "SYS",
-          task_status: "open",
-          created_dtm: new Date(),
-      };
-
-      // Insert into System_tasks
-      const task = new Task(taskData);
-      await task.save({ session });
-
-      // Insert into System_tasks_Inprogress
-      const taskInProgress = new Task_Inprogress(taskData);
-      await taskInProgress.save({ session });
-
-      // Commit the transaction
-      await session.commitTransaction();
-      
-      return res.status(201).json({ 
-          message: "Task created successfully",
-          Task_Id,
-          Template_Task_Id: taskData.Template_Task_Id, 
-    task_type: taskData.task_type, 
-    parameters: taskData.parameters, 
-    Created_By: taskData.Created_By  
-      });
-
+    const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+    if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    }
+    const taskData = {
+      Template_Task_Id: 20, // Placeholder, adjust if needed
+      task_type: "Create Incident list for download",
+      parameters: {
+          DRC_Action,
+          Incident_Status,
+          Source_Type,
+          From_Date,
+          To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    await createTaskFunction(taskData, session);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+      taskData,
+    });
   } catch (error) {
-      console.error("Error creating task:", error);
-
-      // Ensure the transaction is aborted only if still active
-      if (session.inTransaction()) {
-          await session.abortTransaction();
-      }
-      return res.status(500).json({ error: "Failed to create task", details: error.message });
-
-  } finally {
-      // Always end the session in the finally block
-      session.endSession();
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  }finally {
+    session.endSession();
   }
 };
