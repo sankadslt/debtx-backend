@@ -1973,12 +1973,13 @@ export const Task_for_Download_Incidents = async (req, res) => {
       task_status: "open",
       created_dtm: new Date(),
     };
-    await createTaskFunction(taskData, session);
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
     await session.commitTransaction();
     session.endSession();
     return res.status(201).json({
       message: "Task created successfully",
-      data:taskData,
+       ResponseData,
     });
   } catch (error) {
     console.error("Error creating the task:", error);
