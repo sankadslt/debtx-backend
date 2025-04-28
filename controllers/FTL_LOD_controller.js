@@ -96,7 +96,6 @@ export const List_FTL_LOD_Cases = async (req, res) => {
   try {
     session.startTransaction();
 
-    // Extract request body fields
     const {
       case_current_status,
       current_arrears_band,
@@ -105,16 +104,14 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       pages
     } = req.body;
 
-    // Define valid status values
     const validStatuses = [
       "Pending FTL LOD",
-      "Initial FLT LOD",
+      "Initial FTL LOD",
       "FTL LOD Settle Pending",
       "FTL LOD Settle Open-Pending",
       "FTL LOD Settle Active"
     ];
 
-    // Connect to MongoDB and fetch valid arrears bands
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
@@ -128,9 +125,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       ? Object.keys(arrearsData).filter(key => key !== "_id")
       : [];
 
-    // Validate case_current_status
     if (case_current_status && !validStatuses.includes(case_current_status)) {
-      console.error("Invalid case_current_status value:", case_current_status);
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({
@@ -139,7 +134,6 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       });
     }
 
-    // Validate current_arrears_band
     if (current_arrears_band && !validArrearsBands.includes(current_arrears_band)) {
       await session.abortTransaction();
       session.endSession();
@@ -149,14 +143,12 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       });
     }
 
-    // Calculate pagination values
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
 
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    // Build filter query
     const matchQuery = {};
 
     if (case_current_status) {
@@ -173,7 +165,8 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       if (date_to) matchQuery.created_dtm.$lte = new Date(date_to);
     }
 
-    // Execute aggregation pipeline
+    const total = await Case_details.countDocuments(matchQuery).session(session);
+
     const result = await Case_details.aggregate([
       { $match: matchQuery },
       { $sort: { case_id: -1 } },
@@ -183,39 +176,45 @@ export const List_FTL_LOD_Cases = async (req, res) => {
         $project: {
           _id: 0,
           case_id: 1,
-          case_current_status: 1,
           account_no: 1,
           current_arrears_amount: 1,
+          case_current_status: 1,
           ftl_lod: {
-            $map: {
-              input: {
-                $sortArray: {
-                  input: {
-                    $filter: {
-                      input: "$ftl_lod",
-                      as: "lod",
-                      cond: { $ifNull: ["$$lod.expire_date", false] }
-                    }
-                  },
-                  sortBy: { expire_date: 1 }
+            $cond: {
+              if: { $isArray: "$ftl_lod" },
+              then: {
+                $map: {
+                  input: "$ftl_lod",
+                  as: "item",
+                  in: {
+                    expire_date: "$$item.expire_date"
+                  }
                 }
               },
-              as: "item",
-              in: { expire_date: "$$item.expire_date" }
+              else: []
             }
           }
         }
       }
     ]).session(session);
 
-    // Commit and return results
     await session.commitTransaction();
     session.endSession();
+
+    const pagesCount = total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1;
 
     res.status(200).json({
       status: "success",
       message: "FTL LOD cases retrieved successfully.",
-      data: result
+      data: {
+        cases: result,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: pagesCount
+        }
+      }
     });
 
   } catch (error) {
