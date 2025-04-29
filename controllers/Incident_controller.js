@@ -22,160 +22,6 @@ import { dirname } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// export const Create_Incident = async (req, res) => {
-//   const { Account_Num, DRC_Action, Monitor_Months, Created_By } = req.body;
-
-//   try {
-//     // Validate required fields
-//     if (!Account_Num || !DRC_Action || !Monitor_Months || !Created_By) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "All fields are required.",
-//       });
-//     }
-
-//     // Validate Account_Num length
-//     if (Account_Num.length > 10) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Account number must be 10 characters or fewer.",
-//       });
-//     }
-//     // Validate Actions against enum values
-//     const validActions = ["collect arrears", "collect arrears and CPE", "collect CPE"];
-//     if (!validActions.includes(DRC_Action)) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: `Invalid action. Allowed values are: ${validActions.join(", ")}.`,
-//       });
-//     }
-
-//     // // Check if an active case exists for the Account_Num
-//     // const activeCase = await Incident_log.findOne({
-//     //   Account_Num,
-//     //   Actions: "Active", // Assuming this checks for active cases
-//     // });
-
-//     // if (activeCase) {
-//     //   return res.status(400).json({
-//     //     status: "error",
-//     //     message: "An active case already exists for the provided account number.",
-//     //   });
-//     // }
-//     // Set default Monitor_Months if not provided
-//     if (!Monitor_Months) {
-//       Monitor_Months = 3;
-//     }
-
-//     // Validate Monitor_Months range
-//     if (Monitor_Months < 1 || Monitor_Months > 3) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Monitor_Months must be between 1 and 3.",
-//       });
-//     }
-//     // Generate a new Incident_Id
-//     const mongoConnection = await mongoose.connection;
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-//       { _id: "incident_id" },
-//       { $inc: { seq: 1 } },
-//       { returnDocument: "after", upsert: true }
-//     );
-
-//     const Incident_Id = counterResult.seq;
-
-//     // Insert values into Incident_log
-//     const newIncident = new Incident_log({
-//       Incident_Id,
-//       Account_Num,
-//       Actions: DRC_Action,
-//       Monitor_Months, // Add Monitor_Months
-//       Created_By,
-//       Created_Dtm: moment().toDate(),
-//     });
-
-//     await newIncident.save();
-
-//     // Call external API: Request_Incident_External_information
-//     try {
-//       await Request_Incident_External_information({ Account_Num, Monitor_Months });
-//     } catch (apiError) {
-//       console.error("Error calling external API:", apiError.message);
-//       return res.status(500).json({
-//         status: "error",
-//         message: "Failed to request external incident information.",
-//       });
-//     }
-
-//     // Create task: "Extract data from data lake" (Template_Task_Id: 9)
-//     const mongo = await db.connectMongoDB();
-//     const TaskCounter = await mongo.collection("counters").findOneAndUpdate(
-//       { _id: "task_id" }, // Counter ID for task generation
-//       { $inc: { seq: 1 } }, // Increment the sequence
-//       { returnDocument: "after", upsert: true }
-//     );
-
-//     const Task_Id = TaskCounter.seq; // Get the generated Task_Id
-
-//     const taskData = {
-//       Task_Id, // Unique Task_Id
-//       Template_Task_Id: 9, // ID for "Extract data from data lake"
-//       parameters: {
-//         Incident_Id: Incident_Id.toString(), // Store values as strings for Map type
-//         Account_Num: Account_Num,
-//       },
-//       Created_By, // The user who initiated the task
-//       Execute_By: "SYS", // Default to null
-//       Sys_Alert_ID: null,
-//       Interaction_ID_Success: null,
-//       Interaction_ID_Error: null,
-//       Task_Id_Error: null,
-//       created_dtm: new Date(), // Current timestamp
-//       end_dtm: null, // Default to null
-//       task_status: "open",
-//       status_changed_dtm: null,
-//       status_description: "",
-//     };
-
-//     // Insert task into the database
-//     await Task.create(taskData);
-
-//     return res.status(201).json({
-//       status: "success",
-//       message: "Incident created successfully.",
-//       data: {
-//         Incident_Id,
-//         Account_Num,
-//         DRC_Action,
-//         Monitor_Months, // Include in the response
-//         Created_By,
-//         Created_Dtm: newIncident.Created_Dtm,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Unexpected error during incident creation:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to create incident.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-// Helper function to log elapsed time
-// Helper function to log elapsed time
-// const logElapsedTime = (action, startTime, endTime = Date.now()) => {
-//   const start = new Date(startTime).toISOString();
-//   const end = new Date(endTime).toISOString();
-//   const elapsed = endTime - startTime;
-
-//   logger.info({
-//     message: `${action}: ${start} - ${end}`,
-//     elapsed: `${elapsed}ms`,
-//   });
-// };
-
 // Validation function for Create_Task parameters
 const validateCreateTaskParameters = (params) => {
   const { Incident_Id, Account_Num } = params;
@@ -193,6 +39,18 @@ const validateCreateTaskParameters = (params) => {
   return true;
 };
 
+/**
+ * Inputs:
+ * - Account_Num: String (required)
+ * - DRC_Action: String (required) [collect arrears, collect arrears and CPE, collect CPE]
+ * - Monitor_Months: Number (optional, default is 3)
+ * - Created_By: String (required)
+ * - Source_Type: String (required) [Pilot Suspended, Product Terminate, Special]
+ * - Contact_Number: String (required only if DRC_Action is "collect CPE")
+ * 
+ * Success Result:
+ * - Returns a success response with the created incident and associated task details.
+ */
 export const Create_Incident = async (req, res) => {
 
   const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
@@ -204,6 +62,18 @@ export const Create_Incident = async (req, res) => {
       message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
     });
   }
+
+  const validActions = [
+    "collect arrears",
+    "collect arrears and CPE",
+    "collect CPE",
+  ];
+
+  const validSourceTypes = [
+    "Pilot Suspended",
+    "Product Terminate",
+    "Special",
+  ];
 
   if (DRC_Action === "collect CPE" && !Contact_Number) {
     return res.status(400).json({
@@ -224,12 +94,6 @@ export const Create_Incident = async (req, res) => {
         message: `An incident already exists for account number: ${Account_Num}.`,
       });
     }
-
-    const validActions = [
-      "collect arrears",
-      "collect arrears and CPE",
-      "collect CPE",
-    ];
     if (!validActions.includes(DRC_Action)) {
       return res.status(400).json({
         status: "error",
@@ -238,12 +102,6 @@ export const Create_Incident = async (req, res) => {
         )}.`,
       });
     }
-
-    const validSourceTypes = [
-      "Pilot Suspended",
-      "Product Terminate",
-      "Special",
-    ];
     if (!validSourceTypes.includes(Source_Type)) {
       return res.status(400).json({
         status: "error",
@@ -282,19 +140,19 @@ export const Create_Incident = async (req, res) => {
     const newIncident = new Incident_log(newIncidentData);
     await newIncident.save({ session });
 
-    try {
-      await Request_Incident_External_information({
-        Account_Num,
-        Monitor_Months: monitorMonths,
-      });
-    } catch (apiError) {
-      console.error("Error calling external API:", apiError.message);
-      await session.abortTransaction(); // Rollback transaction
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to request external incident information.",
-      });
-    }
+    // try {
+    //   await Request_Incident_External_information({
+    //     Account_Num,
+    //     Monitor_Months: monitorMonths,
+    //   });
+    // } catch (apiError) {
+    //   console.error("Error calling external API:", apiError.message);
+    //   await session.abortTransaction(); // Rollback transaction
+    //   return res.status(500).json({
+    //     status: "error",
+    //     message: "Failed to request external incident information.",
+    //   });
+    // }
 
     try {
       const taskData = {
@@ -350,69 +208,6 @@ export const Create_Incident = async (req, res) => {
     });
   }
 };
-
-
-
-
-// export const Reject_Case = async (req, res) => {
-//   try {
-//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-//       return res.status(400).json({
-//         message:
-//           "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-//       });
-//     }
-
-//     const incidentUpdateResult = await Incident.findOneAndUpdate(
-//       { Incident_Id },
-//       {
-//         $set: {
-//           Incident_Status: "Incident Reject",
-//           Rejected_Reason: Reject_Reason,
-//           Rejected_By,
-//           Rejected_Dtm: new Date(),
-//         },
-//       },
-//       { new: true }
-//     );
-
-//     if (!incidentUpdateResult) {
-//       return res.status(404).json({ message: "Incident not found." });
-//     }
-
-//     const caseUserInteractionUpdateResult =
-//       await System_Case_User_Interaction.findOneAndUpdate(
-//         { Case_User_Interaction_id: 5, "parameters.Incident_ID": Incident_Id },
-//         {
-//           $set: {
-//             User_Interaction_status: "close",
-//             User_Interaction_status_changed_dtm: new Date(),
-//           },
-//         },
-//         { new: true }
-//       );
-
-//     if (!caseUserInteractionUpdateResult) {
-//       return res
-//         .status(404)
-//         .json({ message: "System Case User Interaction not found." });
-//     }
-
-//     res.status(200).json({
-//       message: "Incident rejected and status updated successfully.",
-//       incident: incidentUpdateResult,
-//       caseUserInteraction: caseUserInteractionUpdateResult,
-//     });
-//   } catch (error) {
-//     console.error("Error rejecting the case:", error);
-//     res
-//       .status(500)
-//       .json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
 
 export const Reject_Case = async (req, res) => {
   try {
@@ -509,105 +304,6 @@ export const Reject_Case = async (req, res) => {
   }
 };
 
-// export const Reject_Case = async (req, res) => {
-//   try {
-//     const { Incident_Id, Reject_Reason, Rejected_By } = req.body;
-
-//     // Validate required fields
-//     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
-//       return res.status(400).json({
-//         message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
-//       });
-//     }
-
-//     // Log the query filter for debugging
-//     console.log('Query Filter:', { Incident_Id });
-//     console.log('Type of Incident_Id:', typeof Incident_Id);
-
-//     // Start a session for the transaction
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     try {
-//       // Update Incident status
-//       const incidentUpdateResult = await Incident.findOneAndUpdate(
-//         { Incident_Id: Number(Incident_Id) }, // Ensure correct type
-//         {
-//           $set: {
-//             Incident_Status: "Incident Reject",
-//             Rejected_Reason: Reject_Reason,
-//             Rejected_By,
-//             Rejected_Dtm: new Date(),
-//           },
-//         },
-//         { new: true, session }
-//       );
-
-//       console.log('Incident Update Result:', incidentUpdateResult);
-
-//       if (!incidentUpdateResult) {
-//         throw new Error("Incident not found or failed to update.");
-//       }
-
-//       // Update User_Interaction_Log
-//       const logUpdateResult = await User_Interaction_Log.findOneAndUpdate(
-//         {
-//           "parameters.Incident_Id": Incident_Id,
-//           Templete_User_Interaction_ID: 5,
-//           User_Interaction_Type: "Validate Incident",
-//         },
-//         {
-//           $set: {
-//             User_Interaction_Status: "close",
-//             User_Interaction_Status_DTM: new Date(),
-//             Rejected_Reason: Reject_Reason,
-//             Rejected_By,
-//           },
-//         },
-//         { new: true, session }
-//       );
-
-//       if (!logUpdateResult) {
-//         throw new Error("No matching record found in User_Interaction_Log.");
-//       }
-
-//       // Delete from User_Interaction_Progress_Log
-//       const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
-//         {
-//           "parameters.Incident_Id": Incident_Id,
-//           Templete_User_Interaction_ID: 5,
-//           User_Interaction_Type: "Validate Incident",
-//         },
-//         { session }
-//       );
-
-//       if (!progressLogDeleteResult) {
-//         throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
-//       }
-
-//       // Commit the transaction
-//       await session.commitTransaction();
-
-//       // Return success response
-//       res.status(200).json({
-//         message: "Incident rejected and status updated successfully.",
-//         updatedLog: logUpdateResult,
-//       });
-//     } catch (innerError) {
-//       // Abort the transaction on error
-//       await session.abortTransaction();
-//       throw innerError;
-//     } finally {
-//       session.endSession();
-//     }
-//   } catch (error) {
-//     console.error("Error rejecting the case:", error);
-//     res.status(500).json({
-//       message: "Internal Server Error",
-//       error: error.message,
-//     });
-//   }
-// };
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
@@ -618,6 +314,16 @@ const validateCreateTaskParametersForUploadDRSFile = (params) => {
   return true;
 };
 
+/**
+ * Inputs:
+ * - File_Name: String (required) - The name of the file to be uploaded.
+ * - File_Type: String (required) - The type of the file (e.g., "Incident Creation").
+ * - File_Content: String (required) - The content of the file to be uploaded.
+ * - Created_By: String (required) - The user who is uploading the file.
+ * 
+ * Success Result:
+ * - Returns a success response with file details and task creation information upon successful file upload and task creation.
+ */
 export const Upload_DRS_File = async (req, res) => {
   const { File_Name, File_Type, File_Content, Created_By } = req.body;
 
@@ -822,6 +528,17 @@ export const Upload_DRS_File = async (req, res) => {
 //   }
 // };
 
+/**
+ * Inputs:
+ * - Actions: String (optional)
+ * - Incident_Status: String (optional)
+ * - Source_Type: String (optional)
+ * - From_Date: String (optional, ISO Date format)
+ * - To_Date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of incidents matching the provided filters.
+ */
 export const List_Incidents = async (req, res) => {
   try {
     const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
@@ -2151,7 +1868,15 @@ export const getOpenTaskCountforCPECollect = async (req, res) => {
 
 
 
-
+/**
+ * Inputs:
+ * - From_Date: String (optional, ISO Date format)
+ * - To_Date: String (optional, ISO Date format)
+ * - status: String (optional)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of file upload logs matching the provided filters, or the most recent 10 logs if no filters are applied.
+ */
 export const List_Transaction_Logs_Upload_Files = async (req, res) => {
   const { From_Date, To_Date, status } = req.body;
 
@@ -2222,5 +1947,49 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
         description: error.message,
       },
     });
+  }
+};
+
+export const Task_for_Download_Incidents = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+    if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    }
+    const taskData = {
+      Template_Task_Id: 20, // Placeholder, adjust if needed
+      task_type: "Create Incident list for download",
+      parameters: {
+          DRC_Action,
+          Incident_Status,
+          Source_Type,
+          From_Date,
+          To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+       ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  }finally {
+    session.endSession();
   }
 };
