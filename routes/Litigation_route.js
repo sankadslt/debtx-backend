@@ -34,7 +34,8 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
 
 router.patch( "/Create_Legal_Details_By_Case_ID", createLeagalDetails );
 
-router.post( "/Create_Legal_Fail_By_case_ID", createLeagalFail );
+router.patch( "/Create_Legal_Fail_By_case_ID", createLeagalFail );
 
 router.post( "/List_Lit_Phase_Case_settlement_and_payment_Details_By_Case_ID", listLitigationPhaseCaseSettlementAndPaymentDetails);
+
 export default router;
