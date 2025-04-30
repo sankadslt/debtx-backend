@@ -651,7 +651,10 @@ export const listLitigationPhaseCaseSettlementAndPaymentDetails = async (req, re
         return res.status(200).json({
             status: "success",
             message: "Litigation phase case details retrieved successfully.",
-            data: caseSettlement, casePayment
+            data: {
+                settlementData: caseSettlement,
+                paymentData: casePayment,
+            },
         });
     }
     catch (error) {
