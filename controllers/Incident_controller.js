@@ -682,6 +682,13 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - None (uses no request body or parameters)
+ * 
+ * Success Result:
+ * - Returns a success response with the total count of incidents where Incident_Status is "Reject Pending" and Proceed_Dtm is null.
+ */
 export const total_F1_filtered_Incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
@@ -707,7 +714,13 @@ export const total_F1_filtered_Incidents = async (req, res) => {
   }
 };
 
-
+/**
+ * Inputs:
+ * - None (uses no request body or parameters)
+ * 
+ * Success Result:
+ * - Returns a success response with the total count of incidents where Incident_Status is "Open No Agent" and Proceed_Dtm is null.
+ */
 export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
@@ -980,6 +993,15 @@ export const List_incidents_Direct_LOD = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - Source_Type: String (optional)
+ * - FromDate: String (optional, ISO Date format)
+ * - ToDate: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with a list of 'Reject Pending' incidents filtered by source type and/or date range.
+ */
 export const List_F1_filted_Incidents = async (req, res) => {
   try {
     const {Source_Type, FromDate, ToDate}= req.body;
@@ -1009,6 +1031,15 @@ export const List_F1_filted_Incidents = async (req, res) => {
           $lte: to,
         };
       }
+      // if (FromDate || ToDate) {
+      //   query.Created_Dtm = {};
+      //   if (FromDate) {
+      //     query.Created_Dtm.$gte = new Date(FromDate);
+      //   }
+      //   if (ToDate) {
+      //     query.Created_Dtm.$lte = new Date(ToDate);
+      //   }
+      // }
       incidents = await Incident.find(query);
     }
    
@@ -1026,31 +1057,13 @@ export const List_F1_filted_Incidents = async (req, res) => {
   }
 };
 
-
-// export const List_distribution_ready_incidents = async (req, res) => {
-//   try {
-//     const openNoAgentStatuses = ["Open No Agent"];
-
-   
-//     const incidents = await Incident.find({
-//       Incident_Status: { $in: openNoAgentStatuses },
-//       Proceed_Dtm: { $eq: null }, 
-//     });
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Pending incidents retrieved successfully.",
-//       data: incidents,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching pending incidents:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: error.message || "An unexpected error occurred.",
-//     });
-//   }
-// };
-
+/**
+ * Inputs:
+ * - No inputs
+ * 
+ * Success Result:
+ * - Returns a success response with the latest 10 incidents where status is "Open No Agent" and Proceed_Dtm is null.
+ */
 export const List_distribution_ready_incidents = async (req, res) => {
   
   try {
@@ -1106,6 +1119,13 @@ export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
   }
 }
 
+/**
+ * Inputs:
+ * - No request body input required.
+ * 
+ * Success Result:
+ * - Returns a success response with incident counts grouped by arrears bands where status is "Open No Agent" and Proceed_Dtm is null.
+ */
 export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
   try {
     const details = (await Incident.find({
@@ -1136,9 +1156,13 @@ export const distribution_ready_incidents_group_by_arrears_band = async (req, re
   }
 }
 
-
-
-
+/**
+ * Inputs:
+ * - None (uses no request body or parameters)
+ * 
+ * Success Result:
+ * - Returns a success response with the total count of incidents where Incident_Status is "Open CPE Collect" and Proceed_Dtm is null.
+ */
 export const total_incidents_CPE_Collect = async (req, res) => {
   try {
     const details = (
@@ -1166,6 +1190,13 @@ export const total_incidents_CPE_Collect = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - None (uses no request body or parameters)
+ * 
+ * Success Result:
+ * - Returns a success response with the total count of incidents where Incident_Status is "Direct LOD" and Proceed_Dtm is null.
+ */
 export const total_incidents_Direct_LOD = async (req, res) => {
   try {
     const details = (
