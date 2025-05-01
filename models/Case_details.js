@@ -35,6 +35,7 @@ const caseStatusSchema = new Schema({
   created_by: { type: String, required: true },
   notified_dtm: { type: Date,default: null },
   expire_dtm: { type: Date, default: null },
+  case_phase:{ type: String, required: true },
 }, { _id: false });
 
 // Define the contact 
