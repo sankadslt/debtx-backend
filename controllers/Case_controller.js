@@ -2894,6 +2894,8 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
  * - Returns a success response with the message that a new batch sequence is added successfully.
  */
 export const Exchange_DRC_RTOM_Cases = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   const { case_distribution_batch_id, drc_list, created_by } = req.body;
 
   if (!case_distribution_batch_id || !drc_list || !created_by) {
@@ -2955,14 +2957,25 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     });
 
     if(result.status==="error"){
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         status: "error",
         message: `An error occurred while creating the task: ${result}`,
       });
     }
     // Fetch the existing document to get the last batch_seq
-    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id });
+    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
 
+
+    if(!existingCase){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        status: "error",
+        message: "case distribution batch id is not match with the existing batches.",
+      });
+    }
     let nextBatchSeq = 1;
 
     if (existingCase && existingCase.batch_seq_details.length > 0) {
@@ -3000,17 +3013,21 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       crd_distribution_status:"Open",
     };
     
-    // existingCase.batch_seq_details.push(newBatchSeqEntry);
-    const updatedexistingCase = await CaseDistribution.findOneAndUpdate(
-      {case_distribution_batch_id}, 
-      {
-        $push: { batch_seq_details: newBatchSeqEntry },
-        $set: { crd_distribution_status: "Open", crd_distribution_status_on: new Date() } 
-      },
-      { new: true } 
-    );
-    await updatedexistingCase.save();
-    
+    existingCase.batch_seq_details.push(newBatchSeqEntry);
+    existingCase.crd_distribution_status = "Open";
+    existingCase.crd_distribution_status_on = new Date();
+
+    await existingCase.save({ session }); 
+    // const updatedexistingCase = await CaseDistribution.findOneAndUpdate(
+    //   {case_distribution_batch_id}, 
+    //   {
+    //     $push: { batch_seq_details: newBatchSeqEntry },
+    //     $set: { crd_distribution_status: "Open", crd_distribution_status_on: new Date() } 
+    //   },
+    //   { new: true } 
+    // );
+    await session.commitTransaction();
+    session.endSession();
     return res.status(200).json({
       status: "success",
       message: `New batch sequence ${nextBatchSeq} added successfully.`,
@@ -3018,6 +3035,8 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    await session.abortTransaction();
+    session.endSession();
     return res.status(500).json({
       status: "error",
       message: `An error occurred while creating the task: ${error.message}`,
@@ -3273,6 +3292,14 @@ export const Approve_Batch_or_Batches = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - approver_references: Array of approver reference IDs (required)
+ * - Created_By: String (user ID or name who created the task) (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the created batch approval task details.
+ */
 export const Create_task_for_batch_approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3293,13 +3320,15 @@ export const Create_task_for_batch_approval = async (req, res) => {
     }
 
     const currentDate = new Date();
-
+    const dynamicParams = {
+      approver_references, // List of approver references
+      created_on: currentDate.toISOString(),
+    }; 
     // --- Create Task ---
     const taskData = {
       Template_Task_Id: 30, // Different Task ID for approval tasks
       task_type: "Create batch approval List for Downloard",
-      approver_references, // List of approver references
-      created_on: currentDate.toISOString(),
+      ...dynamicParams,
       Created_By, // Assigned creator
       task_status: "open",
     };
@@ -3325,6 +3354,16 @@ export const Create_task_for_batch_approval = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - approver_type: String (optional)
+ * - date_from: String (optional, ISO Date format)
+ * - date_to: String (optional, ISO Date format)
+ * - approved_deligated_by: String (optional)
+ * 
+ * Success Result:
+ * - Returns a success response with filtered approval records, including only the last approve_status entry.
+ */
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
       const { approver_type, date_from, date_to, approved_deligated_by } = req.body;
@@ -3380,6 +3419,14 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - approver_reference: String (required)
+ * - approved_by: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response confirming approval and number of updated records.
+ */
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3501,6 +3548,14 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - approver_references: Array of Strings (required, length between 1 and 5)
+ * - approved_by: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response after rejecting the given DRC Assign Manager approvals and updating related records.
+ */
 export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3615,7 +3670,16 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
-
+/**
+ * Inputs:
+ * - approver_references: Array (optional)
+ * - date_from: String (optional, ISO Date format)
+ * - date_to: String (optional, ISO Date format)
+ * - Created_By: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response confirming the task for batch approval was created.
+ */
 export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3630,15 +3694,17 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     const currentDate = new Date();
-
-    // --- Create Task ---
-    const taskData = {
-      Template_Task_Id: 33, // Different Task ID for approval tasks
-      task_type: "Create DRC Assign maneger approval List for Downloard",
+    const parameters = {
       approver_references, // List of approver references
       date_from,
       date_to,
       created_on: currentDate.toISOString(),
+    };
+    // --- Create Task ---
+    const taskData = {
+      Template_Task_Id: 33, // Different Task ID for approval tasks
+      task_type: "Create DRC Assign maneger approval List for Downloard",
+      ...parameters,
       Created_By, // Assigned creator
       task_status: "open",
     };
