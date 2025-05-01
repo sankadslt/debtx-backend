@@ -659,9 +659,9 @@ export const listLitigationPhaseCaseSettlementAndPaymentDetails = async (req, re
             status: "success",
             message: "Litigation phase case details retrieved successfully.",
             data: {
-                caseSettlement,
-                casePayment
-            }
+                settlementData: caseSettlement,
+                paymentData: casePayment,
+            },
         });
         
         
