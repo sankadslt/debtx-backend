@@ -10,6 +10,7 @@ export const createUserInteractionFunction = async ({
   Created_By,
   User_Interaction_Status = "Open",
   User_Interaction_Status_DTM,
+  session,
   ...dynamicParams
 }) => {
   try {
@@ -28,7 +29,7 @@ export const createUserInteractionFunction = async ({
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "interaction_log_id" },
       { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
+      { returnDocument: "after", upsert: true, session, }
     );
     const Interaction_Log_ID = counterResult.seq;
     if (!Interaction_Log_ID) {
@@ -49,11 +50,11 @@ export const createUserInteractionFunction = async ({
 
     // Insert into User_Interaction_Log collection
     const newInteraction = new User_Interaction_Log(interactionData);
-    await newInteraction.save();
+    await newInteraction.save({ session });
 
     // Insert into User_Interaction_Progress_Log collection
     const newInteractionInProgress = new User_Interaction_Progress_Log(interactionData);
-    await newInteractionInProgress.save();
+    await newInteractionInProgress.save({ session });
 
    
     return {

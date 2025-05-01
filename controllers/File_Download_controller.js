@@ -13,6 +13,13 @@
 import db from "../config/db.js";
 import FileDownloadLog from "../models/file_Download_log.js";
 
+/**
+ * Inputs:
+ * - Deligate_By: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of file download logs filtered by Deligate_By.
+ */
 export const List_Download_Files_from_Download_Log = async (req, res) => {
     const { Deligate_By } = req.body;
     if (!Deligate_By) {
@@ -21,9 +28,11 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
           message: "Field Deligate_By is required.",
         });
     }
+    const today = new Date();
     try {
         const logs = await FileDownloadLog.find({
           Deligate_By: Deligate_By,
+          File_Remove_On: { $gt: today } // Only include files that will be removed in the future
         });
     
         return res.status(200).json({
