@@ -389,13 +389,17 @@ export const Upload_DRS_File = async (req, res) => {
 
     await newFileLog.save({ session });
 
+    const parameters = {
+      file_upload_seq,
+      File_Name,
+      File_Type,
+    };
+
     // Create task within the transaction
     const taskData = {
       Template_Task_Id: 1,
       task_type: "Data upload from file",
-      file_upload_seq,
-      File_Name,
-      File_Type,
+      ...parameters,
       Created_By,
       task_status: "open",
     };
@@ -434,100 +438,6 @@ export const Upload_DRS_File = async (req, res) => {
   }
 };
 
-// export const List_Incidents = async (req, res) => {
-//   try {
-//     const { Actions, Incident_Status, From_Date, To_Date } = req.body;
-
-//     let query = {};
-
-//     if (From_Date && To_Date) {
-//       const startDate = new Date(From_Date);
-//       const endDate = new Date(To_Date);
-//       query.Created_Dtm = {
-//         $gte: startDate,
-//         $lte: endDate,
-//       };
-//     } else if (From_Date || To_Date) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Both From_Date and To_Date must be provided together.",
-//       });
-//     }
-
-//     if (Actions) {
-//       query.Actions = Actions;
-//     }
-//     if (Incident_Status) {
-//       query.Incident_Status = Incident_Status;
-//     }
-
-//     const incidents = await Incident_log.find(query);
-
-//     if (incidents.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No incidents found matching the criteria.",
-//       });
-//     }
-
-//     const mongo = await db.connectMongoDB();
-
-//     const TaskCounter = await mongo
-//       .collection("counters")
-//       .findOneAndUpdate(
-//         { _id: "task_id" },
-//         { $inc: { seq: 1 } },
-//         { returnDocument: "after", upsert: true }
-//       );
-
-//     if (!TaskCounter || !TaskCounter || !TaskCounter.seq) {
-//       return res.status(500).json({
-//         status: "error",
-//         message: "Failed to generate Task_Id from counters collection.",
-//       });
-//     }
-
-//     const Task_Id = TaskCounter.seq;
-
-//     const taskData = {
-//       Task_Id,
-//       Template_Task_Id: 12,
-//         parameters: {
-//           Incident_Status,
-//           StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
-//           EndDTM: To_Date ? new Date(To_Date).toISOString() : null,
-//           Actions,
-//       },
-//       Created_By: req.user?.username || "system",
-//       Execute_By: "SYS",
-//       task_status: "pending",
-//       created_dtm: new Date(),
-//       end_dtm: null,
-//       status_changed_dtm: null,
-//       status_description: "",
-//     };
-
-//     const newTask = new Task(taskData);
-//     await newTask.save();
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Incidents retrieved and task created successfully.",
-//       incidents,
-//       task: newTask,
-//     });
-//   } catch (error) {
-//     console.error("Error in List_Incidents:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
 /**
  * Inputs:
  * - Actions: String (optional)
@@ -544,7 +454,16 @@ export const List_Incidents = async (req, res) => {
     const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
 
     let query = {};
-
+    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date) {
+      const incidents = await Incident_log.find(query)
+        .sort({ Incident_Id: -1 })
+        .limit(10);
+      return res.status(200).json({
+        status: "success",
+        message: "Incidents retrieved successfully.",
+        incidents,
+      });
+    }
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
@@ -594,7 +513,6 @@ export const List_Incidents = async (req, res) => {
     });
   }
 };
-
 
 const validateTaskParameters = (parameters) => {
   const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
