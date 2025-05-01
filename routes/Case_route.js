@@ -4085,7 +4085,7 @@ router.post(
  *                   example: "Server error. Please try again later."
  */
 router.post(
-  "/get_distribution_array_of_a_transaction",
+  "/list_distribution_array_of_a_transaction",
   list_distribution_array_of_a_transaction
 );
 
