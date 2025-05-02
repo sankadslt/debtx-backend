@@ -101,15 +101,15 @@ export const ListAllSettlementCases = async (req, res) => {
       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
     }
 
-    const sortOptions = { created_dtm: -1, settlement_id: 1 };
+    const sortOptions = { created_dtm: -1, settlement_id: -1 };
 
     // If recent is true, limit to 10 latest entries and ignore pagination
-    if (recent === true) {
-      limitNum = 10;
-      pageNum = 1;
-      // Clear any filters if we just want recent payments
-      Object.keys(query).forEach(key => delete query[key]);
-    }
+    // if (recent === true) {
+    //   limitNum = 10;
+    //   pageNum = 1;
+    //   // Clear any filters if we just want recent payments
+    //   Object.keys(query).forEach(key => delete query[key]);
+    // }
 
     // Calculate skip for pagination
     // const skip = (pageNum - 1) * limitNum;
@@ -164,12 +164,12 @@ export const ListAllSettlementCases = async (req, res) => {
 
     // Prepare response data
     const responseData = {
-      message: recent === true ? 'Recent Case settlements are retrieved successfully' : 'Case settlements retrieved successfully',
+      message: 'Case settlements retrieved successfully',
       data: formattedSettlements,
     };
 
     // Add pagination info if not in recent mode
-    if (recent !== true) {
+    // if (recent !== true) {
       const total = await CaseSettlement.countDocuments(query);
       responseData.pagination = {
         total,
@@ -178,9 +178,9 @@ export const ListAllSettlementCases = async (req, res) => {
         // pages: Math.ceil(total / limitNum)
         pages: total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1
       };
-    } else {
-      responseData.total = formattedSettlements.length;
-    }
+    // } else {
+      // responseData.total = formattedSettlements.length;
+    // }
 
     return res.status(200).json({
       status: "success",
@@ -440,6 +440,7 @@ export const Case_Details_Settlement_LOD_FTL_LOD_Ext_01 = async (req, res) => {
       settlement_status: s.settlement_status,
       status_reason: s.status_reason || null,
       status_dtm: s.status_dtm || null,
+      settlement_phase: s.settlement_phase || null,
       settlement_type: s.settlement_type || null,
       created_by: s.created_by || null,
       created_dtm: s.created_dtm || null,
@@ -475,7 +476,7 @@ export const Case_Details_Settlement_LOD_FTL_LOD_Ext_01 = async (req, res) => {
       last_payment_date: caseDetails.last_payment_date,
       case_current_status: caseDetails.case_current_status,
       // lod_response: caseDetails.lod_final_reminder,
-      ftl_lod_responce: caseDetails.ftl_lod,
+      // ftl_lod_responce: caseDetails.ftl_lod,
       settlement_count: settlements.length,
       settlement_plans: settlementPlans,
       // settlement_plan_received: settlements.settlement_plan_received,
@@ -486,5 +487,68 @@ export const Case_Details_Settlement_LOD_FTL_LOD_Ext_01 = async (req, res) => {
   } catch (error) {
     console.error("Error fetching case details:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Created_By, Case_ID } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "created by is a required parameter.",
+      });
+    }
+
+    if (!Case_ID) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Case_ID is a required parameter.",
+      });
+    }
+
+    // Flatten the parameters structure
+    const parameters = {
+      Created_By,
+      task_status: "open",
+      case_ID: Case_ID,
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 43,
+      task_type: "Create task for Download Settlement Details By Case_Id",
+      ...parameters
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
   }
 };
