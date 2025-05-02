@@ -101,7 +101,7 @@ export const ListAllSettlementCases = async (req, res) => {
       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
     }
 
-    const sortOptions = { created_dtm: -1, settlement_id: 1 };
+    const sortOptions = { created_dtm: -1, settlement_id: -1 };
 
     // If recent is true, limit to 10 latest entries and ignore pagination
     // if (recent === true) {
