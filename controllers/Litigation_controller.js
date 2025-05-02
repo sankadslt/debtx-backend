@@ -12,7 +12,7 @@
 
 import LitigationDetails from "../models/Case_details.js";
 import CaseSettlement from "../models/Case_settlement.js";
-import CasePayment from "../models/Case_payments.js";
+import MoneyTransaction from "../models/Money_transactions.js";
 import TemplateForwardedApprover from "../models/Template_forwarded_approver.js";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { getApprovalUserId } from "../controllers/Tmp_SLT_Approval_Controller.js";
@@ -490,21 +490,26 @@ export const createLegalDetails = async (req, res) => {
 };
 
 export const createLegalFail = async (req, res) => {
-    try {
-        const { case_id, action_type, remark, created_by } = req.body;        
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-        if (!case_id || !action_type || !remark || !created_by) {
+    try {
+        const { case_id, remark, created_by } = req.body; 
+
+        if (!case_id || !remark || !created_by) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 status: "error",
                 message: "Missing required fields.",
                 errors: {
                     code: 400,
-                    description: "case_id, action_type, remark are required.",
+                    description: "case_id, remark are required.",
                 },
             });
         }
         const legalDetails = {
-            action_type,
+            action_type: "Legal Fail",
             remark,
             created_on: new Date(),
             created_by
@@ -524,35 +529,12 @@ export const createLegalFail = async (req, res) => {
                     case_current_status: "Pending Approval Write-Off",
                 },
             },
-            { new: true }
+            { session, new: true }
         );
 
-        // // Fixed this part - properly structured update document
-        // const tempApprover = await TemplateForwardedApprover.findOneAndUpdate(
-        //     { approver_reference: case_id }, // Query criteria (finding document to update)
-        //     {
-        //         $push: {
-        //             approver_reference: case_id,
-        //             created_on: new Date(),
-        //             created_by: created_by,
-        //             approve_status: {
-        //                 status: "Open",
-        //                 status_date: new Date(),
-        //                 status_edit_by: created_by,
-        //             },
-        //             approver_type: "Case Write-Off Approval",
-        //             // approved_deligated_by: "jgfug", // should be change to approved_deligated_by id according to the /Obtain_Nominee API
-        //             remark: {
-        //                 remark: remark,
-        //                 remark_date: new Date(),
-        //                 remark_edit_by: created_by,
-        //             },
-        //         }
-        //     },
-        //     { new: true }
-        // );
-
         if (!updatedCase) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({
                 status: "error",
                 message: "",
@@ -563,10 +545,54 @@ export const createLegalFail = async (req, res) => {
             });
         }
 
-        const deligate_user_id = await getApprovalUserId({
-            case_phase: "Litigation",
-            approval_type: "Case Write-Off Approval",
+        const case_phase = "Litigation";
+        const approval_type = "Case Write-Off Approval";
+
+        const delegateResult = await getApprovalUserId({
+            case_phase,
+            approval_type,
         });
+          
+        if (!delegateResult?.user_id) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new Error("Failed to resolve delegated user_id.");
+        }
+
+        const newTempApprover = new TemplateForwardedApprover(
+            {
+                approver_reference: case_id,
+                created_on: new Date(),
+                created_by: created_by,
+                approve_status: {
+                    status: "Open",
+                    status_date: new Date(),
+                    status_edit_by: created_by,
+                },
+                approver_type: "Case Write-Off Approval",
+                approved_deligated_by: Number(delegateResult.user_id), // approved_deligated_by id according to the /Obtain_Nominee API
+                remark: {
+                    remark: remark,
+                    remark_date: new Date(),
+                    remark_edit_by: created_by,
+                },
+            }
+        );
+
+        await newTempApprover.save({ session }); // Save the new temporary approver to the database
+
+        if (!newTempApprover) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({
+                status: "error",
+                message: "Faild to create temporary approver.",
+                errors: {
+                    code: 404,
+                    description: `Faild to update temporary approver with case_id ${case_id}.`,
+                },
+            });
+        }
 
         // create user interaction for case write-off approval for Create User Interaction Log
         const interaction_id = 21; // this must be changed later
@@ -576,19 +602,26 @@ export const createLegalFail = async (req, res) => {
         const interactionResult = await createUserInteractionFunction({
             Interaction_ID: interaction_id,
             User_Interaction_Type: request_type,
-            delegate_user_id: deligate_user_id, // Dynamic delegate_id
+            delegate_user_id: Number(delegateResult.user_id), // Dynamic delegate_id
             Created_By: created_by,
             User_Interaction_Status: "Open",
             User_Interaction_Status_DTM: new Date(),
             ...dynamicParams,
-        });
+        },{session} // Pass the session to the function
+        );
+
+        await session.commitTransaction(); // ✅ COMMIT the transaction
+        session.endSession();
 
         return res.status(200).json({
             status: "success",
             message: "Litigation document updated successfully.",
-            data: { updatedCase, interactionResult }
+            data: { updatedCase, newTempApprover, interactionResult }
         });
+
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("Error in function:", error);
         return res.status(500).json({
             status: "error",
@@ -603,78 +636,55 @@ export const createLegalFail = async (req, res) => {
 
 export const listLitigationPhaseCaseSettlementAndPaymentDetails = async (req, res) => {
     try {
-        const { case_id } = req.body;
-
-        if (!case_id) {
-            return res.status(400).json({
-                status: "error",
-                message: "Missing required field: case_id.",
-                errors: {
-                    code: 400,
-                    description: "case_id is required.",
-                },
-            });
-        }
-        const caseSettlement = await CaseSettlement.findOne(
-            { case_id },
-            {
-                settlement_plan: 1,
-                last_monitoring_dtm: 1,
-            } 
-        );
-        if (!caseSettlement) {
-            return res.status(404).json({
-                status: "error",
-                message: "Case Settlement not found.",
-                errors: {
-                    code: 404,
-                    description: `No case found with case_id ${case_id}.`,
-                },
-            });
-        }
-
-        const casePayment = await CasePayment.findOne(
-            { case_id },
-            {
-                settle_Effected_Amount: 1, // should be changed to settle_effected_amount according to Paid Amount
-                money_transaction_type: 1,
-                money_transaction_amount: 1,
-                money_transaction_date: 1,
-                installment_seq: 1,
-                cummilative_settled_balance: 1,
-                created_dtm: 1,
-            }
-        );
-        if (!casePayment) {
-            return res.status(404).json({
-                status: "error",
-                message: "Case Payment not found.",
-                errors: {
-                    code: 404,
-                    description: `No case found with case_id ${case_id}.`,
-                },
-            });
-        }
-        return res.status(200).json({
-            status: "success",
-            message: "Litigation phase case details retrieved successfully.",
-            data: {
-                settlementData: caseSettlement,
-                paymentData: casePayment,
-            },
+      const { case_id } = req.body;
+  
+      if (!case_id) {
+        return res.status(400).json({
+          status: "error",
+          message: "Missing required field: case_id.",
+          errors: {
+            code: 400,
+            description: "case_id is required.",
+          },
         });
-        
-        
-    }
-    catch (error) {
-        console.error("Error in function:", error);
-        return res.status(500).json({
-            status: "error",
-            message: "An error occurred while retrieving litigation phase case details.",
-            errors: {
-                code: 500,
-                description: error.message,
-            },
-        });
+      }
+  
+      const [caseSettlement, casePayment] = await Promise.all([
+        CaseSettlement.findOne(
+          { case_id },
+          { settlement_plan: 1, last_monitoring_dtm: 1 }
+        ),
+        MoneyTransaction.findOne(
+          { case_id },
+          {
+            transaction_type: 1,
+            money_transaction_amount: 1,
+            money_transaction_date: 1,
+            installment_seq: 1,
+            cummulative_settled_balance: 1,
+            created_dtm: 1,
+          }
+        ),
+      ]);
+  
+      return res.status(200).json({
+        status: "success",
+        message: "Litigation phase case details retrieved successfully.",
+        data: {
+          settlementData: caseSettlement || null,
+          paymentData: casePayment || null,
+        },
+      });
+    } catch (error) {
+      console.error("Error in function:", error);
+      return res.status(500).json({
+        status: "error",
+        message: "An error occurred while retrieving litigation phase case details.",
+        errors: {
+          code: 500,
+          description: error.message,
+        },
+      });
     }
 };
+  
