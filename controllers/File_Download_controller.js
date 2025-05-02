@@ -28,9 +28,11 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
           message: "Field Deligate_By is required.",
         });
     }
+    const today = new Date();
     try {
         const logs = await FileDownloadLog.find({
           Deligate_By: Deligate_By,
+          File_Remove_On: { $gt: today } // Only include files that will be removed in the future
         });
     
         return res.status(200).json({

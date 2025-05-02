@@ -30,22 +30,33 @@ import { getBatchApprovalUserIdService } from "../services/ApprovalService.js";
 //     }
 // };
 
-export const getApprovalUserId = async (req, res) => {
+export const getApprovalUserId = async ({
+    case_phase,
+    approval_type,
+    billing_center
+}) => {
     try {
-        const { case_phase, approval_type, billing_center } = req.body;
-
-        if (!case_phase || !approval_type) {
-            return res.status(400).json({ message: "case_phase and approval_type are required." });
-        }
-
-        const user_id = await getApprovalUserIdService({ case_phase, approval_type, billing_center });
-
-        res.status(200).json({ user_id });
+      if (!case_phase || !approval_type) {
+        throw new Error("case_phase and approval_type are required.");
+      }
+  
+      const user_id = await getApprovalUserIdService({
+        case_phase,
+        approval_type,
+        billing_center,
+      });
+  
+      return {
+        status: "success",
+        message: "User id fetched successfully",
+        user_id,
+      };
     } catch (error) {
-        console.error("Error fetching approval user_id:", error);
-        res.status(404).json({ message: error.message });
+      console.error("Error fetching approval user_id:", error);
+      throw new Error(error.message); // ✅ Re-throw to be caught in controller
     }
-};;
+};
+  
 
 // Get approval user_id for a batch of case_phase and approval_type
 // export const getBatchApprovalUserId = async (req, res) => {
