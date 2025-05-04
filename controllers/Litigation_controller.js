@@ -687,4 +687,3 @@ export const listLitigationPhaseCaseSettlementAndPaymentDetails = async (req, re
       });
     }
 };
-  
