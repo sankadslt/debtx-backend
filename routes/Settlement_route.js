@@ -12,6 +12,7 @@ import { Router } from "express";
 import {
   Create_Task_For_Downloard_Settlement_List,
   ListAllSettlementCases,
+  Create_Task_For_Downloard_Settlement_Details_By_Case_ID,
 } from "../controllers/Settlement_controller.js";
 import {
   Case_Details_Settlement_Phase,
@@ -473,5 +474,7 @@ router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_
 router.post("/Create_Task_For_Downloard_Settlement_List", Create_Task_For_Downloard_Settlement_List);
 
 router.post("/Case_Details_Settlement_LOD_FTL_LOD_Ext_01", Case_Details_Settlement_LOD_FTL_LOD_Ext_01);
+
+router.post("/Create_Task_For_Downloard_Settlement_Details_By_Case_ID", Create_Task_For_Downloard_Settlement_Details_By_Case_ID);
 
 export default router;
