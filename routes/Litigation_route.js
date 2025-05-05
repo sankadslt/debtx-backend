@@ -24,7 +24,189 @@ import {
 
 const router = Router();
 
-
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Litigation
+ *     description: Endpoints for managing litigation cases.
+ *
+ * /api/litigation/List_All_Litigation_Cases:
+ *   post:
+ *     summary: List filtered litigation cases with pagination
+ *     description: |
+ *       Retrieves a paginated list of litigation cases filtered by optional parameters: `case_current_status`, date range, and date type.
+ *       Returns the latest litigation submission and settlement creation dates.
+ *
+ *       | Version | Date       | Description                          | Changed By         |
+ *       |---------|------------|--------------------------------------|--------------------|
+ *       | 1.0     | 2025-04-30 | Initial version                      | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Litigation
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           description: Filter by a specific case status.
+ *           example: "Litigation"
+ *       - in: query
+ *         name: date_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ["Settlement created dtm", "legal accepted date"]
+ *           description: The type of date to filter by.
+ *           example: "Settlement created dtm"
+ *       - in: query
+ *         name: from_date
+ *         required: false
+ *         schema:
+ *          type: string
+ *          format: date
+ *          description: The start date of the date range in ISO format (yyyy-mm-dd).
+ *          example: "2024-01-01"
+ *       - in: query
+ *         name: to_date
+ *         required: false
+ *         schema:
+ *          type: string
+ *          format: date
+ *          description: The end date of the date range in ISO format (yyyy-mm-dd).
+ *          example: "2024-12-31"
+ *       - in: query
+ *         name: pages
+ *         required: false
+ *         schema:
+ *          type: integer
+ *          description: Page number for pagination. Page 1 returns 10 records, others return 30.
+ *          example: 1
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               case_current_status:
+ *                 type: string
+ *                 example: "Pending FTL"
+ *               date_type:
+ *                 type: string
+ *                 enum: ["Settlement created dtm", "legal accepted date"]
+ *                 example: "Settlement created dtm"
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-01-01"
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-12-31"
+ *               pages:
+ *                 type: integer
+ *                 description: Page number for pagination. Page 1 returns 10 records, others return 30.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Matching litigation cases retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Cases retrieved successfully.
+ *                 total_count:
+ *                   type: integer
+ *                   example: 15
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         example: 123
+ *                       status:
+ *                         type: string
+ *                         example: "Litigation"
+ *                       account_no:
+ *                         type: string
+ *                         example: "00123456789"
+ *                       current_arreas_amount:
+ *                         type: number
+ *                         example: 17500.50
+ *                       legal_accepted_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-08-15T10:00:00.000Z"
+ *                       settlement_created_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-06-01T10:00:00.000Z"
+ *       400:
+ *         description: No filter parameters were provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All These One parameter is required. case_current_status, date_type, from_date, to_date.
+ *       404:
+ *         description: No matching cases found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching cases found for the given criteria.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No cases satisfy the provided criteria.
+ *       500:
+ *         description: Server error during case retrieval.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while retrieving cases.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal server error message.
+ */
 router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
 
 /**

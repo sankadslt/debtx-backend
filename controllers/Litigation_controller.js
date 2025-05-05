@@ -19,6 +19,54 @@ import { getApprovalUserId } from "../controllers/Tmp_SLT_Approval_Controller.js
 import mongoose from "mongoose";
 
 
+/*
+    Function: 
+        - List_All_Litigation_Cases (LIT - 1P01)
+
+    Description:
+        - This function retrieves a paginated list of litigation-phase cases from the MongoDB database, filtered by case status and/or date ranges. It supports filtering by settlement creation date or legal acceptance date and returns summary details for each matching case.
+
+    Collections Used:
+        - LitigationDetails: Stores all case and litigation phase information.
+
+    Request Body Parameters:
+        - case_current_status: (Optional) Filter by a specific case status. If omitted, all predefined litigation statuses are included.
+        - date_type: (Optional) The type of date to filter by. Supported values: "Settlement created dtm", "legal accepted date".
+        - from_date: (Optional) Start date for the date range filter (ISO string).
+        - to_date: (Optional) End date for the date range filter (ISO string)
+        - pages: (Optional) Integer for the page number. Page 1 returns 10 results; pages >1 return 30 results each.
+
+    Response:
+        - HTTP 200: Success. Returns filtered, paginated case summaries.
+        - HTTP 400: No filter parameter provided.
+        - HTTP 404: No cases found matching the given criteria.
+        - HTTP 500: Internal server error or database failure.
+
+    Flow:
+        - Parse and validate input parameters from the request body.
+        - Set up pagination: 10 results for page 1, 30 for subsequent pages.
+        - Build the MongoDB query:
+            By default, filters for cases with litigation-related statuses.
+            If case_current_status is provided, filters by that status.
+            If date_type, from_date, and to_date are provided, adds the appropriate date range filter:
+                * "Settlement created dtm" → settlement.settlement_created_dtm
+                * "legal accepted date" → litigation.legal_submission.submission_on
+        - Query the LitigationDetails collection using the built filter, with pagination and sorting by descending case_id.
+        - Return 404 if no cases are found.
+        - Format the cases:
+            For each case, extract:
+                * case_id
+                * status (current status)
+                * account_no
+                * current_arrears_amount
+                * The latest legal_accepted_date (from last legal submission)
+                * The latest settlement_created_date (from last settlement)
+        - Return a success response with the formatted, paginated case data and total count.
+        - Handle errors:
+            Return 400 if no filter parameter is provided.
+            Return 404 if no cases match the criteria.
+            Return 500 for internal server or database errors.
+*/
 export const ListAllLitigationCases = async (req, res) => {
     try {
         const { case_current_status, date_type, from_date, to_date, pages } = req.body;
@@ -32,7 +80,6 @@ export const ListAllLitigationCases = async (req, res) => {
 
         let page = Number(pages);
         if (isNaN(page) || page < 1) page = 1;
-
         const limit = page === 1 ? 10 : 30;
         const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
@@ -119,7 +166,6 @@ export const ListAllLitigationCases = async (req, res) => {
         });
     }
 };
-
 
 /*
   Function: /Create_Litigation Document (LIT - 1A01)
