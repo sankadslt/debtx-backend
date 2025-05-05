@@ -27,23 +27,62 @@ const router = Router();
 /**
  * @swagger
  * tags:
- *   - name: Litigation
- *     description: Endpoints for retrieving litigation cases with filters and pagination.
+ *   - name: Case Litigation
+ *     description: Endpoints for managing litigation cases.
  *
- * /api/litigation/ListAllLitigationCases:
+ * /api/litigation/List_All_Litigation_Cases:
  *   post:
- *     summary: Retrieve filtered and paginated list of litigation-phase cases.
+ *     summary: List filtered litigation cases with pagination
  *     description: |
- *       This endpoint allows querying litigation cases by status, settlement date, or legal submission date.
- *       It also supports pagination: the first page returns 10 results, subsequent pages return 30.
+ *       Retrieves a paginated list of litigation cases filtered by optional parameters: `case_current_status`, date range, and date type.
+ *       Returns the latest litigation submission and settlement creation dates.
  *
- *       | Version | Date       | Description                               | Changed By         |
- *       |---------|------------|-------------------------------------------|--------------------|
- *       | 01      | 2025-Apr-30| Paginated & filtered litigation case list | Sasindu Srinayaka  |
+ *       | Version | Date       | Description                          | Changed By         |
+ *       |---------|------------|--------------------------------------|--------------------|
+ *       | 1.0     | 2025-04-30 | Initial version                      | Sasindu Srinayaka  |
  *     tags:
- *       - Litigation
+ *       - Case Litigation
+ *     parameters:
+ *       - in: query
+ *         name: case_current_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           description: Filter by a specific case status.
+ *           example: "Litigation"
+ *       - in: query
+ *         name: date_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ["Settlement created dtm", "legal accepted date"]
+ *           description: The type of date to filter by.
+ *           example: "Settlement created dtm"
+ *       - in: query
+ *         name: from_date
+ *         required: false
+ *         schema:
+ *          type: string
+ *          format: date
+ *          description: The start date of the date range in ISO format (yyyy-mm-dd).
+ *          example: "2024-01-01"
+ *       - in: query
+ *         name: to_date
+ *         required: false
+ *         schema:
+ *          type: string
+ *          format: date
+ *          description: The end date of the date range in ISO format (yyyy-mm-dd).
+ *          example: "2024-12-31"
+ *       - in: query
+ *         name: pages
+ *         required: false
+ *         schema:
+ *          type: integer
+ *          description: Page number for pagination. Page 1 returns 10 records, others return 30.
+ *          example: 1
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
@@ -51,30 +90,26 @@ const router = Router();
  *             properties:
  *               case_current_status:
  *                 type: string
- *                 description: Filter by specific litigation case status.
- *                 example: "Litigation"
+ *                 example: "Pending FTL"
  *               date_type:
  *                 type: string
- *                 enum: [Settlement created dtm, legal accepted date]
- *                 description: Type of date to filter by.
+ *                 enum: ["Settlement created dtm", "legal accepted date"]
  *                 example: "Settlement created dtm"
  *               from_date:
  *                 type: string
  *                 format: date
- *                 description: Start date for filtering based on date_type.
- *                 example: "2025-01-01"
+ *                 example: "2024-01-01"
  *               to_date:
  *                 type: string
  *                 format: date
- *                 description: End date for filtering based on date_type.
- *                 example: "2025-01-31"
+ *                 example: "2024-12-31"
  *               pages:
  *                 type: integer
- *                 description: Page number for pagination. First page returns 10 results, next pages return 30.
+ *                 description: Page number for pagination. Page 1 returns 10 records, others return 30.
  *                 example: 1
  *     responses:
  *       200:
- *         description: Cases retrieved successfully.
+ *         description: Matching litigation cases retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -86,12 +121,9 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: Cases retrieved successfully.
- *                 current_page:
+ *                 total_count:
  *                   type: integer
- *                   example: 1
- *                 total_cases:
- *                   type: integer
- *                   example: 57
+ *                   example: 15
  *                 data:
  *                   type: array
  *                   items:
@@ -99,28 +131,39 @@ const router = Router();
  *                     properties:
  *                       case_id:
  *                         type: integer
- *                         example: 101
+ *                         example: 123
  *                       status:
  *                         type: string
- *                         example: Litigation
+ *                         example: "Litigation"
  *                       account_no:
  *                         type: string
- *                         example: "ACC2023105"
+ *                         example: "00123456789"
  *                       current_arreas_amount:
  *                         type: number
- *                         example: 12450.75
+ *                         example: 17500.50
  *                       legal_accepted_date:
  *                         type: string
- *                         format: date
- *                         example: "2025-01-15"
+ *                         format: date-time
+ *                         example: "2024-08-15T10:00:00.000Z"
  *                       settlement_created_date:
  *                         type: string
- *                         format: date
- *                         example: "2025-02-01"
+ *                         format: date-time
+ *                         example: "2024-06-01T10:00:00.000Z"
  *       400:
- *         description: Invalid input or filter conditions.
+ *         description: No filter parameters were provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All These One parameter is required. case_current_status, date_type, from_date, to_date.
  *       404:
- *         description: No matching cases found for given criteria.
+ *         description: No matching cases found.
  *         content:
  *           application/json:
  *             schema:
@@ -162,28 +205,80 @@ const router = Router();
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: Internal server error.
+ *                       example: Internal server error message.
  */
 router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
 
 /**
  * @swagger
  * tags:
- *   - name: Litigation
- *     description: Endpoints for managing litigation support documentation.
+ *   - name: Case Litigation
+ *     description: Endpoints for managing litigation documents.
  *
- * /api/litigation/createLitigationDocument:
- *   post:
- *     summary: Create litigation support documents for RTOM and DRC.
+ * /api/litigation/Create_Litigation_Document:
+ *   patch:
+ *     summary: Create litigation documents for RTOM and DRC
  *     description: |
- *       This endpoint records supporting documentation details for a litigation-phase case.
- *       It stores RTOM and DRC file statuses and page counts under the case's litigation record.
+ *       Adds RTOM and DRC document status entries to an existing litigation case. 
+ *       Updates the case status to `Pending FTL` if required statuses are met.
  *
- *       | Version | Date       | Description                          | Changed By         |
- *       |---------|------------|--------------------------------------|--------------------|
- *       | 01      | 2025-Apr-30| Create litigation document endpoint  | Sasindu Srinayaka  |
+ *       | Version | Date       | Description                                | Changed By         |
+ *       |---------|------------|--------------------------------------------|--------------------|
+ *       | 1.0     | 2025-04-30 | Initial version of litigation doc API      | Sasindu Srinayaka  |
  *     tags:
- *       - Litigation
+ *       - Case Litigation
+ *     parameters:
+ *      - in: query
+ *        name: case_id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *          example: 1
+ *          description: Unique identifier for the case.
+ *      - in: query
+ *        name: rtom_customer_file_status
+ *        required: true
+ *        schema:
+ *         type: string
+ *         enum: [Collected, Without Agreement, Not Collected]
+ *         example: Collected
+ *         description: Status of the RTOM customer file.
+ *      - in: query
+ *        name: rtom_file_status_by
+ *        required: true
+ *        schema:
+ *         type: string
+ *         example: "admin123"
+ *         description: User who collected the RTOM customer file.
+ *      - in: query
+ *        name: rtom_pages_count
+ *        required: false
+ *        schema:
+ *          type: integer
+ *          example: 12
+ *          description: Number of pages in the RTOM customer file.
+ *      - in: query
+ *        name: drc_file_status
+ *        required: true
+ *        schema:
+ *         type: string
+ *         enum: [Collected, Not Collected]
+ *         example: Collected
+ *         description: Status of the DRC file.
+ *      - in: query
+ *        name: drc_file_status_by
+ *        required: true
+ *        schema:
+ *         type: string
+ *         example: "admin456"
+ *         description: User who collected the DRC file.
+ *      - in: query
+ *        name: drc_pages_count
+ *        required: false
+ *        schema:
+ *          type: integer
+ *          example: 8
+ *          description: Number of pages in the DRC file.
  *     requestBody:
  *       required: true
  *       content:
@@ -199,35 +294,30 @@ router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
  *             properties:
  *               case_id:
  *                 type: integer
- *                 description: ID of the case.
- *                 example: 101
+ *                 example: 103
  *               rtom_customer_file_status:
  *                 type: string
- *                 description: File status recorded by RTOM.
- *                 example: "Submitted"
+ *                 enum: [Collected, Without Agreement, Not Collected]
+ *                 example: Collected
  *               rtom_file_status_by:
  *                 type: string
- *                 description: User or officer who updated RTOM file status.
- *                 example: "RTOM Officer"
+ *                 example: "admin123"
  *               rtom_pages_count:
  *                 type: integer
- *                 description: Number of pages in RTOM documentation.
- *                 example: 25
+ *                 example: 12
  *               drc_file_status:
  *                 type: string
- *                 description: File status recorded by DRC.
- *                 example: "Reviewed"
+ *                 enum: [Collected, Not Collected]
+ *                 example: Collected
  *               drc_file_status_by:
  *                 type: string
- *                 description: User or officer who updated DRC file status.
- *                 example: "DRC Clerk"
+ *                 example: "admin456"
  *               drc_pages_count:
  *                 type: integer
- *                 description: Number of pages in DRC documentation.
- *                 example: 18
+ *                 example: 8
  *     responses:
  *       200:
- *         description: Litigation document created successfully.
+ *         description: Documents created and case updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -241,8 +331,9 @@ router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
  *                   example: Litigation document created successfully.
  *                 data:
  *                   type: object
+ *                   description: Updated case object
  *       400:
- *         description: Missing required fields in the request body.
+ *         description: Required fields missing or malformed input.
  *         content:
  *           application/json:
  *             schema:
@@ -264,7 +355,7 @@ router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
  *                       type: string
  *                       example: case_id, rtom_customer_file_status, drc_file_status, rtom_file_status_by, drc_file_status_by are required.
  *       404:
- *         description: Case not found.
+ *         description: Case not found with the given case_id.
  *         content:
  *           application/json:
  *             schema:
@@ -284,9 +375,9 @@ router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No case found with case_id 101.
+ *                       example: No case found with case_id 103.
  *       500:
- *         description: Internal server error occurred.
+ *         description: Internal error during litigation document creation.
  *         content:
  *           application/json:
  *             schema:
@@ -306,28 +397,57 @@ router.post( "/List_All_Litigation_Cases", ListAllLitigationCases );
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: Internal server error.
+ *                       example: Internal server error message.
  */
 router.patch( "/Create_Litigation_Document", createLitigationDocument );
 
 /**
  * @swagger
  * tags:
- *   - name: Litigation
- *     description: Endpoints for managing legal submissions in litigation cases.
+ *   - name: Case Litigation
+ *     description: Endpoints for managing litigation submissions.
  *
- * /api/litigation/createLegalSubmission:
+ * /api/litigation/Create_Legal_Submission:
  *   post:
- *     summary: Create and record a legal submission for a case.
+ *     summary: Add a new legal submission to an existing litigation case
  *     description: |
- *       This endpoint allows users to submit legal documents or notes tied to a specific case. 
- *       It updates the case's litigation record and advances the case status to "Forward To Litigation".
+ *       Records a new legal submission for a case and updates its current status based on the outcome.
  *
- *       | Version | Date       | Description                          | Changed By         |
- *       |---------|------------|--------------------------------------|--------------------|
- *       | 01      | 2025-Apr-30| Created legal submission endpoint    | Sasindu Srinayaka  |
+ *       | Version | Date       | Description                                | Changed By         |
+ *       |---------|------------|--------------------------------------------|--------------------|
+ *       | 1.0     | 2025-04-30 | Initial version for legal submission API   | Sasindu Srinayaka  |
  *     tags:
- *       - Litigation
+ *       - Case Litigation
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *           description: Unique identifier for the case. 
+ *       - in: query
+ *         name: submission
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [legal Accepted, legal Rejected]
+ *           example: legal Accepted
+ *           description: Outcome of the legal review.
+ *       - in: query
+ *         name: submission_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "adminUser123"
+ *           description: Identifier of the user making the submission.
+ *       - in: query
+ *         name: submission_remark
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Document reviewed and accepted"
+ *           description: Remarks or comments regarding the submission.
  *     requestBody:
  *       required: true
  *       content:
@@ -337,34 +457,25 @@ router.patch( "/Create_Litigation_Document", createLitigationDocument );
  *             required:
  *               - case_id
  *               - submission
- *               - submission_on
  *               - submission_by
  *               - submission_remark
  *             properties:
  *               case_id:
  *                 type: integer
- *                 description: ID of the case to which the legal submission applies.
- *                 example: 123
+ *                 example: 103
  *               submission:
  *                 type: string
- *                 description: The content or title of the legal submission.
- *                 example: "Initial Petition Filed"
- *               submission_on:
- *                 type: string
- *                 format: date
- *                 description: Date of submission.
- *                 example: "2025-04-30"
+ *                 enum: [legal Accepted, legal Rejected]
+ *                 example: legal Accepted
  *               submission_by:
  *                 type: string
- *                 description: The person or officer who submitted the document.
- *                 example: "Legal Officer A"
+ *                 example: "adminUser123"
  *               submission_remark:
  *                 type: string
- *                 description: Additional notes or remarks regarding the submission.
- *                 example: "Attached affidavit with the petition"
+ *                 example: "Document reviewed and accepted"
  *     responses:
  *       200:
- *         description: Legal submission successfully recorded.
+ *         description: Submission added and case status updated successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -378,8 +489,9 @@ router.patch( "/Create_Litigation_Document", createLitigationDocument );
  *                   example: Litigation document updated successfully.
  *                 data:
  *                   type: object
+ *                   description: Updated litigation case object
  *       400:
- *         description: Missing required fields in the request body.
+ *         description: Missing or invalid input fields.
  *         content:
  *           application/json:
  *             schema:
@@ -399,9 +511,9 @@ router.patch( "/Create_Litigation_Document", createLitigationDocument );
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: case_id, submission, submission_on, submission_by, submission_remark are required.
+ *                       example: case_id, submission, submission_by, submission_remark are required.
  *       404:
- *         description: Case not found for the given case_id.
+ *         description: No case found with the provided case_id.
  *         content:
  *           application/json:
  *             schema:
@@ -421,9 +533,9 @@ router.patch( "/Create_Litigation_Document", createLitigationDocument );
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No case found with case_id 123.
+ *                       example: No case found with case_id 103.
  *       500:
- *         description: Internal server error occurred while processing the request.
+ *         description: Internal error while processing the submission.
  *         content:
  *           application/json:
  *             schema:
@@ -443,28 +555,35 @@ router.patch( "/Create_Litigation_Document", createLitigationDocument );
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: Internal server error.
+ *                       example: Internal server error message.
  */
 router.patch( "/Create_Legal_Submission", createLegalSubmission );
 
 /**
  * @swagger
  * tags:
- *   - name: Litigation
- *     description: Endpoints for retrieving litigation-phase case details.
+ *   - name: Case Litigation
+ *     description: Endpoints for retrieving litigation-phase legal case details.
  *
- * /api/litigation/listLitigationPhaseCaseDetails:
+ * /api/litigation/List_Litigation_Phase_Case_Details_By_Case_ID:
  *   post:
- *     summary: Retrieve case details for a specific litigation-phase case.
+ *     summary: Retrieve details of a case in litigation phase.
  *     description: |
- *       This endpoint retrieves the basic case details including arrears amount, 
- *       last payment date, and associated legal records such as legal submissions and legal details.
+ *       Fetches case information and legal records under the litigation phase.
  *
- *       | Version | Date       | Description                             | Changed By         |
- *       |---------|------------|-----------------------------------------|--------------------|
- *       | 01      | 2025-Apr-30| Retrieve litigation phase case overview | Sasindu Srinayaka  |
+ *       | Version | Date       | Description                               | Changed By         |
+ *       |---------|------------|-------------------------------------------|--------------------|
+ *       | 1.0     | 2025-04-30 | Initial version for case details listing  | Sasindu Srinayaka  |
  *     tags:
- *       - Litigation
+ *       - Case Litigation
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *           description: Unique identifier for the case.
  *     requestBody:
  *       required: true
  *       content:
@@ -476,11 +595,11 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *             properties:
  *               case_id:
  *                 type: integer
- *                 description: Unique identifier for the case.
- *                 example: 123
+ *                 example: 1
+ *                 description: Unique ID of the litigation case.
  *     responses:
  *       200:
- *         description: Litigation phase case details retrieved successfully.
+ *         description: Case details found and returned successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -497,20 +616,21 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                   properties:
  *                     case_id:
  *                       type: integer
- *                       example: 123
+ *                       example: 103
  *                     account_no:
  *                       type: string
- *                       example: "AC987654321"
+ *                       example: "ACCT-2023-7765"
  *                     customer_ref:
  *                       type: string
- *                       example: "CUST-001"
+ *                       example: "CUS-REF-9876"
  *                     current_arrears_amount:
  *                       type: number
- *                       example: 52000.75
+ *                       format: float
+ *                       example: 45000.75
  *                     last_payment_date:
  *                       type: string
  *                       format: date
- *                       example: "2025-03-15"
+ *                       example: "2025-03-20"
  *                     litigation:
  *                       type: object
  *                       properties:
@@ -518,14 +638,12 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                           type: array
  *                           items:
  *                             type: object
- *                             description: Historical legal submissions.
  *                         legal_details:
  *                           type: array
  *                           items:
  *                             type: object
- *                             description: Legal details associated with the case.
  *       400:
- *         description: Validation error - Missing required field.
+ *         description: Request is missing the case_id.
  *         content:
  *           application/json:
  *             schema:
@@ -536,7 +654,7 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Missing required field case_id.
+ *                   example: Missing required field.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -547,7 +665,7 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                       type: string
  *                       example: case_id is required.
  *       404:
- *         description: Case not found.
+ *         description: No case found for the given case_id.
  *         content:
  *           application/json:
  *             schema:
@@ -567,9 +685,9 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No case found with case_id 123.
+ *                       example: No case found with case_id 103.
  *       500:
- *         description: Internal server error occurred.
+ *         description: Internal error during data fetch.
  *         content:
  *           application/json:
  *             schema:
@@ -589,27 +707,72 @@ router.patch( "/Create_Legal_Submission", createLegalSubmission );
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: Internal server error.
+ *                       example: Internal server error message.
  */
 router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPhaseCaseDetails);
 
 /**
  * @swagger
  * tags:
- *   - name: Litigation
- *     description: Endpoints related to legal and litigation details of cases.
+ *   - name: Case Litigation
+ *     description: Endpoints for managing litigation legal details.
  *
- * /api/litigation/createLegalDetails:
- *   post:
- *     summary: Create legal details and update case status to Litigation.
+ * /api/litigation/Create_Legal_Details_By_Case_ID:
+ *   patch:
+ *     summary: Add legal registration details to a case.
  *     description: |
- *       Adds new legal details to an existing case and updates the case's status to "Litigation".
+ *       Adds court and litigation legal detail to a case, including court number, registration date, 
+ *       officer handling, and logs it under case_status and legal_details.
  *
- *       | Version | Date       | Description                       | Changed By         |
- *       |---------|------------|-----------------------------------|--------------------|
- *       | 01      | 2025-Apr-30| Created legal details for a case | Sasindu Srinayaka  |
+ *       | Version | Date       | Description                      | Changed By         |
+ *       |---------|------------|----------------------------------|--------------------|
+ *       | 1.0     | 2025-05-03 | Initial creation of legal entry  | Sasindu Srinayaka  |
  *     tags:
- *       - Litigation
+ *       - Case Litigation
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *           description: Unique identifier for the case.
+ *       - in: query
+ *         name: court_no
+ *         required: true
+ *         schema:
+ *          type: string
+ *          example: "CIVIL-4567"
+ *          description: Official court number.
+ *       - in: query
+ *         name: court_register_dtm
+ *         required: true
+ *         schema:
+ *          type: string
+ *          format: date-time
+ *          example: "2025-04-29T10:00:00Z"
+ *          description: Court registration datetime.
+ *       - in: query
+ *         name: case_handling_officer
+ *         required: true
+ *         schema:
+ *          type: string
+ *          example: "Officer Jayasinghe"
+ *          description: Officer assigned to the case.
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *          type: string
+ *          example: "Court registered successfully."
+ *          description: Remark describing current status or reason.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *          type: integer
+ *          example: 7
+ *          description: ID of user creating the entry.
  *     requestBody:
  *       required: true
  *       content:
@@ -619,33 +782,39 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *             required:
  *               - case_id
  *               - court_no
+ *               - court_register_dtm
  *               - case_handling_officer
  *               - remark
  *               - created_by
  *             properties:
  *               case_id:
  *                 type: integer
- *                 description: ID of the case to be updated.
- *                 example: 123
+ *                 example: 102
+ *                 description: Unique identifier for the case.
  *               court_no:
  *                 type: string
- *                 description: Court number where the case is filed.
- *                 example: "Court-05"
+ *                 example: "CIVIL-4567"
+ *                 description: Official court number.
+ *               court_register_dtm:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-04-29T10:00:00Z"
+ *                 description: Court registration datetime.
  *               case_handling_officer:
  *                 type: string
- *                 description: Name of the officer handling the case.
- *                 example: "John Doe"
+ *                 example: "Officer Jayasinghe"
+ *                 description: Officer assigned to the case.
  *               remark:
  *                 type: string
- *                 description: Remarks or comments regarding the case.
- *                 example: "Filed with supporting documents"
+ *                 example: "Court registered successfully."
+ *                 description: Remark describing current status or reason.
  *               created_by:
- *                 type: string
- *                 description: Username of the creator.
- *                 example: "admin_user"
+ *                 type: integer
+ *                 example: 7
+ *                 description: ID of user creating the entry.
  *     responses:
  *       200:
- *         description: Legal details added successfully.
+ *         description: Legal details added successfully to case.
  *         content:
  *           application/json:
  *             schema:
@@ -659,6 +828,165 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *                   example: Legal details added successfully.
  *                 data:
  *                   type: object
+ *                   description: The updated case document.
+ *       400:
+ *         description: Required fields missing in request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Missing required fields.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: case_id, court_no, court_register_dtm, etc. are required.
+ *       404:
+ *         description: Case not found in the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case not found.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 404
+ *                     description:
+ *                       type: string
+ *                       example: No case found with case_id 102.
+ *       500:
+ *         description: Internal server error while saving details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while creating legal details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Internal DB transaction error.
+ */
+router.patch( "/Create_Legal_Details_By_Case_ID", createLegalDetails );
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Case Litigation
+ *     description: Endpoints for handling legal status changes.
+ *
+ * /api/litigation/Create_Legal_Fail_By_case_ID:
+ *   patch:
+ *     summary: Create legal failure and trigger write-off approval.
+ *     description: |
+ *       Records a legal fail action, updates case litigation details, initiates a write-off approval flow, 
+ *       and logs user interaction.
+ *
+ *       | Version | Date       | Description                          | Changed By         |
+ *       |---------|------------|--------------------------------------|--------------------|
+ *       | 1.0     | 2025-05-03 | Initial legal fail and approval flow | Sasindu Srinayaka  |
+ *     tags:
+ *       - Case Litigation
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - remark
+ *               - created_by
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Unique identifier for the case.
+ *               remark:
+ *                 type: string
+ *                 example: "Debtor unreachable after repeated attempts."
+ *                 description: Legal action remark.
+ *               created_by:
+ *                 type: integer
+ *                 example: 5
+ *                 description: User ID of the creator.
+ *     parameters:
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *           description: Unique identifier for the case.
+ *       - in: query
+ *         name: remark
+ *         required: true
+ *         schema:
+ *          type: string
+ *          example: "Debtor unreachable after repeated attempts."
+ *          description: Legal action remark.
+ *       - in: query
+ *         name: created_by
+ *         required: true
+ *         schema:
+ *          type: integer
+ *          example: 5
+ *          description: User ID of the creator.
+ *     responses:
+ *       200:
+ *         description: Legal fail recorded and write-off approval initiated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Litigation document updated successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updatedCase:
+ *                       type: object
+ *                       description: Case document after litigation status update.
+ *                     newTempApprover:
+ *                       type: object
+ *                       description: New TemplateForwardedApprover document created.
+ *                     interactionResult:
+ *                       type: object
+ *                       description: User interaction log result.
  *       400:
  *         description: Missing required fields.
  *         content:
@@ -680,9 +1008,9 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: case_id, court_no, case_handling_officer, remark, and created_by are required.
+ *                       example: case_id, remark are required.
  *       404:
- *         description: Case not found.
+ *         description: Case or user not found.
  *         content:
  *           application/json:
  *             schema:
@@ -693,7 +1021,7 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Case not found.
+ *                   example: Failed to update temporary approver.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -702,9 +1030,9 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *                       example: 404
  *                     description:
  *                       type: string
- *                       example: No case found with case_id 123.
+ *                       example: No case found with case_id 101.
  *       500:
- *         description: Internal server error occurred.
+ *         description: Server error while updating legal status.
  *         content:
  *           application/json:
  *             schema:
@@ -724,44 +1052,49 @@ router.post( "/List_Litigation_Phase_Case_Details_By_Case_ID", listLitigationPha
  *                       example: 500
  *                     description:
  *                       type: string
- *                       example: [Actual error message]
+ *                       example: Failed to resolve delegated user_id.
  */
-router.patch( "/Create_Legal_Details_By_Case_ID", createLegalDetails );
-
 router.patch( "/Create_Legal_Fail_By_case_ID", createLegalFail );
 
 /**
  * @swagger
  * tags:
- *   - name: Case Management
- *     description: Endpoints for retrieving litigation-phase case details.
+ *   - name: Case Litigation
+ *     description: Endpoints for litigation-phase case financial details.
  *
- * /api/case/List_Litigation_Phase_Case_Details:
+ * /api/litigation/List_Lit_Phase_Case_settlement_and_payment_Details_By_Case_ID:
  *   post:
- *     summary: Retrieve settlement and payment details for a litigation-phase case.
+ *     summary: Get litigation-phase settlement and payment details.
  *     description: |
- *       This endpoint retrieves both the case settlement and case payment details 
- *       related to the litigation phase for the specified case ID.
+ *       Returns settlement and payment data (if available) for a given case ID 
+ *       during the litigation phase.
  *
  *       | Version | Date       | Description                                 | Changed By         |
  *       |---------|------------|---------------------------------------------|--------------------|
- *       | 01      | 2025-Feb-10| Litigation phase case financial data lookup | Sasindu Srinayaka  |
+ *       | 01      | 2025-05-03 | Parallel fetch of settlement & payment data | Sasindu Srinayaka  |
  *     tags:
- *       - Case Management
+ *       - Case Litigation
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - case_id
  *             properties:
  *               case_id:
  *                 type: integer
+ *                 example: 1
  *                 description: Unique identifier for the case.
- *                 example: 101
+ *     parameters:
+ *     - name: case_id
+ *       in: query
+ *       required: true
+ *       description: Unique identifier for the case.
  *     responses:
  *       200:
- *         description: Litigation phase case details retrieved successfully.
+ *         description: Case details retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -776,39 +1109,43 @@ router.patch( "/Create_Legal_Fail_By_case_ID", createLegalFail );
  *                 data:
  *                   type: object
  *                   properties:
- *                     caseSettlement:
+ *                     settlementData:
  *                       type: object
+ *                       nullable: true
  *                       properties:
  *                         settlement_plan:
  *                           type: string
- *                           example: "Standard"
+ *                           example: "Standard Plan"
  *                         last_monitoring_dtm:
  *                           type: string
  *                           format: date-time
  *                           example: "2025-01-31T00:00:00Z"
- *                     casePayment:
+ *                     paymentData:
  *                       type: object
+ *                       nullable: true
  *                       properties:
- *                         money_transaction_type:
+ *                         transaction_type:
  *                           type: string
  *                           example: "Installment"
  *                         money_transaction_amount:
  *                           type: number
- *                           example: 15000.00
+ *                           format: float
+ *                           example: 25000.00
  *                         money_transaction_date:
  *                           type: string
  *                           format: date
- *                           example: "2025-01-25"
+ *                           example: "2025-04-01"
  *                         installment_seq:
  *                           type: integer
- *                           example: 3
- *                         cummilative_settled_balance:
+ *                           example: 2
+ *                         cummulative_settled_balance:
  *                           type: number
- *                           example: 45000.00
+ *                           format: float
+ *                           example: 50000.00
  *                         created_dtm:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-01-25T10:30:00Z"
+ *                           example: "2025-04-01T14:45:00Z"
  *       400:
  *         description: Missing required case_id.
  *         content:
@@ -821,7 +1158,7 @@ router.patch( "/Create_Legal_Fail_By_case_ID", createLegalFail );
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Missing required case_id.
+ *                   example: Missing required field.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -831,30 +1168,8 @@ router.patch( "/Create_Legal_Fail_By_case_ID", createLegalFail );
  *                     description:
  *                       type: string
  *                       example: case_id is required.
- *       404:
- *         description: No settlement or payment data found for the given case_id.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: Case Settlement not found.
- *                 errors:
- *                   type: object
- *                   properties:
- *                     code:
- *                       type: integer
- *                       example: 404
- *                     description:
- *                       type: string
- *                       example: No case found with case_id 101.
  *       500:
- *         description: Internal server error occurred while fetching details.
+ *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:

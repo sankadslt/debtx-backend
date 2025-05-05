@@ -2342,9 +2342,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
       current_arrears_band,
       date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
       date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
-      drc_commision_rule,
-      Created_By,
-      task_status: "open"
+      drc_commision_rule, 
     };
 
     // Pass parameters directly (without nesting it inside another object)
@@ -2352,6 +2350,8 @@ export const Create_Task_For_case_distribution = async (req, res) => {
       Template_Task_Id: 26,
       task_type: "Create Case distribution DRC Transaction List for Downloard",
       ...parameters, // Spreads parameters directly into taskData
+      Created_By,
+      task_status: "open"
     };
 
     // Call createTaskFunction
@@ -2652,7 +2652,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       ...dynamicParams,
     });
 
-    // Commit transaction
+    // Commit transaction  
     await session.commitTransaction();
     session.endSession();
 
@@ -2705,9 +2705,10 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 
     const taskData = {
       Template_Task_Id: 27,
-      task_type: "Create Case distribution DRC Transaction_1 _Batch List for Downloard",
+      task_type: "Crealist_distribution_array_of_a_transactionte Case distribution DRC Transaction_1 _Batch List for Downloard",
       ...parameters,
       Created_By,
+      task_status:"open"
     };
 
     await createTaskFunction(taskData, session);
@@ -2850,6 +2851,7 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
       task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Downloard",
       Created_By,
       ...parameters,
+      task_status:"open"
     };
 
     await createTaskFunction(taskData, session);
@@ -2904,7 +2906,27 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       message: "case distribution batch id, created by and DRC list fields are required.",
     });
   }
+  // Fetch the existing document to get the last batch_seq
+  const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
 
+  if(!existingCase){
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(404).json({
+      status: "error",
+      message: "case distribution batch id is not match with the existing batches.",
+    });
+  }
+  const existingTask = await mongo.collection("System_tasks").findOne({
+    task_status: { $ne: "Complete" },
+    "parameters.case_distribution_batch_id": case_distribution_batch_id,
+  }).session(session);;
+  if (existingTask) {
+    return res.status(400).json({
+      status: "error",
+      message: "Already has tasks with this commision rule and arrears band ",
+    });
+  }
   if (!Array.isArray(drc_list) || drc_list.length <= 0) {
     return res.status(400).json({
       status: "error",
@@ -2954,6 +2976,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       task_type: "Exchange Case Distribution Planning among DRC",
       Created_By: created_by,
       ...dynamicParams,
+      task_status:"open"
     });
 
     if(result.status==="error"){
@@ -2962,18 +2985,6 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       return res.status(400).json({
         status: "error",
         message: `An error occurred while creating the task: ${result}`,
-      });
-    }
-    // Fetch the existing document to get the last batch_seq
-    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
-
-
-    if(!existingCase){
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({
-        status: "error",
-        message: "case distribution batch id is not match with the existing batches.",
       });
     }
     let nextBatchSeq = 1;
@@ -3018,14 +3029,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     existingCase.crd_distribution_status_on = new Date();
 
     await existingCase.save({ session }); 
-    // const updatedexistingCase = await CaseDistribution.findOneAndUpdate(
-    //   {case_distribution_batch_id}, 
-    //   {
-    //     $push: { batch_seq_details: newBatchSeqEntry },
-    //     $set: { crd_distribution_status: "Open", crd_distribution_status_on: new Date() } 
-    //   },
-    //   { new: true } 
-    // );
+    
     await session.commitTransaction();
     session.endSession();
     return res.status(200).json({
@@ -3322,7 +3326,6 @@ export const Create_task_for_batch_approval = async (req, res) => {
     const currentDate = new Date();
     const dynamicParams = {
       approver_references, // List of approver references
-      created_on: currentDate.toISOString(),
     }; 
     // --- Create Task ---
     const taskData = {
@@ -3685,7 +3688,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { approver_references, date_from, date_to, Created_By } = req.body;
+    const {approver_type, date_from, date_to, Created_By, approver_status } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -3693,12 +3696,12 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
       return res.status(400).json({ message: "Created_By is required" });
     }
 
-    const currentDate = new Date();
     const parameters = {
       approver_references, // List of approver references
       date_from,
       date_to,
-      created_on: currentDate.toISOString(),
+      approver_status,
+      approver_type,
     };
     // --- Create Task ---
     const taskData = {
@@ -3867,17 +3870,18 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       }
 
       const currentDate = new Date();
-
+      dynamicParams = {
+        drc_id,
+        drc_name: drcDetails.drc_name, // Include DRC name
+        case_distribution_batch_id,
+      }
       // --- Create Task ---
       const taskData = {
           Template_Task_Id: 32, // Different Task ID for approval tasks
           task_type: "Create Case Distribution DRC Summary List for Downloard",
-          drc_id,
-          drc_name: drcDetails.drc_name, // Include DRC name
-          case_distribution_batch_id,
-          created_on: currentDate.toISOString(),
           Created_By, // Assigned creator
           task_status: "open",
+          ...dynamicParams,
       };
 
       // Call createTaskFunction
