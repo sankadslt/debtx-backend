@@ -12,6 +12,8 @@
 
 
 import MoneyCommission from "../models/Money_commission.js";
+import mongoose from "mongoose";
+import { createTaskFunction } from "../services/TaskService.js";
 
 
 // export const List_All_Commission_Cases = async (req, res) => {
@@ -212,40 +214,145 @@ export const List_All_Commission_Cases = async (req, res) => {
 };
 
 export const commission_type_cases_count = async (req, res) => {
-    try {
-        const commission_counts = await MoneyCommission.aggregate([
-            // {
-            //     $match: { case_current_status: "LIT Prescribed" }
-            // },
-            {
-                $group: {
-                    _id: "$commission_type", // No need for $arrayElemAt
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    total_count: { $sum: "$count" },
-                    commissions: { $push: { commission_type: "$_id", count: "$count" } }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    total_count: 1,
-                    commissions: 1
-                }
-            }
-        ]).exec();
-        return res.status(200).json({
-            status: "success",
-            data: commission_counts.length > 0 ? commission_counts[0] : { total_count: 0, cases: [] }
-        });
-    }catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Server error while fetching case counts"
-        });
+  try {
+    const commission_counts = await MoneyCommission.aggregate([
+      // {
+      //     $match: { case_current_status: "LIT Prescribed" }
+      // },
+      {
+        $group: {
+          _id: "$commission_type", // No need for $arrayElemAt
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total_count: { $sum: "$count" },
+          commissions: { $push: { commission_type: "$_id", count: "$count" } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          total_count: 1,
+          commissions: 1
+        }
+      }
+    ]).exec();
+    return res.status(200).json({
+      status: "success",
+      data: commission_counts.length > 0 ? commission_counts[0] : { total_count: 0, cases: [] }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error while fetching case counts"
+    });
+  }
+};
+
+export const Create_task_for_Download_Commision_Case_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Created_By, DRC_ID, Commission_Type, from_date, to_date, Case_ID, Account_Number } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "created by is a required parameter.",
+      });
     }
+
+    // Flatten the parameters structure
+    const parameters = {
+      Created_By,
+      task_status: "open",
+      Account_No: Account_Number,
+      case_ID: Case_ID,
+      DRC_ID: DRC_ID,
+      Commission_Type: Commission_Type,
+      from_date: from_date,
+      to_date: to_date,
+    };
+
+    // Pass parameters directly (without nesting it inside another object)
+    const taskData = {
+      Template_Task_Id: 45,
+      task_type: "Create task for Download Commision Case List",
+      ...parameters
+    };
+
+    // Call createTaskFunction
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
+export const Commission_Details_By_Commission_ID = async (req, res) => {
+  try {
+    const { commission_id } = req.body;
+
+    if (!commission_id) {
+      return res.status(400).json({ message: "commission_id is required" });
+    }
+
+    const commissionDetails = await MoneyCommission.findOne({ commission_id });
+    if (!commissionDetails) {
+      return res.status(404).json({ message: "Commission not found" });
+    }
+
+    const response = {
+      case_id: commissionDetails.case_id,
+      account_num: commissionDetails.account_num,
+      drc_id: commissionDetails.drc_id,
+      ro_id: commissionDetails.ro_id,
+      created_on: commissionDetails.created_on,
+      commission_amount: commissionDetails.commission_amount,
+      commission_type: commissionDetails.commission_type,
+      commission_action: commissionDetails.commission_action,
+      commission_status: commissionDetails.commission_status,
+      commission_status_on: commissionDetails.commission_status_on,
+      commission_status_reason: commissionDetails.commission_status_reason,
+      check_by: commissionDetails.check_by,
+      check_on: commissionDetails.check_on, 
+      approved_by: commissionDetails.approved_by,
+      approved_on: commissionDetails.approved_on,
+      caterlog_id: commissionDetails.caterlog_id,
+      commission_pay_rate_id: commissionDetails.commission_pay_rate_id,
+      commission_ref: commissionDetails.commission_ref,
+      transaction_ref: commissionDetails.transaction_ref,
+    };
+
+    return res.status(200).json({
+      message: "Case details retrieved successfully",
+      status: "success",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
