@@ -3741,10 +3741,27 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - case_id: number (required)
+ * - drc_id: number (required)
+ * - remark: String (optional)
+ * - assigned_by: String (required)
+ * - drc_name: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response after assigning the DRC and logging the approval request.
+ */
 export const Assign_DRC_To_Case = async (req, res) => {
+  
+  const session = await mongoose.startSession();
+
   try {
+    session.startTransaction();
     const { case_id, drc_id, remark, assigned_by, drc_name } = req.body;
+    
     if (!case_id|| !drc_id || !assigned_by || !drc_name) {
+      await session.abortTransaction();
       return res.status(400).json({
         status: "error",
         message: "case_id and drc_id is required.",
@@ -3776,7 +3793,8 @@ export const Assign_DRC_To_Case = async (req, res) => {
       },
     }
     const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAssignAproveRecode);
-    await TmpForwardedApproverRespons.save();
+    await TmpForwardedApproverRespons.save({ session });
+    
     const dynamicParams = {
       case_id,
       drc_id,
@@ -3787,9 +3805,20 @@ export const Assign_DRC_To_Case = async (req, res) => {
       delegate_user_id:1,   // should be change this 
       Created_By:assigned_by,
       User_Interaction_Status: "Open",
-      ...dynamicParams // should be change this 
+      ...dynamicParams, // should be change this 
+      session 
     });
-    res.status(200).json({
+
+    if(!result || result.status === "error"){
+      await session.abortTransaction();
+      res.status(404).json({
+        status: "error",
+        message: "DRC Reassining send to the Aprover process has a error.",
+      }); 
+    }
+    await session.commitTransaction();
+
+    return res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
       data: TmpForwardedApproverRespons,
@@ -3797,6 +3826,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
   }
   catch (error) {
     console.error("Error in Reassining send to the Aprover : ", error);
+    await session.abortTransaction();
     return res.status(500).json({
       status: "error",
       message: "An error occurred while assigning the DRC.",
@@ -3805,7 +3835,10 @@ export const Assign_DRC_To_Case = async (req, res) => {
         description: error.message,
       },
     });
-  }
+  }
+  finally {
+    session.endSession();
+  }
 };
 
 
@@ -4130,796 +4163,8 @@ export const Mediation_Board = async (req, res) => {
  }
 }
 
-// export const Mediation_Board2 = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   try {
-//     session.startTransaction();
-//     const {
-//       case_id,
-//       drc_id,
-//       ro_id,
-//       next_calling_date,
-//       handover_non_settlement,
-//       calling_round,
-//       request_id,
-//       request_type,
-//       request_comment,
-//       intraction_id,
-//       customer_available,
-//       comment,
-//       settle,
-//       settlement_count,
-//       initial_amount,
-//       calendar_month,
-//       duration,
-//       remark,
-//       fail_reason,
-//       created_by,
-//     } = req.body;
-
-//     if (!case_id || !drc_id || !customer_available) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ 
-//         status: "error",
-//         message: "Missing required fields: case_id, drc_id, customer_available" 
-//       });
-//     }
-//     if( calling_round >= 3 ){
-//       if (!handover_non_settlement) {
-//         return res.status(400).json({ 
-//           status: "error",
-//           message: "Missing required fields: handover non settlement" 
-//         });
-//       };
-//       if (handover_non_settlement == "yes") {
-//         const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
-//           { case_id: case_id }, 
-//           {
-//             $push: { 
-//               mediation_board: {
-//                 drc_id,
-//                 ro_id,
-//                 created_dtm: new Date(),
-//                 handed_over_non_settlemet_on: new Date(),
-//                 non_settlement_comment: comment
-//               }
-//             },
-//             $push: { 
-//               case_status: {
-//                 case_status: "Hand over non settlement", 
-//                 created_dtm: new Date(),
-//                 created_by,
-//               }
-//             },
-//             $set: { 
-//               case_current_status: "Hand over non settlement"
-//             }
-//           },
-//           { new: true, session }
-//         );
-//         if (!updatedMediationBoardCase) {
-//           await session.abortTransaction();
-//           session.endSession();
-//           return res.status(404).json({ 
-//             success: false, 
-//             message: 'Case not found for this case id' 
-//           });
-//         }
-//       }
-//       else if(handover_non_settlement == "no"){
-//         if ((request_id || request_type  || intraction_id) || (request_id != "" || request_type != "" || intraction_id != "")) {
-//           if (!request_id || !request_type || !intraction_id) {
-//             await session.abortTransaction();
-//             session.endSession();
-//             return res.status(400).json({ 
-//               status: "error",
-//               message: "Missing required fields: request_id, request_type, intraction_id" 
-//             });
-//           }
-//           if (customer_available == "no") {
-//             const dynamicParams = {
-//               case_id,
-//               drc_id,
-//               ro_id,
-//               request_id,
-//               request_type,
-//               request_comment,
-//             };
-//             const result = await createUserInteractionFunction({
-//               Interaction_ID:intraction_id,
-//               User_Interaction_Type:request_type,
-//               delegate_user_id:1,   // should be change this 
-//               Created_By:created_by,
-//               User_Interaction_Status: "Open",
-//               ...dynamicParams
-//             });
-//             if (!result || !result.Interaction_Log_ID) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(500).json({ 
-//                 status: "error", 
-//                 message: "Failed to create user interaction" 
-//               });
-//             }
-//             const intraction_log_id = result.Interaction_Log_ID;
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                   },
-//                   ro_requests: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       ro_request_id: request_id,
-//                       ro_request: request_type,
-//                       intraction_id: intraction_id,
-//                       intraction_log_id,
-//                   },
-//                   case_status: {
-//                       case_status: "rrrrrrrr", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "rrrrrrr"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }
-//           }
-//           else if(customer_available == "yes"){
-//             if(!settle){
-//               return res.status(400).json({ 
-//                 status: "error",
-//                 message: "Missing required fields: customer settle" 
-//               });
-//             };
-//             if(settle == "no"){
-//               const dynamicParams = {
-//                 case_id,
-//                 drc_id,
-//                 ro_id,
-//                 request_id,
-//                 request_type,
-//                 request_comment,
-//               };
-//               const result = await createUserInteractionFunction({
-//                 Interaction_ID:intraction_id,
-//                 User_Interaction_Type:request_type,
-//                 delegate_user_id:1,   // should be change this 
-//                 Created_By:created_by,
-//                 User_Interaction_Status: "Open",
-//                 ...dynamicParams
-//               });
-//               if (!result || !result.Interaction_Log_ID) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(500).json({ 
-//                   status: "error", 
-//                   message: "Failed to create user interaction" 
-//                 });
-//               }
-//               const intraction_log_id = result.Interaction_Log_ID;
-//               const updatedCase = await Case_details.findOneAndUpdate(
-//                 { case_id: case_id }, 
-//                 { 
-//                   $push: { 
-//                     mediation_board: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         mediation_board_calling_dtm: next_calling_date,
-//                         customer_available,
-//                         comment,
-//                         agree_to_settle:settle,
-//                         customer_response:fail_reason,
-//                     },
-//                     ro_requests: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         ro_request_id: request_id,
-//                         ro_request: request_type,
-//                         intraction_id: intraction_id,
-//                         intraction_log_id,
-//                     },
-//                     case_status: {
-//                         case_status: "zzzzzzzz", 
-//                         created_dtm: new Date(),
-//                         created_by,
-//                     }
-//                   },
-//                   $set: { 
-//                       case_current_status: "zzzzzzzz"
-//                   }
-//                 },
-//                 { new: true, session }
-//               );
-//               if (!updatedCase) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(404).json({ 
-//                   status: "error",
-//                   message: 'Case not found this case id' 
-//                 });
-//               }
-//             }
-//             else{
-//               const dynamicParams = {
-//                 case_id,
-//                 drc_id,
-//                 ro_id,
-//                 request_id,
-//                 request_type,
-//                 request_comment,
-//               };
-//               const result = await createUserInteractionFunction({
-//                 Interaction_ID:intraction_id,
-//                 User_Interaction_Type:request_type,
-//                 delegate_user_id:1,   // should be change this 
-//                 Created_By:created_by,
-//                 User_Interaction_Status: "Open",
-//                 ...dynamicParams
-//               });
-//               if (!result || !result.Interaction_Log_ID) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(500).json({ 
-//                   status: "error", 
-//                   message: "Failed to create user interaction" 
-//                 });
-//               }
-//               const intraction_log_id = result.Interaction_Log_ID;
-//               const updatedCase = await Case_details.findOneAndUpdate(
-//                 { case_id: case_id }, 
-//                 { 
-//                   $push: { 
-//                     mediation_board: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         mediation_board_calling_dtm: next_calling_date,
-//                         customer_available,
-//                         comment,
-//                         agree_to_settle:settle,
-//                     },
-//                     ro_requests: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         ro_request_id: request_id,
-//                         ro_request: request_type,
-//                         intraction_id: intraction_id,
-//                         intraction_log_id,
-//                     },
-//                     case_status: {
-//                         case_status: "yyyyyyy", 
-//                         created_dtm: new Date(),
-//                         created_by,
-//                     }
-//                   },
-//                   $set: { 
-//                       case_current_status: "yyyyyyy"
-//                   }
-//                 },
-//                 { new: true, session }
-//               );
-//               if (!updatedCase) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(404).json({ 
-//                   status: "error",
-//                   message: 'Case not found this case id' 
-//                 });
-//               }else{
-//                 // call the setlement API
-//               };
-//             }
-//           }
-//         }
-//         else{
-//           if (customer_available == "no") {
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                   },
-//                   case_status: {
-//                       case_status: "ttttt", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "ttttt"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }
-//           }
-//           else if(customer_available == "yes"){
-//             if(!settle){
-//               return res.status(400).json({ 
-//                 status: "error",
-//                 message: "Missing required fields: customer settle" 
-//               });
-//             };
-//             if(settle == "no"){
-//               const updatedCase = await Case_details.findOneAndUpdate(
-//                 { case_id: case_id }, 
-//                 { 
-//                   $push: { 
-//                     mediation_board: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         mediation_board_calling_dtm: next_calling_date,
-//                         customer_available,
-//                         comment,
-//                         agree_to_settle:settle,
-//                         customer_response:fail_reason,
-//                     },
-//                     case_status: {
-//                         case_status: "bbbbb", 
-//                         created_dtm: new Date(),
-//                         created_by,
-//                     }
-//                   },
-//                   $set: { 
-//                       case_current_status: "bbbbb"
-//                   }
-//                 },
-//                 { new: true, session }
-//               );
-//               if (!updatedCase) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(404).json({ 
-//                   status: "error",
-//                   message: 'Case not found this case id' 
-//                 });
-//               }
-//             }
-//             else{
-//               const updatedCase = await Case_details.findOneAndUpdate(
-//                 { case_id: case_id }, 
-//                 { 
-//                   $push: { 
-//                     mediation_board: {
-//                         drc_id,
-//                         ro_id,
-//                         created_dtm: new Date(),
-//                         mediation_board_calling_dtm: next_calling_date,
-//                         customer_available,
-//                         comment,
-//                         agree_to_settle:settle,
-//                     },
-//                     case_status: {
-//                         case_status: "ccccc", 
-//                         created_dtm: new Date(),
-//                         created_by,
-//                     }
-//                   },
-//                   $set: { 
-//                       case_current_status: "ccccc"
-//                   }
-//                 },
-//                 { new: true, session }
-//               );
-//               if (!updatedCase) {
-//                 await session.abortTransaction();
-//                 session.endSession();
-//                 return res.status(404).json({ 
-//                   status: "error",
-//                   message: 'Case not found this case id' 
-//                 });
-//               }else{
-//                 // call the setlement API
-//               };
-//             }
-//           }
-//         }
-//       }
-//       else{
-//         return res.status(400).json({ 
-//           status: "error",
-//           message: "handover non settlement value is not valid" 
-//         });
-//       }
-//     }
-//     else{
-//       if ((request_id || request_type  || intraction_id) || (request_id != "" || request_type != "" || intraction_id != "")) {
-//         if (!request_id || !request_type || !intraction_id) {
-//           await session.abortTransaction();
-//           session.endSession();
-//           return res.status(400).json({ 
-//             status: "error",
-//             message: "Missing required fields: request_id, request_type, intraction_id" 
-//           });
-//         }
-//         if (customer_available == "no") {
-//           const dynamicParams = {
-//             case_id,
-//             drc_id,
-//             ro_id,
-//             request_id,
-//             request_type,
-//             request_comment,
-//           };
-//           const result = await createUserInteractionFunction({
-//             Interaction_ID:intraction_id,
-//             User_Interaction_Type:request_type,
-//             delegate_user_id:1,   // should be change this 
-//             Created_By:created_by,
-//             User_Interaction_Status: "Open",
-//             ...dynamicParams
-//           });
-//           if (!result || !result.Interaction_Log_ID) {
-//             await session.abortTransaction();
-//             session.endSession();
-//             return res.status(500).json({ 
-//               status: "error", 
-//               message: "Failed to create user interaction" 
-//             });
-//           }
-//           const intraction_log_id = result.Interaction_Log_ID;
-//           const updatedCase = await Case_details.findOneAndUpdate(
-//             { case_id: case_id }, 
-//             { 
-//               $push: { 
-//                 mediation_board: {
-//                     drc_id,
-//                     ro_id,
-//                     created_dtm: new Date(),
-//                     mediation_board_calling_dtm: next_calling_date,
-//                     customer_available,
-//                     comment,
-//                 },
-//                 ro_requests: {
-//                     drc_id,
-//                     ro_id,
-//                     created_dtm: new Date(),
-//                     ro_request_id: request_id,
-//                     ro_request: request_type,
-//                     intraction_id: intraction_id,
-//                     intraction_log_id,
-//                 },
-//                 case_status: {
-//                     case_status: "rrrrrrrr", 
-//                     created_dtm: new Date(),
-//                     created_by,
-//                 }
-//               },
-//               $set: { 
-//                   case_current_status: "rrrrrrr"
-//               }
-//             },
-//             { new: true, session }
-//           );
-//           if (!updatedCase) {
-//             await session.abortTransaction();
-//             session.endSession();
-//             return res.status(404).json({ 
-//               status: "error",
-//               message: 'Case not found this case id' 
-//             });
-//           }
-//         }
-//         else if(customer_available == "yes"){
-//           if(!settle){
-//             return res.status(400).json({ 
-//               status: "error",
-//               message: "Missing required fields: customer settle" 
-//             });
-//           };
-//           if(settle == "no"){
-//             const dynamicParams = {
-//               case_id,
-//               drc_id,
-//               ro_id,
-//               request_id,
-//               request_type,
-//               request_comment,
-//             };
-//             const result = await createUserInteractionFunction({
-//               Interaction_ID:intraction_id,
-//               User_Interaction_Type:request_type,
-//               delegate_user_id:1,   // should be change this 
-//               Created_By:created_by,
-//               User_Interaction_Status: "Open",
-//               ...dynamicParams
-//             });
-//             if (!result || !result.Interaction_Log_ID) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(500).json({ 
-//                 status: "error", 
-//                 message: "Failed to create user interaction" 
-//               });
-//             }
-//             const intraction_log_id = result.Interaction_Log_ID;
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                       agree_to_settle:settle,
-//                       customer_response:fail_reason,
-//                   },
-//                   ro_requests: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       ro_request_id: request_id,
-//                       ro_request: request_type,
-//                       intraction_id: intraction_id,
-//                       intraction_log_id,
-//                   },
-//                   case_status: {
-//                       case_status: "zzzzzzzz", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "zzzzzzzz"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }
-//           }
-//           else{
-//             const dynamicParams = {
-//               case_id,
-//               drc_id,
-//               ro_id,
-//               request_id,
-//               request_type,
-//               request_comment,
-//             };
-//             const result = await createUserInteractionFunction({
-//               Interaction_ID:intraction_id,
-//               User_Interaction_Type:request_type,
-//               delegate_user_id:1,   // should be change this 
-//               Created_By:created_by,
-//               User_Interaction_Status: "Open",
-//               ...dynamicParams
-//             });
-//             if (!result || !result.Interaction_Log_ID) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(500).json({ 
-//                 status: "error", 
-//                 message: "Failed to create user interaction" 
-//               });
-//             }
-//             const intraction_log_id = result.Interaction_Log_ID;
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                       agree_to_settle:settle,
-//                   },
-//                   ro_requests: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       ro_request_id: request_id,
-//                       ro_request: request_type,
-//                       intraction_id: intraction_id,
-//                       intraction_log_id,
-//                   },
-//                   case_status: {
-//                       case_status: "yyyyyyy", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "yyyyyyy"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }else{
-//               // call the setlement API
-//             };
-//           }
-//         }
-//       }
-//       else{
-//         if (customer_available == "no") {
-//           const updatedCase = await Case_details.findOneAndUpdate(
-//             { case_id: case_id }, 
-//             { 
-//               $push: { 
-//                 mediation_board: {
-//                     drc_id,
-//                     ro_id,
-//                     created_dtm: new Date(),
-//                     mediation_board_calling_dtm: next_calling_date,
-//                     customer_available,
-//                     comment,
-//                 },
-//                 case_status: {
-//                     case_status: "ttttt", 
-//                     created_dtm: new Date(),
-//                     created_by,
-//                 }
-//               },
-//               $set: { 
-//                   case_current_status: "ttttt"
-//               }
-//             },
-//             { new: true, session }
-//           );
-//           if (!updatedCase) {
-//             await session.abortTransaction();
-//             session.endSession();
-//             return res.status(404).json({ 
-//               status: "error",
-//               message: 'Case not found this case id' 
-//             });
-//           }
-//         }
-//         else if(customer_available == "yes"){
-//           if(!settle){
-//             return res.status(400).json({ 
-//               status: "error",
-//               message: "Missing required fields: customer settle" 
-//             });
-//           };
-//           if(settle == "no"){
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                       agree_to_settle:settle,
-//                       customer_response:fail_reason,
-//                   },
-//                   case_status: {
-//                       case_status: "bbbbb", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "bbbbb"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }
-//           }
-//           else{
-//             const updatedCase = await Case_details.findOneAndUpdate(
-//               { case_id: case_id }, 
-//               { 
-//                 $push: { 
-//                   mediation_board: {
-//                       drc_id,
-//                       ro_id,
-//                       created_dtm: new Date(),
-//                       mediation_board_calling_dtm: next_calling_date,
-//                       customer_available,
-//                       comment,
-//                       agree_to_settle:settle,
-//                   },
-//                   case_status: {
-//                       case_status: "ccccc", 
-//                       created_dtm: new Date(),
-//                       created_by,
-//                   }
-//                 },
-//                 $set: { 
-//                     case_current_status: "ccccc"
-//                 }
-//               },
-//               { new: true, session }
-//             );
-//             if (!updatedCase) {
-//               await session.abortTransaction();
-//               session.endSession();
-//               return res.status(404).json({ 
-//                 status: "error",
-//                 message: 'Case not found this case id' 
-//               });
-//             }else{
-//               // call the setlement API
-//             };
-//           }
-//         }
-//       }
-//     }
-//   }
-//   catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({ 
-//       status:"error",
-//       message: "Server error", 
-//       error: error.message 
-//     }); 
-//   }
-// }
-
 export const List_CasesOwened_By_DRC = async (req, res) => {
-  let { drc_id, case_id, account_no, from_date, to_date } = req.body;
+  let { drc_id, account_no, from_date, to_date } = req.body;
 
   if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
     return res.status(400).json({
@@ -5608,7 +4853,18 @@ export const ListActiveMediationResponse = async (req, res) => {
     });
   }
 };
-
+/**
+ * Inputs:
+ * - drc_id: number (optional)
+ * - case_id: number (optional)
+ * - account_no: String (optional)
+ * - from_date: String (required, ISO Date format)
+ * - to_date: String (required, ISO Date format)
+ * - Created_By: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the created task details for downloading the assigned DRC case list.
+ */
 export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -5616,12 +4872,12 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
   try {
     const { drc_id, case_id, account_no, from_date, to_date, Created_By } = req.body;
 
-    if (!Created_By) {
+    if (!Created_By || !from_date ||!to_date) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "Created_By is a required parameter.",
+        message: "Created By, from date and to date are required parameter.",
       });
     }
 
@@ -5632,8 +4888,6 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
       account_no,
       from_date: from_date && !isNaN(new Date(from_date)) ? new Date(from_date).toISOString() : null,
       to_date: to_date && !isNaN(new Date(to_date)) ? new Date(to_date).toISOString() : null,
-      Created_By,
-      task_status: "open"
     };
 
     // Pass parameters directly (without nesting it inside another object)
@@ -5641,6 +4895,8 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
       Template_Task_Id: 35,
       task_type: "Create task for download the Assigned DRC's case list when selected date range is higher that one month",
       ...parameters, // Spreads parameters directly into taskData
+      Created_By,
+      task_status: "open"
     };
 
     // Call createTaskFunction
@@ -5951,6 +5207,13 @@ export const updateDrcCaseDetails = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - case_id: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the case details including fields like case_id, customer_ref, account_no, current_arrears_amount, last_payment_date, drc, and ro_negotiation.
+ */
 export const AssignDRCToCaseDetails = async (req, res) => {
   let { case_id,} = req.body;
   if (!case_id) {
@@ -5974,13 +5237,13 @@ export const AssignDRCToCaseDetails = async (req, res) => {
       _id: 0,
     });
 
-    // if (!caseDetails) {
-    //   return res.status(404).json({
-    //     status: "error",
-    //     message: "No Case Details Found.",
-    //     errors: { code: 404, description: "No data available for the provided DRC_Id" },
-    //   });
-    // }
+    if (!caseDetails) {
+      return res.status(404).json({
+        status: "error",
+        message: "No Case Details Found.",
+        errors: { code: 404, description: "No data available for the provided DRC_Id" },
+      });
+    }
     res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
@@ -5995,64 +5258,6 @@ export const AssignDRCToCaseDetails = async (req, res) => {
     });
   }
 };
-
-// export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
-//   try {
-//       const { approver_reference, remark, remark_edit_by, created_by } = req.body;
-
-//       if (!approver_reference || !remark || !remark_edit_by || !created_by) {
-//           return res.status(400).json({ message: "All required fields must be provided." });
-//       }
-
-//       const currentDate = new Date();
-
-//       const delegate_id = await getApprovalUserIdService({
-//           case_phase: "Initial Review",
-//           approval_type: "Manager Approval"
-//       });
-
-//       // --- Proceed to insert document ---
-//       const newDocument = new TmpForwardedApprover({
-//           approver_reference,
-//           created_by,
-//           approver_type: "Case Withdrawal Approval",
-//           approve_status: [{
-//               status: "Pending Case Withdrawal",
-//               status_date: currentDate,
-//               status_edit_by: created_by,
-//           }],
-//           remark: [{
-//               remark,
-//               remark_date: currentDate,
-//               remark_edit_by,
-//           }],
-//           approved_deligated_by: delegate_id
-//       });
-
-//       await newDocument.save();
-
-//       // --- Interaction Log ---
-//       const interactionResult = await createUserInteractionFunction({
-//           Interaction_ID: 6,
-//           User_Interaction_Type: "Pending Approval Agent Destribution",
-//           delegate_user_id: delegate_id, 
-//           Created_By: created_by,
-//           User_Interaction_Status: "Open",
-//           User_Interaction_Status_DTM: currentDate,
-//           Request_Mode: "Negotiation",
-//           approver_reference
-//       });
-
-//       return res.status(200).json({
-//           message: "Case withdrawal request added successfully",
-//           data: newDocument
-//       });
-
-//   } catch (error) {
-//       console.error("Error withdrawing case:", error);
-//       return res.status(500).json({ message: error.message });
-//   }
-// };
 
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
   const session = await mongoose.startSession();
