@@ -1,43 +1,52 @@
+/* 
+    Purpose: This template is used for the Write_Off Controllers.
+    Created Date: 2025-04-25
+    Created By: Buthmi Mithara (buthmimithara1234@gmail.com)
+    Version: Node.js v20.11.1
+    Dependencies: axios , mongoose
+    Related Files: Write_Off_route.js
+    Notes:  
+*/
+
+
 import Case_details from "../models/Case_details.js";
 import { createTaskFunction } from "../services/TaskService.js";
 import mongoose from "mongoose";
 
 /**
- * Get all write-off cases.
- * - Only returns cases where current status is "Pending Write Off" or "Write Off".
+ * Controller: Get all write-off cases.
+ * - Returns cases with status "Pending Write Off" or "Write Off".
  * - For each case, gets the last object in `case_status` array.
  * - Returns `created_dtm` and `case_phase` from the last status object as `write_off_on` and `case_phase`.
  * - Supports date filtering, pagination, and recent mode.
  */
-
-
 export const getAllWriteOffCases = async (req, res) => {
     // Extract filters and pagination from request body
     const {
-      status,        // Optional: filter by a specific status
-      fromDate,      // Optional: filter by write-off date (start)
-      toDate,        // Optional: filter by write-off date (end)
+      status,        // Filter by a specific status if provided
+      fromDate,      // Filter by write-off date (start)
+      toDate,        // Filter by write-off date (end)
       page = 1,      // Page number for pagination (default: 1)
       limit = 10,    // Items per page (default: 10)
       recent = false // If true, return only the latest 10 cases
     } = req.body;
   
     try {
-      // 1. Build the status filter: by default, both statuses
+      // Build the status filter: by default, include both statuses
       let statusFilter = ["Pending Write Off", "Write Off"];
       if (status) {
         statusFilter = [status];
       }
   
-      // 2. Start the aggregation pipeline
+      // Start the aggregation pipeline
       const pipeline = [
-        // Only cases with eligible current status
+        // Only include cases with eligible current status
         { $match: { case_current_status: { $in: statusFilter } } },
         // Add 'lastStatus' as the last element of 'case_status' array
         { $addFields: { lastStatus: { $arrayElemAt: ["$case_status", -1] } } }
       ];
   
-      // 3. Date filter: filter by lastStatus.created_dtm if both dates are provided
+      // If both dates are provided, filter by lastStatus.created_dtm
       if (fromDate && toDate) {
         pipeline.push({
           $match: {
@@ -49,7 +58,7 @@ export const getAllWriteOffCases = async (req, res) => {
         });
       }
   
-      // 4. Sorting and pagination
+      // Sorting and pagination logic
       pipeline.push({ $sort: { case_id: -1 } }); // Sort by case_id descending
   
       let effectiveLimit = 10;
@@ -59,7 +68,7 @@ export const getAllWriteOffCases = async (req, res) => {
         effectiveLimit = 10;
         skip = 0;
       } else {
-        // Pagination logic
+        // Pagination: page 1 returns 10, next pages return 30 each
         const pageNum = Number(page) || 1;
         effectiveLimit = limit ? Number(limit) : (pageNum === 1 ? 10 : 30);
         skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
@@ -67,7 +76,7 @@ export const getAllWriteOffCases = async (req, res) => {
       pipeline.push({ $skip: skip });
       pipeline.push({ $limit: effectiveLimit });
   
-      // 5. Project required fields, including lastStatus.case_phase and lastStatus.created_dtm
+      // Project only required fields
       pipeline.push({
         $project: {
           case_id: 1,
@@ -80,9 +89,10 @@ export const getAllWriteOffCases = async (req, res) => {
         }
       });
   
-      // 6. Run the aggregation pipeline
+      // Run the aggregation pipeline
       const cases = await Case_details.aggregate(pipeline);
   
+      // If no cases found, return 404
       if (!cases || cases.length === 0) {
         return res.status(404).json({
           status: "error",
@@ -90,10 +100,10 @@ export const getAllWriteOffCases = async (req, res) => {
         });
       }
   
-      // 7. Pagination metadata (if not recent)
+      // Build pagination metadata (if not recent mode)
       let pagination = undefined;
       if (!(recent === true || recent === "true")) {
-        // Build a count pipeline for total matching docs
+        // Separate count pipeline to get total matching docs
         const countPipeline = [
           { $match: { case_current_status: { $in: statusFilter } } },
           { $addFields: { lastStatus: { $arrayElemAt: ["$case_status", -1] } } }
@@ -111,6 +121,7 @@ export const getAllWriteOffCases = async (req, res) => {
         countPipeline.push({ $count: "total" });
         const countResult = await Case_details.aggregate(countPipeline);
         const total = countResult[0]?.total || 0;
+        // Calculate total pages (page 1: 10, next pages: 30 each)
         pagination = {
           total,
           page: Number(page) || 1,
@@ -119,7 +130,7 @@ export const getAllWriteOffCases = async (req, res) => {
         };
       }
   
-      // 8. Respond with results and pagination
+      // Respond with results and pagination info
       return res.status(200).json({
         status: "success",
         message: "Write-off cases retrieved successfully.",
@@ -129,7 +140,7 @@ export const getAllWriteOffCases = async (req, res) => {
         }
       });
     } catch (error) {
-      // 9. Error handling
+      // Error handling
       return res.status(500).json({
         status: "error",
         message: error.message || "Internal server error"
@@ -137,9 +148,12 @@ export const getAllWriteOffCases = async (req, res) => {
     }
   };
   
-  
-  
-
+/**
+ * Controller: Create a background task to download the Write-Off Case List.
+ * - Expects Created_By, Case_Status, from_date, to_date in request body.
+ * - Uses a transaction to ensure task is only created if all is valid.
+ * - Calls createTaskFunction to actually create the task.
+ */
 export const Create_Task_For_Downloard_Write_Off_List = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -147,6 +161,7 @@ export const Create_Task_For_Downloard_Write_Off_List = async (req, res) => {
     try {
       const { Created_By, Case_Status, from_date, to_date } = req.body;
   
+      // Validate required field
       if (!Created_By) {
         await session.abortTransaction();
         session.endSession();
@@ -156,14 +171,14 @@ export const Create_Task_For_Downloard_Write_Off_List = async (req, res) => {
         });
       }
   
-      // Flatten the parameters structure
+      // Build task parameters
       const parameters = {
         Case_Status: Case_Status,
         from_date: from_date,
         to_date: to_date,
       };
   
-      // Pass parameters directly (without nesting it inside another object)
+      // Prepare task data for creation
       const taskData = {
         Template_Task_Id: 47,
         task_type: "Create task for Download Write-off Case List",
@@ -172,18 +187,20 @@ export const Create_Task_For_Downloard_Write_Off_List = async (req, res) => {
         ...parameters
       };
   
-      // Call createTaskFunction
+      // Actually create the task in the database (with transaction)
       await createTaskFunction(taskData, session);
   
       await session.commitTransaction();
       session.endSession();
   
+      // Respond with success
       return res.status(200).json({
         status: "success",
         message: "Task created successfully.",
         data: taskData,
       });
     } catch (error) {
+      // Rollback on error
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({
@@ -195,5 +212,3 @@ export const Create_Task_For_Downloard_Write_Off_List = async (req, res) => {
       });
     }
   };
-  
-
