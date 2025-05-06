@@ -2906,63 +2906,71 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       message: "case distribution batch id, created by and DRC list fields are required.",
     });
   }
-  // Fetch the existing document to get the last batch_seq
-  const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
-
-  if(!existingCase){
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(404).json({
-      status: "error",
-      message: "case distribution batch id is not match with the existing batches.",
-    });
-  }
-  const existingTask = await mongo.collection("System_tasks").findOne({
-    task_status: { $ne: "Complete" },
-    "parameters.case_distribution_batch_id": case_distribution_batch_id,
-  }).session(session);;
-  if (existingTask) {
-    return res.status(400).json({
-      status: "error",
-      message: "Already has tasks with this commision rule and arrears band ",
-    });
-  }
-  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
-    return res.status(400).json({
-      status: "error",
-      message: "DRC List should not be empty.",
-    });
-  }
-
-  const validateDRCList = (drcList) => {
-    if (!Array.isArray(drcList)) {
-      throw new Error("DRC List must be an array.");
-    }
-    return drcList.map((item, index) => {
-      const isValid = 
-        typeof item.plus_drc === "string" &&
-        typeof item.plus_rulebase_count === "number" &&
-        typeof item.minus_drc === "string" &&
-        typeof item.minus_rulebase_count === "number" &&
-        typeof item.plus_drc_id === "number" &&
-        typeof item.minus_drc_id === "number";
-
-      if (!isValid) {
-        throw new Error(`Invalid structure at index ${index} in DRC List.`);
-      }
-
-      return {
-        plus_drc_id: item.plus_drc_id,
-        plus_drc: item.plus_drc,
-        plus_rulebase_count: item.plus_rulebase_count,
-        minus_drc_id: item.minus_drc_id,
-        minus_drc: item.minus_drc,
-        minus_rulebase_count: item.minus_rulebase_count,
-      };
-    });
-  };
-
   try {
+    // Fetch the existing document to get the last batch_seq
+    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
+
+    if(!existingCase){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        status: "error",
+        message: "case distribution batch id is not match with the existing batches.",
+      },
+    );
+    }
+    const mongo = await db.connectMongoDB();
+    const existingTask = await mongo.collection("System_tasks").findOne({
+      task_status: { $ne: "Complete" },
+      "parameters.case_distribution_batch_id": case_distribution_batch_id,
+      },
+      { session }
+    );
+    if (existingTask) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Already has tasks with this case distribution batch id ",
+      });
+    }
+    if (!Array.isArray(drc_list) || drc_list.length <= 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "DRC List should not be empty.",
+      });
+    }
+
+    const validateDRCList = (drcList) => {
+      if (!Array.isArray(drcList)) {
+        throw new Error("DRC List must be an array.");
+      }
+      return drcList.map((item, index) => {
+        const isValid = 
+          typeof item.plus_drc === "string" &&
+          typeof item.plus_rulebase_count === "number" &&
+          typeof item.minus_drc === "string" &&
+          typeof item.minus_rulebase_count === "number" &&
+          typeof item.plus_drc_id === "number" &&
+          typeof item.minus_drc_id === "number";
+
+        if (!isValid) {
+          throw new Error(`Invalid structure at index ${index} in DRC List.`);
+        }
+
+        return {
+          plus_drc_id: item.plus_drc_id,
+          plus_drc: item.plus_drc,
+          plus_rulebase_count: item.plus_rulebase_count,
+          minus_drc_id: item.minus_drc_id,
+          minus_drc: item.minus_drc,
+          minus_rulebase_count: item.minus_rulebase_count,
+        };
+      });
+    };
+
     const validatedDRCList = validateDRCList(drc_list);
     
     // Prepare dynamic parameters for the task
