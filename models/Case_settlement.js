@@ -5,6 +5,7 @@ const settlementPlanSchema = new Schema({
   Installment_Settle_Amount: { type: Number, required: true },
   Plan_Date: {type: Date, required: true},
   Payment_Seq: {type: Number, required: true},
+  Cumulative_Settle_Amount: {type: Number, required: true},
   Installment_Paid_Amount: {type: Number, required: true}
 });
 
@@ -17,12 +18,13 @@ const planReceivedSchema = new Schema({
 const casesettlementSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
   settlement_id: { type: Number, required: true, unique: true },
+  account_no: { type: String, required: true },
   case_id: { type: Number, required: true },
   created_by: { type: String, required: true },
   created_dtm: { type: Date, default: Date.now },
   settlement_phase: {
     type: String,
-    enum: ["Negotiation", "Mediation Board", "LOD", "Litigation", "WRIT"]
+    enum: ["Negotiation", "Mediation Board", "LOD", "Litigation", "WRIT", "Dispute"]
   },
   settlement_status: {
     type: String,
