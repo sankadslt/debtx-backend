@@ -3823,6 +3823,10 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       "Case Write-Off Approval",
       "Commission Approval"
     ];
+    
+    if (!approved_deligated_by) {
+      return res.status(400).json({ message: "approved_deligated_by is required" });
+    }
 
     // Build the match stage for the aggregation pipeline
     let matchStage = { approver_type: { $in: allowedApproverTypes } };
