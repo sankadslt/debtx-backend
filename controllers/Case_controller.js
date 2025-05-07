@@ -3407,17 +3407,136 @@ export const List_All_Batch_Details = async (req, res) => {
   }
 };
 
-export const Approve_Batch_or_Batches = async (req, res) => {
+// Before Revamp
+
+// export const Approve_Batch_or_Batches = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { approver_references, approved_by } = req.body;
+
+//     if (!approver_references || !Array.isArray(approver_references)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+//     }
+
+//     if (!approved_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "approved_by is required" });
+//     }
+
+//     const currentDate = new Date();
+
+//     // Fetch the created_by field for the matching approver_references
+//     const approverDocs = await TmpForwardedApprover.find({
+//       approver_reference: { $in: approver_references },
+//       approver_type: "DRC_Distribution"
+//     }).select("approver_reference created_by");
+
+//     if (!approverDocs.length) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching approver references found" });
+//     }
+
+//     // Map approver_reference to created_by directly
+//     const deligateMap = approverDocs.reduce((map, doc) => {
+//       map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
+//       return map;
+//     }, {});
+
+//     // Update approve_status and approved_by for matching documents
+//     const result = await TmpForwardedApprover.updateMany(
+//       { 
+//         approver_reference: { $in: approver_references },
+//         approver_type: "DRC_Distribution" 
+//       },
+//       {
+//         $push: {
+//           approve_status: {
+//             status: "Approve",
+//             status_date: currentDate,
+//             status_edit_by: approved_by,
+//           },
+//         }
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(204).json({ message: "No matching approver references found" });
+//     }
+
+//     // --- Create Tasks for Approved Approvers ---
+//     const taskDataArray = approver_references.map(reference => ({
+//       Template_Task_Id: 29,
+//       task_type: "Create Task for Approve Cases from Approver_Reference",
+//       approver_reference: reference,
+//       Created_By: approved_by, // Ensure Created_By is the same as approved_by
+//       task_status: "open",
+//     }));
+
+//     // Call createTaskFunction for each task
+//     for (const taskData of taskDataArray) {
+//       await createTaskFunction(taskData, session);
+//     }
+
+//     // --- Create User Interaction Logs ---
+//     const interaction_id = 15; // this must be changed
+//     const request_type = "Agent Distribution Batch Approved"; 
+    
+//     for (const reference of approver_references) {
+//       if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
+
+//       await createUserInteractionFunction({
+//         Interaction_ID: interaction_id,
+//         User_Interaction_Type: request_type,
+//         delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
+//         Created_By: approved_by,
+//         User_Interaction_Status_DTM: currentDate,
+//         User_Interaction_Status: "Open",
+//         approver_reference: reference,
+//       });
+//     }
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       message: "Approvals added successfully, and tasks created.",
+//       updatedCount: result.modifiedCount,
+//       taskData: taskDataArray,
+//     });
+//   } catch (error) {
+//     console.error("Error approving batches:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error approving batches",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
+
+// After revamp
+
+export const Approve_Batch = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { approver_references, approved_by } = req.body;
+    const { approver_reference, approved_by } = req.body;
 
-    if (!approver_references || !Array.isArray(approver_references)) {
+    if (!approver_reference) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of approver references" });
+      return res.status(400).json({ message: "approver_reference is required" });
     }
 
     if (!approved_by) {
@@ -3428,29 +3547,26 @@ export const Approve_Batch_or_Batches = async (req, res) => {
 
     const currentDate = new Date();
 
-    // Fetch the created_by field for the matching approver_references
-    const approverDocs = await TmpForwardedApprover.find({
-      approver_reference: { $in: approver_references },
-      approver_type: "DRC_Distribution"
+    // Fetch the created_by field for the matching approver_reference
+    const approverDoc = await TmpForwardedApprover.findOne({
+      approver_reference: approver_reference,
+      approver_type: "DRC Assign Approval"
     }).select("approver_reference created_by");
 
-    if (!approverDocs.length) {
+    if (!approverDoc) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: "No matching approver references found" });
+      return res.status(404).json({ message: "No matching approver reference found" });
     }
 
-    // Map approver_reference to created_by directly
-    const deligateMap = approverDocs.reduce((map, doc) => {
-      map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
-      return map;
-    }, {});
+    // Get delegate_id from created_by
+    const delegate_id = approverDoc.created_by;
 
-    // Update approve_status and approved_by for matching documents
-    const result = await TmpForwardedApprover.updateMany(
+    // Update approve_status for the matching document
+    const result = await TmpForwardedApprover.updateOne(
       { 
-        approver_reference: { $in: approver_references },
-        approver_type: "DRC_Distribution" 
+        approver_reference: approver_reference,
+        approver_type: "DRC Assign Approval" 
       },
       {
         $push: {
@@ -3467,59 +3583,57 @@ export const Approve_Batch_or_Batches = async (req, res) => {
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({ message: "No matching approver references found" });
+      return res.status(204).json({ message: "No matching approver reference found or already approved" });
     }
 
-    // --- Create Tasks for Approved Approvers ---
-    const taskDataArray = approver_references.map(reference => ({
+    const dynamicParams = {
+      approver_reference: approver_reference, // List of approver references
+    }; 
+
+    // Create Task for Approved Approver
+    const taskData = {
       Template_Task_Id: 29,
       task_type: "Create Task for Approve Cases from Approver_Reference",
-      approver_reference: reference,
-      Created_By: approved_by, // Ensure Created_By is the same as approved_by
+      ...dynamicParams,
+      Created_By: approved_by,
       task_status: "open",
-    }));
+    };
 
-    // Call createTaskFunction for each task
-    for (const taskData of taskDataArray) {
-      await createTaskFunction(taskData, session);
-    }
+    await createTaskFunction(taskData, session);
 
-    // --- Create User Interaction Logs ---
+    // Create User Interaction Log
     const interaction_id = 15; // this must be changed
     const request_type = "Agent Distribution Batch Approved"; 
     
-    for (const reference of approver_references) {
-      if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
-
-      await createUserInteractionFunction({
-        Interaction_ID: interaction_id,
-        User_Interaction_Type: request_type,
-        delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
-        Created_By: approved_by,
-        User_Interaction_Status_DTM: currentDate,
-        User_Interaction_Status: "Open",
-        approver_reference: reference,
-      });
-    }
+    await createUserInteractionFunction({
+      Interaction_ID: interaction_id,
+      User_Interaction_Type: request_type,
+      delegate_user_id: delegate_id,
+      Created_By: approved_by,
+      User_Interaction_Status_DTM: currentDate,
+      User_Interaction_Status: "Open",
+      approver_reference: approver_reference,
+    });
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
-      message: "Approvals added successfully, and tasks created.",
+      message: "Approval added successfully, task created and interaction added.",
       updatedCount: result.modifiedCount,
-      taskData: taskDataArray,
+      taskData: taskData,
     });
   } catch (error) {
-    console.error("Error approving batches:", error);
+    console.error("Error approving batch:", error);
     await session.abortTransaction();
     session.endSession();
     return res.status(500).json({
-      message: "Error approving batches",
+      message: "Error approving batch",
       error: error.message || "Internal server error.",
     });
   }
 };
+
 
 /**
  * Inputs:
