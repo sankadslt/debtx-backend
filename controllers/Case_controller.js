@@ -3866,6 +3866,9 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
  * Success Result:
  * - Returns a success response confirming approval and number of updated records.
  */
+
+// After Revamp
+
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3913,11 +3916,13 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
 
       // Update approve_status and approved_by
       const result = await TmpForwardedApprover.updateOne(
-          { approver_reference },
+          { approver_reference: {$in: approver_reference },
+            approver_type: { $ne: "DRC Assign Approval" }  },
+
           {
               $push: {
                   approve_status: {
-                      status: newStatus,
+                      status: "Approve",
                       status_date: currentDate,
                       status_edit_by: approved_by,
                   },
@@ -3944,8 +3949,19 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
                       remark: " ",
                       requested_on: approvalDoc.created_on,
                       requested_by: approvalDoc.created_by
+                  },
+
+                  case_status: {
+                    case_status: newStatus,
+                    status_reason: "Case Approved",
+                    created_dtm: currentDate,
+                    created_by: approved_by,
+                    case_phase: "Negotiation"
                   }
-              }
+              },
+              $set: {
+                case_current_status: newStatus,
+              },
           },
           { session }
       );
@@ -3995,17 +4011,137 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
  * Success Result:
  * - Returns a success response after rejecting the given DRC Assign Manager approvals and updating related records.
  */
+
+//Before Revamp
+
+// export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//       const { approver_references, approved_by } = req.body;
+
+//       if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
+//       }
+
+//       if (!approved_by) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(400).json({ message: "approved_by is required" });
+//       }
+
+//       const currentDate = new Date();
+
+//       // Fetch the created_by field for the matching approver_references
+//       const approverDocs = await TmpForwardedApprover.find({
+//           approver_reference: { $in: approver_references },
+//           approver_type: { $ne: "DRC_Distribution" }
+//       }).select("approver_reference created_by");
+
+//       if (!approverDocs.length) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(204).json({ message: "No matching approver references found" });
+//       }
+
+//       // Map approver_reference to created_by directly
+//       const deligateMap = approverDocs.reduce((map, doc) => {
+//           map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
+//           return map;
+//       }, {});
+
+//       // Update approve_status for matching documents in TmpForwardedApprover
+//       const result = await TmpForwardedApprover.updateMany(
+//           { 
+//               approver_reference: { $in: approver_references },
+//               approver_type: { $ne: "DRC_Distribution" } 
+//           },
+//           {
+//               $push: {
+//                   approve_status: {
+//                       status: "Reject",
+//                       status_date: currentDate,
+//                       status_edit_by: approved_by,
+//                   },
+//               }
+//           },
+//           { session }
+//       );
+
+//       if (result.modifiedCount === 0) {
+//           await session.abortTransaction();
+//           session.endSession();
+//           return res.status(204).json({ message: "No matching approver references found" });
+//       }
+
+//       // Update approve array in CaseDetails where case_id matches approver_reference
+//       const caseResult = await Case_details.updateMany(
+//           { case_id: { $in: approver_references } },
+//           {
+//               $push: {
+//                   approve: {
+//                       approved_process: "Reject",
+//                       rejected_by: approved_by,
+//                       remark: "Rejected because some reasons."
+//                   }
+//               }
+//           },
+//           { session }
+//       );
+
+//       // --- Create User Interaction Logs ---
+//       const interaction_id = 17; // This may need to be changed
+//       const request_type = "Rejected DRC Assign Manager Approval"; 
+
+//       for (const reference of approver_references) {
+//           if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
+
+//           await createUserInteractionFunction({
+//               Interaction_ID: interaction_id,
+//               User_Interaction_Type: request_type,
+//               delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
+//               Created_By: approved_by,
+//               User_Interaction_Status: "Open",
+//               User_Interaction_Status_DTM: currentDate,
+//               approver_reference: reference,
+//           });
+//       }
+
+//       await session.commitTransaction();
+//       session.endSession();
+
+//       return res.status(200).json({
+//           message: "Rejections added successfully.",
+//           updatedCount: result.modifiedCount + caseResult.modifiedCount,
+//       });
+//   } catch (error) {
+//       console.error("Error rejecting DRC Assign Manager Approvals:", error);
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(500).json({
+//           message: "Error rejecting DRC Assign Manager Approvals",
+//           error: error.message || "Internal server error.",
+//       });
+//   }
+// };
+
+
+//After Revamp
+
 export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-      const { approver_references, approved_by } = req.body;
+      const { approver_reference, approved_by } = req.body;
 
-      if (!approver_references || !Array.isArray(approver_references) || approver_references.length === 0 || approver_references.length > 5) {
+      if (!approver_reference) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(400).json({ message: "Invalid input, provide between 1 to 5 approver references" });
+          return res.status(400).json({ message: "Invalid input, approver_reference is required" });
       }
 
       if (!approved_by) {
@@ -4016,30 +4152,35 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
 
       const currentDate = new Date();
 
-      // Fetch the created_by field for the matching approver_references
-      const approverDocs = await TmpForwardedApprover.find({
-          approver_reference: { $in: approver_references },
-          approver_type: { $ne: "DRC_Distribution" }
-      }).select("approver_reference created_by");
+      // Fetch the document to get approver_type, created_on, and created_by
+      const approvalDoc = await TmpForwardedApprover.findOne({ approver_reference }).session(session);
 
-      if (!approverDocs.length) {
+      if (!approvalDoc) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(204).json({ message: "No matching approver references found" });
+          return res.status(204).json({ message: "No matching approver reference found" });
       }
 
-      // Map approver_reference to created_by directly
-      const deligateMap = approverDocs.reduce((map, doc) => {
-          map[doc.approver_reference] = doc.created_by; // Store created_by as delegate_id
-          return map;
-      }, {});
+      // Assign created_by as delegate_id
+      const deligate_id = approvalDoc.created_by;
 
-      // Update approve_status for matching documents in TmpForwardedApprover
-      const result = await TmpForwardedApprover.updateMany(
-          { 
-              approver_reference: { $in: approver_references },
-              approver_type: { $ne: "DRC_Distribution" } 
-          },
+      // Determine status based on approver_type
+      const statusMap = {
+          "DRC Re-Assign Approval": "Reject Open assign agent",
+          "DRC Assign Approval": "Reject Open assign agent",
+          "Case Withdrawal Approval": "Reject Case Withdrawed",
+          "Case Abandoned Approval": "Reject Case Abandoned",
+          "Case Write-Off Approval": "Reject Pending Write Off",
+          "Commission Approval": "Reject Commissioned"
+      };
+
+      const newStatus = statusMap[approvalDoc.approver_type] || "Pending";
+
+      // Update approve_status and approved_by
+      const result = await TmpForwardedApprover.updateOne(
+          { approver_reference: {$in: approver_reference },
+            approver_type: { $ne: "DRC Assign Approval" }  },
+
           {
               $push: {
                   approve_status: {
@@ -4055,47 +4196,60 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
       if (result.modifiedCount === 0) {
           await session.abortTransaction();
           session.endSession();
-          return res.status(204).json({ message: "No matching approver references found" });
+          return res.status(304).json({ message: "Rejection update failed" });
       }
 
-      // Update approve array in CaseDetails where case_id matches approver_reference
-      const caseResult = await Case_details.updateMany(
-          { case_id: { $in: approver_references } },
+      // Update approve array in CaseDetails with requested_on and requested_by
+      const caseResult = await Case_details.updateOne(
+          { case_id: approver_reference },
           {
               $push: {
                   approve: {
-                      approved_process: "Reject",
-                      rejected_by: approved_by,
-                      remark: "Rejected because some reasons."
+                      approved_process: newStatus,
+                      approved_by: approved_by,
+                      approved_on: currentDate,
+                      remark: " ",
+                      requested_on: approvalDoc.created_on,
+                      requested_by: approvalDoc.created_by
+                  },
+
+                  case_status: {
+                    case_status: newStatus,
+                    status_reason: "Case Rejected",
+                    created_dtm: currentDate,
+                    created_by: approved_by,
+                    case_phase: "Negotiation"
                   }
-              }
+              },
+              $set: {
+                case_current_status: newStatus,
+              },
           },
           { session }
       );
 
-      // --- Create User Interaction Logs ---
+      // --- Create User Interaction Log ---
       const interaction_id = 17; // This may need to be changed
       const request_type = "Rejected DRC Assign Manager Approval"; 
+      const created_by = approved_by;
+      const dynamicParams = { approver_reference };
 
-      for (const reference of approver_references) {
-          if (!deligateMap[reference]) continue; // Skip if delegate ID is missing
-
-          await createUserInteractionFunction({
-              Interaction_ID: interaction_id,
-              User_Interaction_Type: request_type,
-              delegate_user_id: deligateMap[reference],  // Pass string value as delegate_id
-              Created_By: approved_by,
-              User_Interaction_Status: "Open",
-              User_Interaction_Status_DTM: currentDate,
-              approver_reference: reference,
-          });
-      }
+      await createUserInteractionFunction({
+        Interaction_ID: interaction_id,
+        User_Interaction_Type: request_type,
+        delegate_user_id: deligate_id,  // Now using created_by as delegate ID
+        Created_By: created_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: currentDate,
+        session,
+        ...dynamicParams,
+      });
 
       await session.commitTransaction();
       session.endSession();
 
       return res.status(200).json({
-          message: "Rejections added successfully.",
+          message: "Rejection added successfully.",
           updatedCount: result.modifiedCount + caseResult.modifiedCount,
       });
   } catch (error) {
@@ -4106,6 +4260,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
           message: "Error rejecting DRC Assign Manager Approvals",
           error: error.message || "Internal server error.",
       });
+  }finally {
+    session.endSession(); 
   }
 };
 
