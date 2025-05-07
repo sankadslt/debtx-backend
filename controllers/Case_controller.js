@@ -2547,17 +2547,151 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
   }
 };
 
+// Before Revamp
+
+// export const Batch_Forward_for_Proceed = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id, billing_center } = req.body;
+
+//     if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+//     }
+
+//     if (!Proceed_by) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: "Proceed_by is required" });
+//     }
+
+//     // Get delegate_id dynamically
+//     const case_phase = "Initial Review";
+//     const approval_type = "Customer Approval";
+
+//     const delegate_id = await getBatchApprovalUserIdService({ case_phase, approval_type, billing_center });
+
+//     // Validate if all batch IDs have "Complete" status
+//     const incompleteBatches = await CaseDistribution.find({
+//       case_distribution_batch_id: { $in: case_distribution_batch_id },
+//       crd_distribution_status: { $ne: "Complete" },
+//     }).session(session);
+
+//     if (incompleteBatches.length > 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(204).json({
+//         message: "Some batch IDs do not have a 'Complete' status and cannot be proceeded.",
+//         incompleteBatchIds: incompleteBatches.map(batch => batch.case_distribution_batch_id),
+//       });
+//     }
+
+//     const currentDate = new Date();
+
+//     // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
+//     const result = await CaseDistribution.updateMany(
+//       { case_distribution_batch_id: { $in: case_distribution_batch_id } },
+//       {
+//         $set: {
+//           proceed_on: currentDate,
+//           forward_for_approvals_on: currentDate, // New field update
+//         },
+//       },
+//       { session }
+//     );
+
+//     if (result.modifiedCount === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: "No matching batch IDs found" });
+//     }
+
+//     // Create Task for Proceed Action
+//     const taskData = {
+//       Template_Task_Id: 31,
+//       task_type: "Create Task for Proceed Cases from Batch_ID",
+//       case_distribution_batch_id,
+//       Created_By: Proceed_by,
+//       task_status: "open",
+//     };
+
+//     await createTaskFunction(taskData, session);
+
+//     // Create Entry in Template_forwarded_approver
+//     const approvalEntry = new TmpForwardedApprover({
+//       approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
+//       created_by: Proceed_by,
+//       approver_type: "DRC_Distribution",
+//       approve_status: [{
+//         status: "Open",
+//         status_date: currentDate,
+//         status_edit_by: Proceed_by,
+//       }],
+//       approved_deligated_by: delegate_id, //  Dynamic delegate_id
+//       parameters: {
+//         plus_drc, plus_drc_id, minus_drc, minus_drc_id,
+//       },
+//     });
+
+//     await approvalEntry.save({ session });
+
+//     // Step 6: Create User Interaction Log
+//     const interaction_id = 6; // this must be changed later
+//     const request_type = "Pending Approval Agent Destribution"; 
+//     const created_by = Proceed_by;
+//     const dynamicParams = { case_distribution_batch_id, Request_Mode: "Negotiation" };
+
+//     const interactionResult = await createUserInteractionFunction({
+//       Interaction_ID: interaction_id,
+//       User_Interaction_Type: request_type,
+//       delegate_user_id: delegate_id, // Dynamic delegate_id
+//       Created_By: created_by,
+//       User_Interaction_Status: "Open",
+//       User_Interaction_Status_DTM: currentDate,
+//       ...dynamicParams,
+//     });
+
+//     // Commit transaction  
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     // Success response
+//     return res.status(200).json({
+//       message: "Batches forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
+//       updatedCount: result.modifiedCount,
+//       taskData,
+//       approvalEntry,
+//       interactionResult,
+//     });
+
+//   } catch (error) {
+//     console.error("Error forwarding batches for proceed:", error);
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       message: "Error forwarding batches for proceed",
+//       error: error.message || "Internal server error.",
+//     });
+//   }
+// };
+
+
+// After Revamp
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_id, Proceed_by, plus_drc, plus_drc_id, minus_drc, minus_drc_id, billing_center } = req.body;
+    const { case_distribution_batch_id, Proceed_by, billing_center } = req.body;
 
-    if (!case_distribution_batch_id || !Array.isArray(case_distribution_batch_id)) {
+    if (!case_distribution_batch_id) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "Invalid input, provide an array of batch IDs" });
+      return res.status(400).json({ message: "case_distribution_batch_id is required" });
     }
 
     if (!Proceed_by) {
@@ -2572,26 +2706,26 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     const delegate_id = await getBatchApprovalUserIdService({ case_phase, approval_type, billing_center });
 
-    // Validate if all batch IDs have "Complete" status
-    const incompleteBatches = await CaseDistribution.find({
-      case_distribution_batch_id: { $in: case_distribution_batch_id },
-      crd_distribution_status: { $ne: "Complete" },
+    // Validate if batch has "Complete" status
+    const batchToProcess = await CaseDistribution.findOne({
+      case_distribution_batch_id: case_distribution_batch_id,
+      crd_distribution_status: "Complete"
     }).session(session);
 
-    if (incompleteBatches.length > 0) {
+    if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({
-        message: "Some batch IDs do not have a 'Complete' status and cannot be proceeded.",
-        incompleteBatchIds: incompleteBatches.map(batch => batch.case_distribution_batch_id),
+        message: "The batch does not have a 'Complete' status and cannot be proceeded.",
+        batchId: case_distribution_batch_id,
       });
     }
 
     const currentDate = new Date();
 
     // Update proceed_on and forward_for_approvals_on date in Case_distribution_drc_transactions
-    const result = await CaseDistribution.updateMany(
-      { case_distribution_batch_id: { $in: case_distribution_batch_id } },
+    const result = await CaseDistribution.updateOne(
+      { case_distribution_batch_id: case_distribution_batch_id },
       {
         $set: {
           proceed_on: currentDate,
@@ -2604,7 +2738,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: "No matching batch IDs found" });
+      return res.status(404).json({ message: "No matching batch ID found" });
     }
 
     // Create Task for Proceed Action
@@ -2620,23 +2754,20 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     // Create Entry in Template_forwarded_approver
     const approvalEntry = new TmpForwardedApprover({
-      approver_reference: case_distribution_batch_id[0], // Assuming one batch ID per entry
+      approver_reference: case_distribution_batch_id, // Single batch ID
       created_by: Proceed_by,
-      approver_type: "DRC_Distribution",
+      approver_type: "DRC Assign Approval",
       approve_status: [{
         status: "Open",
         status_date: currentDate,
         status_edit_by: Proceed_by,
       }],
-      approved_deligated_by: delegate_id, //  Dynamic delegate_id
-      parameters: {
-        plus_drc, plus_drc_id, minus_drc, minus_drc_id,
-      },
+      approved_deligated_by: delegate_id, // Dynamic delegate_id
     });
 
     await approvalEntry.save({ session });
 
-    // Step 6: Create User Interaction Log
+    // Create User Interaction Log
     const interaction_id = 6; // this must be changed later
     const request_type = "Pending Approval Agent Destribution"; 
     const created_by = Proceed_by;
@@ -2658,7 +2789,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     // Success response
     return res.status(200).json({
-      message: "Batches forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
+      message: "Batch forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
       updatedCount: result.modifiedCount,
       taskData,
       approvalEntry,
@@ -2666,15 +2797,16 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error forwarding batches for proceed:", error);
+    console.error("Error forwarding batch for proceed:", error);
     await session.abortTransaction();
     session.endSession();
     return res.status(500).json({
-      message: "Error forwarding batches for proceed",
+      message: "Error forwarding batch for proceed",
       error: error.message || "Internal server error.",
     });
   }
 };
+
 
 /**
  * Inputs:
