@@ -3264,61 +3264,146 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
   }
 };
 
+// Before Revamp
+
+// export const List_All_Batch_Details = async (req, res) => {
+//   try {
+//       const { approved_deligated_by } = req.body; // Extract approved_deligated_by from request
+      
+//       if (!approved_deligated_by) {
+//           return res.status(400).json({ message: "approved_deligated_by is required" });
+//       }
+
+//       // Fetch documents matching the conditions
+//       const approverDocs = await TmpForwardedApprover.find({
+//           "approve_status.status": "Open",
+//           approver_type: "DRC_Distribution",
+//           approved_deligated_by: approved_deligated_by
+//       });
+
+//       // Filter to ensure last element in approve_status is "Open"
+//       const filteredDocs = approverDocs.filter(doc => {
+//           const lastStatus = doc.approve_status[doc.approve_status.length - 1];
+//           return lastStatus && lastStatus.status === "Open";
+//       });
+
+//       // Extract approver_reference values
+//       const approverReferences = filteredDocs.map(doc => doc.approver_reference);
+
+//       // Fetch related data from CaseDistribution
+//       const caseDistributions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: approverReferences }
+//       }).select("case_distribution_batch_id drc_commision_rule rulebase_count rulebase_arrears_sum");
+
+//       // Map results to a structured response
+//       const response = filteredDocs.map(approver => {
+//           const relatedCase = caseDistributions.find(caseDoc => caseDoc.case_distribution_batch_id === approver.approver_reference);
+//           return {
+//               _id: approver._id,
+//               approver_reference: approver.approver_reference,
+//               created_on: approver.created_on,
+//               created_by: approver.created_by,
+//               approve_status: approver.approve_status,
+//               approver_type: approver.approver_type,
+//               parameters: approver.parameters,
+//               approved_deligated_by: approver.approved_deligated_by,
+//               remark: approver.remark,
+//               case_distribution_details: relatedCase ? {
+//                   case_distribution_batch_id: relatedCase.case_distribution_batch_id,
+//                   drc_commision_rule: relatedCase.drc_commision_rule,
+//                   rulebase_count: relatedCase.rulebase_count,
+//                   rulebase_arrears_sum: relatedCase.rulebase_arrears_sum
+//               } : null
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       console.error("Error fetching batch details:", error);
+//       res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
+
+
+// After Revamp
+
 export const List_All_Batch_Details = async (req, res) => {
   try {
-      const { approved_deligated_by } = req.body; // Extract approved_deligated_by from request
-      
-      if (!approved_deligated_by) {
-          return res.status(400).json({ message: "approved_deligated_by is required" });
-      }
+    const { approved_deligated_by } = req.body; // Extract approved_deligated_by from request
+    
+    if (!approved_deligated_by) {
+      return res.status(400).json({ message: "approved_deligated_by is required" });
+    }
 
-      // Fetch documents matching the conditions
-      const approverDocs = await TmpForwardedApprover.find({
-          "approve_status.status": "Open",
-          approver_type: "DRC_Distribution",
+    // Fetch all data in a single aggregation pipeline
+    const result = await TmpForwardedApprover.aggregate([
+      // Stage 1: Match approver documents with required conditions
+      {
+        $match: {
+          approver_type: "DRC Assign Approval",
           approved_deligated_by: approved_deligated_by
-      });
+        }
+      },
+      // Stage 2: Add a field for the last status
+      {
+        $addFields: {
+          lastStatus: { $arrayElemAt: ["$approve_status", -1] }
+        }
+      },
+      // Stage 3: Filter to only include documents where last status is "Open"
+      {
+        $match: {
+          "lastStatus.status": "Open"
+        }
+      },
+      // Stage 4: Lookup related case distribution data
+      {
+        $lookup: {
+          from: "Case_distribution_drc_transactions", // Collection name
+          localField: "approver_reference",
+          foreignField: "case_distribution_batch_id",
+          as: "case_distribution_details"
+        }
+      },
+      // Stage 5: Unwind the case_distribution_details array (converts array to object)
+      {
+        $unwind: {
+          path: "$case_distribution_details",
+          preserveNullAndEmptyArrays: true // Keep documents even if no matching case distribution
+        }
+      },
+      // Stage 6: Project only the fields we need
+      {
+        $project: {
+          _id: 1,
+          approver_reference: 1,
+          created_on: 1,
+          created_by: 1,
+          approve_status: 1,
+          approver_type: 1,
+          parameters: 1,
+          approved_deligated_by: 1,
+          remark: 1,
+          case_distribution_details: {
+            $cond: {
+              if: { $ifNull: ["$case_distribution_details", false] },
+              then: {
+                case_distribution_batch_id: "$case_distribution_details.case_distribution_batch_id",
+                drc_commision_rule: "$case_distribution_details.drc_commision_rule",
+                rulebase_count: "$case_distribution_details.rulebase_count",
+                rulebase_arrears_sum: "$case_distribution_details.rulebase_arrears_sum"
+              },
+              else: null
+            }
+          }
+        }
+      }
+    ]);
 
-      // Filter to ensure last element in approve_status is "Open"
-      const filteredDocs = approverDocs.filter(doc => {
-          const lastStatus = doc.approve_status[doc.approve_status.length - 1];
-          return lastStatus && lastStatus.status === "Open";
-      });
-
-      // Extract approver_reference values
-      const approverReferences = filteredDocs.map(doc => doc.approver_reference);
-
-      // Fetch related data from CaseDistribution
-      const caseDistributions = await CaseDistribution.find({
-          case_distribution_batch_id: { $in: approverReferences }
-      }).select("case_distribution_batch_id drc_commision_rule rulebase_count rulebase_arrears_sum");
-
-      // Map results to a structured response
-      const response = filteredDocs.map(approver => {
-          const relatedCase = caseDistributions.find(caseDoc => caseDoc.case_distribution_batch_id === approver.approver_reference);
-          return {
-              _id: approver._id,
-              approver_reference: approver.approver_reference,
-              created_on: approver.created_on,
-              created_by: approver.created_by,
-              approve_status: approver.approve_status,
-              approver_type: approver.approver_type,
-              parameters: approver.parameters,
-              approved_deligated_by: approver.approved_deligated_by,
-              remark: approver.remark,
-              case_distribution_details: relatedCase ? {
-                  case_distribution_batch_id: relatedCase.case_distribution_batch_id,
-                  drc_commision_rule: relatedCase.drc_commision_rule,
-                  rulebase_count: relatedCase.rulebase_count,
-                  rulebase_arrears_sum: relatedCase.rulebase_arrears_sum
-              } : null
-          };
-      });
-
-      res.status(200).json(response);
+    res.status(200).json(result);
   } catch (error) {
-      console.error("Error fetching batch details:", error);
-      res.status(500).json({ message: "Internal Server Error" });
+    console.error("Error fetching batch details:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
