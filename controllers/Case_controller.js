@@ -4425,53 +4425,145 @@ export const Assign_DRC_To_Case = async (req, res) => {
   }
 };
 
+// Before Revamp
+
+// export const List_Case_Distribution_Details = async (req, res) => {
+//   try {
+//       const { case_distribution_batch_id, drc_id } = req.body;
+
+//       if (!case_distribution_batch_id) {
+//           return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
+//       }
+
+//       const query = { case_distribution_batch_id };
+//       if (drc_id) {
+//           query.drc_id = drc_id;
+//       }
+
+//       const results = await caseDistributionDRCSummary.find(query);
+
+//       if (results.length === 0) {
+//           return res.status(204).json({ message: "No records found for the given batch ID" });
+//       }
+
+//       const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
+
+//       const transactions = await CaseDistribution.find({
+//           case_distribution_batch_id: { $in: case_distribution_batch_ids }
+//       }, 'case_distribution_batch_id proceed_on');
+
+//       const drcIds = [...new Set(results.map(doc => doc.drc_id))];
+//       const drcDetailsMap = await DRC.find({ drc_id: { $in: drcIds } }, 'drc_id drc_name')
+//           .then(drcs => drcs.reduce((acc, drc) => {
+//               acc[drc.drc_id] = drc.drc_name;
+//               return acc;
+//           }, {}));
+
+//       const response = results.map(doc => {
+//           const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
+//           return {
+//               ...doc.toObject(),
+//               proceed_on: transaction ? transaction.proceed_on : null,
+//               drc_name: drcDetailsMap[doc.drc_id] || null
+//           };
+//       });
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+// After Revamp
 
 export const List_Case_Distribution_Details = async (req, res) => {
   try {
-      const { case_distribution_batch_id, drc_id } = req.body;
+    const { case_distribution_batch_id, drc_id } = req.body;
 
-      if (!case_distribution_batch_id) {
-          return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
+    if (!case_distribution_batch_id) {
+      return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
+    }
+
+    // Build match stage based on input parameters
+    const matchStage = { case_distribution_batch_id };
+    if (drc_id) {
+      matchStage.drc_id = drc_id;
+    }
+
+    // Use aggregation to get all data in one query
+    const results = await caseDistributionDRCSummary.aggregate([
+      // Stage 1: Match documents based on input criteria
+      {
+        $match: matchStage
+      },
+      
+      // Stage 2: Lookup transaction data from CaseDistribution collection
+      {
+        $lookup: {
+          from: "Case_distribution_drc_transactions", // Collection name
+          localField: "case_distribution_batch_id",
+          foreignField: "case_distribution_batch_id",
+          as: "transaction_data"
+        }
+      },
+      
+      // Stage 3: Lookup DRC details from DRC collection
+      {
+        $lookup: {
+          from: "Debt_recovery_company", // Collection name 
+          localField: "drc_id",
+          foreignField: "drc_id",
+          as: "drc_details"
+        }
+      },
+      
+      // Stage 4: Unwind the transaction_data array (converts array to object)
+      {
+        $unwind: {
+          path: "$transaction_data",
+          preserveNullAndEmptyArrays: true // Keep documents even if no matching transaction
+        }
+      },
+      
+      // Stage 5: Unwind the drc_details array
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
+        }
+      },
+      
+      // Stage 6: Project only the fields we need
+      {
+        $project: {
+          doc_version: 1,
+          _id: 1,
+          case_distribution_batch_id: 1,
+          created_dtm: "$created_dtm",
+          drc_id: 1,
+          rtom: 1,
+          case_count: 1,
+          tot_arrease: "$tot_arrease",
+          month_1_sc: 1,
+          month_2_sc: 1,
+          month_3_sc: 1,
+          proceed_on: { $ifNull: ["$transaction_data.proceed_on", null] },
+          drc_name: { $ifNull: ["$drc_details.drc_name", null] },
+        }
       }
+    ]);
 
-      const query = { case_distribution_batch_id };
-      if (drc_id) {
-          query.drc_id = drc_id;
-      }
+    if (results.length === 0) {
+      return res.status(204).json({ message: "No records found for the given batch ID" });
+    }
 
-      const results = await caseDistributionDRCSummary.find(query);
-
-      if (results.length === 0) {
-          return res.status(204).json({ message: "No records found for the given batch ID" });
-      }
-
-      const case_distribution_batch_ids = results.map(doc => doc.case_distribution_batch_id);
-
-      const transactions = await CaseDistribution.find({
-          case_distribution_batch_id: { $in: case_distribution_batch_ids }
-      }, 'case_distribution_batch_id proceed_on');
-
-      const drcIds = [...new Set(results.map(doc => doc.drc_id))];
-      const drcDetailsMap = await DRC.find({ drc_id: { $in: drcIds } }, 'drc_id drc_name')
-          .then(drcs => drcs.reduce((acc, drc) => {
-              acc[drc.drc_id] = drc.drc_name;
-              return acc;
-          }, {}));
-
-      const response = results.map(doc => {
-          const transaction = transactions.find(t => t.case_distribution_batch_id === doc.case_distribution_batch_id);
-          return {
-              ...doc.toObject(),
-              proceed_on: transaction ? transaction.proceed_on : null,
-              drc_name: drcDetailsMap[doc.drc_id] || null
-          };
-      });
-
-      res.status(200).json(response);
+    res.status(200).json(results);
   } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching case distribution details:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
