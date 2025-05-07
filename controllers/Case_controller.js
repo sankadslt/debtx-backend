@@ -2681,12 +2681,23 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
 
 // After Revamp
 
+/**
+ * Inputs:
+ * - case_distribution_batch_id: Number (required)
+ * - Proceed_by: String (required)
+ * - billing_center: String (optional)
+ * 
+ * Success Result:
+ * - Returns a success response after forwarding the batch for proceed,
+ *   including task creation, approval entry, and user interaction logging.
+ */
+
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { case_distribution_batch_id, Proceed_by, billing_center } = req.body;
+    const { case_distribution_batch_id, Proceed_by } = req.body;
 
     if (!case_distribution_batch_id) {
       await session.abortTransaction();
@@ -2703,6 +2714,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Get delegate_id dynamically
     const case_phase = "Initial Review";
     const approval_type = "Customer Approval";
+    const billing_center = null;
 
     const delegate_id = await getBatchApprovalUserIdService({ case_phase, approval_type, billing_center });
 
@@ -3327,6 +3339,15 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 
 // After Revamp
 
+/**
+ * Inputs:
+ * - approved_deligated_by: String (required)
+ * 
+ * Success Result:
+ * - Returns a list of batch approval records with status "Open" assigned to the provided delegate ID,
+ *   along with related case distribution details if available.
+ */
+
 export const List_All_Batch_Details = async (req, res) => {
   try {
     const { approved_deligated_by } = req.body; // Extract approved_deligated_by from request
@@ -3525,6 +3546,17 @@ export const List_All_Batch_Details = async (req, res) => {
 
 
 // After revamp
+
+/**
+ * Inputs:
+ * - approver_reference: String (required) – The reference ID of the batch to approve.
+ * - approved_by: String (required) – The user ID performing the approval.
+ * 
+ * Success Result:
+ * - Updates the approval status for the given approver reference.
+ * - Creates a task entry for the approval action.
+ * - Logs the user interaction related to the approval event.
+ */
 
 export const Approve_Batch = async (req, res) => {
   const session = await mongoose.startSession();
@@ -3766,6 +3798,19 @@ export const Create_task_for_batch_approval = async (req, res) => {
 
 // After Revamp
 
+/**
+ * Inputs:
+ * - approver_type: String (optional) – Type of approval to filter by. Must be one of the predefined allowed types.
+ * - date_from: String (optional) – Start date (ISO format) for filtering records by created_on.
+ * - date_to: String (optional) – End date (ISO format) for filtering records by created_on.
+ * - approved_deligated_by: String  – Filter records by who delegated the approval.
+ * - approve_status: String (optional) – Filter based on the most recent approval status.
+ * 
+ * Success Result:
+ * - Returns a list of approval documents that match the specified filters.
+ * - Each returned document includes only the last approve_status and is sorted by creation date descending.
+ */
+
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
     const { approver_type, date_from, date_to, approved_deligated_by, approve_status } = req.body;
@@ -3868,6 +3913,36 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
  */
 
 // After Revamp
+
+/**
+ * Approves a DRC Assign Manager request and updates relevant collections.
+ *
+ * Inputs:
+ * - approver_reference: String (required) – Reference ID used to identify the approval record.
+ * - approved_by: String (required) – User ID of the approver.
+ *
+ * Process:
+ * 1. Starts a MongoDB session and transaction.
+ * 2. Validates input.
+ * 3. Fetches the original approval document to get metadata like `created_by`, `approver_type`, and `created_on`.
+ * 4. Determines the case status to apply using a predefined `statusMap`.
+ * 5. Updates `TmpForwardedApprover` collection:
+ *    - Appends to `approve_status` array with approval metadata.
+ * 6. Updates `Case_details` collection:
+ *    - Pushes approval info to both `approve` and `case_status` arrays.
+ *    - Sets `case_current_status` accordingly.
+ * 7. Logs the action using `createUserInteractionFunction`.
+ * 8. Commits the transaction and returns a success message.
+ *
+ * Success Response:
+ * - 200 OK with count of modified documents.
+ *
+ * Failure Responses:
+ * - 400 if required fields are missing.
+ * - 204 if approver reference does not exist.
+ * - 304 if no document was modified.
+ * - 500 for general errors.
+ */
 
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
@@ -4130,6 +4205,35 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
 
 
 //After Revamp
+
+/**
+ * Rejects a DRC Assign Manager approval request and updates related case and tracking collections.
+ *
+ * Request Body:
+ * - approver_reference: string (required) – Unique reference to identify the approval document.
+ * - approved_by: string (required) – ID of the user performing the rejection.
+ *
+ * Logic:
+ * 1. Starts a MongoDB session and transaction for atomic updates.
+ * 2. Validates required input fields.
+ * 3. Fetches the approval document using `approver_reference`.
+ * 4. Derives the delegate ID from the original `created_by` field.
+ * 5. Maps the `approver_type` to an appropriate rejected status via `statusMap`.
+ * 6. Updates `TmpForwardedApprover`:
+ *    - Pushes a new reject record to `approve_status` array.
+ * 7. Updates `Case_details`:
+ *    - Adds a rejection entry to both `approve` and `case_status` arrays.
+ *    - Sets `case_current_status` accordingly.
+ * 8. Logs the rejection using `createUserInteractionFunction`.
+ * 9. Commits the transaction and returns success response.
+ *
+ * Responses:
+ * - 200: Rejection processed successfully.
+ * - 204: No document found matching the `approver_reference`.
+ * - 304: No modifications were made (potential logic error or already rejected).
+ * - 400: Missing required parameters.
+ * - 500: Server error during transaction.
+ */
 
 export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
@@ -4476,6 +4580,30 @@ export const Assign_DRC_To_Case = async (req, res) => {
 
 // After Revamp
 
+/**
+ * Retrieves case distribution summary details along with related transaction and DRC info.
+ *
+ * Request Body:
+ * - case_distribution_batch_id: string (required) – ID of the case distribution batch to filter data.
+ * - drc_id: string (optional) – If provided, filters records for the specific DRC.
+ *
+ * Logic:
+ * 1. Validates the presence of `case_distribution_batch_id`. Returns 400 if missing.
+ * 2. Builds a MongoDB aggregation pipeline on `caseDistributionDRCSummary`:
+ *    - $match: Filters by `case_distribution_batch_id` and optionally `drc_id`.
+ *    - $lookup: Joins `Case_distribution_drc_transactions` on `case_distribution_batch_id`.
+ *    - $lookup: Joins `Debt_recovery_company` on `drc_id` to enrich with DRC details.
+ *    - $unwind: Flattens `transaction_data` and `drc_details` arrays (preserving nulls).
+ *    - $project: Selects only the required fields, including joined data with fallbacks.
+ * 3. Returns 204 if no records found, 200 with results if found.
+ *
+ * Responses:
+ * - 200: Aggregation completed successfully, results returned.
+ * - 204: No matching records found for provided batch ID.
+ * - 400: Required input `case_distribution_batch_id` missing.
+ * - 500: Server error during aggregation.
+ */
+
 export const List_Case_Distribution_Details = async (req, res) => {
   try {
     const { case_distribution_batch_id, drc_id } = req.body;
@@ -4653,6 +4781,30 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
 // };
 
 // After Revamp
+
+/**
+ * Fetches detailed case distribution summary including RTOM and DRC information for a specific batch and DRC.
+ *
+ * Request Body:
+ * - case_distribution_batch_id: string (required) – The batch ID used to filter the summary.
+ * - drc_id: string (required) – The DRC ID used to filter the summary.
+ *
+ * Logic:
+ * 1. Validates presence of both `case_distribution_batch_id` and `drc_id`. Returns 400 if missing.
+ * 2. Performs an aggregation on `caseDistributionDRCSummary`:
+ *    - $match: Filters records by batch ID and DRC ID.
+ *    - $lookup: Joins with `Debt_recovery_company` to get DRC details using `drc_id`.
+ *    - $unwind: Flattens `drc_details` array while preserving documents with no match.
+ *    - $project: Returns selected fields, including DRC name and RTOM data.
+ * 3. If no results found, responds with 204.
+ * 4. Returns 200 with result data if found.
+ *
+ * Responses:
+ * - 200: Matching case distribution details returned.
+ * - 204: No records found for the given batch ID and DRC ID.
+ * - 400: Missing required input parameters.
+ * - 500: Internal server error during aggregation.
+ */
 
 export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
   try {
