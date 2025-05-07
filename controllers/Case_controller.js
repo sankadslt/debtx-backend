@@ -4622,34 +4622,104 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
   }
 };
 
+// Before Revamp
+
+// export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
+//   try {
+//       const { case_distribution_batch_id, drc_id } = req.body;
+
+//       if (!case_distribution_batch_id || !drc_id) {
+//           return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
+//       }
+
+//       const results = await caseDistributionDRCSummary.find({ case_distribution_batch_id, drc_id });
+
+//       if (results.length === 0) {
+//           return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
+//       }
+
+//       const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
+//       const drc_name = drcDetails ? drcDetails.drc_name : null;
+
+//       const response = results.map(doc => ({
+//           ...doc.toObject(),
+//           drc_name
+//       }));
+
+//       res.status(200).json(response);
+//   } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+// After Revamp
 
 export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
   try {
-      const { case_distribution_batch_id, drc_id } = req.body;
+    const { case_distribution_batch_id, drc_id } = req.body;
 
-      if (!case_distribution_batch_id || !drc_id) {
-          return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
+    if (!case_distribution_batch_id || !drc_id) {
+      return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
+    }
+
+    // Use aggregation to get all data in one query
+    const results = await caseDistributionDRCSummary.aggregate([
+      // Stage 1: Match documents based on input criteria
+      {
+        $match: {
+          case_distribution_batch_id,
+          drc_id
+        }
+      },
+      
+      // Stage 2: Lookup DRC details from DRC collection
+      {
+        $lookup: {
+          from: "Debt_recovery_company", // Collection name for DRC
+          localField: "drc_id",
+          foreignField: "drc_id",
+          as: "drc_details"
+        }
+      },
+      
+      // Stage 3: Unwind the drc_details array
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
+        }
+      },
+      
+      // Stage 4: Project the fields we need
+      {
+        $project: {
+          _id: 1,
+          case_distribution_batch_id: 1,
+          drc_id: 1,
+          drc_name: "$drc_details.drc_name",
+          rtom: 1,
+          case_count: 1,
+          tot_arrease: 1,
+          month_1_sc: 1,
+          month_2_sc: 1,
+          month_3_sc: 1,
+          created_dtm: 1,
+          created_by: 1,
+        }
       }
+    ]);
 
-      const results = await caseDistributionDRCSummary.find({ case_distribution_batch_id, drc_id });
+    if (results.length === 0) {
+      return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
+    }
 
-      if (results.length === 0) {
-          return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
-      }
-
-      const drcDetails = await DRC.findOne({ drc_id }, 'drc_name');
-      const drc_name = drcDetails ? drcDetails.drc_name : null;
-
-      const response = results.map(doc => ({
-          ...doc.toObject(),
-          drc_name
-      }));
-
-      res.status(200).json(response);
+    res.status(200).json(results);
   } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error fetching case distribution details with RTOMs:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const Mediation_Board = async (req, res) => {
