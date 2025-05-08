@@ -749,63 +749,15 @@ export const List_All_Incident_Case_Pending = async (req, res) => {
   }
 };
 
-// export const List_Incidents_CPE_Collect = async (req, res) => {
-//   try {
-//     const { Source_Type, From_Date, To_Date } = req.body;
-
-//     let query = { 
-//       Incident_Status: { $in: ["Open CPE Collect"] },
-//       Proceed_Dtm: { $eq: null }, // Ensure Proceed_Dtm is null
-//     };
-
-//     // Date filtering with proper boundaries
-//     if (From_Date && To_Date) {
-//       const startDate = `${From_Date} 00:00:00`;
-//       const endDate = `${To_Date} 23:59:59`;
-
-//       if (new Date(startDate) > new Date(endDate)) {
-//         return res.status(400).json({
-//           status: "error",
-//           message: "'From_Date' cannot be later than 'To_Date'.",
-//         });
-//       }
-
-//       query.Created_Dtm = {
-//         $gte: new Date(startDate),
-//         $lte: new Date(endDate),
-//       };
-//     } else if (From_Date || To_Date) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Both 'From_Date' and 'To_Date' must be provided together.",
-//       });
-//     }
-
-//     // Source Type filtering
-//     if (Source_Type) {
-//       query.Source_Type = Source_Type;
-//     }
-
-//     // Fetch incidents matching the query
-//     const incidents = await Incident.find(query);
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "CPE Collect incidents retrieved successfully.",
-//       data: incidents,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching CPE Collect incidents:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
+/**
+ * Inputs:
+ * - Source_Type: String (optional)
+ * - From_Date: String (optional, ISO Date format)
+ * - To_Date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of 'Open CPE Collect' incidents matching the provided filters.
+ */
 export const List_Incidents_CPE_Collect = async (req, res) => {
   try {
     const { Source_Type, From_Date, To_Date } = req.body;
@@ -845,8 +797,8 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 
     // Fetch incidents matching the query and limit to 10 records
     const incidents = await Incident.find(query)
-      .sort({ Created_Dtm: -1 }) // Optional: Sort by Created_Dtm descending
-      .limit(10);
+      .sort({ Created_Dtm: -1 });// Optional: Sort by Created_Dtm descending
+      
 
     return res.status(200).json({
       status: "success",
@@ -866,7 +818,15 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
 };
 
 
-
+/**
+ * Inputs:
+ * - Source_Type: String (optional)
+ * - FromDate: String (optional, ISO Date format)
+ * - ToDate: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of "Direct LOD" incidents filtered by status, source type, and date range.
+ */
 export const List_incidents_Direct_LOD = async (req, res) => {
 
   try {
@@ -1741,6 +1701,15 @@ export const Forward_CPE_Collect = async (req, res) => {
 }
 };
 
+/**
+ * Inputs:
+ * - Action_Type: String (optional)
+ * - FromDate: String (optional, ISO Date format)
+ * - ToDate: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of rejected incidents matching the provided filters.
+ */
 export const List_Reject_Incident = async (req, res) => {
 
   try {
