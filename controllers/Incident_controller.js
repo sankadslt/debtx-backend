@@ -1375,7 +1375,7 @@ export const Create_Case_for_incident= async (req, res) => {
       };      
 
       try {
-        const newCase = new CaseDetails(caseData);
+        const newCase = new Case_details(caseData);
         await newCase.save({ session });
         createdCases.push(newCase);
       } catch (validationError) {
