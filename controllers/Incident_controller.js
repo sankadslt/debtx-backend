@@ -1374,12 +1374,13 @@ export const Create_Case_for_incident= async (req, res) => {
             }],
       };      
 
-      const newCase = new Case_details(caseData);
-      if(!newCase){
-        res.status(404).json({
-          status:"error",
-          message: "There is an error while inserting to the case details document",
-        });
+      try {
+        const newCase = new CaseDetails(caseData);
+        await newCase.save({ session });
+        createdCases.push(newCase);
+      } catch (validationError) {
+        await session.abortTransaction();
+        return res.status(400).json({status: "error", error: "Validation failed", message: "There is an error while inserting to the case details document"});
       }
       
       const newCaseStatus = {
