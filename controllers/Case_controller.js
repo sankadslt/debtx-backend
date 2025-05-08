@@ -5272,22 +5272,80 @@ export const Mediation_Board = async (req, res) => {
 }
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
-  let { drc_id, account_no, from_date, to_date } = req.body;
+  let { drc_id, account_no, from_date, to_date,case_id } = req.body;
 
-  if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
+  if (!drc_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "DRC ID is required",
+    });
+  }
+  if (!case_id && !account_no && !from_date && !to_date) {
     return res.status(400).json({
       status: "error",
       message: "Failed to retrieve case details.",
       errors: {
         code: 400,
         description:
-          "At least one of drc_id, case_id, or account_no is required.",
+          "At least one of case_id, from_date, to_date, or account_no is required.",
       },
     });
   }
-
+  const invalidstatus = [
+    "Withdraw",
+    "Forward to WRIT",
+    "WRIT",
+    "Forward to Re-WRIT",
+    "Re-WRIT",
+    "WRIT Settle Pending",
+    "WRIT Settle Open-Pending",
+    "WRIT Settle Active",
+    "Re-WRIT Settle Pending",
+    "Re-WRIT Settle Open-Pending",
+    "Re-WRIT Settle Active",
+    "LOD Monitoring Expire",
+    "Forward LOD Dispute",
+    "Dispute Settle Pending",
+    "Dispute Settle Open-Pending",
+    "Dispute Settle Active",
+    "Initial Litigation",
+    "Pending FTL",
+    "Forward To Litigation",
+    "Fail from Legal Unit",
+    "Fail Legal Action",
+    "Litigation",
+    "Litigation Settle Pending",
+    "Litigation Settle Open-Pending",
+    "Litigation Settle Active",
+    "Pending FTL LOD",
+    "Initial FTL LOD",
+    "FTL LOD Settle Pending",
+    "FTL LOD Settle Open-Pending",
+    "FTL LOD Settle Active",
+    "LIT Prescribed",
+    "Final Reminder",
+    "Initial LOD",
+    "LOD Settle Pending",
+    "LOD Settle Open-Pending",
+    "LOD Settle Active",
+    "Final Reminder Settle Pending",
+    "Final Reminder Settle Open-Pending",
+    "Final Reminder Settle Active",
+    "LOD Monitoring Expire",
+    "Pending Abandoned",
+    "Abandoned",
+    "Pending Withdraw",
+    "Case Close",
+    "Pending Write-Off",
+    "Write-Off",
+  ];
   try {
-    let query = { "drc.removed_dtm": null };
+    let query = {
+      "drc.removed_dtm": null,
+      case_current_status: {
+        $nin: invalidstatus
+      }
+    };
 
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
