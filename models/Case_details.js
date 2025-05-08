@@ -38,16 +38,6 @@ const caseStatusSchema = new Schema({
   case_phase:{ type: String, required: true },
 }, { _id: false });
 
-// Define the contact 
-// const contactsSchema = new Schema({
-//   mob: { type: String, required: false },
-//   email: { type: String, required: true },
-//   nic: { type: String, required: true },
-//   lan: { type: String, required: false },
-//   address: { type: String, required: true },
-//   geo_location: {type: String, default:null},
-// },{ _id: false });
-
 // Define the edited contact
 const contactsSchema = new Schema({
   contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },

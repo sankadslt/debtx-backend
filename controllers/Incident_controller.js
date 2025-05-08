@@ -909,15 +909,6 @@ export const List_F1_filted_Incidents = async (req, res) => {
           $lte: to,
         };
       }
-      // if (FromDate || ToDate) {
-      //   query.Created_Dtm = {};
-      //   if (FromDate) {
-      //     query.Created_Dtm.$gte = new Date(FromDate);
-      //   }
-      //   if (ToDate) {
-      //     query.Created_Dtm.$lte = new Date(ToDate);
-      //   }
-      // }
       incidents = await Incident.find(query);
     }
    
@@ -951,8 +942,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
       Incident_Status: { $in: openNoAgentStatuses },
       Proceed_Dtm: { $eq: null }, 
     })
-      .sort({ Created_Dtm: -1 }) // Optional: Sort by Created_Dtm descending
-      .limit(10); // Limit to 10 records
+      .sort({ Created_Dtm: -1 });
 
     return res.status(200).json({
       status: "success",
@@ -1102,7 +1092,14 @@ export const total_incidents_Direct_LOD = async (req, res) => {
 
   }
 };
-
+/**
+ * Inputs:
+ * - Incident_Id: number (required)
+ * - user: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response confirming the F1 filtered incident has been rejected.
+ */
 export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
     const { Incident_Id, user } = req.body;
@@ -1130,29 +1127,6 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
           }
       });
     }
-
-    if (incident.Incident_Status !== 'Reject Pending') {
-        return res.status(400).json({ 
-         status:"error",
-         message: 'Incident status must be "Reject Pending" to update' ,
-         errors: {
-          code: 400,
-          description: 'Incident status must be "Reject Pending" to update',
-        }
-      });
-    }
-    
-    if (incident.Proceed_Dtm !== " " && incident.Proceed_Dtm !== null) {
-      return res.status(400).json({ 
-       status:"error",
-       message: 'Proceed Dtm must be null to update' ,
-       errors: {
-        code: 400,
-        description: 'Proceed Dtm must be null to update',
-      }
-    });
-  }
-
     await Incident.updateOne(
       { Incident_Id: Incident_Id},
       {
@@ -1165,7 +1139,6 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
       },
       
     );
-
     return res.status(200).json({
       status: "success",
       message: `Successfully rejected the F1 filtered incident.`
@@ -1183,7 +1156,13 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
   }
 };
 
-
+/**
+ * Inputs:
+ * - Incident_Id: number (required)
+ * 
+ * Success Result:
+ * - Returns a success response indicating the F1 filtered incident was successfully forwarded and status updated.
+ */
 export const Forward_F1_filtered_incident = async (req, res) => {
 
   const session = await mongoose.startSession();
@@ -1211,80 +1190,55 @@ export const Forward_F1_filtered_incident = async (req, res) => {
       },
     });
   }
-  
-  if (incidentData.Incident_Status !== 'Reject Pending') {
-    await session.abortTransaction();
-    session.endSession();
-      return res.status(400).json({ 
-            status:"error",
-            message: 'Incident status must be "Reject Pending" to update',
-            errors: {
-              code: 400,
-              description: 'Incident status must be "Reject Pending" to update'
-            }
-      });
-  }
-  if (incidentData.Proceed_Dtm !== " " && incidentData.Proceed_Dtm !== null) {
-    await session.abortTransaction();
-    session.endSession();
-      return res.status(400).json({ 
-         status:"error",
-         message: 'Proceed Dtm must be null to update' ,
-         errors: {
-          code: 400,
-          description:'Proceed Dtm must be null to update',
-        }
-      });
-  }
 
-  const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
-    { _id: "case_id" },
-    { $inc: { seq: 1 } },
-    { returnDocument: "after", session, upsert: true }
-  );
+  // const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+  //   { _id: "case_id" },
+  //   { $inc: { seq: 1 } },
+  //   { returnDocument: "after", session, upsert: true }
+  // );
 
-  const Case_Id = counterResult.seq;
+  // const Case_Id = counterResult.seq;
  
-  const caseData = {
-    case_id: Case_Id,
-    incident_id: incidentData.Incident_Id,
-    account_no: incidentData.Account_Num || "Unknown", 
-    customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
-    created_dtm: new Date(),
-    implemented_dtm: incidentData.Created_Dtm || new Date(),
-    area: incidentData.Region || "Unknown",
-    rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-    arrears_band: incidentData.Arrears_Band || "Default Band",
-    bss_arrears_amount: incidentData.Arrears || 0,
-    current_arrears_amount: incidentData.Arrears || 0,
-    current_arrears_band: incidentData.current_arrears_band || "Default Band",
-    action_type: "New Case",
-    drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
-    last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
-    monitor_months: 6,
-    last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
-    commission: 0,
-    case_current_status: incidentData.Incident_Status,
-    filtered_reason: incidentData.Filtered_Reason || null,
-    ref_products: incidentData.Product_Details.map(product => ({
-      service: product.Service_Type || "Unknown",
-      product_label: product.Product_Label || "N/A",
-      product_status: product.product_status || "Active",
-      status_Dtm: product.Effective_Dtm || new Date(),
-      rtom: product.Region || "N/A",
-      product_ownership: product.Equipment_Ownership || "Unknown",
-      service_address: product.Service_Address || "N/A",
-    })) || [],
-    case_status: {
-      case_status: incidentData.Incident_Status,
-      status_reason: "Forward F1 Filtered",
-      created_dtm: new Date(),
-      created_by: user
-    }
-  };
+  // const caseData = {
+  //   case_id: Case_Id,
+  //   incident_id: incidentData.Incident_Id,
+  //   account_no: incidentData.Account_Num || "Unknown", 
+  //   customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
+  //   created_dtm: new Date(),
+  //   implemented_dtm: incidentData.Created_Dtm || new Date(),
+  //   area: incidentData.Region || "Unknown",
+  //   rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
+  //   arrears_band: incidentData.Arrears_Band || "Default Band",
+  //   bss_arrears_amount: incidentData.Arrears || 0,
+  //   current_arrears_amount: incidentData.Arrears || 0,
+  //   current_arrears_band: incidentData.current_arrears_band || "Default Band",
+  //   action_type: "New Case",
+  //   drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+  //   last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+  //   monitor_months: 6,
+  //   last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+  //   commission: 0,
+  //   case_current_status: incidentData.Incident_Status,
+  //   filtered_reason: incidentData.Filtered_Reason || null,
+  //   ref_products: incidentData.Product_Details.map(product => ({
+  //     service: product.Service_Type || "Unknown",
+  //     product_label: product.Product_Label || "N/A",
+  //     product_status: product.product_status || "Active",
+  //     status_Dtm: product.Effective_Dtm || new Date(),
+  //     rtom: product.Region || "N/A",
+  //     product_ownership: product.Equipment_Ownership || "Unknown",
+  //     service_address: product.Service_Address || "N/A",
+  //   })) || [],
+  //   case_status: {
+  //     case_status: incidentData.Incident_Status,
+  //     status_reason: "Forward F1 Filtered",
+  //     created_dtm: new Date(),
+  //     created_by: user
+  //   }
+  // };
 
-  const newCase = new Case_details(caseData);
-  await newCase.save({ session });
+  // const newCase = new Case_details(caseData);
+  // await newCase.save({ session });
 
   let incidentStatus;
 
@@ -1340,7 +1294,7 @@ const generateCaseId = async (session) => {
   return counterResult.seq;
 };
 
-
+//should be check again
 export const Create_Case_for_incident= async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1360,7 +1314,7 @@ export const Create_Case_for_incident= async (req, res) => {
     const createdCases = [];
     
     //10 
-    const maxRounds = Math.min(Incident_Ids.length, 10);
+    const maxRounds = Math.min(Incident_Ids.length, 5);
 
     for (let i = 0; i < maxRounds; i++) {
       const incidentId = Incident_Ids[i];
@@ -1397,7 +1351,7 @@ export const Create_Case_for_incident= async (req, res) => {
         commission: 0,
         Proceed_By: incidentData.Proceed_By || "user",
        
-        case_current_status: incidentData.Incident_Status || "Open",
+        case_current_status: "Open No Agent",
         filtered_reason: incidentData.Filtered_Reason || null,
         ref_products: incidentData.Product_Details.length > 0
           ? incidentData.Product_Details.map(product => ({
@@ -1421,7 +1375,12 @@ export const Create_Case_for_incident= async (req, res) => {
       };      
 
       const newCase = new Case_details(caseData);
-      
+      if(!newCase){
+        res.status(404).json({
+          status:"error",
+          message: "There is an error while inserting to the case details document",
+        });
+      }
       
       const newCaseStatus = {
         case_status: "Open No Agent", 
@@ -1436,6 +1395,7 @@ export const Create_Case_for_incident= async (req, res) => {
   
     await session.commitTransaction();
     res.status(201).json({
+      status:"success",
       message: `Successfully created ${createdCases.length} cases.`,
       cases: createdCases,
     });

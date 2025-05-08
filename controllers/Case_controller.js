@@ -2752,12 +2752,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       session.endSession();
       return res.status(404).json({ message: "No matching batch ID found" });
     }
-
+    const parameters = {
+      case_distribution_batch_id
+    };
     // Create Task for Proceed Action
     const taskData = {
       Template_Task_Id: 31,
       task_type: "Create Task for Proceed Cases from Batch_ID",
-      case_distribution_batch_id,
+      ...parameters,
       Created_By: Proceed_by,
       task_status: "open",
     };
@@ -2769,6 +2771,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       approver_reference: case_distribution_batch_id, // Single batch ID
       created_by: Proceed_by,
       approver_type: "DRC Assign Approval",
+      parameters,
       approve_status: [{
         status: "Open",
         status_date: currentDate,
@@ -2779,20 +2782,17 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
 
     await approvalEntry.save({ session });
 
-    // Create User Interaction Log
-    const interaction_id = 6; // this must be changed later
-    const request_type = "Pending Approval Agent Destribution"; 
-    const created_by = Proceed_by;
     const dynamicParams = { case_distribution_batch_id, Request_Mode: "Negotiation" };
 
     const interactionResult = await createUserInteractionFunction({
-      Interaction_ID: interaction_id,
-      User_Interaction_Type: request_type,
+      Interaction_ID: 6,
+      User_Interaction_Type: "Pending Approval Agent Destribution",
       delegate_user_id: delegate_id, // Dynamic delegate_id
-      Created_By: created_by,
+      Created_By: Proceed_by,
       User_Interaction_Status: "Open",
       User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
+      session,
     });
 
     // Commit transaction  
