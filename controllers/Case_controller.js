@@ -4466,6 +4466,15 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
           return res.status(204).json({ message: "No matching approver reference found" });
       }
 
+          // Fetch case details to check drc array length and monitor_months
+      const caseDetails = await Case_details.findOne({ case_id: approver_reference }).session(session);
+      
+      if (!caseDetails) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(204).json({ message: "No matching case found" });
+      }
+
       // Assign created_by as delegate_id
       const deligate_id = approvalDoc.created_by;
 
@@ -4510,24 +4519,24 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
           {
               $push: {
                   approve: {
-                      approved_process: newStatus,
+                      approved_process: caseDetails.case_current_status,
                       approved_by: approved_by,
                       approved_on: currentDate,
-                      remark: " ",
+                      remark: "Approval Rejected ",
                       requested_on: approvalDoc.created_on,
                       requested_by: approvalDoc.created_by
                   },
 
                   case_status: {
-                    case_status: newStatus,
-                    status_reason: "Case Rejected",
+                    case_status: caseDetails.case_current_status,
+                    status_reason: "Approval Rejected",
                     created_dtm: currentDate,
                     created_by: approved_by,
                     case_phase: "Negotiation"
                   }
               },
               $set: {
-                case_current_status: newStatus,
+                case_current_status: caseDetails.case_current_status,
               },
           },
           { session }
