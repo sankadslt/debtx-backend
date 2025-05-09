@@ -3645,6 +3645,7 @@ export const Approve_Batch = async (req, res) => {
       User_Interaction_Status_DTM: currentDate,
       User_Interaction_Status: "Open",
       approver_reference: approver_reference,
+      session
     });
 
     await session.commitTransaction();
@@ -5270,7 +5271,17 @@ export const Mediation_Board = async (req, res) => {
     }); 
  }
 }
-
+/**
+ * Inputs:
+ * - drc_id: Number (required)
+ * - case_id: Number (optional)
+ * - account_no: String (optional)
+ * - from_date: String (optional, ISO Date format)
+ * - to_date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of case details owned by the specified DRC, filtered by the provided criteria.
+ */
 export const List_CasesOwened_By_DRC = async (req, res) => {
   let { drc_id, account_no, from_date, to_date,case_id } = req.body;
 
@@ -5338,6 +5349,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     "Case Close",
     "Pending Write-Off",
     "Write-Off",
+    "MB Fail with Non-Settlement",
   ];
   try {
     let query = {
@@ -5346,7 +5358,10 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         $nin: invalidstatus
       }
     };
-
+    if (from_date && to_date) {
+          query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+          query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+    }
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
     if (account_no) query["account_no"] = String(account_no);
@@ -5372,50 +5387,13 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         },
       });
     }
-
-    const invalidStatuses = ["MB Fail with Non-Settlement"];
-    const expireStatuses = ["Abandoned", "Withdraw", "Case Close", "Pending Write-Off", "Write-Off"];
-
-    let filteredCaseDetails = caseDetails.map((detail) => {
-      if (Array.isArray(detail.case_status) && detail.case_status.length > 0) {
-        let lastStatus = detail.case_status.at(-1);
-        if (lastStatus) {
-          if (invalidStatuses.includes(lastStatus.case_status)) {
-            return null; // Filter out cases with invalid statuses
-          }
-          if (expireStatuses.includes(lastStatus.case_status)) {
-            detail.end_dtm = lastStatus.created_dtm;
-          }
-        }
-      }
-      return detail;
-    }).filter(Boolean);
-
-    console.log("Filtered cases:", filteredCaseDetails);
-
-    // Apply date range filter if from_date and to_date are provided
-    if (from_date && to_date) {
-      const fromDate = new Date(from_date);
-      const endDate = new Date(to_date);
-      filteredCaseDetails = filteredCaseDetails.filter((detail) => {
-        if (detail.created_dtm) {
-          const createdDate = new Date(detail.created_dtm);
-          return createdDate >= fromDate && createdDate <= endDate;
-        }
-        return false;
-      });
-    }
-
     res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      Cases: filteredCaseDetails.map(detail => ({
-        ...detail,
-        end_dtm: detail.end_dtm || " "
-      })),
+      Cases: caseDetails,
     });
   } catch (error) {
-    console.error("Error fetching case details:", error);
+    // console.error("Error fetching case details:", error);
     res.status(500).json({
       status: "error",
       message: "Error Fetching Case Details.",
@@ -6038,12 +6016,12 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
   try {
     const { drc_id, case_id, account_no, from_date, to_date, Created_By } = req.body;
 
-    if (!Created_By || !from_date ||!to_date) {
+    if (!Created_By || !from_date ||!to_date ||!drc_id) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "Created By, from date and to date are required parameter.",
+        message: "Created By, drc id, from date and to date are required parameter.",
       });
     }
 
@@ -6059,7 +6037,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 35,
-      task_type: "Create task for download the Assigned DRC's case list when selected date range is higher that one month",
+      task_type: "Create task for download the Assigned DRC's case list when selected date range is higher than one month",
       ...parameters, // Spreads parameters directly into taskData
       Created_By,
       task_status: "open"
@@ -6430,7 +6408,7 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
   session.startTransaction();
   
   try {
-      const { approver_reference, remark, remark_edit_by, created_by } = req.body;
+      const { approver_reference, remark, remark_edit_by, created_by, case_status } = req.body;
 
       if (!approver_reference || !remark || !remark_edit_by || !created_by) {
           await session.abortTransaction();
@@ -6439,10 +6417,11 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       }
 
       const currentDate = new Date();
-
+      // should be call to the case_phase API
+      // const case_phase = await pythonapi(case_status);
       const delegate_id = await getApprovalUserIdService({
-          case_phase: "Initial Review",
-          approval_type: "Manager Approval"
+          case_phase: "python status",
+          approval_type: "Case Withdrawal Approval"
       });
 
       // --- Proceed to insert document ---
@@ -6451,7 +6430,7 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
           created_by,
           approver_type: "Case Withdrawal Approval",
           approve_status: [{
-              status: "Pending Case Withdrawal",
+              status: "Open",
               status_date: currentDate,
               status_edit_by: created_by,
           }],
@@ -6464,7 +6443,10 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       });
 
       await newDocument.save({ session });
-
+      
+      const dynamicParams = {
+        approver_reference,
+      };
       // --- Interaction Log ---
       const interactionResult = await createUserInteractionFunction({
           Interaction_ID: 18,
@@ -6473,19 +6455,20 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
           Created_By: created_by,
           User_Interaction_Status: "Open",
           User_Interaction_Status_DTM: currentDate,
-          Request_Mode: "Negotiation",
-          approver_reference
+          ...dynamicParams,
+          session
       });
 
       await session.commitTransaction();
       session.endSession();
 
       return res.status(200).json({
+          status:"success",
           message: "Case withdrawal request added successfully",
           data: newDocument
       });
   } catch (error) {
-      console.error("Error withdrawing case:", error);
+      // console.error("Error withdrawing case:", error);
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({ message: error.message });
