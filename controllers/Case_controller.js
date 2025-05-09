@@ -4788,6 +4788,7 @@ export const CaseDetailsforDRC = async (req, res) => {
       drc: 1, 
       ro_negotiation:1,
       settlement:1, 
+      mediation_board:1,
       money_transactions:1, 
       ro_requests: 1}
     ).lean();  // Using lean() for better performance
