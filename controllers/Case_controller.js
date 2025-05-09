@@ -4690,37 +4690,67 @@ export const listDRCAllCases = async (req, res) => {
       });
     }
 
-    // Define the query with the required filters
     let query = {
-      $and: [
-        { "drc.drc_id": drc_id },
-        {
-          case_current_status: {
-            $in: [
-              "RO Negotiation",
-              "Negotiation Settle Pending",
-              "Negotiation Settle Open-Pending",
-              "Negotiation Settle Active",
-              "RO Negotiation Extension Pending",
-              "RO Negotiation Extended",
-              "RO Negotiation FMB Pending",
-            ],
-          },
-        },
-      ],
-    };
+                  "last_drc.drc_id": drc_id,
+                  "last_drc.removed_dtm": null,
+                  case_current_status: {
+                    $in: [
+                      "RO Negotiation",
+                      "Negotiation Settle Pending",
+                      "Negotiation Settle Open-Pending",
+                      "Negotiation Settle Active",
+                      "RO Negotiation Extension Pending",
+                      "RO Negotiation Extended",
+                      "RO Negotiation FMB Pending",
+                    ],
+                  },
+                };
 
     // Add optional filters dynamically
-    if (rtom) query.$and.push({ area: rtom });
-    if (ro_id) query.$and.push({ "drc.recovery_officers.ro_id": ro_id });
-    if (action_type) query.$and.push({ action_type });
+    if (rtom) query.area = rtom;
+    if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
+    if (action_type) query.action_type = action_type;
     if (from_date && to_date) {
-      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+      query["last_drc.created_dtm"] = {
+        $gte: new Date(from_date),
+        $lte: new Date(to_date),
+      };
     }
 
     // Fetch cases based on the query
-    const cases = await Case_details.find(query);
+   const cases = await Case_details.aggregate([
+      {
+        $addFields: {
+          last_drc: { $arrayElemAt: ["$drc", -1] },
+          last_contact: { $arrayElemAt: ["$current_contact", -1] },
+          last_recovery_officer: {
+            $arrayElemAt: ["$last_drc.recovery_officers", -1],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "Recovery_officer", // use your actual collection name here
+          localField: "last_recovery_officer.ro_id",
+          foreignField: "ro_id",
+          as: "ro_info",
+        },
+      },
+      {
+        $match: query,
+      },
+      {
+        $project: {
+          case_id: 1,
+          status: "$case_current_status",
+          created_dtm:"$last_drc.created_dtm",
+          contact_no:"$last_contact.contact_no",
+          area:1,
+          action_type: 1,
+          ro_name:{ $arrayElemAt: ["$ro_info.ro_name", 0] },
+        },
+      },
+    ]);
 
     // Handle case where no matching cases are found
     if (!cases || cases.length === 0) {
@@ -4734,31 +4764,10 @@ export const listDRCAllCases = async (req, res) => {
       });
     }
 
-    // Return the retrieved cases
-    const formattedCases = await Promise.all(
-      cases.map(async (caseData) => {
-        const findDRC = Array.isArray(caseData.drc) ? caseData.drc.find((drc) => drc.drc_id === drc_id) : null;
-
-        const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
-
-        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
-
-        return {
-          case_id: caseData.case_id,
-          status: caseData.case_current_status,
-          created_dtm: findDRC?.created_dtm || null,
-          ro_name: matchingRecoveryOfficer?.ro_name || null,
-          contact_no: caseData.current_contact?.[caseData.current_contact.length - 1]?.contact_no || null,
-          area: caseData.area,
-          action_type: caseData.action_type,
-        };
-      })
-    );
-
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
-      data: formattedCases,
+      data: cases,
     });
   } catch (error) {
     console.error("Error fetching cases:", error);
@@ -4942,7 +4951,6 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
 //API ID: C-1P72
 export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
   const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
-
   try {
     // Validate input parameters
     if (!drc_id) {
@@ -5177,8 +5185,7 @@ export const CaseDetailsforDRC = async (req, res) => {
 
     // Find the case that matches both case_id and has the specified drc_id in its drc array
     const caseDetails = await Case_details.findOne({
-      case_id: case_id,
-      "drc.drc_id": drc_id,
+      case_id
     },
     { case_id: 1, 
       case_current_status: 1, 
@@ -5196,17 +5203,6 @@ export const CaseDetailsforDRC = async (req, res) => {
       money_transactions:1, 
       ro_requests: 1}
     ).lean();  // Using lean() for better performance
-
-    // if (!caseDetails) {
-    //   return res.status(404).json({
-    //     status: "error",
-    //     message: "Case not found or DRC ID doesn't match.",
-    //     errors: {
-    //       code: 404,
-    //       description: "No case found with the provided Case ID and DRC ID combination.",
-    //     },
-    //   });
-    // }
 
     const mediationBoardCount = caseDetails.mediation_board?.length || 0;
 
@@ -5336,39 +5332,19 @@ export const updateDrcCaseDetails = async (req, res) => {
   
   try {
     // Validate input parameters
-    if (!case_id) {
+    if (!case_id && !drc_id) {
       return res.status(400).json({
         status: "error",
         message: "Failed to retrieve Case details.",
         errors: {
           code: 400,
-          description: "Case ID is required.",
-        },
-      });
-    }
-
-    // Validate input parameters
-    if (!drc_id && !ro_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "Failed to retrieve Case details.",
-        errors: {
-          code: 400,
-          description: "DRC ID or RO ID is required.",
+          description: "Case ID and DRC ID is required.",
         },
       });
     }
 
     // Fetch case details from the database
-    const caseDetails = await Case_details.findOne({
-      $and: [
-        { case_id: case_id},
-        {$or: [
-          { "drc.drc_id": drc_id }, 
-          { "drc.recovery_officers.ro_id": ro_id }
-        ]},
-      ],
-    });
+    const caseDetails = await Case_details.findOne({case_id},{ ro_edited_customer_details: 1, _id: 0 });
     // Handle case where no matching cases are found
     if (!caseDetails || caseDetails.length === 0) {
       return res.status(404).json({
@@ -5448,14 +5424,14 @@ export const updateDrcCaseDetails = async (req, res) => {
     if (editedcontactsSchema) {
       updateData.$push = updateData.$push || {};
       updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
-      console.log("updateData.contact", updateData);
+      // console.log("updateData.contact", updateData);
     }
 
     // Update remark array
     if (contactsSchema) {
       updateData.$set = updateData.$set || {};
       updateData.$set.current_contact = [contactsSchema];
-      console.log("updateData.remark", updateData);
+      // console.log("updateData.remark", updateData);
     }
 
     // Perform the update in the database
@@ -5465,7 +5441,7 @@ export const updateDrcCaseDetails = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log("Updated case", updatedCase);
+    // console.log("Updated case", updatedCase);
     return res.status(200).json(updatedCase);
   } catch (error) {
     console.error("Error updating case", error);
