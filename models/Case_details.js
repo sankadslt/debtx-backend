@@ -22,6 +22,7 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
+  rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
