@@ -85,7 +85,7 @@ const abnormalSchema = new Schema({
   remark: {type: String, required:true},
   done_by:{type: String, required:true},
   done_on: {type:Date, required:true},
-  action: {type:String, required:true},
+  action: {type:Number, required:true},
   Case_phase: {type:String, required:true},
 },{_id: false });
 

@@ -3570,7 +3570,16 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     const currentDate = new Date();
 
     // Fetch the document to get approver_type, created_on, and created_by
-    const approvalDoc = await TmpForwardedApprover.findOne({ approver_reference }).session(session);
+    const approvalDoc = await TmpForwardedApprover.findOne(
+      { 
+      approver_reference: { $in: approver_reference },                           
+      approver_type: { $ne: "DRC Assign Approval" }
+      },
+      {
+        created_on: 1, created_by: 1, approver_type: 1, parameters:1
+      }
+    ).session(session);
+
 
     if (!approvalDoc) {
       await session.abortTransaction();
@@ -3579,7 +3588,14 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     // Fetch case details to check drc array length and monitor_months
-    const caseDetails = await Case_details.findOne({ case_id: approver_reference }).session(session);
+    const caseDetails = await Case_details.findOne(
+      { 
+        case_id: approver_reference 
+      },
+      {
+        monitor_months: 1, drc: 1, case_current_status: 1
+      }
+    ).session(session);
     
     if (!caseDetails) {
       await session.abortTransaction();
@@ -3639,8 +3655,28 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       session.endSession();
       return res.status(304).json({ message: "Approval update failed" });
     }
+    
     // should be call to the case_phase API
-    // const case_phase = await pythonapi(case_status);
+    // const case_phase = await pythonapi(case_current_status);
+
+    // Update all active DRCs to Inactive if this is a DRC Re-Assign Approval
+    if (approvalDoc.approver_type === "DRC Re-Assign Approval" && caseDetails.drc && caseDetails.drc.length > 0) {
+      // Update all active DRCs to inactive
+      await Case_details.updateOne(
+        { case_id: approver_reference },
+        { 
+          $set: { 
+            "drc.$[elem].drc_status": "Inactive",
+            "drc.$[elem].removed_by": approved_by,
+            "drc.$[elem].removed_dtm": currentDate
+          } 
+        },
+        { 
+          arrayFilters: [{ "elem.drc_status": "Active" }],
+          session 
+        }
+      );
+    }
       
     // Handle DRC Re-Assign Approval
     let caseUpdateOperation = {
@@ -3666,22 +3702,19 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       },
     };
 
-    // If it's a DRC Re-Assign Approval, add DRC info to the drc array
-    if (approvalDoc.approver_type === "DRC Re-Assign Approval" && approvalDoc.parameters) {
-      const drcId = approvalDoc.parameters.get('drc_id');
-      
-      if (drcId) {
-        // Find DRC details from Debt_recovery_company collection
-        const drcDetails = await DRC.findOne({ drc_id: drcId }).session(session);
-        
-        if (drcDetails) {
+    if (approvalDoc.approver_type === "DRC Re-Assign Approval" && approvalDoc.parameters) 
+      {
+        const drcId = approvalDoc.parameters.get('drc_id');
+        const drcName = approvalDoc.parameters.get('drc_name');
+
+        if (drcId && drcName) {
           // Add new DRC object to the drc array
           caseUpdateOperation.$push.drc = {
             order_id: null,
             drc_id: drcId,
-            drc_name: drcDetails.drc_name,
+            drc_name: drcName,
             created_dtm: currentDate,
-            drc_status: drcDetails.drc_status,
+            drc_status: "Active",
             status_dtm: null,
             expire_dtm: null,
             case_removal_remark: null,
@@ -3692,7 +3725,49 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
             recovery_officers: []
           };
         }
+        else{
+          return res.status(204).json({
+            message: "Can not add new DRC to drc array because 'drc_id' or 'drc_name' is missing in approval collection document ",
+          });
+        }
       }
+    else if (approvalDoc.approver_type === "Case Withdrawal Approval")
+      {
+        // Add new abnormal stop object to the abnormal_stop array
+        caseUpdateOperation.$push.abnormal_stop = {
+           remark: "Approved Case Withdrawal Approval",                                         
+          done_by: approved_by,
+          done_on: currentDate,
+          action: approver_reference,
+          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+        };
+      }
+    else if (approvalDoc.approver_type === "Case Abandoned Approval")
+      {
+        // Add new abnormal stop object to the abnormal_stop array
+        caseUpdateOperation.$push.abnormal_stop = {
+          remark: "Approved Case Abandoned Approval",                                         
+          done_by: approved_by,
+          done_on: currentDate,
+          action: approver_reference,
+          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+        };
+      }
+    else if (approvalDoc.approver_type === "Case Write-Off Approval")
+      {
+        // Add new abnormal stop object to the abnormal_stop array
+        caseUpdateOperation.$push.abnormal_stop = {
+           remark: "Approved Case Write-Off Approval",                                         
+          done_by: approved_by,
+          done_on: currentDate,
+          action: approver_reference,
+          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+        };
+      }
+    else{
+      return res.status(204).json({
+        message: "approver_type is incoerrect one",
+      });
     }
 
     // Update Case_details
@@ -5552,6 +5627,9 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
 
       await newDocument.save({ session });
 
+      // should be call to the case_phase API
+      // const case_phase = await pythonapi(case_status);
+
       // Update approve array in CaseDetails with requested_on and requested_by
       const caseResult = await Case_details.updateOne(
           { case_id: approver_reference },
@@ -5562,7 +5640,7 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
                     status_reason: "Case send for Withdrawal Approval",
                     created_dtm: currentDate,
                     created_by: created_by,
-                    case_phase: "Negotiation"
+                    case_phase: "python"  // case_phase
                   }
               },
               $set: {
