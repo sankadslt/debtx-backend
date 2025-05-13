@@ -19,7 +19,7 @@ const remarkSchema = new Schema({
 const statusSchema = new Schema({
     status: {
         type: String,
-        enum: ['Open', 'Approve', 'Reject', 'Pending Case Withdrawal','Case Withdrawed'],
+        enum: ['Open', 'Approve', 'Reject'],
         required: true,
     },
     status_date: {
