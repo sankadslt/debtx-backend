@@ -5691,7 +5691,9 @@ export const CaseDetailsforDRC = async (req, res) => {
       ro_negotiation:1,
       settlement:1, 
       money_transactions:1, 
-      ro_requests: 1}
+      ro_requests: 1,
+      mediation_board: 1,
+    }
     ).lean();  // Using lean() for better performance
 
     // if (!caseDetails) {
@@ -6441,41 +6443,6 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   }
 };
 
-export const Case_Details_for_DRC = async (req, res) => {
-  try {
-    const { case_id, drc_id } = req.body;
-
-    if (!case_id || !drc_id) {
-      return res.status(400).json({ message: "Case_ID and DRC_ID are required" });
-    }
-
-    const caseDetails = await Case_details.findOne({ case_id });
-    if (!caseDetails) {
-      return res.status(404).json({ message: "Case is not found" });
-    }
-
-    const response = {
-      case_id: caseDetails.case_id,
-      customer_ref: caseDetails.customer_ref,
-      account_no: caseDetails.account_no,
-      arrears_amount: caseDetails.current_arrears_amount,
-      last_payment_date: caseDetails.last_payment_date,
-      mediation_board: caseDetails.mediation_board,
-      payment_details: caseDetails.money_transactions,
-      ro_requests: caseDetails.ro_requests,
-    };
-
-    return res.status(200).json({
-      message: "Case details retrieved successfully",
-      status: "success",
-      data: response,
-    });
-  } catch (error) {
-    console.error("Error fetching case details:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-};
-
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
       const { case_id, recieved_by } = req.body;  
@@ -6519,7 +6486,8 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
           case_status: 'MB Fail with Non-Settlement',    
           status_reason: 'Non-settlement request accepted from Mediation Board',  
           created_dtm: new Date(),                      
-          created_by: recieved_by,                     
+          created_by: recieved_by, 
+          case_phase: 'Mediation Board',                    
       };
 
      
