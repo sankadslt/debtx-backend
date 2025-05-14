@@ -52,151 +52,6 @@ import mongoose from "mongoose";
   - 404: No matching settlements found
   - 500: Internal server error
 */
-
-// export const ListAllSettlementCases = async (req, res) => {
-//   const {
-//     account_no,
-//     case_id,
-//     settlement_phase,
-//     settlement_status,
-//     from_date,
-//     to_date,
-//     page = 1,  // Add default value
-//     limit = 10,  // Add default value
-//     recent = false  // Add default value
-//   } = req.body;
-
-//   try {
-//     // Validate required fields
-//     if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "At least one of case_id, settlement_phase, settlement_status, from_date or to_date is required."
-//       });
-//     }
-//     // Query
-//     const query = {};
-
-//     // Initialize $and array if needed for date filtering
-//     // if (from_date && to_date) {
-//     //   query.$and = [];
-//     // }
-
-//     if (account_no) {
-//       const matchedCases = await Case_details.find({ account_no }, 'case_id');
-//       const caseIds = matchedCases.map(c => c.case_id);
-//       query.case_id = { $in: caseIds };
-//     }
-
-//     let pageNum = Number(page);
-//     // let limitNum = Number(limit);
-//     let limitNum = Number(page) === 1 ? 10 : 30;
-
-//     if (case_id) query.case_id = case_id;
-//     if (settlement_phase) query.settlement_phase = settlement_phase;
-//     if (settlement_status) query.settlement_status = settlement_status;
-//     if (from_date && to_date) {
-//       query.$and = [];
-//       query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-//       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
-//     }
-
-//     const sortOptions = { created_dtm: -1, settlement_id: -1 };
-
-//     // If recent is true, limit to 10 latest entries and ignore pagination
-//     // if (recent === true) {
-//     //   limitNum = 10;
-//     //   pageNum = 1;
-//     //   // Clear any filters if we just want recent payments
-//     //   Object.keys(query).forEach(key => delete query[key]);
-//     // }
-
-//     // Calculate skip for pagination
-//     // const skip = (pageNum - 1) * limitNum;
-//     const skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
-
-//     // Execute query with descending sort
-//     const settlements = await CaseSettlement.find(query)
-//       .sort(sortOptions)
-//       .skip(skip)
-//       .limit(limitNum);
-
-//     const caseIds = settlements.map(s => s.case_id);
-//     const caseDetailsMap = {};
-
-//     const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, 'case_id account_no');
-//     caseDetails.forEach(cd => {
-//       caseDetailsMap[cd.case_id.toString()] = cd.account_no;
-//     });
-
-//     // if (settlements.length === 0) {
-//     //   return res.status(404).json({
-//     //     status: "error",
-//     //     message: "No data found for the provided parameters"
-//     //   });
-//     // }
-
-//     // Format response data - include all fields from model
-//     const formattedSettlements = settlements.map(settlement => {
-//       // Convert Mongoose document to plain object
-//       const SettlementDetails = settlement.toObject();
-//       const caseIdStr = SettlementDetails.case_id.toString();
-
-//       // Format date fields for better readability
-//       if (SettlementDetails.created_dtm) {
-//         SettlementDetails.created_dtm = SettlementDetails.created_dtm.toISOString();
-//       }
-
-//       if (SettlementDetails.last_monitoring_dtm) {
-//         SettlementDetails.last_monitoring_dtm = SettlementDetails.last_monitoring_dtm.toISOString();
-//       }
-
-//       // Return all fields from model with properly formatted names
-//       return {
-//         case_id: SettlementDetails.case_id,
-//         account_no: caseDetailsMap[caseIdStr] || '-',
-//         settlement_status: SettlementDetails.settlement_status,
-//         created_dtm: SettlementDetails.created_dtm,
-//         settlement_phase: SettlementDetails.settlement_phase,
-//         settlement_id: SettlementDetails.settlement_id,
-//       };
-//     });
-
-//     // Prepare response data
-//     const responseData = {
-//       message: 'Case settlements retrieved successfully',
-//       data: formattedSettlements,
-//     };
-
-//     // Add pagination info if not in recent mode
-//     // if (recent !== true) {
-//       const total = await CaseSettlement.countDocuments(query);
-//       responseData.pagination = {
-//         total,
-//         page: pageNum,
-//         limit: limitNum,
-//         // pages: Math.ceil(total / limitNum)
-//         pages: total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1
-//       };
-//     // } else {
-//       // responseData.total = formattedSettlements.length;
-//     // }
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Successfully retrieved case settlements.",
-//       data: responseData,
-//     });
-
-//   } catch (error) {
-//     console.error("Error fetching settlement data:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal Server error. Please try again later.",
-//     });
-//   }
-// };
-
 export const ListAllSettlementCases = async (req, res) => {
   try {
     const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
@@ -419,6 +274,18 @@ export const Case_Details_Settlement_Phase = async (req, res) => {
   }
 };
 
+/*
+  Purpose: This API endpoint creates a task for downloading the settlement list.
+  Calling Function: createTaskFunction
+  Request Body Parameters:
+    Created_By
+    Phase
+    Case_Status
+    from_date
+    to_date
+    Case_ID
+    Account_Number
+*/
 export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -478,6 +345,13 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
   }
 };
 
+/*
+  Purpose: This API endpoint retrieves settlement details based on the provided case_id and settlement_id.
+  Table: case_settlement
+  Request Body Parameters:
+    - case_id (required)
+    - settlement_id (required)
+*/
 export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
   try {
     const { case_id, settlement_id } = req.body;
@@ -530,12 +404,20 @@ export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
   }
 };
 
+/* 
+  Purpose: This API endpoint creates a task for downloading settlement details by case ID and Settlement_ID.
+  Calling Function: createTaskFunction
+  Request Body Parameters:
+    Created_By
+    Case_ID
+    Settlement_ID
+*/
 export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { Created_By, Case_ID } = req.body;
+    const { Created_By, Case_ID, Settlement_ID } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -546,12 +428,12 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
       });
     }
 
-    if (!Case_ID) {
+    if (!Case_ID || !Settlement_ID) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "Case_ID is a required parameter.",
+        message: "Case_ID and Settlement_ID are required parameter.",
       });
     }
 
@@ -560,6 +442,7 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
       Created_By,
       task_status: "open",
       case_ID: Case_ID,
+      settlement_id: Settlement_ID
     };
 
     // Pass parameters directly (without nesting it inside another object)
