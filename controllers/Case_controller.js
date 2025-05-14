@@ -4663,6 +4663,18 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - drc_id: number (required)
+ * - ro_id: number (optional)
+ * - rtom: String (optional)
+ * - action_type: String (optional)
+ * - from_date: String (optional, ISO Date format)
+ * - to_date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of DRC cases matching the provided filters.
+ */
 export const listDRCAllCases = async (req, res) => {
   const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
 
@@ -4738,6 +4750,11 @@ export const listDRCAllCases = async (req, res) => {
       },
       {
         $match: query,
+      },
+      {
+        $sort: {
+          "last_drc.created_dtm": -1, 
+        },
       },
       {
         $project: {
@@ -5168,7 +5185,14 @@ export const Count_Mediation_Board_Phase_Cases = async (req, res) => {
   }
 };
 
-// get CaseDetails for MediationBoard 
+/**
+ * Inputs:
+ * - case_id: number (required)
+ * - drc_id: number (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the case details and the calling_round count (number of mediation board entries).
+ */
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
@@ -5325,7 +5349,22 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
   }
 };
 
-// Updates DRC case details with new contact information and remarks.
+/**
+ * Inputs:
+ * - drc_id: number (required)
+ * - ro_id: number (required)
+ * - case_id: number (required)
+ * - customer_identification: String (required)
+ * - contact_no: String (required)
+ * - email: String (required)
+ * - customer_identification_type: String (required)
+ * - contact_type: String (required)
+ * - address: String (required)
+ * - remark: String (optional)
+ * 
+ * Success Result:
+ * - Returns the updated case object with the new contact details added to the database.
+ */
 export const updateDrcCaseDetails = async (req, res) => {
   // Extract fields from the request body
   const { drc_id, ro_id, case_id, customer_identification, contact_no, email, customer_identification_type, contact_type , address, remark } = req.body;
@@ -5423,15 +5462,13 @@ export const updateDrcCaseDetails = async (req, res) => {
     // Add edited contact details to the update data
     if (editedcontactsSchema) {
       updateData.$push = updateData.$push || {};
-      updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
-      // console.log("updateData.contact", updateData);
+      updateData.$push.ro_edited_customer_details = { $each: [editedcontactsSchema] };
     }
 
     // Update remark array
     if (contactsSchema) {
       updateData.$set = updateData.$set || {};
       updateData.$set.current_contact = [contactsSchema];
-      // console.log("updateData.remark", updateData);
     }
 
     // Perform the update in the database

@@ -336,6 +336,7 @@ const caseDetailsSchema = new Schema({
   filtered_reason: { type: String, default: null }, 
   proceed_dtm: { type: Date, required: null },
   Proceed_By: { type: String, required: null },
+  region:{ type: String, required: null},
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
