@@ -75,12 +75,12 @@ export const Create_Incident = async (req, res) => {
     "Special",
   ];
 
-  if (DRC_Action === "collect CPE" && !Contact_Number) {
-    return res.status(400).json({
-      status: "error",
-      message: "Contact_Number is required when DRC_Action is 'collect CPE'.",
-    });
-  }
+  // if (DRC_Action === "collect CPE" && !Contact_Number) {
+  //   return res.status(400).json({
+  //     status: "error",
+  //     message: "Contact_Number is required when DRC_Action is 'collect CPE'.",
+  //   });
+  // }
 
   const session = await mongoose.startSession(); // Start a session for transaction
   try {
@@ -113,7 +113,7 @@ export const Create_Incident = async (req, res) => {
 
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
-    const mongoConnection = await mongoose.connection;
+    const mongoConnection = mongoose.connection;
     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
       { _id: "incident_id" },
       { $inc: { seq: 1 } },
