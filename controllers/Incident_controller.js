@@ -1473,7 +1473,7 @@ export const Forward_CPE_Collect = async (req, res) => {
     const { Incident_Id,Proceed_By } = req.body;
     if (!Incident_Id) {
       const error = new Error("Incident_Id is required.");
-      error.statusCode = 400;
+      error.statusCode = 400; 
       throw error;
     }
 
