@@ -22,6 +22,7 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
+  rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
@@ -37,16 +38,6 @@ const caseStatusSchema = new Schema({
   expire_dtm: { type: Date, default: null },
   case_phase:{ type: String, required: true },
 }, { _id: false });
-
-// Define the contact 
-// const contactsSchema = new Schema({
-//   mob: { type: String, required: false },
-//   email: { type: String, required: true },
-//   nic: { type: String, required: true },
-//   lan: { type: String, required: false },
-//   address: { type: String, required: true },
-//   geo_location: {type: String, default:null},
-// },{ _id: false });
 
 // Define the edited contact
 const contactsSchema = new Schema({
@@ -94,7 +85,8 @@ const abnormalSchema = new Schema({
   remark: {type: String, required:true},
   done_by:{type: String, required:true},
   done_on: {type:Date, required:true},
-  action: {type:String, required:true}
+  action: {type:Number, required:true},
+  Case_phase: {type:String, required:true},
 },{_id: false });
 
 const productDetailsSchema = new Schema({
