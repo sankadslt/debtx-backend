@@ -22,6 +22,7 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
+  rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
@@ -84,7 +85,7 @@ const abnormalSchema = new Schema({
   remark: {type: String, required:true},
   done_by:{type: String, required:true},
   done_on: {type:Date, required:true},
-  action: {type:String, required:true},
+  action: {type:Number, required:true},
   Case_phase: {type:String, required:true},
 },{_id: false });
 
