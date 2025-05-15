@@ -2420,9 +2420,23 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - drc_id: Number (required)
+ * - status: String (optional)
+ * - ro_id: Number (optional)
+ * - rtom: String (optional)
+ * - action_type: String (optional)
+ * - from_date: String (optional, ISO Date format)
+ * - to_date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of mediation cases filtered by the given criteria and owned by the specified DRC.
+ */
 export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
-  const { drc_id, ro_id, rtom, case_current_status, action_type, from_date, to_date } = req.body;
-
+  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } = req.body;
+  let fromDateObj = null;
+  let toDateObj = null;
   try {
     // Validate input parameters
     if (!drc_id) {
@@ -2435,8 +2449,23 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
         },
       });
     }
+    if(from_date && to_date){
+       fromDateObj = new Date(from_date);
+       toDateObj = new Date(to_date);
+      console.log(fromDateObj,"and this is the to date ", toDateObj);
 
-    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+      if (isNaN(fromDateObj) || isNaN(toDateObj)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid date format.",
+        errors: {
+          code: 400,
+          description: "from_date and to_date must be valid date strings.",
+        },
+      });
+    }
+    }
+    if (!rtom && !status && !ro_id && !action_type && !(toDateObj && fromDateObj)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
@@ -2447,49 +2476,75 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
       });
     }
 
-    // Build query dynamically
     let query = {
-      $and: [
-        { "drc.drc_id": drc_id },
-        {
-          case_current_status: {
-            $in: [
-              "Forward_to_Mediation_Board",
-              "MB_Negotiation",
-              "MB_Request_Customer_Info",
-              "MB_Handed_Customer_Info",
-              "MB_Settle_pending",
-              "MB_Settle_open_pending",
-              "MB_Settle_Active",
-              "MB_fail_with_pending_non_settlement",
-            ],
-          },
-        },
-      ],
-    };
+                  "last_drc.drc_id": drc_id,
+                  "last_drc.removed_dtm": null,
+                  case_current_status: {
+                    $in: [
+                      "Forward_to_Mediation_Board",
+                      "MB_Negotiation",
+                      "MB_Request_Customer_Info",
+                      "MB_Handed_Customer_Info",
+                      "MB_Settle_pending",
+                      "MB_Settle_open_pending",
+                      "MB_Settle_Active",
+                      "MB_fail_with_pending_non_settlement",
+                    ],
+                  },
+                };
 
     // Add optional filters dynamically
-    if (rtom) query.$and.push({ area: rtom });
-    if (ro_id) {
-      query.$and.push({
-        $expr: {
-          $eq: [
-            ro_id,
-            { $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ], },
-          ],
-        },
-      });
-    };    
-    if (action_type) query.$and.push({ action_type });
-    if (case_current_status) query.$and.push({ case_current_status });
-    if (from_date && to_date) {
-      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+    if (rtom) query.area = rtom;
+    if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
+    if (action_type) query.action_type = action_type;
+    if(status) query.case_current_status = status;
+    if (fromDateObj && toDateObj) {
+      query["last_drc.created_dtm"] = {
+        $gte: new Date(fromDateObj),
+        $lte: new Date(toDateObj),
+      };
     }
-
+    console.log(query);
     // Fetch cases based on the query
-    const cases = await Case_details.find(query);
-
+    const cases = await Case_details.aggregate([
+        {
+          $addFields: {
+            last_drc: { $arrayElemAt: ["$drc", -1] },
+            last_contact: { $arrayElemAt: ["$current_contact", -1] },
+            last_recovery_officer: {
+              $arrayElemAt: ["$last_drc.recovery_officers", -1],
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "Recovery_officer", // use your actual collection name here
+            localField: "last_recovery_officer.ro_id",
+            foreignField: "ro_id",
+            as: "ro_info",
+          },
+        },
+        {
+          $match: query,
+        },
+        {
+          $sort: {
+            "last_drc.created_dtm": -1, 
+          },
+        },
+        {
+          $project: {
+            case_id: 1,
+            status: "$case_current_status",
+            created_dtm:"$last_drc.created_dtm",
+            contact_no:"$last_contact.contact_no",
+            area:1,
+            action_type: 1,
+            ro_name:{ $arrayElemAt: ["$ro_info.ro_name", 0] },
+          },
+        },
+      ]);
+    // const cases = await Case_details.find({case_current_status:"RO Negotiation"});
     // Handle case where no matching cases are found
     if (!cases || cases.length === 0) {
       return res.status(404).json({
@@ -2502,47 +2557,17 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
       });
     }
 
-    // Format cases based on drc_id or ro_id
-    const formattedCases = await Promise.all(
-      cases.map(async (caseData) => {
-        const findDRC = Array.isArray(caseData.drc) ? caseData.drc.find((drc) => drc.drc_id === drc_id) : null;
-
-        const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
-
-        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
-
-        const mediationBoardCount = caseData.mediation_board?.length || 0;
-
-        return {
-          case_id: caseData.case_id,
-          status: caseData.case_current_status,
-          created_dtm: findDRC?.created_dtm || null,
-          ro_name: matchingRecoveryOfficer?.ro_name || null,
-          area: caseData.area,
-          mediation_board_count: mediationBoardCount,
-          next_calling_date: caseData.mediation_board?.[mediationBoardCount - 1]?.mediation_board_calling_dtm || null,
-          current_contact:caseData.current_contact || null,
-          account_no: caseData.account_no || null
-        };
-      })
-    );
-
-  // Return response
-  return res.status(200).json({
-    status: "success",
-    message: "Cases retrieved successfully.",
-    data: formattedCases.filter(Boolean), // Filter out null/undefined values
-  });
-
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: cases,
+    });
   } catch (error) {
-    console.error("Error in function:", error); // Log the full error for debugging
+    console.error("Error fetching cases:", error);
     return res.status(500).json({
       status: "error",
-      message: "An error occurred while retrieving cases.",
-      errors: {
-        code: 500,
-        description: error.message,
-      },
+      message: "Failed to retrieve cases.",
+      errors: error.message,
     });
   }
 };
@@ -2557,7 +2582,6 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
  * - Returns a success response after forwarding the batch for proceed,
  *   including task creation, approval entry, and user interaction logging.
  */
-
 export const Batch_Forward_for_Proceed = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -2683,7 +2707,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     });
   }
 };
-
 
 /**
  * Inputs:
@@ -4871,7 +4894,8 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
  */
 export const listDRCAllCases = async (req, res) => {
   const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } = req.body;
-
+  let fromDateObj = null;
+  let toDateObj = null;
   try {
     // Validate input parameters
     if (!drc_id) {
@@ -4884,8 +4908,23 @@ export const listDRCAllCases = async (req, res) => {
         },
       });
     }
+    if(from_date && to_date){
+       fromDateObj = new Date(from_date);
+       toDateObj = new Date(to_date);
+      console.log(fromDateObj,"and this is the to date ", toDateObj);
 
-    if (!rtom && !status && !ro_id && !action_type && !(from_date && to_date)) {
+      if (isNaN(fromDateObj) || isNaN(toDateObj)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid date format.",
+        errors: {
+          code: 400,
+          description: "from_date and to_date must be valid date strings.",
+        },
+      });
+    }
+    }
+    if (!rtom && !status && !ro_id && !action_type && !(toDateObj && fromDateObj)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
@@ -4917,53 +4956,53 @@ export const listDRCAllCases = async (req, res) => {
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if(status) query.case_current_status = status;
-    if (from_date && to_date) {
+    if (fromDateObj && toDateObj) {
       query["last_drc.created_dtm"] = {
-        $gte: new Date(from_date),
-        $lte: new Date(to_date),
+        $gte: new Date(fromDateObj),
+        $lte: new Date(toDateObj),
       };
     }
-
+    console.log(query);
     // Fetch cases based on the query
-   const cases = await Case_details.aggregate([
-      {
-        $addFields: {
-          last_drc: { $arrayElemAt: ["$drc", -1] },
-          last_contact: { $arrayElemAt: ["$current_contact", -1] },
-          last_recovery_officer: {
-            $arrayElemAt: ["$last_drc.recovery_officers", -1],
+    const cases = await Case_details.aggregate([
+        {
+          $addFields: {
+            last_drc: { $arrayElemAt: ["$drc", -1] },
+            last_contact: { $arrayElemAt: ["$current_contact", -1] },
+            last_recovery_officer: {
+              $arrayElemAt: ["$last_drc.recovery_officers", -1],
+            },
           },
         },
-      },
-      {
-        $lookup: {
-          from: "Recovery_officer", // use your actual collection name here
-          localField: "last_recovery_officer.ro_id",
-          foreignField: "ro_id",
-          as: "ro_info",
+        {
+          $lookup: {
+            from: "Recovery_officer", // use your actual collection name here
+            localField: "last_recovery_officer.ro_id",
+            foreignField: "ro_id",
+            as: "ro_info",
+          },
         },
-      },
-      {
-        $match: query,
-      },
-      {
-        $sort: {
-          "last_drc.created_dtm": -1, 
+        {
+          $match: query,
         },
-      },
-      {
-        $project: {
-          case_id: 1,
-          status: "$case_current_status",
-          created_dtm:"$last_drc.created_dtm",
-          contact_no:"$last_contact.contact_no",
-          area:1,
-          action_type: 1,
-          ro_name:{ $arrayElemAt: ["$ro_info.ro_name", 0] },
+        {
+          $sort: {
+            "last_drc.created_dtm": -1, 
+          },
         },
-      },
-    ]);
-
+        {
+          $project: {
+            case_id: 1,
+            status: "$case_current_status",
+            created_dtm:"$last_drc.created_dtm",
+            contact_no:"$last_contact.contact_no",
+            area:1,
+            action_type: 1,
+            ro_name:{ $arrayElemAt: ["$ro_info.ro_name", 0] },
+          },
+        },
+      ]);
+    // const cases = await Case_details.find({case_current_status:"RO Negotiation"});
     // Handle case where no matching cases are found
     if (!cases || cases.length === 0) {
       return res.status(404).json({
@@ -5390,7 +5429,7 @@ export const Count_Mediation_Board_Phase_Cases = async (req, res) => {
  */
 export const CaseDetailsforDRC = async (req, res) => {
   try {
-    const { case_id, drc_id } = req.body;
+    const { case_id, drc_id, ro_id } = req.body;
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
@@ -5403,28 +5442,63 @@ export const CaseDetailsforDRC = async (req, res) => {
     }
 
     // Find the case that matches both case_id and has the specified drc_id in its drc array
-    const caseDetails = await Case_details.findOne({
-      case_id
-    },
-    { case_id: 1, 
-      case_current_status: 1, 
-      ro_cpe_collect:1, 
-      customer_ref: 1, 
-      account_no: 1, 
-      current_arrears_amount: 1, 
-      current_contact: 1, 
-      rtom: 1,
-      ref_products:1,
-      last_payment_date: 1,
-      drc: 1, 
-      ro_negotiation:1,
-      settlement:1, 
-      money_transactions:1, 
-      ro_requests: 1}
-    ).lean();  // Using lean() for better performance
+    const roFilter = [
+      { $eq: ["$$item.drc_id", drc_id] },
+    ];
 
+    if (ro_id) {
+      roFilter.push({ $eq: ["$$item.ro_id", ro_id] });
+    }
+
+    const caseDetails = await Case_details.aggregate([
+      {
+        $match: { case_id }
+      },
+      {
+        $project: {
+          case_id: 1,
+          case_current_status: 1,
+          ro_cpe_collect: 1,
+          customer_ref: 1,
+          account_no: 1,
+          current_arrears_amount: 1,
+          current_contact: 1,
+          rtom: 1,
+          ref_products: 1,
+          last_payment_date: 1,
+          drc: {
+            $filter: {
+              input: "$drc",
+              as: "item",
+              cond: { $eq: ["$$item.drc_id", drc_id] }
+            }
+          },
+          money_transactions: 1,
+          mediation_board: {
+            $filter: {
+              input: "$mediation_board",
+              as: "item",
+              cond: { $and: roFilter }
+            }
+          },
+          ro_negotiation: {
+            $filter: {
+              input: "$ro_negotiation",
+              as: "item",
+              cond: { $and: roFilter }
+            }
+          },
+          ro_requests: {
+            $filter: {
+              input: "$ro_requests",
+              as: "item",
+              cond: { $and: roFilter }
+            }
+          }
+        }
+      }
+    ]);
     const mediationBoardCount = caseDetails.mediation_board?.length || 0;
-
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
@@ -8548,122 +8622,22 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
   }
 };
 
-
-
-// export const getAllPaymentCases = async (req, res) => {
-//   try {
-//     // Get parameters from request body
-//     const { 
-//       case_id, 
-//       account_num, 
-//       settlement_phase, 
-//       from_date, 
-//       to_date, 
-//       page = 1, 
-//       limit = 10, 
-//       recent = false 
-//     } = req.body;
-
-//     // Default query parameters
-//     const query = {};
-    
-//     // Initialize $and array if needed for date filtering
-//     if (from_date && to_date) {
-//       query.$and = [];
-//     }
-    
-//     let pageNum = Number(page);
-//     let limitNum = Number(limit);
-
-//     // Apply filters if they exist
-//     if (case_id) query.case_id = Number(case_id);
-//     if (account_num) query.account_num = Number(account_num);
-//     if (settlement_phase) query.settlement_phase = settlement_phase;
-//     if (from_date && to_date) {
-//       query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-//       query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
-//     }
-
-//     const sortOptions = { money_transaction_id: -1 };
-
-//     // If recent is true, limit to 10 latest entries and ignore pagination
-//     if (recent === true) {
-//       limitNum = 10;
-//       pageNum = 1;
-//       // Clear any filters if we just want recent payments
-//       Object.keys(query).forEach(key => delete query[key]);
-//     }
-
-//     // Calculate skip for pagination
-//     const skip = (pageNum - 1) * limitNum;
-
-//     // Execute query with descending sort
-//     const transactions = await MoneyTransaction.find(query)
-//       .sort(sortOptions)
-//       .skip(skip)
-//       .limit(limitNum);
-
-//     // Format response data - include all fields from model
-//     const formattedTransactions = transactions.map(transaction => {
-//       // Convert Mongoose document to plain object
-//       const transactionObj = transaction.toObject();
-
-//       // Format date fields for better readability
-//       if (transactionObj.created_dtm) {
-//         transactionObj.created_dtm = transactionObj.created_dtm.toISOString();
-//       }
-
-//       if (transactionObj.money_transaction_date) {
-//         transactionObj.money_transaction_date = transactionObj.money_transaction_date.toISOString();
-//       }
-
-//       // Return all fields from model with properly formatted names
-//       return {
-//         Money_Transaction_ID: transactionObj.money_transaction_id,
-//         Case_ID: transactionObj.case_id,
-//         Account_No: transactionObj.account_num || '-',
-//         Created_DTM: transactionObj.created_dtm,
-//         Settlement_ID: transactionObj.settlement_id || '-',
-//         Installment_Seq: transactionObj.installment_seq || '-',
-//         Transaction_Type: transactionObj.transaction_type || '-',
-//         Money_Transaction_Ref: transactionObj.money_transaction_ref || '-',
-//         Money_Transaction_Amount: transactionObj.money_transaction_amount || '-',
-//         Money_Transaction_Date: transactionObj.money_transaction_date || '-',
-//         Bill_Payment_Status: transactionObj.bill_payment_status || '-',
-//         Settlement_Phase: transactionObj.settlement_phase || '-',
-//         Cummulative_Credit: transactionObj.cummulative_credit || '-',
-//         Cummulative_Debit: transactionObj.cummulative_debit || '-',
-//         Cummulative_Settled_Balance: transactionObj.cummulative_settled_balance || '-',
-//         Commissioned_Amount: transactionObj.commissioned_amount || '-'
-//       };
-//     });
-
-//     // Prepare response data
-//     const responseData = {
-//       message: recent === true ? 'Recent money transactions retrieved successfully' : 'Money transactions retrieved successfully',
-//       data: formattedTransactions,
-//     };
-
-//     // Add pagination info if not in recent mode
-//     if (recent !== true) {
-//       const total = await MoneyTransaction.countDocuments(query);
-//       responseData.pagination = {
-//         total,
-//         page: pageNum,
-//         limit: limitNum,
-//         pages: Math.ceil(total / limitNum)
-//       };
-//     } else {
-//       responseData.total = formattedTransactions.length;
-//     }
-
-//     return res.status(200).json(responseData);
-//   } catch (error) {
-//     return res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// };
-
-
+/**
+ * Inputs:
+ * - case_id: Number (required)
+ * - drc_id: Number (required)
+ * - ro_id: Number (optional)
+ * - order_id: Number (optional)
+ * - product_label: String (optional)
+ * - service_type: String (optional)
+ * - cp_type: String (required)
+ * - cpe_model: String (required)
+ * - serial_no: String (required)
+ * - remark: String (optional)
+ * 
+ * Success Result:
+ * - Returns a success response with the updated case details including the new RO CPE collection data.
+ */
 export const RO_CPE_Collection = async (req,res) => {
   try {
     const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
@@ -8687,7 +8661,7 @@ export const RO_CPE_Collection = async (req,res) => {
     const ro_cpe_collect_id = counterResult.seq;
 
     const updatedCaseDetails = await Case_details.findOneAndUpdate(
-      { case_id: case_id, "drc.drc_id": drc_id }, 
+      { case_id}, 
       {
         $push: {
           ro_cpe_collect: {
@@ -8707,16 +8681,6 @@ export const RO_CPE_Collection = async (req,res) => {
       },
       { new: true }
     );
-    // if (!updatedCaseDetails) {
-    //   return res.status(404).json({
-    //     status: "error",
-    //     message: "Case not found",
-    //     errors: {
-    //       code: 404,
-    //       data: "Case is not available",
-    //     },
-    //   });
-    // }
     return res.status(200).json({
       status: "success",
       message: "Case has been updated successfully",
