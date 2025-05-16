@@ -6,6 +6,9 @@ import mongoose from "mongoose";
 
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       // Validate required parameters
       if (!Template_Task_Id || !Created_By) {
@@ -22,11 +25,11 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
       const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
   
-      const Task_Id = counterResult.seq; // Use `value` to access the updated document
-      console.log("Task_Id:", Task_Id);
+      const Task_Id = counterResult.value?.seq; // Use `value` to access the updated document
+      // console.log("Task_Id:", Task_Id);
   
       if (!Task_Id) {
         throw new Error("Failed to generate Task_Id.");
@@ -46,11 +49,14 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
   
       // Insert into System_task collection
       const newTask = new Task(taskData);
-      await newTask.save();
+      await newTask.save({ session });
   
       // Insert into System_task_Inprogress collection
       const newTaskInProgress = new Task_Inprogress(taskData);
-      await newTaskInProgress.save();
+      await newTaskInProgress.save({ session });
+
+      await session.commitTransaction(); // Commit the transaction
+      session.endSession();
   
       // Return success response
       return {
@@ -65,7 +71,11 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
         },
       };
     } catch (error) {
+      await session.abortTransaction(); // Rollback on error
+      session.endSession(); 
+      
       console.error("Error creating task:", error);
+
       // Return error response as a structured object
     //   return {
     //     status: "error",
