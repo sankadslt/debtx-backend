@@ -1543,58 +1543,176 @@ export const listHandlingCasesByDRC = async (req, res) => {
     }
 
     // Build query dynamically based on provided parameters
-    let query = {
-      $and: [
-        { "drc.drc_id": drc_id },
-        {
-          case_current_status: {
-            $in: [
-              "Open with Agent",
-              "Negotiation Settle pending",
-              "Negotiation Settle Open Pending",
-              "Negotiation Settle Active",
-              "FMB",
-              "FMB Settle pending",
-              "FMB Settle Open Pending",
-              "FMB Settle Active",
-            ],
-          },
-        },
-        { "drc.drc_status": "Active" },
-        { "drc.removed_dtm": null },
-        {
-          $or: [
-            { "drc.recovery_officers": { $size: 0 } },
-            { "drc.recovery_officers": { $elemMatch: { "removed_dtm": null } } },
-          ],
-        },
-      ],
-    };
+    // let query = {
+    //   $and: [
+    //     { "drc.drc_id": drc_id },
+    //     {
+    //       case_current_status: {
+    //         $in: [
+    //           "Open with Agent",
+    //           "Negotiation Settle pending",
+    //           "Negotiation Settle Open Pending",
+    //           "Negotiation Settle Active",
+    //           "FMB",
+    //           "FMB Settle pending",
+    //           "FMB Settle Open Pending",
+    //           "FMB Settle Active",
+    //         ],
+    //       },
+    //     },
+    //     { "drc.drc_status": "Active" },
+    //     { "drc.removed_dtm": null },
+    //     {
+    //       $or: [
+    //         { "drc.recovery_officers": { $size: 0 } },
+    //         { "drc.recovery_officers": { $elemMatch: { "removed_dtm": null } } },
+    //       ],
+    //     },
+    //   ],
+    // };
 
     // Add optional filters dynamically
-    if (rtom) query.$and.push({ area: rtom });
-    if (arrears_band) query.$and.push({ arrears_band });
-    if (ro_id) {
-      query.$and.push({
-        $expr: {
-          $eq: [
-            ro_id,
-            {
-              $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
-            },
-          ],
-        },
-      });
-    }
-    if (from_date && to_date) {
-      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
-    }
+    // if (rtom) query.$and.push({ area: rtom });
+    // if (arrears_band) query.$and.push({ arrears_band });
+    // if (ro_id) {
+    //   query.$and.push({
+    //     $expr: {
+    //       $eq: [
+    //         ro_id,
+    //         {
+    //           $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ],
+    //         },
+    //       ],
+    //     },
+    //   });
+    // }
+    // if (from_date && to_date) {
+    //   query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+    //   query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+    // }
 
-    const cases = await Case_details.find(query);
+    // const cases = await Case_details.find(query);
+
+    const allowedStatusTypes = [
+          "Open with Agent",
+          "RO Negotiation",
+          "Negotiation Settle pending",
+          "Negotiation Settle Open Pending",
+          "Negotiation Settle Active",
+          "RO Negotiation Extension Pending",
+          "RO Negotiation Extended",
+          "RO Negotiation FMB Pending",
+          "Forward to Mediation Board",
+          "MB Negotiation",
+          "MB Request Customer-Info",
+          "MB Handover Customer-Info",
+          "MB Settle pending",
+          "MB Settle Open Pending",
+          "MB Settle Active",
+          "MB Fail with Pending Non-Settlement"
+      ];
+
+      const pipeline = [];
+
+      // Match allowed status
+      pipeline.push({
+        $match: {
+          case_current_status: { $in: allowedStatusTypes }
+        }
+      });
+
+      // Optional filters
+      if  (rtom) {
+        pipeline.push({ $match: { rtom: rtom } });
+      }
+
+      // Add a projection to get the last DRC entry
+      pipeline.push({
+        $addFields: {
+          last_drc: { $arrayElemAt: ['$drc', -1] }
+        }
+      });
+
+      pipeline.push({
+        $match: {
+          'last_drc.drc_status': 'Active',
+          'last_drc.removed_dtm': null
+        }
+      });
+
+      if (drc_id) {
+        pipeline.push({
+          $match: {
+            'last_drc.drc_id': Number(drc_id)
+          }
+        });
+      }
+
+      if (arrears_band) {
+        pipeline.push({ 
+          $match: { arrears_band } });
+      }
+
+      const dateFilter = {};
+      if (from_date) dateFilter.$gte = new Date(from_date);
+      if (to_date) dateFilter.$lte = new Date(to_date);
+
+      // pipeline.push({
+      //   $addFields: {
+      //     last_mediation_board: { $arrayElemAt: ['$mediation_board', -1] }
+      //   }
+      // });
+
+      if (Object.keys(dateFilter).length > 0) {
+        pipeline.push({
+          $match: { 'last_drc.created_dtm': dateFilter }
+        });
+      }
+
+      pipeline.push({
+        $addFields: {
+          last_ro: { $arrayElemAt: ['$last_drc.recovery_officers', -1] }
+        }
+      });
+
+      if (ro_id) {
+        pipeline.push({
+          $match: {
+            'last_ro.ro_id': Number(ro_id)
+          }
+        });
+      }
+
+      pipeline.push({
+        $lookup: {
+          from: "Recovery_officer", // name of the recovery officer collection
+          localField: "last_ro.ro_id",
+          foreignField: "ro_id",
+          as: "recovery_officer"
+        }
+      });
+
+      // Optionally flatten the result if you expect only one match
+      // pipeline.push({
+      //   $addFields: {
+      //     recovery_officer: { $arrayElemAt: ["$recovery_officer", 0] }
+      //   }
+      // });
+
+      // let page = Number(pages);
+      // if (isNaN(page) || page < 1) page = 1;
+      // const limit = page === 1 ? 10 : 30;
+      // const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+      // Pagination
+      pipeline.push({ $sort: { case_id: -1 } });
+      // pipeline.push({ $skip: skip });
+      // pipeline.push({ $limit: limit });
+
+      const filtered_cases = await Case_details.aggregate(pipeline);
 
     // Handle case where no matching cases are found
-    if (cases.length === 0) {
+    if (filtered_cases.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
@@ -1607,26 +1725,26 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
-      cases.map(async (caseData) => {
-        const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
-        const lastRecoveryOfficer =
-          lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+      filtered_cases.map(async (caseData) => {
+        // const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        // const lastRecoveryOfficer =
+        //   lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
 
-        // Fetch matching recovery officer asynchronously
-        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
-          ro_id: lastRecoveryOfficer.ro_id,
-        });
+        // // Fetch matching recovery officer asynchronously
+        // const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+        //   ro_id: lastRecoveryOfficer.ro_id,
+        // });
 
         return {
           case_id: caseData.case_id,
           status: caseData.case_current_status,
-          created_dtm: lastDrc.created_dtm,
+          created_dtm: caseData.last_drc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
-          expire_dtm: lastDrc.expire_dtm,
-          ro_name: matchingRecoveryOfficer?.ro_name || null,
-          assigned_date: lastRecoveryOfficer.assigned_dtm || null,
+          expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
+          ro_name: caseData.recovery_officer?.[0]?.ro_name || null,
+          assigned_date: caseData.last_ro? caseData.last_ro.assigned_dtm : null,
         };
       })
     );
@@ -5536,7 +5654,9 @@ export const CaseDetailsforDRC = async (req, res) => {
       ro_negotiation:1,
       settlement:1, 
       money_transactions:1, 
-      ro_requests: 1}
+      ro_requests: 1,
+      mediation_board: 1,
+    }
     ).lean();  // Using lean() for better performance
 
     const mediationBoardCount = caseDetails.mediation_board?.length || 0;
@@ -5945,90 +6065,217 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
 };
 
 
+// export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
+//   try {
+//     const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
+
+//     const allowedStatuses = [
+//       "Forward to Mediation Board",
+//       "MB Negotiation",
+//       "MB Request Customer-Info",
+//       "MB Handover Customer-Info",
+//       "MB Settle Pending",
+//       "MB Settle Open-Pending",
+//       "MB Settle Active",
+//       "MB Fail with Pending Non-Settlement"
+//     ];
+
+//     let query = {};
+
+   
+//     if (Object.keys(req.body).length > 0) {
+//       query.case_current_status = { $in: allowedStatuses };
+
+//       if (From_DAT && To_DAT) {
+//         const from = new Date(From_DAT);
+//         from.setUTCHours(0, 0, 0, 0);
+//         const to = new Date(To_DAT);
+//         to.setUTCHours(23, 59, 59, 999);
+//         query.created_dtm = { $gte: from, $lte: to };
+//       }
+//       if (rtom) {
+//         query.rtom = rtom;
+//       }
+//       if (drc) {
+//         query.drc = drc;
+//       }
+//     }
+
+   
+//     let cases = await Case_details.find(query).sort({ created_dtm: -1 });
+
+
+// const processedCases = cases.map((caseItem) => {
+// const mediationBoardEntries = caseItem.mediation_board || [];
+
+// const roRequestEntries = caseItem.ro_requests || [];
+
+// const lastMediationBoardEntry =
+//   mediationBoardEntries.length > 0
+//     ? mediationBoardEntries[mediationBoardEntries.length - 1]
+//     : null;
+
+//           const lastRoRequestEntry = roRequestEntries.length > 0
+//               ? roRequestEntries[roRequestEntries.length - 1]
+//               : null;
+// return {
+//   ...caseItem._doc,
+//   latest_next_calling_dtm: lastMediationBoardEntry
+//     ? lastMediationBoardEntry.mediation_board_calling_dtm || null
+//     : null,
+//   mediation_board_call_count: mediationBoardEntries.length,
+//   drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
+//   customer_available: lastMediationBoardEntry?.customer_available || null,
+//   agree_to_settle: lastMediationBoardEntry?.agree_to_settle || null,
+//   comment: lastMediationBoardEntry?.comment || null,
+//   customer_response: lastMediationBoardEntry?.customer_response || null,
+//   ro_request_created_dtm: lastRoRequestEntry?.created_dtm || null,
+//   ro_request: lastRoRequestEntry?.ro_request || null,
+//   request_remark: lastRoRequestEntry?.request_remark || null,
+// };
+// });
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Mediation Board cases retrieved successfully.",
+//       data: processedCases,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching Mediation Board cases:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message || "An unexpected error occurred.",
+//     });
+//   }
+// };
+
 export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   try {
-    const { case_current_status, From_DAT, To_DAT, rtom, drc } = req.body;
+      const { case_status, From_DAT, TO_DAT, RTOM, DRC, pages } = req.body;
+      const allowedStatusTypes = [
+          "Forward to Mediation Board",
+          "MB Negotiation",
+          "MB Request Customer-Info",
+          "MB Handover Customer-Info",
+          "MB Settle Pending",
+          "MB Settle Open-Pending",
+          "MB Settle Active",
+          "MB Fail with Pending Non-Settlement"
+      ];
 
-    const allowedStatuses = [
-      "Forward to Mediation Board",
-      "MB Negotiation",
-      "MB Request Customer-Info",
-      "MB Handover Customer-Info",
-      "MB Settle Pending",
-      "MB Settle Open-Pending",
-      "MB Settle Active",
-      "MB Fail with Pending Non-Settlement"
-    ];
-
-    let query = {};
-
-   
-    if (Object.keys(req.body).length > 0) {
-      query.case_current_status = { $in: allowedStatuses };
-
-      if (From_DAT && To_DAT) {
-        const from = new Date(From_DAT);
-        from.setUTCHours(0, 0, 0, 0);
-        const to = new Date(To_DAT);
-        to.setUTCHours(23, 59, 59, 999);
-        query.created_dtm = { $gte: from, $lte: to };
+      if (!case_status && !RTOM && !DRC && !From_DAT && !TO_DAT) {
+        return res.status(400).json({
+          status: "error",
+          message: "At least one of case_status, From_DAT, TO_DAT, RTOM is required."
+        });
       }
-      if (rtom) {
-        query.rtom = rtom;
+
+      const pipeline = [];
+
+      // Match allowed status
+      pipeline.push({
+        $match: {
+          case_current_status: { $in: allowedStatusTypes }
+        }
+      });
+
+      // Optional filters
+      if (case_status && allowedStatusTypes.includes(case_status)) {
+        pipeline.push({
+          $match: { case_current_status: case_status }
+        });
       }
-      if (drc) {
-        query.drc = drc;
+
+      if  (RTOM) {
+        pipeline.push({ $match: { rtom: RTOM } });
       }
-    }
 
-   
-    let cases = await Case_details.find(query).sort({ created_dtm: -1 });
+      const dateFilter = {};
+      if (From_DAT) dateFilter.$gte = new Date(From_DAT);
+      if (TO_DAT) dateFilter.$lte = new Date(TO_DAT);
 
+      pipeline.push({
+        $addFields: {
+          last_mediation_board: { $arrayElemAt: ['$mediation_board', -1] }
+        }
+      });
 
-const processedCases = cases.map((caseItem) => {
-const mediationBoardEntries = caseItem.mediation_board || [];
+      if (Object.keys(dateFilter).length > 0) {
+        pipeline.push({
+          $match: { 'last_mediation_board.created_dtm': dateFilter }
+        });
+      }
 
-const roRequestEntries = caseItem.ro_requests || [];
+      // Add a projection to get the last DRC entry
+      pipeline.push({
+        $addFields: {
+          last_drc: { $arrayElemAt: ['$drc', -1] }
+        }
+      });
 
-const lastMediationBoardEntry =
-  mediationBoardEntries.length > 0
-    ? mediationBoardEntries[mediationBoardEntries.length - 1]
-    : null;
+      if (DRC) {
+        pipeline.push({
+          $match: {
+            'last_drc.drc_id': Number(DRC)
+          }
+        });
+      }
 
-          const lastRoRequestEntry = roRequestEntries.length > 0
-              ? roRequestEntries[roRequestEntries.length - 1]
-              : null;
-return {
-  ...caseItem._doc,
-  latest_next_calling_dtm: lastMediationBoardEntry
-    ? lastMediationBoardEntry.mediation_board_calling_dtm || null
-    : null,
-  mediation_board_call_count: mediationBoardEntries.length,
-  drc_name: caseItem.drc.length > 0 ? caseItem.drc[0].drc_name : null,
-  customer_available: lastMediationBoardEntry?.customer_available || null,
-  agree_to_settle: lastMediationBoardEntry?.agree_to_settle || null,
-  comment: lastMediationBoardEntry?.comment || null,
-  customer_response: lastMediationBoardEntry?.customer_response || null,
-  ro_request_created_dtm: lastRoRequestEntry?.created_dtm || null,
-  ro_request: lastRoRequestEntry?.ro_request || null,
-  request_remark: lastRoRequestEntry?.request_remark || null,
-};
-});
+      pipeline.push({
+        $lookup: {
+          from: "Recovery_officer", // name of the recovery officer collection
+          localField: "last_mediation_board.ro_id",
+          foreignField: "ro_id",
+          as: "recovery_officer"
+        }
+      });
 
-    return res.status(200).json({
-      status: "success",
-      message: "Mediation Board cases retrieved successfully.",
-      data: processedCases,
-    });
+      // Optionally flatten the result if you expect only one match
+      pipeline.push({
+        $addFields: {
+          recovery_officer: { $arrayElemAt: ["$recovery_officer", 0] }
+        }
+      });
+
+      let page = Number(pages);
+      if (isNaN(page) || page < 1) page = 1;
+      const limit = page === 1 ? 10 : 30;
+      const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+      // Pagination
+      pipeline.push({ $sort: { case_id: -1 } });
+      pipeline.push({ $skip: skip });
+      pipeline.push({ $limit: limit });
+
+      const filtered_cases = await Case_details.aggregate(pipeline);
+
+      const responseData = filtered_cases.map((caseData) => {
+        return {
+          case_id: caseData.case_id,
+          status: caseData.case_current_status,
+          date: caseData.last_mediation_board?.created_dtm || null,
+          rtom: caseData.rtom,
+          drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
+          drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
+          ro_name: caseData.recovery_officer ? caseData.recovery_officer.ro_name : null,
+          calling_round: caseData.mediation_board ? caseData.mediation_board.length : 0,
+          next_calling_date: caseData.last_mediation_board ? caseData.last_mediation_board.mediation_board_calling_dtm : null,
+        };
+      });
+
+      return res.status(200).json({
+            status: "success",
+            message: "Cases retrieved successfully.",
+            data: responseData,
+      });
   } catch (error) {
-    console.error("Error fetching Mediation Board cases:", error);
-    return res.status(500).json({
-      status: "error",
-      message: error.message || "An unexpected error occurred.",
-    });
+      console.error("Error fetching DRC Assign Manager Approvals:", error.message);
+      return res.status(500).json({
+        status: "error",
+        message: "There is an error "
+      });
   }
 };
-
 
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
@@ -6073,7 +6320,8 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
           case_status: 'MB Fail with Non-Settlement',    
           status_reason: 'Non-settlement request accepted from Mediation Board',  
           created_dtm: new Date(),                      
-          created_by: recieved_by,                     
+          created_by: recieved_by, 
+          case_phase: 'Mediation Board',                    
       };
 
      
