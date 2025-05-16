@@ -28,7 +28,7 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
         { returnDocument: "after", upsert: true, session }
       );
   
-      const Task_Id = counterResult.value?.seq; // Use `value` to access the updated document
+      const Task_Id = counterResult.seq; // Use `value` to access the updated document
       // console.log("Task_Id:", Task_Id);
   
       if (!Task_Id) {
