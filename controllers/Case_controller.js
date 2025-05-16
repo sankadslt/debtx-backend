@@ -4143,7 +4143,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     const parameters = {
-      approver_references, // List of approver references
+      //approver_references, // List of approver references
       date_from,
       date_to,
       approver_status,
@@ -4421,7 +4421,7 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       }
 
       const currentDate = new Date();
-      dynamicParams = {
+      const dynamicParams = {
         drc_id,
         drc_name: drcDetails.drc_name, // Include DRC name
         case_distribution_batch_id,
@@ -4620,8 +4620,8 @@ export const Mediation_Board = async (req, res) => {
         ro_id,
         request_id,
         request_type,
-        request_comment,
       };
+
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
@@ -4641,7 +4641,7 @@ export const Mediation_Board = async (req, res) => {
       }
       const intraction_log_id = result.Interaction_Log_ID;
       const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id, 'drc.drc_id': drc_id}, 
+        {case_id}, 
         { 
             $push: { 
                 mediation_board: mediationBoardData,
@@ -4735,6 +4735,7 @@ export const Mediation_Board = async (req, res) => {
     }); 
  }
 }
+
 /**
  * Inputs:
  * - drc_id: Number (required)
@@ -4746,89 +4747,290 @@ export const Mediation_Board = async (req, res) => {
  * Success Result:
  * - Returns a success response with the list of case details owned by the specified DRC, filtered by the provided criteria.
  */
-export const List_CasesOwened_By_DRC = async (req, res) => {
-  let { drc_id, account_no, from_date, to_date,case_id } = req.body;
+// export const List_CasesOwened_By_DRC = async (req, res) => {
+//   let { drc_id, account_no, from_date, to_date,case_id } = req.body;
 
-  if (!drc_id) {
-    return res.status(400).json({
-      status: "error",
-      message: "DRC ID is required",
-    });
-  }
-  if (!case_id && !account_no && !from_date && !to_date) {
+//   if (!drc_id) {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "DRC ID is required",
+//     });
+//   }
+//   if (!case_id && !account_no && !from_date && !to_date) {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "Failed to retrieve case details.",
+//       errors: {
+//         code: 400,
+//         description:
+//           "At least one of case_id, from_date, to_date, or account_no is required.",
+//       },
+//     });
+//   }
+//   const invalidstatus = [
+//     "Withdraw",
+//     "Forward to WRIT",
+//     "WRIT",
+//     "Forward to Re-WRIT",
+//     "Re-WRIT",
+//     "WRIT Settle Pending",
+//     "WRIT Settle Open-Pending",
+//     "WRIT Settle Active",
+//     "Re-WRIT Settle Pending",
+//     "Re-WRIT Settle Open-Pending",
+//     "Re-WRIT Settle Active",
+//     "LOD Monitoring Expire",
+//     "Forward LOD Dispute",
+//     "Dispute Settle Pending",
+//     "Dispute Settle Open-Pending",
+//     "Dispute Settle Active",
+//     "Initial Litigation",
+//     "Pending FTL",
+//     "Forward To Litigation",
+//     "Fail from Legal Unit",
+//     "Fail Legal Action",
+//     "Litigation",
+//     "Litigation Settle Pending",
+//     "Litigation Settle Open-Pending",
+//     "Litigation Settle Active",
+//     "Pending FTL LOD",
+//     "Initial FTL LOD",
+//     "FTL LOD Settle Pending",
+//     "FTL LOD Settle Open-Pending",
+//     "FTL LOD Settle Active",
+//     "LIT Prescribed",
+//     "Final Reminder",
+//     "Initial LOD",
+//     "LOD Settle Pending",
+//     "LOD Settle Open-Pending",
+//     "LOD Settle Active",
+//     "Final Reminder Settle Pending",
+//     "Final Reminder Settle Open-Pending",
+//     "Final Reminder Settle Active",
+//     "LOD Monitoring Expire",
+//     "Pending Abandoned",
+//     "Abandoned",
+//     "Pending Withdraw",
+//     "Case Close",
+//     "Pending Write-Off",
+//     "Write-Off",
+//     "MB Fail with Non-Settlement",
+//   ];
+//   try {
+//     let query = {
+//       "drc.removed_dtm": null,
+//       case_current_status: {
+//         $nin: invalidstatus
+//       }
+//     };
+//     if (from_date && to_date) {
+//           query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
+//           query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
+//     }
+//     if (drc_id) query["drc.drc_id"] = Number(drc_id);
+//     if (case_id) query["case_id"] = Number(case_id);
+//     if (account_no) query["account_no"] = String(account_no);
+
+//     const caseDetails = await Case_details.find(query, {
+//       case_id: 1,
+//       case_current_status: 1,
+//       account_no: 1,
+//       current_arrears_amount: 1,
+//       created_dtm: 1,
+//       end_dtm: 1,
+//       case_status: 1,
+//       _id: 0,
+//     }).lean();
+
+//     if (!caseDetails || caseDetails.length === 0) {
+//       return res.status(204).json({
+//         status: "error",
+//         message: "No Case Details Found.",
+//         errors: {
+//           code: 200,
+//           description: "No data available for the provided parameters.",
+//         },
+//       });
+//     }
+//     res.status(200).json({
+//       status: "success",
+//       message: "Case details retrieved successfully.",
+//       Cases: caseDetails,
+//     });
+//   } catch (error) {
+//     // console.error("Error fetching case details:", error);
+//     res.status(500).json({
+//       status: "error",
+//       message: "Error Fetching Case Details.",
+//       errors: { code: 500, description: error.message },
+//     });
+//   }
+// };
+
+// After Revamp
+
+// export const List_CasesOwened_By_DRC = async (req, res) => {
+//   let { drc_id, case_id, account_no, from_date, to_date } = req.body;
+
+//     if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
+//     return res.status(400).json({
+//       status: "error",
+//       message: "Failed to retrieve case details.",
+//       errors: {
+//         code: 400,
+//         description:
+//           "At least one of drc_id, case_id, or account_no is required.",
+//       },
+//     });
+//   }
+  
+//   try {
+//     // List of invalid statuses
+//     const invalidStatuses = [
+//       "Withdraw", "Forward to WRIT", "WRIT", "Forward to Re-WRIT", "Re-WRIT",
+//       "WRIT Settle Pending", "WRIT Settle Open-Pending", "WRIT Settle Active",
+//       "Re-WRIT Settle Pending", "Re-WRIT Settle Open-Pending", "Re-WRIT Settle Active",
+//       "LOD Monitoring Expire", "Forward LOD Dispute", "Dispute Settle Pending",
+//       "Dispute Settle Open-Pending", "Dispute Settle Active", "Initial Litigation",
+//       "Pending FTL", "Forward To Litigation", "Fail from Legal Unit", "Fail Legal Action",
+//       "Litigation", "Litigation Settle Pending", "Litigation Settle Open-Pending",
+//       "Litigation Settle Active", "Pending FTL LOD", "Initial FTL LOD",
+//       "FTL LOD Settle Pending", "FTL LOD Settle Open-Pending", "FTL LOD Settle Active",
+//       "LIT Prescribed", "Final Reminder", "Initial LOD", "LOD Settle Pending",
+//       "LOD Settle Open-Pending", "LOD Settle Active", "Final Reminder Settle Pending",
+//       "Final Reminder Settle Open-Pending", "Final Reminder Settle Active",
+//       "LOD Monitoring Expire", "Pending Abandoned", "Abandoned", "Pending Withdraw",
+//       "Case Close", "Pending Write-Off", "Write-Off", "MB Fail with Non-Settlement"
+//     ];
+
+//     // Build the query
+//     let query = {
+//       "drc.removed_dtm": null,
+//       "drc.drc_status" : "Active",
+//       "drc.drc_id": Number(drc_id),
+//       case_current_status: { $nin: invalidStatuses }
+//     };
+
+//     if (case_id) query["case_id"] = Number(case_id);
+//     if (account_no) query["account_no"] = String(account_no);
+
+//     // Add date range filtering if both dates are provided
+//     if (from_date && to_date) {
+//       query.created_dtm = {
+//         $gte: new Date(from_date),
+//         $lte: new Date(to_date)
+//       };
+//     }
+
+//     const caseDetails = await Case_details.find(query, {
+//       case_id: 1,
+//       case_current_status: 1,
+//       account_no: 1,
+//       current_arrears_amount: 1,
+//       created_dtm: 1,
+//       end_dtm: 1,
+//       case_current_status: 1,
+//       // case_status: 1,
+//       _id: 0,
+//     }).lean();
+
+//     if (!caseDetails || caseDetails.length === 0) {
+//       return res.status(204).json({
+//         status: "success",
+//         message: "No Case Details Found.",
+//         data: []
+//       });
+//     }
+
+//     // // Process end_dtm for specific statuses
+//     // const expireStatuses = ["Abandoned", "Withdraw", "Case Close", "Pending Write-Off", "Write-Off"];
+    
+//     // const processedCaseDetails = caseDetails.map(detail => {
+//     //   // Set end_dtm based on last case status if it's in expireStatuses
+//     //   if (Array.isArray(detail.case_status) && detail.case_status.length > 0) {
+//     //     const lastStatus = detail.case_status.at(-1);
+//     //     if (lastStatus && expireStatuses.includes(lastStatus.case_status)) {
+//     //       detail.end_dtm = lastStatus.created_dtm;
+//     //     }
+//     //   }
+      
+//     //   // Ensure end_dtm is never null/undefined in response
+//     //   return {
+//     //     ...detail,
+//     //     end_dtm: detail.end_dtm || " "
+//     //   };
+//     // });
+
+//     res.status(200).json({
+//       status: "success",
+//       message: "Case details retrieved successfully.",
+//       Cases: caseDetails,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching case details:", error);
+//     res.status(500).json({
+//       status: "error",
+//       message: "Error Fetching Case Details.",
+//       errors: { code: 500, description: error.message },
+//     });
+//   }
+// };
+
+
+// After fix the error
+
+export const List_CasesOwened_By_DRC = async (req, res) => {
+  let { drc_id, case_id, account_no, from_date, to_date } = req.body;
+
+  if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
     return res.status(400).json({
       status: "error",
       message: "Failed to retrieve case details.",
       errors: {
         code: 400,
         description:
-          "At least one of case_id, from_date, to_date, or account_no is required.",
+          "At least one of drc_id, case_id, or account_no is required.",
       },
     });
   }
-  const invalidstatus = [
-    "Withdraw",
-    "Forward to WRIT",
-    "WRIT",
-    "Forward to Re-WRIT",
-    "Re-WRIT",
-    "WRIT Settle Pending",
-    "WRIT Settle Open-Pending",
-    "WRIT Settle Active",
-    "Re-WRIT Settle Pending",
-    "Re-WRIT Settle Open-Pending",
-    "Re-WRIT Settle Active",
-    "LOD Monitoring Expire",
-    "Forward LOD Dispute",
-    "Dispute Settle Pending",
-    "Dispute Settle Open-Pending",
-    "Dispute Settle Active",
-    "Initial Litigation",
-    "Pending FTL",
-    "Forward To Litigation",
-    "Fail from Legal Unit",
-    "Fail Legal Action",
-    "Litigation",
-    "Litigation Settle Pending",
-    "Litigation Settle Open-Pending",
-    "Litigation Settle Active",
-    "Pending FTL LOD",
-    "Initial FTL LOD",
-    "FTL LOD Settle Pending",
-    "FTL LOD Settle Open-Pending",
-    "FTL LOD Settle Active",
-    "LIT Prescribed",
-    "Final Reminder",
-    "Initial LOD",
-    "LOD Settle Pending",
-    "LOD Settle Open-Pending",
-    "LOD Settle Active",
-    "Final Reminder Settle Pending",
-    "Final Reminder Settle Open-Pending",
-    "Final Reminder Settle Active",
-    "LOD Monitoring Expire",
-    "Pending Abandoned",
-    "Abandoned",
-    "Pending Withdraw",
-    "Case Close",
-    "Pending Write-Off",
-    "Write-Off",
-    "MB Fail with Non-Settlement",
-  ];
+  
   try {
+    // List of invalid statuses
+    const invalidStatuses = [
+      "Withdraw", "Forward to WRIT", "WRIT", "Forward to Re-WRIT", "Re-WRIT",
+      "WRIT Settle Pending", "WRIT Settle Open-Pending", "WRIT Settle Active",
+      "Re-WRIT Settle Pending", "Re-WRIT Settle Open-Pending", "Re-WRIT Settle Active",
+      "LOD Monitoring Expire", "Forward LOD Dispute", "Dispute Settle Pending",
+      "Dispute Settle Open-Pending", "Dispute Settle Active", "Initial Litigation",
+      "Pending FTL", "Forward To Litigation", "Fail from Legal Unit", "Fail Legal Action",
+      "Litigation", "Litigation Settle Pending", "Litigation Settle Open-Pending",
+      "Litigation Settle Active", "Pending FTL LOD", "Initial FTL LOD",
+      "FTL LOD Settle Pending", "FTL LOD Settle Open-Pending", "FTL LOD Settle Active",
+      "LIT Prescribed", "Final Reminder", "Initial LOD", "LOD Settle Pending",
+      "LOD Settle Open-Pending", "LOD Settle Active", "Final Reminder Settle Pending",
+      "Final Reminder Settle Open-Pending", "Final Reminder Settle Active",
+      "LOD Monitoring Expire", "Pending Abandoned", "Abandoned", "Pending Withdraw",
+      "Case Close", "Pending Write-Off", "Write-Off", "MB Fail with Non-Settlement"
+    ];
+
+    // Build the query
     let query = {
       "drc.removed_dtm": null,
-      case_current_status: {
-        $nin: invalidstatus
-      }
+      "drc.drc_status": "Active",
+      case_current_status: { $nin: invalidStatuses }
     };
-    if (from_date && to_date) {
-          query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-          query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
-    }
+
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
     if (account_no) query["account_no"] = String(account_no);
+
+    // Add date range filtering if both dates are provided
+    if (from_date && to_date) {
+      query.created_dtm = {
+        $gte: new Date(from_date),
+        $lte: new Date(to_date)
+      };
+    }
 
     const caseDetails = await Case_details.find(query, {
       case_id: 1,
@@ -4837,27 +5039,48 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       current_arrears_amount: 1,
       created_dtm: 1,
       end_dtm: 1,
-      case_status: 1,
+      drc: 1, // Include the drc array
       _id: 0,
     }).lean();
 
     if (!caseDetails || caseDetails.length === 0) {
       return res.status(204).json({
-        status: "error",
+        status: "success",
         message: "No Case Details Found.",
-        errors: {
-          code: 200,
-          description: "No data available for the provided parameters.",
-        },
+        data: []
       });
     }
+    
+    // Process the results to include only the relevant DRC object
+    const processedCaseDetails = caseDetails.map(detail => {
+      // Find the specific DRC that matches the drc_id if provided
+      let selectedDrc = null;
+      if (drc_id && Array.isArray(detail.drc)) {
+        selectedDrc = detail.drc.find(d => d.drc_id === Number(drc_id) && d.drc_status === "Active" && !d.removed_dtm);
+      } else if (Array.isArray(detail.drc)) {
+        // If no drc_id provided, get the first active DRC
+        selectedDrc = detail.drc.find(d => d.drc_status === "Active" && !d.removed_dtm);
+      }
+      
+      // Return case details with only the selected DRC
+      return {
+        case_id: detail.case_id,
+        case_current_status: detail.case_current_status,
+        account_no: detail.account_no,
+        current_arrears_amount: detail.current_arrears_amount,
+        created_dtm: selectedDrc.created_dtm,
+        end_dtm: selectedDrc.end_dtm || "",
+        drc: selectedDrc || null
+      };
+    });
+    
     res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      Cases: caseDetails,
+      Cases: processedCaseDetails,
     });
   } catch (error) {
-    // console.error("Error fetching case details:", error);
+    console.error("Error fetching case details:", error);
     res.status(500).json({
       status: "error",
       message: "Error Fetching Case Details.",
@@ -4866,8 +5089,22 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
   }
 };
 
+
+
+/**
+ * Inputs:
+ * - drc_id: number (required)
+ * - ro_id: number (optional)
+ * - rtom: String (optional)
+ * - action_type: String (optional)
+ * - from_date: String (optional, ISO Date format)
+ * - to_date: String (optional, ISO Date format)
+ * 
+ * Success Result:
+ * - Returns a success response with the list of DRC cases matching the provided filters.
+ */
 export const listDRCAllCases = async (req, res) => {
-  const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
+  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } = req.body;
 
   try {
     // Validate input parameters
@@ -4882,7 +5119,7 @@ export const listDRCAllCases = async (req, res) => {
       });
     }
 
-    if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
+    if (!rtom && !status && !ro_id && !action_type && !(from_date && to_date)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
@@ -4913,6 +5150,7 @@ export const listDRCAllCases = async (req, res) => {
     if (rtom) query.area = rtom;
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
+    if(status) query.case_current_status = status;
     if (from_date && to_date) {
       query["last_drc.created_dtm"] = {
         $gte: new Date(from_date),
@@ -4941,6 +5179,11 @@ export const listDRCAllCases = async (req, res) => {
       },
       {
         $match: query,
+      },
+      {
+        $sort: {
+          "last_drc.created_dtm": -1, 
+        },
       },
       {
         $project: {
@@ -5371,7 +5614,14 @@ export const Count_Mediation_Board_Phase_Cases = async (req, res) => {
   }
 };
 
-// get CaseDetails for MediationBoard 
+/**
+ * Inputs:
+ * - case_id: number (required)
+ * - drc_id: number (required)
+ * 
+ * Success Result:
+ * - Returns a success response with the case details and the calling_round count (number of mediation board entries).
+ */
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id } = req.body;
@@ -5530,7 +5780,22 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
   }
 };
 
-// Updates DRC case details with new contact information and remarks.
+/**
+ * Inputs:
+ * - drc_id: number (required)
+ * - ro_id: number (required)
+ * - case_id: number (required)
+ * - customer_identification: String (required)
+ * - contact_no: String (required)
+ * - email: String (required)
+ * - customer_identification_type: String (required)
+ * - contact_type: String (required)
+ * - address: String (required)
+ * - remark: String (optional)
+ * 
+ * Success Result:
+ * - Returns the updated case object with the new contact details added to the database.
+ */
 export const updateDrcCaseDetails = async (req, res) => {
   // Extract fields from the request body
   const { drc_id, ro_id, case_id, customer_identification, contact_no, email, customer_identification_type, contact_type , address, remark } = req.body;
@@ -5628,15 +5893,13 @@ export const updateDrcCaseDetails = async (req, res) => {
     // Add edited contact details to the update data
     if (editedcontactsSchema) {
       updateData.$push = updateData.$push || {};
-      updateData.$push.ro_edited_customer_details = [editedcontactsSchema];
-      // console.log("updateData.contact", updateData);
+      updateData.$push.ro_edited_customer_details = { $each: [editedcontactsSchema] };
     }
 
     // Update remark array
     if (contactsSchema) {
       updateData.$set = updateData.$set || {};
       updateData.$set.current_contact = [contactsSchema];
-      // console.log("updateData.remark", updateData);
     }
 
     // Perform the update in the database
@@ -6216,159 +6479,7 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
 //     }
 // };
 
-
-// After adding drc filter
-
-// export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
-//   try {
-//     const {
-//       delegate_user_id,
-//       User_Interaction_Type,
-//       "Request Accept": requestAccept,
-//       drc_name,
-//       date_from,
-//       date_to
-//     } = req.body;
-
-//     if (!delegate_user_id) {
-//       return res.status(400).json({ message: "delegate_user_id is required" });
-//     }
-
-//     const validUserInteractionTypes = [
-//       "Mediation board forward request letter",
-//       "Negotiation Settlement plan Request",
-//       "Negotiation period extend Request",
-//       "Negotiation customer further information Request",
-//       "Negotiation Customer request service",
-//       "Mediation Board Settlement plan Request",
-//       "Mediation Board period extend Request",
-//       "Mediation Board customer further information request",
-//       "Mediation Board Customer request service"
-//     ];
-
-//     let filter = { delegate_user_id };
-
-//     if (User_Interaction_Type) {
-//       filter.User_Interaction_Type = User_Interaction_Type;
-//     } else {
-//       filter.User_Interaction_Type = { $in: validUserInteractionTypes };
-//     }
-
-//     if (date_from && date_to) {
-//       filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
-//     }
-
-//     const interactionLogs = await User_Interaction_Log.find(filter);
-
-//     if (!interactionLogs.length) {
-//       return res.status(204).json({ message: "No matching interactions found." });
-//     }
-
-//     const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
-//     const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
-
-//     let filteredInteractionLogs = interactionLogs;
-
-//     if (requestAccept) {
-//       filteredInteractionLogs = interactionLogs.filter(log => {
-//         const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-//         if (!matchingRequest) return false;
-
-//         const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
-//         return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
-//                (requestAccept === "Reject" && requestAcceptStatus === "No");
-//       });
-//     }
-
-//     if (!filteredInteractionLogs.length) {
-//       return res.status(204).json({ message: "No matching approved/rejected requests found." });
-//     }
-
-//     const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
-//     const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
-//       case_id: 1,
-//       case_current_status: 1,
-//       current_arrears_amount: 1,
-//       drc: 1,
-//       created_dtm: 1,
-//       monitor_months: 1
-//     });
-
-//     const requestCount = filteredInteractionLogs.filter(log => log.User_Interaction_Status === "Open").length;
-
-//     let responseData = [];
-
-//     filteredInteractionLogs.forEach(log => {
-//       const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
-
-//       let validityPeriod = "";
-//       if (relatedCase) {
-//         const createdDtm = new Date(relatedCase.created_dtm);
-//         if (relatedCase.monitor_months) {
-//           const endDtm = new Date(createdDtm);
-//           endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
-//           validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
-//         } else {
-//           validityPeriod = createdDtm.toISOString();
-//         }
-//       }
-
-//       const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-//       const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
-
-//       if (relatedCase?.drc?.length) {
-//         relatedCase.drc.forEach(drc => {
-//           if (!drc_name || drc.drc_name === drc_name) {
-//             responseData.push({
-//               ...log.toObject(),
-//               case_details: {
-//                 case_id: relatedCase.case_id,
-//                 case_current_status: relatedCase.case_current_status,
-//                 current_arrears_amount: relatedCase.current_arrears_amount,
-//                 drc: {
-//                   drc_id: drc.drc_id,
-//                   drc_name: drc.drc_name,
-//                   drc_status: drc.drc_status
-//                 },
-//                 Validity_Period: validityPeriod
-//               },
-//               Approve_Status: approveStatus,
-//               Request_Count: requestCount
-//             });
-//           }
-//         });
-//       } else {
-//         if (!drc_name) {
-//           responseData.push({
-//             ...log.toObject(),
-//             case_details: {
-//               case_id: relatedCase?.case_id,
-//               case_current_status: relatedCase?.case_current_status,
-//               current_arrears_amount: relatedCase?.current_arrears_amount,
-//               drc: [],
-//               Validity_Period: validityPeriod
-//             },
-//             Approve_Status: approveStatus,
-//             Request_Count: requestCount
-//           });
-//         }
-//       }
-//     });
-
-//     if (!responseData.length) {
-//       return res.status(204).json({ message: "No matching DRC found.", Request_Count: requestCount });
-//     }
-
-//     return res.json(responseData);
-
-//   } catch (error) {
-//     console.error("Error fetching request logs:", error);
-//     return res.status(500).json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
-
-// After adding aggregration
+// After adding aggregration.
 
 export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
   try {
@@ -6410,173 +6521,210 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
       matchStage.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
     }
 
-    // Get total count of open requests
+    // Get total count of open requests in a separate query
+    // This is kept separate as it's a simple count query with different criteria
     const totalRequestCount = await User_Interaction_Log.countDocuments({
       ...matchStage,
       User_Interaction_Status: "Open"
     });
 
-    // Get interaction logs using aggregation
-    const interactionLogs = await User_Interaction_Log.aggregate([
+    // Main aggregation pipeline
+    const pipeline = [
+      // Stage 1: Match interaction logs based on criteria
       { $match: matchStage },
-      { $sort: { CreateDTM: -1 } }
-    ]);
+      
+      // Stage 2: Sort by creation date descending
+      { $sort: { CreateDTM: -1 } },
+      
+      // Stage 3: Add doc_version if it doesn't exist
+      {
+        $addFields: {
+          doc_version: { $ifNull: ["$doc_version", 1] }
+        }
+      },
+      
+      // Stage 4: Lookup related requests
+      {
+        $lookup: {
+          from: "Request", // Assuming your collection name is "Request"
+          localField: "Interaction_Log_ID",
+          foreignField: "RO_Request_Id",
+          as: "request"
+        }
+      },
+      
+      // Stage 5: Unwind the request array (converts array to object)
+      {
+        $unwind: {
+          path: "$request",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 6: Filter by request accept status if specified
+      ...(requestAccept ? [{
+        $match: {
+          $or: [
+            { "request.parameters.Request Accept": { $exists: false } },
+            {
+              $and: [
+                { "request.parameters.Request Accept": requestAccept === "Approve" ? "Yes" : "No" }
+              ]
+            }
+          ]
+        }
+      }] : []),
+      
+      // Stage 7: Add case_id field from either interaction log or request
+      {
+        $addFields: {
+          case_id: {
+            $cond: {
+              if: { $ifNull: ["$parameters.case_id", false] },
+              then: "$parameters.case_id",
+              else: { $ifNull: ["$request.parameters.case_id", null] }
+            }
+          }
+        }
+      },
+      
+      // Stage 8: Lookup case details
+      {
+        $lookup: {
+          from: "Case_details", // Assuming your collection name is "Case_details"
+          localField: "case_id",
+          foreignField: "case_id",
+          as: "case"
+        }
+      },
+      
+      // Stage 9: Unwind the case array
+      {
+        $unwind: {
+          path: "$case",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 10: Filter by DRC name if specified
+      ...(drc_name ? [{
+        $match: {
+          $or: [
+            { "case.drc": { $exists: false } },
+            { "case.drc.drc_name": drc_name },
+            { "case.drc": { $elemMatch: { drc_name: drc_name } } }
+          ]
+        }
+      }] : []),
+      
+      // Stage 11: Add validity period
+      {
+        $addFields: {
+          "validity_period": {
+            $cond: {
+              if: { $and: [
+                { $ifNull: ["$case.created_dtm", false] },
+                { $ifNull: ["$case.monitor_months", false] }
+              ]},
+              then: {
+                $concat: [
+                  { $toString: "$case.created_dtm" },
+                  " - ",
+                  { 
+                    $toString: { 
+                      $dateAdd: { 
+                        startDate: "$case.created_dtm", 
+                        unit: "month", 
+                        amount: "$case.monitor_months" 
+                      } 
+                    } 
+                  }
+                ]
+              },
+              else: { $ifNull: [{ $toString: "$case.created_dtm" }, ""] }
+            }
+          },
+          "approve_status": {
+            $cond: {
+              if: { $ifNull: ["$request.parameters.Request Accept", false] },
+              then: "$request.parameters.Request Accept",
+              else: "Unknown"
+            }
+          }
+        }
+      },
+      
+      // Stage 12: Project the final structure
+      {
+        $project: {
+          _id: 1,
+          Interaction_Log_ID: 1,
+          User_Interaction_Type: 1,
+          User_Interaction_Status: 1,
+          delegate_user_id: 1,
+          parameters: 1,
+          CreateDTM: 1,
+          doc_version: 1,
+          case_details: {
+            case_id: "$case.case_id",
+            case_current_status: "$case.case_current_status",
+            current_arrears_amount: "$case.current_arrears_amount",
+            drc: {
+              $cond: {
+                if: { $isArray: "$case.drc" },
+                then: "$case.drc",
+                else: {
+                  $cond: {
+                    if: { $ifNull: ["$case.drc", false] },
+                    then: ["$case.drc"],
+                    else: []
+                  }
+                }
+              }
+            },
+            Validity_Period: "$validity_period"
+          },
+          Approve_Status: "$approve_status",
+          Request_Count: { $literal: totalRequestCount }
+        }
+      }
+    ];
 
-    if (!interactionLogs.length) {
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Log.aggregate(pipeline);
+
+    if (!results.length) {
       return res.status(204).json({ 
         message: "No matching interactions found.", 
         Request_Count: totalRequestCount 
       });
     }
 
-    // Get interaction log IDs for lookup
-    const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+    // Process DRC data for final response
+    const responseData = [];
     
-    // Find related requests using aggregation
-    const requests = await Request.aggregate([
-      { $match: { RO_Request_Id: { $in: interactionLogIds } } }
-    ]);
-
-    // Filter by request accept status if specified
-    let filteredInteractionLogs = interactionLogs;
-    if (requestAccept) {
-      filteredInteractionLogs = interactionLogs.filter(log => {
-        const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-        if (!matchingRequest) return false;
-
-        const requestAcceptStatus = matchingRequest.parameters?.["Request Accept"];
-        return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
-               (requestAccept === "Reject" && requestAcceptStatus === "No");
-      });
-    }
-
-    if (!filteredInteractionLogs.length) {
-      return res.status(204).json({ 
-        message: "No matching approved/rejected requests found.", 
-        Request_Count: totalRequestCount 
-      });
-    }
-
-    // Extract case IDs for lookup (from log or, if missing, from request)
-    const caseIds = filteredInteractionLogs.map(log => {
-      let caseId = log.parameters?.case_id;
-      if (!caseId) {
-        const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-        caseId = matchingRequest?.parameters?.case_id;
-      }
-      return caseId;
-    }).filter(id => id);
-
-    // Find case details using aggregation
-    const caseDetails = await Case_details.aggregate([
-      { 
-        $match: { case_id: { $in: caseIds } }
-      },
-      {
-        $project: {
-          case_id: 1,
-          case_current_status: 1,
-          current_arrears_amount: 1,
-          drc: 1,
-          created_dtm: 1,
-          monitor_months: 1
-        }
-      }
-    ]);
-
-    // Build the response data
-    let responseData = [];
-
-    filteredInteractionLogs.forEach(log => {
-      // Add doc_version if it doesn't exist
-      if (!log.hasOwnProperty('doc_version')) {
-        log.doc_version = 1;
-      }
-
-      // Find matching request
-      const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-
-      // Find case_id from log, else from request
-      let caseId = log.parameters?.case_id;
-      if (!caseId) {
-        caseId = matchingRequest?.parameters?.case_id;
-      }
-
-      // Find related case
-      const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === caseId);
-
-      let validityPeriod = "";
-      if (relatedCase) {
-        const createdDtm = new Date(relatedCase.created_dtm);
-        if (relatedCase.monitor_months) {
-          const endDtm = new Date(createdDtm);
-          endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
-          validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
-        } else {
-          validityPeriod = createdDtm.toISOString();
-        }
-      }
-
-      const approveStatus = matchingRequest?.parameters?.["Request Accept"] || "Unknown";
-
-      if (relatedCase?.drc?.length) {
+    results.forEach(result => {
+      if (Array.isArray(result.case_details.drc) && result.case_details.drc.length > 0) {
         // Handle array of DRCs
-        relatedCase.drc.forEach(drc => {
+        result.case_details.drc.forEach(drc => {
           if (!drc_name || drc.drc_name === drc_name) {
             responseData.push({
-              ...log,
+              ...result,
               case_details: {
-                case_id: relatedCase.case_id,
-                case_current_status: relatedCase.case_current_status,
-                current_arrears_amount: relatedCase.current_arrears_amount,
+                ...result.case_details,
                 drc: {
                   drc_id: drc.drc_id,
                   drc_name: drc.drc_name,
                   drc_status: drc.drc_status
-                },
-                Validity_Period: validityPeriod
-              },
-              Approve_Status: approveStatus,
-              Request_Count: totalRequestCount
+                }
+              }
             });
           }
         });
-      } else if (relatedCase?.drc && !Array.isArray(relatedCase.drc)) {
-        // Handle single DRC object
-        const drc = relatedCase.drc;
-        if (!drc_name || drc.drc_name === drc_name) {
-          responseData.push({
-            ...log,
-            case_details: {
-              case_id: relatedCase.case_id,
-              case_current_status: relatedCase.case_current_status,
-              current_arrears_amount: relatedCase.current_arrears_amount,
-              drc: {
-                drc_id: drc.drc_id,
-                drc_name: drc.drc_name,
-                drc_status: drc.drc_status
-              },
-              Validity_Period: validityPeriod
-            },
-            Approve_Status: approveStatus,
-            Request_Count: totalRequestCount
-          });
-        }
       } else {
-        // Handle case with no DRC
+        // Handle case with no DRC or single DRC
         if (!drc_name) {
-          responseData.push({
-            ...log,
-            case_details: {
-              case_id: relatedCase?.case_id,
-              case_current_status: relatedCase?.case_current_status,
-              current_arrears_amount: relatedCase?.current_arrears_amount,
-              drc: [],
-              Validity_Period: validityPeriod
-            },
-            Approve_Status: approveStatus,
-            Request_Count: totalRequestCount
-          });
+          responseData.push(result);
         }
       }
     });
@@ -6932,158 +7080,205 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
       matchStage.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
     }
 
-    // Get total count of open requests
+    // Get total count of open requests in a separate query
     const totalRequestCount = await User_Interaction_Log.countDocuments({
       ...matchStage,
       User_Interaction_Status: "Open"
     });
 
-    // Get interaction logs using aggregation
-    const interactionLogs = await User_Interaction_Log.aggregate([
+    // Main aggregation pipeline
+    const pipeline = [
+      // Stage 1: Match interaction logs based on criteria
       { $match: matchStage },
+      
+      // Stage 2: Sort by creation date descending
       { $sort: { CreateDTM: -1 } },
-      { $limit: 10 }
-    ]);
+      
+      // Stage 3: Limit to 10 records
+      { $limit: 10 },
+      
+      // Stage 4: Add doc_version if it doesn't exist
+      {
+        $addFields: {
+          doc_version: { $ifNull: ["$doc_version", 1] }
+        }
+      },
+      
+      // Stage 5: Lookup related requests
+      {
+        $lookup: {
+          from: "Request", // Adjust collection name if needed
+          localField: "Interaction_Log_ID",
+          foreignField: "RO_Request_Id",
+          as: "request"
+        }
+      },
+      
+      // Stage 6: Unwind the request array
+      {
+        $unwind: {
+          path: "$request",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 7: Filter by request accept status if specified
+      ...(requestAccept ? [{
+        $match: {
+          $or: [
+            { "request": { $exists: false } },
+            {
+              $and: [
+                { "request.parameters.Request Accept": requestAccept === "Approve" ? "Yes" : "No" }
+              ]
+            }
+          ]
+        }
+      }] : []),
+      
+      // Stage 8: Lookup case details
+      {
+        $lookup: {
+          from: "Case_details", // Adjust collection name if needed
+          localField: "parameters.case_id",
+          foreignField: "case_id",
+          as: "case"
+        }
+      },
+      
+      // Stage 9: Unwind the case array
+      {
+        $unwind: {
+          path: "$case",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 10: Calculate validity period
+      {
+        $addFields: {
+          validity_period: {
+            $cond: {
+              if: { $and: [
+                { $ifNull: ["$case.created_dtm", false] },
+                { $ifNull: ["$case.monitor_months", false] }
+              ]},
+              then: {
+                $concat: [
+                  { $toString: "$case.created_dtm" },
+                  " - ",
+                  { 
+                    $toString: { 
+                      $dateAdd: { 
+                        startDate: "$case.created_dtm", 
+                        unit: "month", 
+                        amount: "$case.monitor_months" 
+                      } 
+                    } 
+                  }
+                ]
+              },
+              else: { $ifNull: [{ $toString: "$case.created_dtm" }, ""] }
+            }
+          },
+          approve_status: { 
+            $ifNull: ["$request.parameters.Request Accept", "Unknown"] 
+          }
+        }
+      },
+      
+      // Stage 11: Handle DRC filtering
+      {
+        $project: {
+          _id: 1,
+          Interaction_Log_ID: 1,
+          User_Interaction_Type: 1,
+          User_Interaction_Status: 1,
+          delegate_user_id: 1,
+          parameters: 1,
+          CreateDTM: 1,
+          doc_version: 1,
+          approve_status: 1,
+          validity_period: 1,
+          case_details: {
+            case_id: "$case.case_id",
+            case_current_status: "$case.case_current_status",
+            current_arrears_amount: "$case.current_arrears_amount"
+          },
+          drc_data: {
+            $cond: {
+              if: { $isArray: "$case.drc" },
+              then: "$case.drc",
+              else: {
+                $cond: {
+                  if: { $ifNull: ["$case.drc", false] },
+                  then: ["$case.drc"],
+                  else: []
+                }
+              }
+            }
+          }
+        }
+      }
+    ];
 
-    if (!interactionLogs.length) {
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Log.aggregate(pipeline);
+
+    if (!results.length) {
       return res.status(204).json({ 
         message: "No matching interactions found.", 
         Request_Count: totalRequestCount 
       });
     }
 
-    // Get interaction log IDs for lookup
-    const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
+    // Process DRC data for final response
+    const responseData = [];
     
-    // Find related requests using aggregation
-    const requests = await Request.aggregate([
-      { $match: { RO_Request_Id: { $in: interactionLogIds } } }
-    ]);
-
-    // Filter by request accept status if specified
-    let filteredInteractionLogs = interactionLogs;
-    if (requestAccept) {
-      filteredInteractionLogs = interactionLogs.filter(log => {
-        const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-        if (!matchingRequest) return false;
-
-        const requestAcceptStatus = matchingRequest.parameters?.["Request Accept"];
-        return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
-               (requestAccept === "Reject" && requestAcceptStatus === "No");
-      });
-    }
-
-    if (!filteredInteractionLogs.length) {
-      return res.status(204).json({ 
-        message: "No matching approved/rejected requests found.", 
-        Request_Count: totalRequestCount 
-      });
-    }
-
-    // Extract case IDs for lookup
-    const caseIds = filteredInteractionLogs.map(log => log.parameters?.case_id).filter(id => id);
-
-    // Find case details using aggregation
-    const caseDetails = await Case_details.aggregate([
-      { 
-        $match: { case_id: { $in: caseIds } }
-      },
-      {
-        $project: {
-          case_id: 1,
-          case_current_status: 1,
-          current_arrears_amount: 1,
-          drc: 1,
-          created_dtm: 1,
-          monitor_months: 1
-        }
-      }
-    ]);
-
-    // Build the response data
-    let responseData = [];
-
-    filteredInteractionLogs.forEach(log => {
-      // Add doc_version if it doesn't exist
-      if (!log.hasOwnProperty('doc_version')) {
-        log.doc_version = 1;
-      }
-      
-      const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.case_id);
-
-      let validityPeriod = "";
-      if (relatedCase) {
-        const createdDtm = new Date(relatedCase.created_dtm);
-        if (relatedCase.monitor_months) {
-          const endDtm = new Date(createdDtm);
-          endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
-          validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
-        } else {
-          validityPeriod = createdDtm.toISOString();
-        }
-      }
-
-      const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-      const approveStatus = matchingRequest?.parameters?.["Request Accept"] || "Unknown";
-
-      if (relatedCase?.drc?.length) {
+    results.forEach(result => {
+      if (Array.isArray(result.drc_data) && result.drc_data.length > 0) {
         // Handle array of DRCs
-        relatedCase.drc.forEach(drc => {
+        result.drc_data.forEach(drc => {
           if (!drc_name || drc.drc_name === drc_name) {
             responseData.push({
-              ...log,
+              ...result,
               case_details: {
-                case_id: relatedCase.case_id,
-                case_current_status: relatedCase.case_current_status,
-                current_arrears_amount: relatedCase.current_arrears_amount,
+                ...result.case_details,
                 drc: {
                   drc_id: drc.drc_id,
                   drc_name: drc.drc_name,
                   drc_status: drc.drc_status
                 },
-                Validity_Period: validityPeriod
+                Validity_Period: result.validity_period
               },
-              Approve_Status: approveStatus,
+              Approve_Status: result.approve_status,
               Request_Count: totalRequestCount
             });
+            
+            // Remove temporary fields
+            delete responseData[responseData.length - 1].drc_data;
+            delete responseData[responseData.length - 1].validity_period;
+            delete responseData[responseData.length - 1].approve_status;
           }
         });
-      } else if (relatedCase?.drc && !Array.isArray(relatedCase.drc)) {
-        // Handle single DRC object
-        const drc = relatedCase.drc;
-        if (!drc_name || drc.drc_name === drc_name) {
-          responseData.push({
-            ...log,
-            case_details: {
-              case_id: relatedCase.case_id,
-              case_current_status: relatedCase.case_current_status,
-              current_arrears_amount: relatedCase.current_arrears_amount,
-              drc: {
-                drc_id: drc.drc_id,
-                drc_name: drc.drc_name,
-                drc_status: drc.drc_status
-              },
-              Validity_Period: validityPeriod
-            },
-            Approve_Status: approveStatus,
-            Request_Count: totalRequestCount
-          });
-        }
       } else {
         // Handle case with no DRC
         if (!drc_name) {
           responseData.push({
-            ...log,
+            ...result,
             case_details: {
-              case_id: relatedCase?.case_id,
-              case_current_status: relatedCase?.case_current_status,
-              current_arrears_amount: relatedCase?.current_arrears_amount,
+              ...result.case_details,
               drc: [],
-              Validity_Period: validityPeriod
+              Validity_Period: result.validity_period
             },
-            Approve_Status: approveStatus,
+            Approve_Status: result.approve_status,
             Request_Count: totalRequestCount
           });
+          
+          // Remove temporary fields
+          delete responseData[responseData.length - 1].drc_data;
+          delete responseData[responseData.length - 1].validity_period;
+          delete responseData[responseData.length - 1].approve_status;
         }
       }
     });
@@ -7102,6 +7297,7 @@ export const ListRequestLogFromRecoveryOfficers = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 // Original Code
 
