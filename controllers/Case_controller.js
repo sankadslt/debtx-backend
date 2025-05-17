@@ -8268,286 +8268,176 @@ export const Create_task_for_Request_log_download_when_select_more_than_one_mont
 //   }
 // };
 
-// Aggregration 1
 
-// export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
-//   try {
-//     const { delegate_user_id, User_Interaction_Type, case_id, Interaction_Log_ID } = req.body;
-    
-//     if (!delegate_user_id || !case_id || !Interaction_Log_ID) {
-//       return res.status(400).json({ message: "delegate_user_id, case_id, and Interaction_Log_ID are required" });
-//     }
-
-//     // Fetch the specific interaction log (to check existence)
-//     const interactionLog = await User_Interaction_Log.findOne({
-//       delegate_user_id,
-//       Interaction_Log_ID,
-//       ...(User_Interaction_Type && { User_Interaction_Type })
-//     });
-
-//     if (!interactionLog) {
-//       return res.status(204).json({ message: "No matching interaction found." });
-//     }
-
-//     // Aggregation for case details + incident details
-//     const caseDetailsAgg = await Case_details.aggregate([
-//       { $match: { case_id: Number(case_id) } },
-//       {
-//         $lookup: {
-//           from: "incidents",
-//           localField: "incident_id",
-//           foreignField: "Incident_Id",
-//           as: "incident"
-//         }
-//       },
-//       { $unwind: { path: "$incident", preserveNullAndEmptyArrays: true } },
-//       {
-//         $addFields: {
-//           Customer_Type_Name: "$incident.Customer_Details.Customer_Type_Name",
-//           ACCOUNT_MANAGER: "$incident.Marketing_Details.ACCOUNT_MANAGER"
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           case_id: 1,
-//           incident_id: 1,
-//           account_no: 1,
-//           customer_ref: 1,
-//           current_arrears_amount: 1,
-//           last_payment_date: 1,
-//           monitor_months: 1,
-//           case_current_status: 1,
-//           mediation_board: 1,
-//           ro_negotiation: 1,
-//           Customer_Type_Name: 1,
-//           ACCOUNT_MANAGER: 1
-//         }
-//       }
-//     ]);
-
-//     if (!caseDetailsAgg.length) {
-//       return res.status(204).json({ message: "No case details found." });
-//     }
-
-//     const caseDetails = caseDetailsAgg[0];
-
-//     // Aggregation for request history
-//     const requestHistory = await User_Interaction_Log.aggregate([
-//       {
-//         $match: {
-//           delegate_user_id,
-//           Interaction_Log_ID: { $ne: Number(Interaction_Log_ID) }
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 0, // Exclude _id
-//           doc_version: 1,
-//           Interaction_Log_ID: 1,
-//           Interaction_ID: 1,
-//           User_Interaction_Type: 1,
-//           delegate_user_id: 1,
-//           Created_By: 1,
-//           User_Interaction_Status: 1,
-//           parameters: 1,
-//           User_Interaction_Status_DTM: 1,
-//           Rejected_Reason: 1,
-//           Rejected_By: 1,
-//           Request_Mode: 1,
-//           CreateDTM: 1
-//         }
-//       }
-//     ]);
-
-//     // Prepare response object
-//     let response = { ...caseDetails };
-
-//     // Only include the relevant section based on case status
-//     const roNegotiationStatuses = [
-//       "RO Negotiation", "Negotiation Settle Pending", "Negotiation Settle Open-Pending", 
-//       "Negotiation Settle Active", "RO Negotiation Extension Pending", 
-//       "RO Negotiation Extended", "RO Negotiation FMB Pending"
-//     ];
-//     const mediationBoardStatuses = [
-//       "Forward to Mediation Board", "MB Negotiation", "MB Request Customer-Info", 
-//       "MB Handover Customer-Info", "MB Settle Pending", "MB Settle Open-Pending", 
-//       "MB Settle Active", "MB Fail with Pending Non-Settlement", "MB Fail with Non-Settlement"
-//     ];
-
-//     if (roNegotiationStatuses.includes(response.case_current_status)) {
-//       delete response.mediation_board;
-//     } else if (mediationBoardStatuses.includes(response.case_current_status)) {
-//       delete response.ro_negotiation;
-//     } else {
-//       delete response.ro_negotiation;
-//       delete response.mediation_board;
-//     }
-
-//     response.Request_History = requestHistory;
-
-//     return res.json(response);
-
-//   } catch (error) {
-//     console.error("Error fetching case details:", error);
-//     return res.status(500).json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
-
-// Aggregration 2
+// After adding Aggregration 
 export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
   try {
     const { delegate_user_id, User_Interaction_Type, case_id, Interaction_Log_ID } = req.body;
-
+    
     if (!delegate_user_id || !case_id || !Interaction_Log_ID) {
-      return res.status(400).json({
-        message: "delegate_user_id, case_id, and Interaction_Log_ID are required"
-      });
+      return res.status(400).json({ message: "delegate_user_id, case_id, and Interaction_Log_ID are required" });
     }
-
-    const result = await Case_details.aggregate([
-      {
-        $match: { case_id: Number(case_id) }
-      },
+    
+    let matchStage = { delegate_user_id, Interaction_Log_ID };
+    
+    if (User_Interaction_Type) {
+      matchStage.User_Interaction_Type = User_Interaction_Type;
+    }
+    
+    // Define the statuses for conditional logic
+    const roNegotiationStatuses = [
+      "RO Negotiation", "Negotiation Settle Pending", "Negotiation Settle Open-Pending", 
+      "Negotiation Settle Active", "RO Negotiation Extension Pending", 
+      "RO Negotiation Extended", "RO Negotiation FMB Pending"
+    ];
+    
+    const mediationBoardStatuses = [
+      "Forward to Mediation Board", "MB Negotiation", "MB Request Customer-Info", 
+      "MB Handover Customer-Info", "MB Settle Pending", "MB Settle Open-Pending", 
+      "MB Settle Active", "MB Fail with Pending Non-Settlement", "MB Fail with Non-Settlement"
+    ];
+    
+    // Main aggregation pipeline
+    const pipeline = [
+      // Stage 1: Match the specific interaction log
+      { $match: matchStage },
+      
+      // Stage 2: Lookup case details
       {
         $lookup: {
-          from: "incidents",
-          localField: "incident_id",
-          foreignField: "Incident_Id",
+          from: "Case_details", // Adjust collection name if needed
+          let: { case_id: case_id },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$case_id", "$$case_id"] } } },
+            { 
+              $project: { 
+                case_id: 1, 
+                customer_ref: 1, 
+                account_no: 1, 
+                current_arrears_amount: 1, 
+                last_payment_date: 1, 
+                monitor_months: 1,
+                incident_id: 1,
+                case_current_status: 1,
+                ro_negotiation: 1,
+                mediation_board: 1
+              } 
+            }
+          ],
+          as: "case_details"
+        }
+      },
+      
+      // Stage 3: Unwind case details
+      {
+        $unwind: {
+          path: "$case_details",
+          preserveNullAndEmptyArrays: false
+        }
+      },
+      
+      // Stage 4: Lookup incident details
+      {
+        $lookup: {
+          from: "Incident", // Adjust collection name if needed
+          let: { incident_id: "$case_details.incident_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$Incident_Id", "$$incident_id"] } } },
+            { 
+              $project: { 
+                "Customer_Details.Customer_Type_Name": 1, 
+                "Marketing_Details.ACCOUNT_MANAGER": 1 
+              } 
+            }
+          ],
           as: "incident"
         }
       },
-      { $unwind: { path: "$incident", preserveNullAndEmptyArrays: true } },
+      
+      // Stage 5: Unwind incident (optional)
       {
-        $addFields: {
-          Customer_Type_Name: "$incident.Customer_Details.Customer_Type_Name",
-          ACCOUNT_MANAGER: "$incident.Marketing_Details.ACCOUNT_MANAGER"
+        $unwind: {
+          path: "$incident",
+          preserveNullAndEmptyArrays: true
         }
       },
+      
+      // Stage 6: Lookup request history
       {
         $lookup: {
-          from: "user_interaction_logs",
-          let: { delegateUserId: delegate_user_id, logId: Number(Interaction_Log_ID) },
+          from: "User_Interaction_Log", // Adjust collection name if needed
+          let: { delegate_id: "$delegate_user_id", log_id: "$Interaction_Log_ID" },
           pipeline: [
-            {
-              $match: {
-                $expr: {
+            { 
+              $match: { 
+                $expr: { 
                   $and: [
-                    { $eq: ["$delegate_user_id", "$$delegateUserId"] },
-                    { $eq: ["$Interaction_Log_ID", "$$logId"] },
-                    ...(User_Interaction_Type
-                      ? [{ $eq: ["$User_Interaction_Type", User_Interaction_Type] }]
-                      : [])
+                    { $eq: ["$delegate_user_id", "$$delegate_id"] },
+                    { $ne: ["$Interaction_Log_ID", "$$log_id"] }
                   ]
-                }
-              }
-            }
-          ],
-          as: "currentInteraction"
-        }
-      },
-      {
-        $lookup: {
-          from: "user_interaction_logs",
-          let: { delegateUserId: delegate_user_id, logId: Number(Interaction_Log_ID) },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$delegate_user_id", "$$delegateUserId"] },
-                    { $ne: ["$Interaction_Log_ID", "$$logId"] }
-                  ]
-                }
-              }
+                } 
+              } 
             },
-            {
-              $project: {
-                _id: 0,
-                doc_version: 1,
-                Interaction_Log_ID: 1,
-                Interaction_ID: 1,
-                User_Interaction_Type: 1,
-                delegate_user_id: 1,
-                Created_By: 1,
-                User_Interaction_Status: 1,
-                parameters: 1,
-                User_Interaction_Status_DTM: 1,
-                Rejected_Reason: 1,
-                Rejected_By: 1,
-                Request_Mode: 1,
-                CreateDTM: 1
-              }
-            }
+            { $project: { _id: 0, __v: 0 } }
           ],
           as: "Request_History"
         }
       },
+      
+      // Stage 7: Format the response
       {
         $project: {
-          _id: 1,
-          case_id: 1,
-          incident_id: 1,
-          account_no: 1,
-          customer_ref: 1,
-          current_arrears_amount: 1,
-          last_payment_date: 1,
-          monitor_months: 1,
-          case_current_status: 1,
-          mediation_board: 1,
-          ro_negotiation: 1,
-          Customer_Type_Name: 1,
-          ACCOUNT_MANAGER: 1,
-          Request_History: 1,
-          currentInteraction: 1
+          _id: 0,
+          case_id: "$case_details.case_id",
+          customer_ref: "$case_details.customer_ref",
+          account_no: "$case_details.account_no",
+          current_arrears_amount: "$case_details.current_arrears_amount",
+          last_payment_date: "$case_details.last_payment_date",
+          monitor_months: "$case_details.monitor_months",
+          incident_id: "$case_details.incident_id",
+          case_current_status: "$case_details.case_current_status",
+          
+          // Conditionally include ro_negotiation or mediation_board based on status
+          ro_negotiation: {
+            $cond: {
+              if: { $in: ["$case_details.case_current_status", roNegotiationStatuses] },
+              then: "$case_details.ro_negotiation",
+              else: "$$REMOVE"
+            }
+          },
+          mediation_board: {
+            $cond: {
+              if: { $in: ["$case_details.case_current_status", mediationBoardStatuses] },
+              then: "$case_details.mediation_board",
+              else: "$$REMOVE"
+            }
+          },
+          
+          // Add incident details
+          Customer_Type_Name: { $ifNull: ["$incident.Customer_Details.Customer_Type_Name", null] },
+          ACCOUNT_MANAGER: { $ifNull: ["$incident.Marketing_Details.ACCOUNT_MANAGER", null] },
+          
+          // Include request history
+          Request_History: 1
         }
       }
-    ]);
-
-    // If no case found
-    if (!result.length) {
-      return res.status(204).json({ message: "No case details found." });
-    }
-
-    const caseDetails = result[0];
-
-    // If no interaction found
-    if (!caseDetails.currentInteraction.length) {
-      return res.status(204).json({ message: "No matching interaction found." });
-    }
-
-    // Remove currentInteraction field before sending response
-    delete caseDetails.currentInteraction;
-
-    // Filter sections based on case status
-    const roNegotiationStatuses = [
-      "RO Negotiation", "Negotiation Settle Pending", "Negotiation Settle Open-Pending",
-      "Negotiation Settle Active", "RO Negotiation Extension Pending",
-      "RO Negotiation Extended", "RO Negotiation FMB Pending"
     ];
-    const mediationBoardStatuses = [
-      "Forward to Mediation Board", "MB Negotiation", "MB Request Customer-Info",
-      "MB Handover Customer-Info", "MB Settle Pending", "MB Settle Open-Pending",
-      "MB Settle Active", "MB Fail with Pending Non-Settlement", "MB Fail with Non-Settlement"
-    ];
-
-    if (roNegotiationStatuses.includes(caseDetails.case_current_status)) {
-      delete caseDetails.mediation_board;
-    } else if (mediationBoardStatuses.includes(caseDetails.case_current_status)) {
-      delete caseDetails.ro_negotiation;
-    } else {
-      delete caseDetails.ro_negotiation;
-      delete caseDetails.mediation_board;
+    
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Log.aggregate(pipeline);
+    
+    if (!results || results.length === 0) {
+      return res.status(204).json({ message: "No matching data found." });
     }
-
-    return res.json(caseDetails);
-
+    
+    return res.json(results[0]);
+    
   } catch (error) {
-    console.error("Error fetching details:", error);
+    console.error("Error fetching case details:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 // Define the status mapping based on User_Interaction_Type and Request Accept
 const statusMapping = {
