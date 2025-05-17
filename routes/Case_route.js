@@ -71,7 +71,7 @@ import {
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
-  // List_All_DRCs_Mediation_Board_Cases,
+  List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListAllRequestLogFromRecoveryOfficers,
   ListAllRequestLogFromRecoveryOfficersWithoutUserID,
@@ -8296,7 +8296,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
 router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
-// router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
 
 /**
  * @swagger
