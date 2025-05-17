@@ -162,34 +162,51 @@ function formatDate(date) {
     return new Date(date).toLocaleDateString('en-US', options);
 }
 
-// Sub-schema for RTOM status
-const rtomStatusSchema = new Schema({
-    status: {
-        type: String,
-        enum: ['Active', 'Inactive', 'Pending'],
-        required: true,
-    },
-    rtoms_for_ro_status_date: {
-        type: Date, // Change to Date type
-        required: true,
-    },
-    rtoms_for_ro_status_edit_by: {
-        type: String,
-        required: true,
-    },
-});
+// // Sub-schema for RTOM status
+// const rtomStatusSchema = new Schema({
+//     status: {
+//         type: String,
+//         enum: ['Active', 'Inactive', 'Terminate'],
+//         required: true,
+//     },
+//     rtoms_for_ro_status_date: {
+//         type: Date, // Change to Date type
+//         required: true,
+//     },
+//     rtoms_for_ro_status_edit_by: {
+//         type: String,
+//         required: true,
+//     },
+// });
 
 // Sub-schema for RTOMs assigned to a Recovery Officer
 const rtomforRoSchema = new Schema({
-    name: {
+    rtom_id: {
+        type: Number,
+        required: true,
+    },
+    rtom_name: {
         type: String,
         required: true,
     },
-    status: {
-        type: [rtomStatusSchema], // Status array with subfields
+    rtom_status:{
+        // type: [rtomStatusSchema], // Status array with subfields
+        type: String,
+        enum: ['Active', 'Inactive', 'Terminate'],
         required: true,
     },
-    rtom_id:Number
+    rtom_created_by: {
+        type: String,
+        required: true,
+    },
+    rtom_created_date: {
+        type: Date, // Change to Date type
+        required: true,
+    },
+    rtom_end_date: {
+        type: Date,
+        default: null, // Default to null for no end date
+    }
 });
 
 // Sub-schema for remarks
@@ -212,14 +229,14 @@ const remarkSchema = new Schema({
 const roStatusSchema = new Schema({
     status: {
         type: String,
-        enum: ['Active', 'Inactive', 'Pending','Terminate'],
+        enum: ['Active', 'Inactive', 'Terminate'],
         required: true,
     },
-    ro_status_date: {
+    status_date: {
         type: Date, // Change to Date type
         required: true,
     },
-    ro_status_edit_by: {
+    status_by: {
         type: String,
         required: true,
     },
@@ -234,9 +251,9 @@ const roSchema = new Schema(
             required: true,
             unique: true,
         },
-        user_id: {
-            type:String,
-            // required:true,
+        drc_id:{
+            type: Number,
+            required: true,
         },
         ro_name: {
             type: String,
@@ -246,55 +263,34 @@ const roSchema = new Schema(
             type: String,
             required: true,
         },
-        ro_status: {
-            type: [roStatusSchema], // Status array with subfields
-            required: true,
-            default: [], // Default empty array
-        },
-        drc_name: {
+        ro_nic:{
             type: String,
             required: true,
         },
-        drc_id: {
-            type: Number,
+        ro_login_method:{
+            type: String,
+            required: true,
+        },
+        ro_status: {
+            type: [roStatusSchema], // Status array with subfields
             required: true,
         },
         rtoms_for_ro: {
             type: [rtomforRoSchema], // RTOMs array with statuses
             required: true,
         },
-        login_type: {
-            type: String,
-            required: true,
-        },
-        login_user_id: {
-            type: String,
-            required: true,
-        },
         remark: {
             type: [remarkSchema], // Remark array with date and editor
             default: [], // Default empty array
         },
-        ro_nic: {
-            type: String,
-            required: true,
-        },
-        ro_end_date: {
-            type: Date,
-            default: null, // Default to null for no end date
-        },
-        created_by: {
-            type: String,
-            required: true, // Track who created the officer
-        },
-        createdAt: {
-            type: Date, // Change to Date type
-            required: true,
-        },
-        updatedAt: {
+        updated_on: {
             type: Date, // Keep Date type for `updatedAt`
             default: Date.now,
         },
+        updated_dtm:{
+            type: Date,
+            required: true,
+        }
     },
     {
         collection: 'Recovery_officer',

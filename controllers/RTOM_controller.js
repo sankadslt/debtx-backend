@@ -738,31 +738,16 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
   const { drc_id } = req.body;
 
   try {
-    // Step 1: Validate and fetch the drc_name for the given drc_id
-    const drc = await DRC.findOne({ drc_id });
-    if (!drc) {
-      return res.status(404).json({
-        status: "error",
-        message: "DRC not found.",
-        errors: {
-          code: 404,
-          description: "No DRC data matches the provided DRC ID.",
-        },
-      });
-    }
-
-    const drc_name = drc.drc_name;
-
-    // Step 2: Find all Recovery Officers assigned to the drc_name
-    const recoveryOfficers = await RO.find({ drc_name });
+    // Step 1: Find all Recovery Officers assigned to the drc_id
+    const recoveryOfficers = await RO.find({ drc_id });
     if (recoveryOfficers.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "No Recovery Officers found for this DRC name.",
+        message: "No Recovery Officers found for this DRC ID.",
       });
     }
 
-    // Step 3: Extract unique RTOMs whose last status is "Active"
+    // Step 2: Extract unique RTOMs whose last status is "Active"
     const activeRTOMs = await Promise.all(
       recoveryOfficers.flatMap(async (ro) => {
         // Filter `rtoms_for_ro` by the last status being "Active"

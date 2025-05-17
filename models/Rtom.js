@@ -11,17 +11,52 @@ Notes:  */
 // model - Rtom.js
 import { Schema, model } from 'mongoose';
 
+// // Sub-schema for remarks
+// const updatedSchema = new Schema({
+//     updated_remark: {
+//         type: String,
+//         required: true,
+//     },
+//     updated_date: {
+//         type: Date, // Save date in day/month/year format
+//         required: true,
+//     },
+//     updated_by: {
+//         type: String,
+//         required: true,
+//     },
+// });
+
+
 // Sub-schema for remarks
-const updatedSchema = new Schema({
-    action: {
+const remarkSchema = new Schema({
+    remark: {
         type: String,
         required: true,
     },
-    updated_date: {
+    remark_date: {
         type: Date, // Save date in day/month/year format
         required: true,
     },
-    updated_by: {
+    remark_by: {
+        type: String,
+        required: true,
+    },
+});
+
+// Sub-schema for status updates
+const statusSchema = new Schema({
+    status: {
+        type: String, 
+        enum: ['Active', 'Inactive', 'Pending'], 
+        default: 'Active',
+        required: true,
+    },
+    status_on: {
+        type: Date, // Save date in day/month/year format
+        required: true,
+    },
+    status_by: {
         type: String,
         required: true,
     },
@@ -35,43 +70,59 @@ const rtomSchema = new Schema({
         required: true, 
         unique: true
     },
-    rtom_abbreviation: {
+    billing_center_Code: {
         type: String, 
         required: true 
     },
-    area_name: {
+    rtom_name: {
         type: String, 
         required: true
     },
-    rtom_status: {
+    area_code: {
+        type: String, 
+        required: true
+    },
+    rtom_email: {
+        type: String, 
+        required: true
+    },
+    rtom_contact_type: {
         type: String,
-        enum: ['Active', 'Inactive', 'Terminate'],
+        enum: ['Telephone', 'Mobile'],
         required: true
     },
-    rtom_contact_number:{
+    rtom_contact_no:{
         type: Number,
         required: true
-    },
-    rtom_fax_number: {
-        type: Number,
-        required: true
-    },
-    updated_rtom: {
-        type: [updatedSchema], // Remark array with date and editor
-        default: [], // Default empty array
     },
     created_by: {
         type: String,
+        required: true
+    },
+    created_on: {
+        type: Date,
         required: true
     },
     rtom_end_date: {
         type: Date,
         default: null
     },
-    created_dtm: {
-        type: Date,
+    rtom_end_by: {
+        type: String,
         required: true
-    }
+    },
+    rtom_status: {
+        type: [statusSchema], // Status array with subfields
+        required: true
+    },
+    rtom_remarks: {
+        type: [remarkSchema], // Remarks array with subfields
+        required: true
+    },
+    // updated_rtom: {
+    //     type: [updatedSchema], // Remark array with date and editor
+    //     default: [], // Default empty array
+    // },
 }, 
 {
     collection: 'Rtom', 

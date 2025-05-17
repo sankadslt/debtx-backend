@@ -29,6 +29,24 @@ const serviceSchema = new Schema({
   },
 });
 
+// Sub-schema for status updates
+const statusSchema = new Schema({
+    status: {
+        type: String, 
+        enum: ['Active', 'Inactive', 'Pending'], 
+        default: 'Active',
+        required: true,
+    },
+    status_on: {
+        type: Date, // Save date in day/month/year format
+        required: true,
+    },
+    status_by: {
+        type: String,
+        required: true,
+    },
+});
+
 // Sub-schema for remarks
 const remarkSchema = new Schema({
   remark: {
@@ -44,6 +62,27 @@ const remarkSchema = new Schema({
     required: true,
   },
 });
+
+// Sub-schema for slt coordinator
+const sltCoordinatorSchema = new Schema({
+  service_no: {
+    type: String,
+    required: true,
+  },
+  slt_coordinator_name: {
+    type: String,
+    required: true,
+  },
+  slt_coordinator_email: {
+    type: String,
+    required: true,
+  },
+  slt_coordinator_contact_no: {
+    type: String,
+    required: true,
+  }
+});
+
 const drcSchema = new Schema(
   {
     doc_version : {type:Number, required: true, default: 1},
@@ -60,30 +99,37 @@ const drcSchema = new Schema(
       type: String,
       required: true,
     },
+    drc_address: {
+      type: String,
+      required: true,
+    },
+    drc_contact_no: {
+      type: String,
+      required: true,
+    },
     drc_email: {
       type: String,
       required: true,
       unique: true,
     },
     drc_status: {
-      type: String,
-      enum: ["Active", "Inactive", "Pending","Ended"],
-      default: "Active",
+      type: [statusSchema], // Status array with subfields
+      required: true,
     },
-    teli_no: {
+    created_by: {
       type: String,
       required: true,
     },
-    drc_end_dat: {
+    created_on: {
       type: Date,
-      default: null,
-    },
-    create_by: {
-      type: String,
       required: true,
     },
-    create_dtm: {
+    drc_end_dtm: {
       type: Date,
+      required: true,
+    },
+    slt_coordinator: {
+      type: [sltCoordinatorSchema],
       required: true,
     },
     services_of_drc: {
@@ -94,10 +140,10 @@ const drcSchema = new Schema(
       type: [remarkSchema],
       required: true,
     },
-    current_drc_operator: {
-      type: String,
-      // required: true,
-    },
+    // current_drc_operator: {
+    //   type: String,
+    //   // required: true,
+    // },
   },
   {
     collection: "Debt_recovery_company",
