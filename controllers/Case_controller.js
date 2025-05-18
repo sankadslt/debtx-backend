@@ -5731,7 +5731,7 @@ export const CaseDetailsforDRC = async (req, res) => {
         }
       }
     ]);
-    const mediationBoardCount = caseDetails.mediation_board?.length || 0;
+    const mediationBoardCount = caseDetails[0].mediation_board?.length || 0;
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
