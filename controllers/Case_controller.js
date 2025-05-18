@@ -5735,10 +5735,9 @@ export const CaseDetailsforDRC = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
-      data: {
-        ...caseDetails,  // All fields from the case details
-        calling_round: mediationBoardCount, // Include the count in the response
-      },
+      data: caseDetails,
+      calling_round: mediationBoardCount, // Include the count in the response
+      
     });
 
   } catch (error) {
