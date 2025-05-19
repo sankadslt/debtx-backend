@@ -38,6 +38,7 @@ import SettlementRouter from "./routes/Settlement_route.js";
 import litigationRouter from "./routes/Litigation_route.js";
 import LodRoutes from "./routes/LOD_route.js";
 import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
+import "./passport.js"
 // Load environment variables
 config();
 

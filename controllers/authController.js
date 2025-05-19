@@ -98,16 +98,42 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Refresh tokens
+// // Refresh tokens
+// export const refreshToken = async (req, res) => {
+//   try {
+//     const refreshToken = req.cookies.refreshToken;
+
+//     if (!refreshToken) return res.status(401).json({ message: "No refresh token provided" });
+
+//     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    
+//     const user = await User.findOne({ user_id: decoded.user_id });
+//     if (!user) return res.status(403).json({ message: "Invalid refresh token" });
+
+//     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+//     res.cookie("refreshToken", newRefreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "Strict",
+//       maxAge: 24 * 60 * 60 * 1000,
+//     });
+
+//     res.status(200).json({ accessToken, username: user.username });
+//   } catch (error) {
+//     console.error("Error refreshing token:", error);
+//     res.status(403).json({ message: "Invalid refresh token" });
+//   }
+// };
+
 export const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-
     if (!refreshToken) return res.status(401).json({ message: "No refresh token provided" });
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    
     const user = await User.findOne({ user_id: decoded.user_id });
+
     if (!user) return res.status(403).json({ message: "Invalid refresh token" });
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
@@ -119,10 +145,16 @@ export const refreshToken = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ accessToken, username: user.username });
+    res.status(200).json({ accessToken });
   } catch (error) {
     console.error("Error refreshing token:", error);
-    res.status(403).json({ message: "Invalid refresh token" });
+
+    const message = error.name === 'TokenExpiredError'
+      ? "Refresh token expired, please login again"
+      : "Invalid refresh token";
+
+    res.status(403).json({ message });
+    console.log("RFT "+ refreshToken);
   }
 };
 
