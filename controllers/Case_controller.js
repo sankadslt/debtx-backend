@@ -4272,10 +4272,11 @@ export const Assign_DRC_To_Case = async (req, res) => {
     };
     // should be call to the case_phase API
       // const case_phase = await pythonapi(case_status);
-      const delegate_id = await getApprovalUserIdService({
-          case_phase: "python status",
-          approval_type: "DRC Re-Assign Approval"
-      });
+    console.log("11111");
+    const delegate_id = await getApprovalUserIdService({
+        case_phase: "python status",
+        approval_type: "DRC Re-Assign Approval"
+    });
     const result = await createUserInteractionFunction({
       Interaction_ID:22, 
       User_Interaction_Type:"Pending approval for DRC Re Assign Approval", 
