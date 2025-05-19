@@ -84,7 +84,7 @@ import {
   Withdraw_Mediation_Board_Acceptance,
   Count_Mediation_Board_Phase_Cases,
   Count_Negotiation_Phase_Cases,
-
+  List_Settlement_Details_Owen_By_SettlementID_and_DRCID,
   //   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
@@ -10392,5 +10392,7 @@ router.post(
   "/Create_Task_For_Request_Responce_Log_Download",
   Create_Task_For_Request_Responce_Log_Download
 );
+
+router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 
 export default router;
