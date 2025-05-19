@@ -43,7 +43,9 @@ export const getAllWriteOffCases = async (req, res) => {
         // Only include cases with eligible current status
         { $match: { case_current_status: { $in: statusFilter } } },
         // Add 'lastStatus' as the last element of 'case_status' array
+        
         { $addFields: { lastStatus: { $arrayElemAt: ["$case_status", -1] } } }
+        
       ];
   
       // If both dates are provided, filter by lastStatus.created_dtm
