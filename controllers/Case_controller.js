@@ -2079,6 +2079,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       account_no: caseData.account_no,
       current_arrears_amount: caseData.current_arrears_amount,
       last_payment_date: caseData.last_payment_date,
+      rtom: caseData.rtom || null,
       ref_products: caseData.ref_products || null,
       // ro_negotiation: caseData.ro_negotiation || null,
       ro_negotiation: caseData.ro_negotiation 
