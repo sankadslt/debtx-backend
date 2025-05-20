@@ -89,6 +89,9 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
 
   //Create Task API
 export const createTask = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
       console.log("Request body:", req.body);
@@ -107,7 +110,7 @@ export const createTask = async (req, res) => {
       const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
   
       const Task_Id = counterResult.seq;
@@ -129,11 +132,14 @@ export const createTask = async (req, res) => {
   
       // Insert into System_task collection
       const newTask = new Task(taskData);
-      await newTask.save();
+      await newTask.save({ session });
   
       // Insert into System_task_Inprogress collection
       const newTaskInProgress = new Task_Inprogress(taskData);
-      await newTaskInProgress.save();
+      await newTaskInProgress.save({ session });
+
+      await session.commitTransaction(); // Commit the transaction
+      session.endSession();
   
       return res.status(201).json({ 
         message: "Task created successfully", 
@@ -144,6 +150,9 @@ export const createTask = async (req, res) => {
         Created_By 
       });
     } catch (error) {
+      await session.abortTransaction(); // Rollback on error
+      session.endSession();
+      
       console.error("Error creating task:", error);
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
      
