@@ -119,8 +119,8 @@ const RoCpeCollectSchema = new mongoose.Schema({
 });
 
 const roNegotiationSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
