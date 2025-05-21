@@ -71,7 +71,7 @@ import {
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
-  // List_All_DRCs_Mediation_Board_Cases,
+  List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListAllRequestLogFromRecoveryOfficers,
   ListAllRequestLogFromRecoveryOfficersWithoutUserID,
@@ -84,7 +84,7 @@ import {
   Withdraw_Mediation_Board_Acceptance,
   Count_Mediation_Board_Phase_Cases,
   Count_Negotiation_Phase_Cases,
-
+  List_Settlement_Details_Owen_By_SettlementID_and_DRCID,
   //   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
@@ -8299,7 +8299,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
 router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
-// router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
 
 /**
  * @swagger
@@ -10397,5 +10397,7 @@ router.post(
 );
 router.post('/List_All_Write_off_Cases', getWithdrawalCaseLogs,);
 router.patch('/Create_Wthdraw_case',updateWithdrawalCase);
+
+router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 
 export default router;

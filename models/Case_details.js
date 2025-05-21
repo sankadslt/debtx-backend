@@ -22,6 +22,7 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
+  rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
@@ -37,16 +38,6 @@ const caseStatusSchema = new Schema({
   expire_dtm: { type: Date, default: null },
   case_phase:{ type: String, required: true },
 }, { _id: false });
-
-// Define the contact 
-// const contactsSchema = new Schema({
-//   mob: { type: String, required: false },
-//   email: { type: String, required: true },
-//   nic: { type: String, required: true },
-//   lan: { type: String, required: false },
-//   address: { type: String, required: true },
-//   geo_location: {type: String, default:null},
-// },{ _id: false });
 
 // Define the edited contact
 const contactsSchema = new Schema({
@@ -94,7 +85,8 @@ const abnormalSchema = new Schema({
   remark: {type: String, required:true},
   done_by:{type: String, required:true},
   done_on: {type:Date, required:true},
-  action: {type:String, required:true}
+  action: {type:Number, required:true},
+  Case_phase: {type:String, required:true},
 },{_id: false });
 
 const productDetailsSchema = new Schema({
@@ -127,8 +119,8 @@ const RoCpeCollectSchema = new mongoose.Schema({
 });
 
 const roNegotiationSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
@@ -345,6 +337,7 @@ const caseDetailsSchema = new Schema({
   filtered_reason: { type: String, default: null }, 
   proceed_dtm: { type: Date, required: null },
   Proceed_By: { type: String, required: null },
+  region:{ type: String, required: null},
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
