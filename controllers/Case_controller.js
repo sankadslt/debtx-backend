@@ -19,6 +19,7 @@ import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import CasePayments from "../models/Case_payments.js";
+import Money_transactions from "../models/Money_transactions.js";
 import Template_RO_Request from "../models/Template_RO_Request .js";
 import Template_Mediation_Board from "../models/Template_mediation_board.js";
 import TemplateNegotiation from "../models/Template_negotiation.js"
@@ -1741,6 +1742,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           created_dtm: caseData.last_drc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
+          action_type: caseData.action_type,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
           ro_name: caseData.recovery_officer?.[0]?.ro_name || null,
@@ -2070,6 +2072,22 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         });
       }
     }
+
+    // Get all relevant negotiations for the current DRC
+    const relevantNegotiations = (caseData.ro_cpe_collect || []).filter(
+      roneg => roneg.drc_id === Number(drc_id)
+    );
+
+    // Attach matching negotiation to each ref_product
+    const refProductsCPECollect = (caseData.ref_products || []).map(product => {
+      const negotiation = relevantNegotiations.filter(
+        roneg => roneg.product_label === product.product_label
+      );
+      return {
+        ...product.toObject?.() || product,  // Convert Mongoose subdoc if needed
+        negotiation: negotiation || null,
+      };
+    });
     
     // Format case details
     const formattedCaseDetails = {
@@ -2078,9 +2096,19 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       account_no: caseData.account_no,
       current_arrears_amount: caseData.current_arrears_amount,
       last_payment_date: caseData.last_payment_date,
-      ref_products: caseData.ref_products || null,
+      rtom: caseData.rtom || null,
+      ref_products: refProductsCPECollect || null,
       ro_negotiation: caseData.ro_negotiation || null,
+      ro_negotiation: caseData.ro_negotiation 
+        ? caseData.ro_negotiation.filter(ronegotiation => ronegotiation.drc_id === Number(drc_id))
+        : null,
       ro_requests: caseData.ro_requests || null,
+      ro_requests: caseData.ro_requests 
+        ? caseData.ro_requests.filter(rorequests => rorequests.drc_id === Number(drc_id))
+        : null,
+      ro_cpe_collect: caseData.ro_cpe_collect 
+        ? caseData.ro_cpe_collect.filter(roCPECollect => roCPECollect.drc_id === Number(drc_id))
+        : null,
       ro_id: matchingRecoveryOfficer?.ro_id || null,
     };
     
@@ -2091,8 +2119,11 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     
     // Try to fetch settlement data, but don't require it
     try {
-      const settlementData = await CaseSettlement.findOne(
-        { case_id },
+      const settlementData = await CaseSettlement.find(
+        { 
+          case_id: Number(case_id),
+          drc_id: Number(drc_id)
+        },
         {
           created_dtm: 1,
           settlement_status: 1,
@@ -2110,12 +2141,15 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     
     // Try to fetch payment data, but don't require it
     try {
-      const paymentData = await CasePayments.findOne(
-        { case_id },
+      const paymentData = await Money_transactions.find(
+        { 
+          case_id: Number(case_id), 
+          drc_id: Number(drc_id)
+        },
         {
           created_dtm: 1,
-          bill_paid_amount: 1,
-          settled_balance: 1
+          money_transaction_amount: 1,
+          cummulative_settled_balance: 1
         }
       ).collation({ locale: 'en', strength: 2 });
       
