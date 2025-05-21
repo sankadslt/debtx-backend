@@ -2071,6 +2071,22 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         });
       }
     }
+
+    // Get all relevant negotiations for the current DRC
+    const relevantNegotiations = (caseData.ro_cpe_collect || []).filter(
+      roneg => roneg.drc_id === Number(drc_id)
+    );
+
+    // Attach matching negotiation to each ref_product
+    const refProductsCPECollect = (caseData.ref_products || []).map(product => {
+      const negotiation = relevantNegotiations.filter(
+        roneg => roneg.product_label === product.product_label
+      );
+      return {
+        ...product.toObject?.() || product,  // Convert Mongoose subdoc if needed
+        negotiation: negotiation || null,
+      };
+    });
     
     // Format case details
     const formattedCaseDetails = {
@@ -2080,8 +2096,8 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       current_arrears_amount: caseData.current_arrears_amount,
       last_payment_date: caseData.last_payment_date,
       rtom: caseData.rtom || null,
-      ref_products: caseData.ref_products || null,
-      // ro_negotiation: caseData.ro_negotiation || null,
+      ref_products: refProductsCPECollect || null,
+      ro_negotiation: caseData.ro_negotiation || null,
       ro_negotiation: caseData.ro_negotiation 
         ? caseData.ro_negotiation.filter(ronegotiation => ronegotiation.drc_id === Number(drc_id))
         : null,
