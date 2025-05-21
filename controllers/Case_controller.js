@@ -1742,6 +1742,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           created_dtm: caseData.last_drc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
+          action_type: caseData.action_type,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
           ro_name: caseData.recovery_officer?.[0]?.ro_name || null,
