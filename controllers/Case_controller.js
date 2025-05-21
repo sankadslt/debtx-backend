@@ -4643,13 +4643,23 @@ export const Mediation_Board = async (req, res) => {
       created_by,
     } = req.body;
 
-    if (!case_id || !drc_id || !customer_available) {
+    if (!case_id || !drc_id) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ 
         status: "error",
         message: "Missing required fields: case_id, drc_id, customer_available" 
       });
+    };
+    if(handed_over_non_settlemet === "no" || !handed_over_non_settlemet){
+      if (!customer_available) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: customer_available" 
+      });
+      }
     }
     const mediationBoardData = {
       drc_id, 

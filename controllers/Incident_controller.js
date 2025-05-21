@@ -75,13 +75,6 @@ export const Create_Incident = async (req, res) => {
     "Special",
   ];
 
-  // if (DRC_Action === "collect CPE" && !Contact_Number) {
-  //   return res.status(400).json({
-  //     status: "error",
-  //     message: "Contact_Number is required when DRC_Action is 'collect CPE'.",
-  //   });
-  // }
-
   const session = await mongoose.startSession(); // Start a session for transaction
   try {
     session.startTransaction(); // Start the transaction
@@ -134,7 +127,9 @@ export const Create_Incident = async (req, res) => {
     };
 
     if (DRC_Action === "collect CPE") {
-      newIncidentData.Contact_Number = Contact_Number;
+      if (Contact_Number) {
+        newIncidentData.Contact_Number = Contact_Number;
+      }
     }
 
     const newIncident = new Incident_log(newIncidentData);
