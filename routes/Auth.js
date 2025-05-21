@@ -32,5 +32,5 @@ router.post("/logout", (req, res) => {
 
 // User Data Route
 router.get("/user", verifyToken, getUserData);
-
+ 
 export default router;

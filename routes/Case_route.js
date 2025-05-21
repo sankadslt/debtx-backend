@@ -89,6 +89,9 @@ import {
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+  getWithdrawalCaseLogs,
+ 
+  updateWithdrawalCase,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -10392,5 +10395,7 @@ router.post(
   "/Create_Task_For_Request_Responce_Log_Download",
   Create_Task_For_Request_Responce_Log_Download
 );
+router.post('/List_All_Write_off_Cases', getWithdrawalCaseLogs,);
+router.patch('/Create_Wthdraw_case',updateWithdrawalCase);
 
 export default router;

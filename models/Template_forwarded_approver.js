@@ -23,7 +23,7 @@ const statusSchema = new Schema({
         required: true,
     },
     status_date: {
-        type: Date, // Change to Date type
+        type: Date, 
         required: true,
     },
     status_edit_by: {
