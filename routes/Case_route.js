@@ -23,6 +23,7 @@ import {
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
   updateLastRoDetails,
+  getAbandonedCaseLogs,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -10394,5 +10395,10 @@ router.post(
 );
 
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
+
+router.post(
+  "/Get_Abandoned_Case_Logs",
+  getAbandonedCaseLogs
+);
 
 export default router;

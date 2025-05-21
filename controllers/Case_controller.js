@@ -42,6 +42,7 @@ import Incident from "../models/Incident.js";
 import CaseMonitor from "../models/Case_Monitor.js";
 import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
+import CaseDetails from "../models/Case_details.js";
 
 /**
  * Inputs:
@@ -9413,5 +9414,94 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   } catch (error) {
     return res.status(500).json({ status: "error", message: "Internal Server Error", error: error.message });
   }
-}
+};
+
+export const getAbandonedCaseLogs = async (req, res) => {
+  try {
+    const { fromDate, toDate, status, accountNumber, page = 1, limit = 10 } = req.body;
+
+    if (!fromDate || !toDate || !status || !accountNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: fromDate, toDate, status, accountNumber.",
+      });
+    }
+
+    const validStatuses = ["pending abandoned", "abandoned","pending write off"]
+    const normalizedStatus = String(status).trim().toLowerCase();
+
+    if (!validStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be either 'pending abandoned' or 'abandoned'.",
+      });
+    }
+
+    const startDate = new Date(fromDate);
+    const endtDate = new Date(toDate);
+
+    if (isNaN(startDate.getTime()) || isNaN(endtDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format. Please use 'YYYY-MM-DD'.",
+      });
+    }
+
+    const parsedAccountNumber = parseInt(accountNumber.toString().trim(), 10);
+
+    if (isNaN(parsedAccountNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "Account number must be a valid number.",
+      });
+    }
+
+    const filter = {
+      created_dtm: { $gte: startDate, $lte: endtDate },
+      case_current_status: new RegExp(`^${normalizedStatus}$`, "i"),
+      account_no: parsedAccountNumber,
+    };
+
+    const skip = (page - 1) * limit;
+
+    // Fetch raw documents
+    const [total, rawCases] = await Promise.all([
+      CaseDetails.countDocuments(filter),
+      CaseDetails.find(filter)
+        .select("case_id case_current_status bss_arrears_amount remark approve")
+        .skip(skip)
+        .limit(Number(limit)),
+    ]);
+
+    // Transform data for table
+    const formattedCases = rawCases.map(doc => ({
+      _id: doc._id,
+      case_id: doc.case_id,
+      case_current_status: doc.case_current_status,
+      bss_arrears_amount: doc.bss_arrears_amount,
+      remark: Array.isArray(doc.remark) && doc.remark.length > 0 ? doc.remark[0].remark : null,
+      approve: Array.isArray(doc.approve) && doc.approve.length > 0
+        ? { approved_on: doc.approve[0].approved_on || null }
+        : { approved_on: null },
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: formattedCases.length > 0 ? "Records fetched successfully." : "No records found.",
+      data: formattedCases,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getAbandonedCaseLogs:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
 
