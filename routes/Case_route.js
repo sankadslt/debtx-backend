@@ -91,8 +91,10 @@ import {
   Create_Task_For_Request_Responce_Log_Download,
   getWithdrawalCaseLogs,
  
-  updateWithdrawalCase,
+  
+  WithdrawCase,
 } from "../controllers/Case_controller.js";
+import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
@@ -10396,8 +10398,15 @@ router.post(
   Create_Task_For_Request_Responce_Log_Download
 );
 router.post('/List_All_Write_off_Cases', getWithdrawalCaseLogs,);
-router.patch('/Create_Wthdraw_case',updateWithdrawalCase);
+router.patch('/Create_Wthdraw_case',verifyToken,WithdrawCase);
 
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 
 export default router;
+
+
+
+
+
+
+

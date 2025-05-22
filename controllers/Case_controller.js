@@ -44,6 +44,7 @@ import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
 import CaseDetails from "../models/Case_details.js";
 import TemplateForwardedApprover from "../models/Template_forwarded_approver.js";
+import jwt from "jsonwebtoken";
 /**
  * Inputs:
  * - None
@@ -9443,3 +9444,248 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
+
+export const getWithdrawalCaseLogs = async (req, res) => {
+  try {
+    const {
+      fromDate,
+      toDate,
+      status,
+      accountNumber,
+      page = 1,
+      limit = 10,
+    } = req.body;
+
+    if (!fromDate || !toDate || !status || !accountNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: fromDate, toDate, status, and accountNumber.",
+      });
+    }
+
+    const validStatuses = ["approval pending write off","write off", "pending write off"];
+    const normalizedStatus = String(status).trim().toLowerCase();
+
+    if (!validStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be either 'pending' or 'pending write-off'.",
+      });
+    }
+
+    const startDate = new Date(fromDate);
+    const endDate = new Date(toDate);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format. Please use 'YYYY-MM-DD'.",
+      });
+    }
+
+    const parsedAccountNumber = parseInt(accountNumber.toString().trim(), 10);
+    if (isNaN(parsedAccountNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "Account number must be a valid number.",
+      });
+    }
+
+    const filter = {
+      created_dtm: { $gte: startDate, $lte: endDate },
+      case_current_status: new RegExp(`^${normalizedStatus}$`, "i"),
+      account_no: parsedAccountNumber,
+    };
+
+    const skip = (page - 1) * limit;
+
+    const [total, rawCases] = await Promise.all([
+      CaseDetails.countDocuments(filter),
+      CaseDetails.find(filter)
+        .select("case_id case_current_status account_no current_arrears_amount remark approve case_status")
+        .skip(skip)
+        .limit(Number(limit)),
+    ]);
+
+    const formattedCases = rawCases.map(doc => {
+      const firstRemark = Array.isArray(doc.remark) && doc.remark.length > 0 ? doc.remark[0].remark : null;
+      const approvedOn = Array.isArray(doc.approve) && doc.approve.length > 0 ? doc.approve[0].approved_on : null;
+      
+
+    const sortedStatuses = (Array.isArray(doc.case_status) ? doc.case_status : [])
+    .filter(status => status?.created_dtm)
+    .sort((a, b) => new Date(b.created_dtm) - new Date(a.created_dtm));
+
+  const latestStatus = sortedStatuses.length > 0 ? sortedStatuses[0] : null;
+      return {
+        _id: doc._id,
+        case_id: doc.case_id,
+        case_current_status: doc.case_current_status,
+        account_no: doc.account_no,
+        current_arrears_amount: doc.current_arrears_amount,
+        remark: firstRemark,
+        approve: { approved_on: approvedOn || null },
+        Withdraw_on: latestStatus?.created_dtm || null,
+    Withdraw_by: latestStatus?.created_by || null,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: formattedCases.length > 0 ? "Records fetched successfully." : "No records found.",
+      data: formattedCases,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getWithdrawalCaseLogs:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+
+// export const updateWithdrawalCase = async (req, res) => {
+//   const { caseId, remark } = req.body;
+
+//   if (!caseId || !remark) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Case ID and remark are required.",
+//     });
+//   }
+
+//   try {
+//     const updatedCase = await CaseDetails.findOneAndUpdate(
+//       { case_id: caseId },
+//       {
+//         $push: {
+//           remark: {
+//             remark: remark,
+//             remark_added_by: "admin", // or req.user.name if you have auth
+//             remark_added_date: new Date(),
+//           },
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedCase) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Case not found.",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Remark added successfully.",
+//       data: updatedCase,
+//     });
+//   } catch (err) {
+//     console.error("Error updating remark:", err);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to update remark. Please try again later.",
+//     });
+//   }
+// };
+ 
+export const WithdrawCase = async (req, res) => {
+  const { caseId, remark } = req.body;
+  const currentUser = req.user?.username || "test_user";
+
+
+  if (!caseId || !remark) {
+    return res.status(400).json({
+      success: false,
+      message: "Case ID and remark are required.",
+    });
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // 1. Update CaseDetails
+    const updatedCase = await CaseDetails.findOneAndUpdate(
+      { case_id: caseId },
+      {
+        $push: {
+          remark: {
+            remark: remark,
+            remark_date: new Date(),
+            remark_edit_by: currentUser,
+          },
+          case_status: {
+            case_status: "Pending  Withdraw",
+            case_phase: "Pending  Withdraw",
+            updated_date: new Date(),
+            updated_by: currentUser,
+          },
+        },
+        $set: {
+          case_current_status: "Pending  Withdraw",
+        },
+      },
+      { new: true, session }
+    );
+
+    if (!updatedCase) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: "Case not found.",
+      });
+    }
+
+    // 2. Create new approval document
+    const newApproverDoc = new TmpForwardedApprover({
+      approver_reference: caseId,
+      created_by: currentUser,
+      approver_type: "Case Withdrawal Approval",
+      approve_status: [{
+        status: "Open",
+        status_date: new Date(),
+        status_edit_by: currentUser,
+      }],
+      remark: [{
+        remark: remark,
+        remark_date: new Date(),
+        remark_edit_by: currentUser,
+      }],
+      approved_deligated_by: caseId,
+    });
+
+    await newApproverDoc.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: "Withdrawal request created successfully.",
+      data: {
+        updatedCase,
+        approverDoc: newApproverDoc,
+      },
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error in updateWithdrawalCase:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process withdrawal request",
+      error: err.message,
+    });
+  }
+};
