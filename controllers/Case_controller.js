@@ -6350,6 +6350,13 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
         }
       });
 
+      pipeline.push({
+        $match: {
+          'last_drc.drc_status': 'Active',
+          'last_drc.removed_dtm': null
+        }
+      });
+
       if (DRC) {
         pipeline.push({
           $match: {
