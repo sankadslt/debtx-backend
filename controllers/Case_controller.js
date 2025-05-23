@@ -5145,8 +5145,8 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         case_current_status: detail.case_current_status,
         account_no: detail.account_no,
         current_arrears_amount: detail.current_arrears_amount,
-        created_dtm: selectedDrc.created_dtm,
-        end_dtm: selectedDrc.end_dtm || "",
+        created_dtm: selectedDrc?.created_dtm,
+        end_dtm: selectedDrc?.end_dtm || "",
         drc: selectedDrc || null
       };
     });
