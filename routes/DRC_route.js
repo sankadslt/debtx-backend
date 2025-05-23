@@ -39,7 +39,7 @@ import {
   // getDRCWithServicesByDRCId,
   // getDRCDetails,
   // getDRCDetailsById,
-  // getActiveDRCDetails,
+  getActiveDRCDetails,
   // endDRC,
   // DRCRemarkDetailsById 
 
@@ -1019,7 +1019,7 @@ const router = Router();
  *                       type: string
  *                       example: null
  */
-// router.get("/Active_DRC_Details", getActiveDRCDetails);
+router.get("/Active_DRC_Details", getActiveDRCDetails);
 
 
 
