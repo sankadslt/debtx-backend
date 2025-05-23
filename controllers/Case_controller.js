@@ -5145,8 +5145,8 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         case_current_status: detail.case_current_status,
         account_no: detail.account_no,
         current_arrears_amount: detail.current_arrears_amount,
-        created_dtm: selectedDrc.created_dtm,
-        end_dtm: selectedDrc.end_dtm || "",
+        created_dtm: selectedDrc?.created_dtm,
+        end_dtm: selectedDrc?.end_dtm || "",
         drc: selectedDrc || null
       };
     });
@@ -6347,6 +6347,13 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       pipeline.push({
         $addFields: {
           last_drc: { $arrayElemAt: ['$drc', -1] }
+        }
+      });
+
+      pipeline.push({
+        $match: {
+          'last_drc.drc_status': 'Active',
+          'last_drc.removed_dtm': null
         }
       });
 
