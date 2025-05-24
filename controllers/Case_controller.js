@@ -1742,6 +1742,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           created_dtm: caseData.last_drc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
           area: caseData.area,
+          action_type: caseData.action_type,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
           ro_name: caseData.recovery_officer?.[0]?.ro_name || null,
@@ -2071,6 +2072,22 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         });
       }
     }
+
+    // Get all relevant negotiations for the current DRC
+    const relevantNegotiations = (caseData.ro_cpe_collect || []).filter(
+      roneg => roneg.drc_id === Number(drc_id)
+    );
+
+    // Attach matching negotiation to each ref_product
+    const refProductsCPECollect = (caseData.ref_products || []).map(product => {
+      const negotiation = relevantNegotiations.filter(
+        roneg => roneg.product_label === product.product_label
+      );
+      return {
+        ...product.toObject?.() || product,  // Convert Mongoose subdoc if needed
+        negotiation: negotiation || null,
+      };
+    });
     
     // Format case details
     const formattedCaseDetails = {
@@ -2080,8 +2097,8 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       current_arrears_amount: caseData.current_arrears_amount,
       last_payment_date: caseData.last_payment_date,
       rtom: caseData.rtom || null,
-      ref_products: caseData.ref_products || null,
-      // ro_negotiation: caseData.ro_negotiation || null,
+      ref_products: refProductsCPECollect || null,
+      ro_negotiation: caseData.ro_negotiation || null,
       ro_negotiation: caseData.ro_negotiation 
         ? caseData.ro_negotiation.filter(ronegotiation => ronegotiation.drc_id === Number(drc_id))
         : null,
@@ -4626,13 +4643,23 @@ export const Mediation_Board = async (req, res) => {
       created_by,
     } = req.body;
 
-    if (!case_id || !drc_id || !customer_available) {
+    if (!case_id || !drc_id) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ 
         status: "error",
         message: "Missing required fields: case_id, drc_id, customer_available" 
       });
+    };
+    if(handed_over_non_settlemet === "no" || !handed_over_non_settlemet){
+      if (!customer_available) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: customer_available" 
+      });
+      }
     }
     const mediationBoardData = {
       drc_id, 
@@ -5118,8 +5145,8 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         case_current_status: detail.case_current_status,
         account_no: detail.account_no,
         current_arrears_amount: detail.current_arrears_amount,
-        created_dtm: selectedDrc.created_dtm,
-        end_dtm: selectedDrc.end_dtm || "",
+        created_dtm: selectedDrc?.created_dtm,
+        end_dtm: selectedDrc?.end_dtm || "",
         drc: selectedDrc || null
       };
     });
@@ -6320,6 +6347,13 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       pipeline.push({
         $addFields: {
           last_drc: { $arrayElemAt: ['$drc', -1] }
+        }
+      });
+
+      pipeline.push({
+        $match: {
+          'last_drc.drc_status': 'Active',
+          'last_drc.removed_dtm': null
         }
       });
 
