@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const StatusSchema = new mongoose.Schema({
-  User_Interaction_Status: {type: String, enum: ["Open", "Error", "Complete", "Seen"], default: "open"},
+  User_Interaction_Status: {type: String, enum: ["Open", "Error", "Complete", "Seen"], default: "Open"},
   created_dtm: { type: Date, required: true },
 }, { _id: false });
 
@@ -37,7 +37,6 @@ const interactionSchema = new mongoose.Schema(
     parameters: {
       type: Map,
       of: mongoose.Schema.Types.Mixed,
-      default: {},
       default: {},
     },
     Rejected_Reason: { type: String, default: null },

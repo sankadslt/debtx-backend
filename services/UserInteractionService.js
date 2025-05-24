@@ -9,8 +9,6 @@ export const createUserInteractionFunction = async ({
   User_Interaction_Type,
   delegate_user_id,
   Created_By,
-  User_Interaction_Status = "Open",
-  User_Interaction_Status_DTM,
   session,
   ...dynamicParams
 }) => {
@@ -36,11 +34,6 @@ export const createUserInteractionFunction = async ({
     if (!Interaction_Log_ID) {
       throw new Error("Failed to generate Interaction_Log_ID.");
     }
-
-    const User_Interaction_Status_schema = {
-      User_Interaction_Status,
-      created_dtm:User_Interaction_Status_DTM
-    };
     const interactionData = {
       Interaction_Log_ID,
       Interaction_ID,
@@ -48,9 +41,11 @@ export const createUserInteractionFunction = async ({
       parameters: dynamicParams, 
       delegate_user_id,
       Created_By,
-      User_Interaction_Status:User_Interaction_Status_schema,
+      User_Interaction_Status: [{
+        User_Interaction_Status: "Open",
+        created_dtm: new Date()
+      }]
     };
-
     // Insert into User_Interaction_Log collection
     const newInteraction = new User_Interaction_Log(interactionData);
     await newInteraction.save({ session });
@@ -58,7 +53,6 @@ export const createUserInteractionFunction = async ({
     // Insert into User_Interaction_Progress_Log collection
     const newInteractionInProgress = new User_Interaction_Progress_Log(interactionData);
     await newInteractionInProgress.save({ session });
-
    
     return {
       status: "success",
