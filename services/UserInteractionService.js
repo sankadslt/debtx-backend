@@ -37,7 +37,10 @@ export const createUserInteractionFunction = async ({
       throw new Error("Failed to generate Interaction_Log_ID.");
     }
 
-  
+    const User_Interaction_Status_schema = {
+      User_Interaction_Status,
+      created_dtm:User_Interaction_Status_DTM
+    };
     const interactionData = {
       Interaction_Log_ID,
       Interaction_ID,
@@ -45,8 +48,7 @@ export const createUserInteractionFunction = async ({
       parameters: dynamicParams, 
       delegate_user_id,
       Created_By,
-      User_Interaction_Status,
-      User_Interaction_Status_DTM,
+      User_Interaction_Status:User_Interaction_Status_schema,
     };
 
     // Insert into User_Interaction_Log collection
