@@ -766,7 +766,7 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
     const activeRTOMs = await Promise.all(
       recoveryOfficers.flatMap(async (ro) => {
         // Filter `rtoms_for_ro` by the last status being "Active"
-        const activeRTOMDetails = ro.rtoms_for_ro
+        const activeRTOMDetails = (ro.rtoms_for_ro || [])
           .filter((r) => {
             const lastStatus = r.status?.[r.status.length - 1];
             return lastStatus && lastStatus.status === "Active"; // Check if the last status is "Active"

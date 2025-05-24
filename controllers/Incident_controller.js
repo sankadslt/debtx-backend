@@ -377,7 +377,7 @@ export const Upload_DRS_File = async (req, res) => {
       Uploaded_Dtm: moment().toDate(),
       File_Path: uploadPath,
       Forwarded_File_Path: forwardedFilePath,
-      File_Status: "Open",
+      File_Status: "Upload Open",
     });
 
     await newFileLog.save({ session });
