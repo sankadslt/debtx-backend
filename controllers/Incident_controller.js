@@ -126,10 +126,8 @@ export const Create_Incident = async (req, res) => {
       Created_Dtm: moment().toDate(),
     };
 
-    if (DRC_Action === "collect CPE") {
-      if (Contact_Number) {
-        newIncidentData.Contact_Number = Contact_Number;
-      }
+    if (DRC_Action === "collect CPE" && Contact_Number) {
+      newIncidentData.Contact_Number = Contact_Number;
     }
 
     const newIncident = new Incident_log(newIncidentData);

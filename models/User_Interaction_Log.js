@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+const StatusSchema = new mongoose.Schema({
+  User_Interaction_Status: {type: String, enum: ["Open", "Error", "Complete", "Seen"], default: "open"},
+  created_dtm: { type: Date, required: true },
+}, { _id: false });
+
 const interactionSchema = new mongoose.Schema(
   {
     doc_version : {type:Number, required: true, default: 1},
@@ -28,24 +33,16 @@ const interactionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    User_Interaction_Status: {
-      type: String,
-      enum: ["Open", "Error", "Complete"],
-      default: "open",
-    },
+    User_Interaction_Status: [StatusSchema],
     parameters: {
       type: Map,
       of: mongoose.Schema.Types.Mixed,
       default: {},
       default: {},
     },
-    User_Interaction_Status_DTM: {
-      type: Date,
-      default: null,
-    },
     Rejected_Reason: { type: String, default: null },
     Rejected_By: { type: String, default: null },
-    // Request_Mode: {
+    // Interaction_Mode: {
     //   type: String,
     //   enum: ["Negotiation", "Mediation Board"],
     //   default: "null",
