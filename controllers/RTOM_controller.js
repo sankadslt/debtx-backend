@@ -98,7 +98,6 @@ export const getRTOMDetailsById = async (req, res) => {
   }
 };
 
-
 // Function to register a new RTOM
 export const registerRTOM = async (req, res) => {
   const { area_name, rtom_abbreviation, rtom_contact_number, rtom_fax_number, created_dtm } = req.body; // Extract created_dtm from the request body
@@ -188,7 +187,6 @@ export const registerRTOM = async (req, res) => {
     });
   }
 };
-
 
 // // Function to update the status of an RTOM
 // export const updateRTOMStatus = async (req, res) => {
@@ -454,7 +452,6 @@ export const getAllActiveDRCs = async (req, res) => {
   }
 };
 
-
 // Function to get all Recovery Officers for a given RTOM ID
 export const getAllROsByRTOMID = async (req, res) => {
   const { rtom_id } = req.body; // Use req.body instead of req.params
@@ -518,7 +515,6 @@ export const getAllROsByRTOMID = async (req, res) => {
     });
   }
 };
-
 
 // Function to get all RTOMs using their DRC ID
 export const getAllRTOMsByDRCID = async (req, res) => {
@@ -598,24 +594,27 @@ export const getActiveRTOMDetails = async (req, res) => {
     const activeRTOMs = await Rtom.find({ rtom_status: "Active" });
 
     // Check if any active RTOMs are found
-    if (activeRTOMs.length === 0) {
+    if (!activeRTOMs || activeRTOMs.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No active RTOM(s) found.",
+        count: 0,
+        data: [],
       });
     }
 
-    // Return the count of active RTOMs
+    // Return the count of active RTOMs and the data
     return res.status(200).json({
       status: "success",
-      message: "Count of active RTOM(s) retrieved successfully.",
-      data: activeRTOMs, // Return the count in an object
+      message: "Active RTOM(s) retrieved successfully.",
+      count: activeRTOMs.length,
+      data: activeRTOMs,
     });
   } catch (error) {
     console.error("Unexpected error:", error.message);
     return res.status(500).json({
       status: "error",
-      message: "Internal server error occurred while fetching active RTOM count.",
+      message: "Internal server error occurred while fetching active RTOM(s).",
       error: error.message,
     });
   }
@@ -732,7 +731,6 @@ export const suspend_RTOM = async (req, res) => {
   }
 };
 
-
 // get all active RTOMs by DRC ID
 export const getAllActiveRTOMsByDRCID = async (req, res) => {
   const { drc_id } = req.body;
@@ -766,7 +764,7 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
     const activeRTOMs = await Promise.all(
       recoveryOfficers.flatMap(async (ro) => {
         // Filter `rtoms_for_ro` by the last status being "Active"
-        const activeRTOMDetails = (ro.rtoms_for_ro || [])
+        const activeRTOMDetails = ro.rtoms_for_ro
           .filter((r) => {
             const lastStatus = r.status?.[r.status.length - 1];
             return lastStatus && lastStatus.status === "Active"; // Check if the last status is "Active"

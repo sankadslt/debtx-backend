@@ -8035,3 +8035,32 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
+function negotiation_condition_function2(arrears_amount, drc_validity_period, region) {
+  let case_status = "";
+
+  if (arrears_amount < 50000) {
+    if (drc_validity_period > 3) {
+      case_status = "DRC Expired - Low Arrears";
+    } else {
+      case_status = "DRC Valid - Low Arrears";
+    }
+  } else if (arrears_amount > 1000000) {
+    case_status = "Pending FTL LOD";
+  } else {
+    if (region === "metro") {
+      case_status = "RO Negotiation FMB Pending";
+    } else if (region === "region") {
+      if (arrears_amount > 100000) {
+        case_status = "RO Negotiation FMB Pending";
+      } else {
+        if (drc_validity_period > 3) {
+          case_status = "DRC Expired - Region";
+        } else {
+          case_status = "DRC Valid - Region";
+        }
+      }
+    }
+  }
+
+  return case_status;
+}
