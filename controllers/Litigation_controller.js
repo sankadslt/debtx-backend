@@ -425,7 +425,7 @@ export const createLegalSubmission = async (req, res) => {
                 },
             }
             },
-            { $set: { case_current_status: newStatus } },
+            { $set: { case_current_status: newStatus, case_current_phase:"Litigation" } },
             { session, new: true }
         );
 
@@ -642,7 +642,8 @@ export const createLegalDetails = async (req, res) => {
                     },
                 },
                 $set: {
-                    case_current_status: "Litigation"
+                    case_current_status: "Litigation",
+                    case_current_phase:"Litigation",
                 }
             },
             { session, new: true } // ✅ correct placement of session and options
@@ -768,6 +769,7 @@ export const createLegalFail = async (req, res) => {
                 },
                 $set: {
                     case_current_status: "Pending Approval Write-Off",
+                    case_current_phase: "Litigation",
                 },
             },
             { session, new: true }
