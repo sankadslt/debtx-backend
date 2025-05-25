@@ -343,6 +343,7 @@ const caseDetailsSchema = new Schema({
   remark: [remarkSchema],
   approve: [approvalSchema],
   case_status: [caseStatusSchema],
+  case_current_phase:{ type: String, required: true },
   drc: [drcSchema],
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 

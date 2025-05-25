@@ -1277,7 +1277,7 @@ export const Create_Case_for_incident= async (req, res) => {
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
         commission: 0,
         Proceed_By: incidentData.Proceed_By || "user",
-       
+        case_current_phase:"Register",
         case_current_status: "Open No Agent",
         filtered_reason: incidentData.Filtered_Reason || null,
         ref_products: incidentData.Product_Details.length > 0
@@ -1315,6 +1315,7 @@ export const Create_Case_for_incident= async (req, res) => {
         status_reason: "Incident forward to case",  
         created_dtm: new Date(),  
         created_by: Proceed_By,   
+        case_phase: "Register",
       };
       newCase.case_status.push(newCaseStatus); 
       await newCase.save({ session });
@@ -1396,6 +1397,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       commission: 0,
      // case_current_status: incidentData.Incident_Status,
       case_current_status: "LIT",
+      case_current_phase:"",
       filtered_reason: incidentData.Filtered_Reason || null,
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
@@ -1410,7 +1412,8 @@ export const Forward_Direct_LOD = async (req, res) => {
         case_status: "LIT",
         status_reason: "Forward Direct LOD",
         created_dtm: new Date(),
-        created_by: user
+        created_by: user,
+        case_phase:""
       }
     };
     
@@ -1517,6 +1520,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
       case_current_status: "Open No Agent",
+      case_current_phase:"Register",
       filtered_reason: incidentData.Filtered_Reason || null,
       ref_products: incidentData.Product_Details.map(product => ({
         service: product.Service_Type || "Unknown",
@@ -1531,7 +1535,8 @@ export const Forward_CPE_Collect = async (req, res) => {
         case_status: "Open No Agent", 
         status_reason: "Incident forwarded to CPE Collect",  
         created_dtm: new Date(),
-        created_by: Proceed_By
+        created_by: Proceed_By,
+        case_phase:"Register",
       }
     };
     try {

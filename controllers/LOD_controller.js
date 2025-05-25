@@ -378,7 +378,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
 };
 
 export const List_Final_Reminder_Lod_Cases = async (req, res) => {
-  try {
+  try{
       const { case_status, date_type, date_from, date_to, current_document_type, pages } = req.body;
       const allowedStatusTypes = [
           "Initial LOD",
