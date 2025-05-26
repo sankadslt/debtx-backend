@@ -109,12 +109,11 @@
 
 // export default DRC;
 
-
 import { Schema, model } from "mongoose";
 
 const coordinatorSchema = new Schema({
   service_no: {
-    type: Number,
+    type: String,
     required: true,
     unique: true,
   },
