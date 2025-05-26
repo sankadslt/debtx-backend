@@ -2201,4 +2201,312 @@ export const listDRCAllCases = async (req, res) => {
   }
 };
 
+export const listROAllCases = async (req, res) => {
+  try {
+    const { status, pages, drc_id } = req.body;
+
+    // Validate required field
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required field: drc_id",
+        errors: {
+          code: 400,
+          description: "drc_id is required to filter recovery officers.",
+        },
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Build query with optional status and required drc_id
+    const query = {
+      drc_id,
+      ...(status && { ro_status: status })
+    };
+
+    const recoveryOfficers = await Recovery_officer.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ ro_id: -1 });
+
+    const roDetails = recoveryOfficers.map(ro => {
+      const rtomArray = ro.rtoms_for_ro || [];
+      const activeRtomCount = rtomArray.filter(r => {
+        const lastStatus = Array.isArray(r.status) ? r.status.at(-1) : null;
+        return lastStatus?.status === "Active";
+      }).length;
+
+      return {
+        ro_id: ro.ro_id,
+        ro_name: ro.ro_name,
+        ro_contact_no: ro.ro_login_contact_no,
+        ro_nic: ro.ro_nic,
+        status: ro.ro_status,
+        drc_id: ro.drc_id,
+        rtom_counts: {
+          active: activeRtomCount,
+          total: rtomArray.length
+        },
+        created_at: ro.createdAt
+      };
+    });
+
+    const totalRecords = await Recovery_officer.countDocuments(query);
+    const totalPages = Math.ceil(totalRecords / (page === 1 ? 10 : 30));
+
+    return res.status(200).json({
+      status: "success",
+      message: "Recovery officers fetched successfully",
+      data: {
+        roDetails,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalRecords
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error in listROAllCases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch recovery officers",
+      error: error.message
+    });
+  }
+};
+
+// Get RO list of RO
+export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
+  const {ro_id} = req.body;
+  if (!ro_id) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'ro_id is required.' });
+  }
+
+  try {
+
+      const rtom_names_with_status = await Recovery_officer.aggregate([
+        { $match: { ro_id: ro_id } },
+        { $unwind: "$rtoms_for_ro" },
+        {
+          $lookup: {
+            from: "Rtom",
+            localField: "rtoms_for_ro.name",
+            foreignField: "rtom_abbreviation", 
+            as: "rtom_details", 
+          },
+        },
+        { $unwind: "$rtom_details" },
+        {
+          $project: {
+            name: "$rtoms_for_ro.name",
+            status: "$rtoms_for_ro.status",
+            rtom_id: "$rtom_details.rtom_id",
+          },
+        },
+      ]);
+      console.log(rtom_names_with_status);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'RTOM areas retrieved successfully.',
+        data: rtom_names_with_status,
+      });
+   
+  }catch (error){ 
+    console.error('Error retrieving RTOM areas:', error);
+    return res.status(500).json({ 
+      status: 'error',
+      message: 'Internal server error.', error: error.message });
+  }
+}
+
+// Controller to list recovery officer info by ro_id using POST method
+export const listROInfoByROId = async (req, res) => {
+    try {
+        const { ro_id } = req.body;
+
+        // Validate input
+        if (!ro_id) {
+            return res.status(400).json({ message: 'ro_id is required in the request body' });
+        }
+
+        // Fetch recovery officer
+        const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
+
+        if (!recoveryOfficer) {
+            return res.status(404).json({ message: 'Recovery Officer not found' });
+        }
+
+        // Format helper for dates
+        const formatDate = (date) => {
+            return date ? new Date(date).toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            }) : null;
+        };
+
+        // Map RTOM areas with their statuses
+        const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
+            name: rtom.rtom_name,
+            status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
+        }));
+
+        // Map remarks to log history
+        const log_history = (recoveryOfficer.remark || []).map(rem => ({
+            edited_on: formatDate(rem.remark_dtm),
+            action: rem.remark,
+            edited_by: rem.remark_by
+        }));
+
+        // Construct response matching the page
+        const response = {
+            added_date: formatDate(recoveryOfficer.ro_create_dtm),
+            recovery_officer_name: recoveryOfficer.ro_name,
+            nic: recoveryOfficer.ro_nic,
+            contact_no: recoveryOfficer.ro_login_contact_no,
+            email: recoveryOfficer.ro_login_email,
+            rtom_areas,
+            log_history
+        };
+
+        return res.status(200).json(response);
+    } catch (error) {
+        console.error('Error fetching recovery officer info:', error);
+        return res.status(500).json({ 
+            message: 'Internal server error',
+            error: error.message || error.toString()
+        });
+    }
+};
+
+// Create Recovery Officer
+export const CreateRO = async (req, res) => {
+  const { drc_id, ro_name, ro_login_email, ro_login_contact_no, ro_nic, ro_create_by, rtoms_for_ro } = req.body;
+
+  try {
+    // Validate required fields
+    if (!drc_id || !ro_name || !ro_login_contact_no || !ro_nic || !ro_create_by) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to add Recovery Officer due to missing fields.",
+        errors: { field_name: "All fields are required" },
+      });
+    }
+
+    // Establish MongoDB connection
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed.");
+    }
+
+    // Generate unique ro_id
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "ro_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
+
+    if (
+      !counterResult ||
+      !counterResult.seq ||
+      typeof counterResult.seq === "undefined"
+    ) {
+      throw new Error("Failed to generate ro_id.");
+    }
+
+    const ro_id = counterResult.seq;
+
+    const rtoms = Array.isArray(rtoms_for_ro)
+  ? rtoms_for_ro.map((rtom) => {
+      if (!rtom.rtom_id || !rtom.rtom_name || !rtom.rtom_status) {
+        throw new Error("Invalid RTOM structure in rtoms_for_ro.");
+      }
+      return {
+        rtom_id: rtom.rtom_id,
+        rtom_name: rtom.rtom_name,
+        rtom_status: rtom.rtom_status,
+        rtom_create_dtm: rtom.rtom_create_dtm,
+        rtom_create_by: rtom.rtom_create_by,
+        rtom_end_dtm: rtom.rtom_end_dtm || null,
+      };
+    })
+  : [];
+
+
+
+    // Create a new Recovery Officer document
+    const newRO = new Recovery_officer({
+      drc_id,
+      ro_id,
+      ro_name,
+      ro_login_email,
+      ro_login_contact_no,
+      ro_nic,
+      ro_status: "Active",
+      ro_create_by,
+      ro_create_dtm: new Date(),
+      rtom:rtoms,
+    });
+
+    // Save the new Recovery Officer to the database
+    await newRO.save();
+
+    // Return success response
+    res.status(201).json({
+      status: "success",
+      message: "Recovery Officer added successfully.",
+      
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to add Recovery Officer.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+// RO LIST
+export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
+    try {
+        const { drc_id } = req.body;
+
+        if (!drc_id) {
+            return res.status(400).json({ message: 'drc_id is required' });
+        }
+
+        const roList = await Recovery_officer.find({ drc_id })
+            .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
+
+        const formattedList = roList.map(ro => {
+            //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
+            return {
+                ro_name: ro.ro_name,
+                status: ro.ro_status,
+                ro_end_dtm: ro.ro_end_dtm,
+                ro_contact_no: ro.ro_login_contact_no, 
+            };
+        });
+
+        res.status(200).json(formattedList);
+    } catch (error) {
+        console.error('Error fetching RO list:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 
