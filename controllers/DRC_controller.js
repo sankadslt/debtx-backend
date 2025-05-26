@@ -1295,8 +1295,13 @@ export const List_All_DRC_Details = async (req, res) => {
   try {
     const { status } = req.body;
 
-    // 1. Get DRCs filtered by status
-    const drcList = await DRC.find({ drc_status: status });
+    // Only add filter if status is defined and non-empty
+    const filter = status ? { drc_status: status } : {};
+
+    const drcList = await DRC.find(filter);
+
+    // // 1. Get DRCs filtered by status
+    // const drcList = await DRC.find({ drc_status: status });
 
     // 2. Count ROs, RTOMs, and services for each DRC
     const responseData = await Promise.all(
