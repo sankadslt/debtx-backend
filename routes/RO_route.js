@@ -868,7 +868,6 @@ router.post("/List_Active_RTOM_Ownned_By_RO",List_Active_RTOM_Ownned_By_RO);
  *                   type: string
  *                   example: Detailed error message.
  */
-
 // Route to retrieve recovery officer details by DRC ID
 router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
 
@@ -993,7 +992,6 @@ router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
  *                   type: string
  *                   example: Detailed error message.
  */
-
 // Route to retrieve active recovery officer details by DRC ID
 router.post("/List_Active_RO_Owned_By_DRC", getActiveRODetailsByDrcID);
 
@@ -1328,9 +1326,6 @@ router.post("/Issue_RTOM_To_RO",Issue_RTOM_To_RO);
  *                       type: string
  *                       example: Detailed error message here.
  */
-
-
-
 // Route to register recovery officers
 router.post("/Register_RO", RegisterRO);
 
