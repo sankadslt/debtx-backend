@@ -1569,7 +1569,7 @@ export const assignROToCase = async (req, res) => {
 
     // const assigned_by = "System";
     // Extract the RTOM areas assigned to the recovery officer
-    const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
+    const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name);
 
     const errors = [];
     const updates = [];

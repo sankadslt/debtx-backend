@@ -749,55 +749,18 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
       });
     }
 
-    const drc_name = drc.drc_name;
-
-    // Step 2: Find all Recovery Officers assigned to the drc_name
-    const recoveryOfficers = await RO.find({ drc_name });
-    if (recoveryOfficers.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No Recovery Officers found for this DRC name.",
-      });
-    }
-
-    // Step 3: Extract unique RTOMs whose last status is "Active"
-    const activeRTOMs = await Promise.all(
-      recoveryOfficers.flatMap(async (ro) => {
-        // Filter `rtoms_for_ro` by the last status being "Active"
-        const activeRTOMDetails = ro.rtoms_for_ro
-          .filter((r) => {
-            const lastStatus = r.status?.[r.status.length - 1];
-            return lastStatus && lastStatus.status === "Active"; // Check if the last status is "Active"
-          })
-          .map((r) => ({ area_name: r.name }));
-
-        // Fetch RTOM details from the Rtom collection
-        return await Promise.all(
-          activeRTOMDetails.map(async (r) => {
-            const rtom = await Rtom.findOne({ area_name: r.area_name });
-            return rtom ? { rtom_id: rtom.rtom_id, area_name: r.area_name } : null;
-          })
-        );
-      })
-    );
-
-    // Flatten the array, filter out nulls, and ensure uniqueness
-    const uniqueActiveRTOMs = [
-      ...new Set(activeRTOMs.flat().filter((r) => r !== null).map((r) => JSON.stringify(r))),
-    ].map((e) => JSON.parse(e));
-
-    if (uniqueActiveRTOMs.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No active RTOMs found for the specified Recovery Officers.",
-      });
-    }
+    const activeRTOMs = drc.rtom
+    .filter(rtom => rtom.rtom_status === "Active")
+    .map(({ rtom_id, rtom_name }) => ({
+      rtom_id,
+      rtom_name
+    }));
 
     // Return the filtered RTOMs
     return res.status(200).json({
       status: "success",
       message: "Active RTOMs retrieved successfully.",
-      data: uniqueActiveRTOMs,
+      data: activeRTOMs,
     });
     
   } catch (error) {
