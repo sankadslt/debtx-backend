@@ -708,8 +708,39 @@ export const List_All_DRC_Details = async (req, res) => {
   }
 };
 
+export const getUserIdOwnedByDRCId = async (req, res) => {
+  const { drc_id } = req.body;
 
+  try {
+    // Validate the drc_id in the request body
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID is required.",
+      });
+    }
 
+    // Find the DRC document by drc_id
+    const drc = await DRC.findOne(
+      { 
+        drc_id: drc_id, 
+        'slt_coordinator.coordinator_end_dtm': null,
+        
+      },
+      
+    ).select("user_id username email");
 
-
-
+    if (!drc) {
+      return res.status(200).json({
+        status: "success",
+        message: `No DRC found with the given drc_id: ${drc_id}`,
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching DRC details:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch DRC details. Please try again later.",
+    });
+  }
+};  
