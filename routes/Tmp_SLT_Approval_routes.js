@@ -179,4 +179,6 @@ router.post("/Obtain_Nominee", getApprovalUserId);
 
 router.post("/Obtain_Batch_Nominee", getBatchApprovalUserId);
 
+router.post("/Obtain_User_Id_List_Owned_By_Drc_Id", )
+
 export default router;
