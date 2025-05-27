@@ -142,6 +142,158 @@ import moment from "moment";
 //   }
 // };
 
+export const registerDRC = async (req, res) => {
+  const { 
+    drc_name, 
+    drc_business_registration_number, 
+    drc_address, 
+    drc_contact_no, 
+    drc_email, 
+    create_by,
+    slt_coordinator,
+    services,
+    rtom
+  } = req.body;
+
+  try {
+    // Validate required fields
+    if (!drc_name || !drc_business_registration_number || !drc_address || 
+        !drc_contact_no || !drc_email || !create_by || 
+        !slt_coordinator || !services || !rtom) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to register DRC.",
+        errors: {
+          field_name: "All fields are required",
+        },
+      });
+    }
+
+    // Default values
+    const drc_status = "Active"; // Default to Active status
+    const create_on = new Date(); // Current date and time
+
+    // Connect to MongoDB
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+
+    // Generate unique DRC ID
+    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      { _id: "drc_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    console.log("Counter Result:", counterResult);
+
+    // Fix: Check if counterResult has value property or seq directly
+    const drc_id = counterResult.value ? counterResult.value.seq : counterResult.seq;
+    
+    if (!drc_id) {
+      throw new Error("Failed to generate drc_id");
+    }
+
+    // Validate sub-documents
+    // Validate coordinator data
+    if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
+      throw new Error("At least one SLT coordinator is required");
+    }
+
+    // Validate services data
+    if (!Array.isArray(services) || services.length === 0) {
+      throw new Error("At least one service is required");
+    }
+
+    // Validate RTOM data
+    if (!Array.isArray(rtom) || rtom.length === 0) {
+      throw new Error("At least one RTOM is required");
+    }
+
+    // Validate rtom_billing_center_code
+    for (const r of rtom) {
+      if (!r.rtom_billing_center_code) {
+        throw new Error("RTOM billing center code is required");
+      }
+    }
+
+    // Save data to MongoDB
+    const newDRC = new DRC({
+      doc_version: 1,
+      drc_id,
+      drc_name,
+      drc_business_registration_number,
+      drc_address,
+      drc_contact_no,
+      drc_email,
+      drc_status,
+      create_by,
+      create_on,
+      drc_end_dtm: null,
+      drc_end_by: null,
+      slt_coordinator: slt_coordinator.map(coord => ({
+        service_no: coord.service_no,
+        slt_coordinator_name: coord.slt_coordinator_name,
+        slt_coordinator_email: coord.slt_coordinator_email,
+        coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
+        coordinator_create_by: coord.coordinator_create_by || create_by,
+        coordinator_end_by: coord.coordinator_end_by || null,
+        coordinator_end_dtm: coord.coordinator_end_dtm || null
+      })),
+      services: services.map(service => ({
+        service_type: service.service_type,
+        service_status: service.service_status || "Active",
+        create_by: service.create_by || create_by,
+        create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
+        status_update_dtm: service.status_update_dtm || new Date(),
+        status_update_by: service.status_update_by || create_by
+      })),
+      rtom: rtom.map(r => ({
+        rtom_id: r.rtom_id,
+        rtom_name: r.rtom_name,
+        rtom_status: r.rtom_status || "Active",
+        rtom_billing_center_code: r.rtom_billing_center_code,
+        create_by: r.create_by || create_by,
+        create_dtm: r.create_dtm || new Date(),
+        status_update_by: r.status_update_by || create_by,
+        status_update_dtm: r.status_update_dtm || new Date()
+      }))
+    });
+
+    await newDRC.save();
+
+    // Return success response
+    res.status(201).json({
+      status: "success",
+      message: "DRC registered successfully.",
+      data: {
+        drc_id,
+        drc_name,
+        drc_business_registration_number,
+        drc_address,
+        drc_contact_no,
+        drc_email,
+        drc_status,
+        create_by,
+        create_on,
+        slt_coordinator: newDRC.slt_coordinator,
+        services: newDRC.services,
+        rtom: newDRC.rtom
+      },
+    });
+  } catch (error) {
+    console.error("Unexpected error during DRC registration:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to register DRC.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
 // export const changeDRCStatus = async (req, res) => {
 //   const { drc_id, drc_status } = req.body;
 
@@ -226,6 +378,89 @@ import moment from "moment";
 //   }
 // };
 
+export const changeDRCStatus = async (req, res) => {
+  const { drc_id, drc_status } = req.body;
+
+  try {
+    if (!drc_id || typeof drc_status === 'undefined') {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to update DRC status.",
+        errors: {
+          code: 400,
+          description: "DRC ID and status are required.",
+        },
+      });
+    }
+
+    /*
+    // MySQL
+    const updateStatusInMySQL = () =>
+      new Promise((resolve, reject) => {
+        const query = `
+          UPDATE debt_recovery_company
+          SET drc_status = ?
+          WHERE drc_id = ?
+        `;
+        db.mysqlConnection.query(query, [drc_status, drc_id], (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+    const mysqlResult = await updateStatusInMySQL();
+
+    // Check if MySQL update affected any rows
+    if (mysqlResult.affectedRows === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Failed to update DRC status.",
+        errors: {
+          code: 404,
+          description: "No record found with the provided DRC ID.",
+        },
+      });
+    }
+    */
+
+    //  Mongo
+    const updateStatusInMongoDB = await DRC.findOneAndUpdate(
+      { drc_id },
+      { drc_status },
+      { new: true }
+    );
+
+    // Check if MongoDB update 
+    if (!updateStatusInMongoDB) {
+      return res.status(404).json({
+        status: "error",
+        message: "Failed to update DRC status in MongoDB.",
+        errors: {
+          code: 404,
+          description: "No DRC found in MongoDB for the given drc_id.",
+        },
+      });
+    }
+
+    // Response
+    return res.status(200).json({
+      status: "success",
+      message: "DRC status updated successfully in MongoDB.",
+      data: updateStatusInMongoDB,
+    });
+
+  } catch (err) {
+    console.error("Error occurred while updating DRC status:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to update DRC status.",
+      errors: {
+        code: 500,
+        description: "An unexpected error occurred. Please try again later.",
+      },
+    });
+  }
+};
 
 // export const getDRCDetails = async (req, res) => {
 //   //let mysqlData = null;
@@ -281,6 +516,61 @@ import moment from "moment";
 //     },
 //   });
 // };
+
+export const getDRCDetails = async (req, res) => {
+  //let mysqlData = null;
+  let mongoData = null;
+
+  //try {
+  //   mysqlData = await new Promise((resolve, reject) => {
+  //     const select_query = `SELECT * FROM debt_recovery_company`;
+  //     db.mysqlConnection.query(select_query, (err, result) => {
+  //       if (err) {
+  //         return reject(new Error("Error retieving DRC details"));
+  //       }
+  //       resolve(result);
+  //     });
+  //   });
+  // } catch (error) {
+  //   console.error("MySQL fetch error:", error.message);
+  // }
+
+  
+  try {
+    mongoData = await DRC.find({}).select('-services_of_drc');
+  } catch (error) {
+    console.error("Error fetching data from MongoDB:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve DRC details.",
+      errors: {
+        code: 500,
+        description: "Internal server error occurred while fetching DRC details.",
+      },
+    });
+  }
+
+  // if (!mysqlData || mysqlData.length === 0) {
+  //   return res.status(500).json({
+  //     status: "error",
+  //     message: "Failed to retrieve DRC details.",
+  //     errors: {
+  //       code: 500,
+  //       description: "Internal server error occurred while fetching DRC details.",
+  //     },
+  //   });
+  // }
+
+  return res.status(200).json({
+    status: "success",
+    message: "DRC details retrieved successfully.",
+    data: {
+     // mysql: mysqlData,
+        mongoData:mongoData
+      
+    },
+  });
+};
 
 
 // export const getDRCDetailsById = async(req, res) => {
@@ -350,6 +640,74 @@ import moment from "moment";
 //     },
 //   });
 // };
+
+export const getDRCDetailsById = async(req, res) => {
+
+  //let mysqlData = null;
+  let mongoData = null;
+  const { DRC_ID } = req.body;
+
+  if (!DRC_ID) {
+        return res.status(400).json({
+          status: "error",
+          message: "Failed to retrieve DRC details.",
+          errors: {
+            code: 400,
+            description: "DRC ID is required.",
+          },
+        });
+  }
+  // try {
+
+  //   mysqlData = await new Promise((resolve, reject) => {
+  //     const select_query = `SELECT * FROM debt_recovery_company
+  //                           WHERE drc_id = ?`;
+  //     db.mysqlConnection.query(select_query, [DRC_ID],(err, result) => {
+  //       if (err) {
+  //         return reject(new Error("Error retieving DRC details"));
+  //       }
+  //       resolve(result);
+  //     });
+  //   });
+  // } catch (error) {
+  //   console.error("MySQL fetch error:", error.message);
+  // }
+
+  
+  try {
+    mongoData = await DRC.find({drc_id:DRC_ID}).select('-services_of_drc');
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve DRC details.",
+      errors: {
+        code: 500,
+        description: "Internal server error occurred while fetching DRC details.",
+      },
+    });
+  }
+
+  // if (!mysqlData || mysqlData.length === 0) {
+  //   return res.status(500).json({
+  //     status: "error",
+  //     message: "Failed to retrieve DRC details.",
+  //     errors: {
+  //       code: 500,
+  //       description: "Internal server error occurred while fetching DRC details.",
+  //     },
+  //   });
+  // }
+
+  return res.status(200).json({
+    status: "success",
+    message: "DRC details retrieved successfully.",
+    data: {
+      //mysql: mysqlData,
+      mongoData:mongoData
+      
+    },
+  });
+};
 
 // /**
 //  * Inputs:
@@ -510,7 +868,102 @@ export const getActiveDRCDetails= async(req, res) => {
 //                       },
 //                     });
 // };  
+
+export const getDRCWithServicesByDRCId = async(req, res) => {
+
+
+  //let mysqlData = null;
+  let mongoData = null;
+  const  {DRC_ID} = req.body;   
   
+  if(!DRC_ID){
+    return res.status(404)
+    .json({ 
+      status:"error",
+      message: "Failed to retrieve DRC details.", 
+      errors:{
+        "code":404,
+        "description":"DRC with the given ID not found"
+      } 
+  });
+  }
+    // try {
+    //   mysqlData = await new Promise((resolve, reject) => {
+    //   const select_query = `
+    //       SELECT drc.*, 
+    //       CONCAT(
+    //         '[',
+    //          GROUP_CONCAT(
+    //           '{"id":', drc_s.id,
+    //           ',"service_id":', st.service_id,
+    //           ',"service_type":"', st.service_type, '"', 
+    //           ',"service_status":"', st.service_status, '"}' 
+    //           SEPARATOR ','
+    //             ),
+    //             ']'
+    //             )  AS services_of_drc            
+    //           FROM debt_recovery_company drc
+    //           LEFT JOIN company_owned_services drc_s ON drc.drc_id = drc_s.drc_id
+    //           LEFT JOIN service_type st ON drc_s.service_id = st.service_id
+    //           WHERE drc.drc_id = ?
+    //           GROUP BY drc.drc_id;
+    //           `;
+                      
+    //           db.mysqlConnection.query(select_query,[DRC_ID], (err, result) => {
+    //             if (err) {
+    //               return reject(new Error("Failed to retireve DRC details"));
+    //             }
+    //             const final_result = result.map(data => ({
+    //                   drc_id: data.drc_id,
+    //                   drc_abbreviation: data.drc_abbreviation,
+    //                   drc_name: data.drc_name,
+    //                   drc_status: data.drc_status,
+    //                   contact_no: data.contact_number,
+    //                   drc_end_date: data.drc_end_date,
+    //                   create_by: data.create_by,
+    //                   create_dtm: data.create_dtm,
+    //                   services_of_drc: JSON.parse(data.services_of_drc)  
+    //             }));
+    //               resolve(final_result);
+    //           });
+    //       });
+                  
+    //     } catch (error) {
+    //         console.error("MySQL fetch error:", error.message);
+    //     }
+       
+      try {
+            mongoData = await DRC.find({drc_id:DRC_ID});
+      } catch (error) {
+        return res.status(500).json({
+          status: "error",
+          message: "Failed to retrieve DRC details.",
+          errors: {
+            code: 500,
+            description: "Internal server error occurred while fetching DRC details.",
+          },
+        });
+      }
+                  
+          // if (!mysqlData || mysqlData.length === 0) {
+          //     return res.status(500).json({
+          //               status: "error",
+          //               message: "Failed to retrieve DRC details.",
+          //               errors: {
+          //                 code: 500,
+          //                 description: "Internal server error occurred while fetching DRC details.",
+          //               },
+          //             });
+          //           }
+                  
+              return res.status(200).json({
+                      status: "success",
+                      message: "DRC details retrieved successfully.",
+                      data: {
+                        mongoData: mongoData
+                      },
+                    });
+};  
 
 // export const getDRCWithServices = async (req, res) => {
  
@@ -593,9 +1046,91 @@ export const getActiveDRCDetails= async(req, res) => {
 //                         mongoData: mongoData
 //                       },
 //                     });
-// };           
-                  
+// };  
 
+export const getDRCWithServices = async (req, res) => {
+ 
+  //let mysqlData = null;
+  let mongoData = null;
+                  
+  // try {
+  //     mysqlData = await new Promise((resolve, reject) => {
+  //     const select_query = `
+  //         SELECT drc.*, 
+  //         CONCAT(
+  //           '[',
+  //            GROUP_CONCAT(
+  //             '{"id":', drc_s.id,
+  //             ',"service_id":', st.service_id,
+  //             ',"service_type":"', st.service_type, '"', 
+  //             ',"service_status":"', st.service_status, '"}' 
+  //             SEPARATOR ','
+  //               ),
+  //               ']'
+  //               )  AS services_of_drc            
+  //             FROM debt_recovery_company drc
+  //             LEFT JOIN company_owned_services drc_s ON drc.drc_id = drc_s.drc_id
+  //             LEFT JOIN service_type st ON drc_s.service_id = st.service_id
+  //             GROUP BY drc.drc_id;
+  //             `;
+                      
+  //             db.mysqlConnection.query(select_query, (err, result) => {
+  //               if (err) {
+  //                 return reject(new Error("Failed to retireve DRC details"));
+  //               }
+  //               const final_result = result.map(data => ({
+  //                     drc_id: data.drc_id,
+  //                     drc_abbreviation: data.drc_abbreviation,
+  //                     drc_name: data.drc_name,
+  //                     drc_status: data.drc_status,
+  //                     contact_no: data.contact_number,
+  //                     drc_end_date: data.drc_end_date,
+  //                     create_by: data.create_by,
+  //                     create_dtm: data.create_dtm,
+  //                     services_of_drc: JSON.parse(data.services_of_drc)  
+  //               }));
+  //                 resolve(final_result);
+  //             });
+  //         });
+                  
+  //       } catch (error) {
+  //           console.error("MySQL fetch error:", error.message);
+  //       }
+       
+        try {
+            mongoData = await DRC.find({});
+          } catch (error) {
+            return res.status(500).json({
+              status: "error",
+              message: "Failed to retrieve DRC details.",
+              errors: {
+                code: 500,
+                description: "Internal server error occurred while fetching DRC details.",
+              },
+            });
+          }
+                  
+          // if (!mysqlData  || mysqlData.length === 0) {
+          //     return res.status(500).json({
+          //               status: "error",
+          //               message: "Failed to retrieve DRC details.",
+          //               errors: {
+          //                 code: 500,
+          //                 description: "Internal server error occurred while fetching DRC details.",
+          //               },
+          //             });
+          //           }
+                  
+              return res.status(200).json({
+                      status: "success",
+                      message: "DRC details retrieved successfully.",
+                      data: {
+                        // mysql: mysqlData,
+                        mongoData: mongoData
+                      },
+                    });
+};  
+                  
 // export const endDRC = async (req, res) => {
 //   try {
 //     const { drc_id, drc_end_dat, remark, remark_edit_by } = req.body;
@@ -656,6 +1191,66 @@ export const getActiveDRCDetails= async(req, res) => {
 //   }
 // };
 
+export const endDRC = async (req, res) => {
+  try {
+    const { drc_id, drc_end_dat, remark, remark_edit_by } = req.body;
+
+    // Validate required fields
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID is required.",
+      });
+    }
+
+    if (!remark || !remark_edit_by) {
+      return res.status(400).json({
+        status: "error",
+        message: "Remark and Remark Edit By fields are required.",
+      });
+    }
+
+    // Find the DRC record
+    const drc = await DRC.findOne({ drc_id });
+    if (!drc) {
+      return res.status(404).json({
+        status: "error",
+        message: `No DRC found for the given drc_id: ${drc_id}`,
+      });
+    }
+
+    // Update DRC status and end date
+    drc.drc_status = "Ended";
+    if (drc_end_dat) {
+      drc.drc_end_dat = drc_end_dat;
+    }
+
+    // Add new remark
+    const newRemark = {
+      remark,
+      remark_Dtm: new Date(),
+      remark_edit_by,
+    };
+    drc.remark.push(newRemark);
+
+    // Save the updated DRC record
+    await drc.save();
+
+    // Respond with success message and updated DRC
+    return res.status(200).json({
+      status: "success",
+      message: "DRC ended successfully.",
+      data: drc,
+    });
+  } catch (error) {
+    console.error("Error updating DRC details:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
 
 // export const DRCRemarkDetailsById = async (req, res) => {
 //   try {
@@ -700,8 +1295,13 @@ export const List_All_DRC_Details = async (req, res) => {
   try {
     const { status } = req.body;
 
-    // 1. Get DRCs filtered by status
-    const drcList = await DRC.find({ drc_status: status });
+    // Only add filter if status is defined and non-empty
+    const filter = status ? { drc_status: status } : {};
+
+    const drcList = await DRC.find(filter);
+
+    // // 1. Get DRCs filtered by status
+    // const drcList = await DRC.find({ drc_status: status });
 
     // 2. Count ROs, RTOMs, and services for each DRC
     const responseData = await Promise.all(
@@ -738,6 +1338,367 @@ export const List_All_DRC_Details = async (req, res) => {
 };
 
 
+export const DRCRemarkDetailsById = async (req, res) => {
+  try {
+    const { drc_id } = req.body;
+
+    // Validate the drc_id in the request body
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID is required.",
+      });
+    }
+
+    // Find the DRC document by drc_id
+    const drc = await DRC.findOne({ drc_id: Number(drc_id) }, { remark: 1, _id: 0 });
+
+    if (!drc) {
+      return res.status(404).json({
+        status: "error",
+        message: `No DRC found with the given drc_id: ${drc_id}`,
+      });
+    }
+
+    // Respond with the remarks array
+    return res.status(200).json({
+      status: "success",
+      message: "Remark details fetched successfully.",
+      data: drc.remark, // Return only the remarks array
+    });
+  } catch (error) {
+    console.error("Error fetching remark details:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch remark details. Please try again later.",
+    });
+  }
+};
+
+export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
+  try {
+    const { drc_id } = req.body;
+
+    // Step 1: Find DRC by drc_id
+    const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
+
+    if (!drc) {
+      return res.status(404).json({ message: "DRC not found" });
+    }
+
+    // Extract RTOM IDs
+    const rtomIds = drc.rtom.map(r => r.rtom_id);
+
+    // Step 2: Query RTOM collection for full RTOM data
+    const rtomDetails = await RTOM.find(
+      { rtom_id: { $in: rtomIds } },
+      {
+        _id: 0,
+        rtom_name: 1,
+        rtom_mobile_no: 1,
+        billing_center_Code: 1,
+        rtom_end_date: 1
+      }
+    );
+
+    // Step 3: Add RO count to each RTOM object (assuming "RO count" means service count)
+    const roCount = drc.services.length;
+
+    const result = rtomDetails.map(rtom => ({
+      ...rtom._doc,
+      ro_count: roCount
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
+  try {
+    const { drc_id } = req.body;
+
+    const drc = await DRC.findOne(
+      { drc_id: parseInt(drc_id) },
+      { services: 1, _id: 0 }
+    );
+
+    if (!drc) {
+      return res.status(404).json({ message: 'DRC not found' });
+    }
+
+    // Extract only required fields from each service
+    const servicesData = drc.services.map(service => ({
+      service_type: service.service_type,
+      enable_date: service.create_on,
+      status: service.service_status
+    }));
+
+    res.status(200).json(servicesData);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getDebtCompanyByDRCID = async (req, res) => {
+  try {
+    const { drc_id } = req.body;
+
+    // Validate input
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC_ID is required.",
+      });
+    }
+
+    // Find debt company by DRC_ID
+    const debtCompany = await DRC.findOne({ drc_id });
+
+    // Check if company exists
+    if (!debtCompany) {
+      return res.status(404).json({
+        status: "error",
+        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+      });
+    }
+
+    // Return success response with debt company data
+    return res.status(200).json({
+      status: "success",
+      message: "Debt Company details retrieved successfully.",
+      data: debtCompany,
+    });
+  } catch (error) {
+    console.error("Error fetching debt company details:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve Debt Company details.",
+      errors: { exception: error.message },
+    });
+  }
+};
+
+export const terminateCompanyByDRCID = async (req, res) => {
+  try {
+    const { drc_id, remark, remark_by, remark_dtm } = req.body;
+
+    // Validate input
+    if (!drc_id || !remark || !remark_dtm) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC_ID, remark, and remark_dtm are required.",
+      });
+    }
+
+    // Find the company first to verify it exists
+    const company = await DRC.findOne({ drc_id });
+
+    if (!company) {
+      return res.status(404).json({
+        status: "error",
+        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+      });
+    }
+
+    // Update the company with terminate status and add the new remark
+    const updatedCompany = await DRC.findOneAndUpdate(
+      { drc_id },
+      {
+        $set: {
+          drc_status: "Terminate",
+          drc_end_dtm: remark_dtm,
+          drc_end_by: remark_by,
+        },
+        $push: {
+          remark: {
+            remark: remark,
+            remark_dtm: remark_dtm,
+            remark_by: remark_by,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Company terminated successfully.",
+      data: updatedCompany,
+    });
+  } catch (error) {
+    console.error("Error terminating company:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to terminate company.",
+      errors: { exception: error.message },
+    });
+  }
+};
+
+export const updateDRCInfo = async (req, res) => {
+  try {
+    const {
+      drc_id,
+      drc_contact_no,
+      drc_email,
+      coordinator,
+      services,
+      rtom,
+      remark,
+      updated_by,
+    } = req.body;
+
+    console.log("Request body:", req.body);
+
+    // Validate required fields
+    if (!drc_id || !updated_by) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID and updated_by are required fields.",
+      });
+    }
+
+    // Find company to verify it exists
+    const company = await DRC.findOne({ drc_id });
+
+    if (!company) {
+      return res.status(404).json({
+        status: "error",
+        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+      });
+    }
+
+    // Create update object
+    const updateObject = {};
+    const currentDate = new Date();
+
+    // Update contact information if provided
+    if (drc_contact_no !== undefined) {
+      updateObject.drc_contact_no = drc_contact_no;
+    }
+
+    if (drc_email !== undefined) {
+      updateObject.drc_email = drc_email;
+    }
+
+    // Update services status if provided
+    if (services && Array.isArray(services)) {
+      // Pre-process services to update status_update fields
+      const updatedServices = services.map((service) => ({
+        ...service,
+        status_update_dtm: currentDate,
+        status_update_by: updated_by,
+      }));
+
+      updateObject.services = updatedServices;
+    }
+
+    // Update RTOM status if provided
+    if (rtom && Array.isArray(rtom)) {
+      // Pre-process RTOM entries to update status_update fields
+      const updatedRtom = rtom.map((rtomEntry) => ({
+        ...rtomEntry,
+        status_update_dtm: currentDate,
+        status_update_by: updated_by,
+      }));
+
+      updateObject.rtom = updatedRtom;
+    }
+
+    // Add a new coordinator entry if provided
+    if (coordinator && coordinator.service_no) {
+      const newCoordinator = {
+        ...coordinator,
+        coordinator_create_dtm: currentDate,
+        coordinator_create_by: updated_by,
+      };
+
+      // Use $push to add the new coordinator to the array
+      await DRC.findOneAndUpdate(
+        { drc_id },
+        { $push: { slt_coordinator: newCoordinator } },
+        { new: true }
+      );
+    }
+
+    // Add remark if provided
+    if (remark) {
+      await DRC.findOneAndUpdate(
+        { drc_id },
+        {
+          $push: {
+            remark: {
+              remark: remark,
+              remark_dtm: currentDate,
+              remark_by: updated_by,
+            },
+          },
+        },
+        { new: true }
+      );
+    }
+
+    // Apply the main updates if there are any fields to update
+    const updatedCompany = await DRC.findOneAndUpdate(
+      { drc_id },
+      { $set: updateObject },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "DRC information updated successfully.",
+      data: updatedCompany,
+    });
+  } catch (error) {
+    console.error("Error updating DRC information:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to update DRC information.",
+      errors: { exception: error.message },
+    });
+  }
+};
 
 
+
+
+export const getUserIdOwnedByDRCId = async (req, res) => {
+  const { drc_id } = req.body;
+
+  try {
+    // Validate the drc_id in the request body
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID is required.",
+      });
+    }
+
+    // Find the DRC document by drc_id
+    const drc = await DRC.findOne(
+      { 
+        drc_id: drc_id, 
+        'slt_coordinator.coordinator_end_dtm': null,
+        
+      },
+      
+    ).select("user_id username email");
+
+    if (!drc) {
+      return res.status(200).json({
+        status: "success",
+        message: `No DRC found with the given drc_id: ${drc_id}`,
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching DRC details:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch DRC details. Please try again later.",
+    });
+  }
+};  
 
