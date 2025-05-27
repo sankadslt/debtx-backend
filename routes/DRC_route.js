@@ -40,6 +40,7 @@ import {
   getDRCDetails,
   getDRCDetailsById,
   getActiveDRCDetails,
+
   endDRC,
   DRCRemarkDetailsById,
   getDebtCompanyByDRCID,
@@ -48,6 +49,14 @@ import {
   List_All_DRC_Details , 
   List_RTOM_Details_Owen_By_DRC_ID , 
   List_Service_Details_Owen_By_DRC_ID
+
+  // endDRC,
+  // DRCRemarkDetailsById,
+
+
+  
+  getUserIdOwnedByDRCId,
+
 } from "../controllers/DRC_controller.js";
 
 const router = Router();
@@ -1547,6 +1556,8 @@ router.post("/List_All_DRC_Details", List_All_DRC_Details);
 router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_ID);
 
 router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
+
+router.post("/Obtain_User_Id_List_Owned_By_Drc_Id", getUserIdOwnedByDRCId);
 
 
 export default router;

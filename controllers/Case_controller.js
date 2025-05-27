@@ -5802,161 +5802,251 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
   }
 };
 
-// Original Code
-
+// This is made to the new model structue. This is geanarates erroe while executing because of the model change, User_Interaction_Status Array. previous data is not an array.
 // export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
-//     try {
-//         const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to } = req.body;
-        
-//         if (!delegate_user_id) {
-//             return res.status(400).json({ message: "delegate_user_id is required" });
-//         }
-        
-//         const validUserInteractionTypes = [
-//             "Mediation board forward request letter",
-//             "Negotiation Settlement plan Request",
-//             "Negotiation period extend Request",
-//             "Negotiation customer further information Request",
-//             "Negotiation Customer request service",
-//             "Mediation Board Settlement plan Request",
-//             "Mediation Board period extend Request",
-//             "Mediation Board customer further information request",
-//             "Mediation Board Customer request service"
-//         ];
-        
-//         let filter = { delegate_user_id };
-        
-//         if (User_Interaction_Type) {
-//             filter.User_Interaction_Type = User_Interaction_Type;
-//         } else {
-//             filter.User_Interaction_Type = { $in: validUserInteractionTypes };
-//         }
-        
-//         if (date_from && date_to) {
-//             filter.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
-//         }
-        
-//         // Step 1: Fetch documents from User_Interaction_Log
-//         const interactionLogs = await User_Interaction_Log.find(filter);
-        
-//         if (!interactionLogs.length) {
-//             return res.status(204).json({ message: "No matching interactions found." });
-//         }
-        
-//         // Step 2: Fetch matching Request records based on Interaction_Log_ID
-//         const interactionLogIds = interactionLogs.map(log => log.Interaction_Log_ID);
-//         const requests = await Request.find({ RO_Request_Id: { $in: interactionLogIds } });
-        
-//         // Step 3: Filter User_Interaction_Log based on Request Accept status
-//         let filteredInteractionLogs = interactionLogs;
-        
-//         if (requestAccept) {
-//             filteredInteractionLogs = interactionLogs.filter(log => {
-//                 const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-//                 if (!matchingRequest) return false;
-                
-//                 const requestAcceptStatus = matchingRequest.parameters?.get("Request Accept");
-//                 return (requestAccept === "Approve" && requestAcceptStatus === "Yes") ||
-//                        (requestAccept === "Reject" && requestAcceptStatus === "No");
-//             });
-//         }
-        
-//         if (!filteredInteractionLogs.length) {
-//             return res.status(204).json({ message: "No matching approved/rejected requests found." });
-//         }
-        
-//         // Step 4: Fetch related case details
-//         const caseIds = filteredInteractionLogs.map(log => log.parameters?.get("case_id"));
-//         const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, {
-//             case_id: 1,
-//             case_current_status: 1,
-//             current_arrears_amount: 1,
-//             drc: 1,
-//             created_dtm: 1,
-//             monitor_months: 1
-//         });
-        
-//         // Step 5: Calculate request count where User_Interaction_Status is "Open"
-//         const requestCount = filteredInteractionLogs.filter(log => log.User_Interaction_Status === "Open").length;
-        
-//         // Step 6: Prepare the final response with separate entries per DRC
-//         let responseData = [];
-        
-//         filteredInteractionLogs.forEach(log => {
-//             const relatedCase = caseDetails.find(caseDoc => caseDoc.case_id === log.parameters?.get("case_id"));
-            
-//             let validityPeriod = "";
-//             if (relatedCase) {
-//                 const createdDtm = new Date(relatedCase.created_dtm);
-//                 if (relatedCase.monitor_months) {
-//                     const endDtm = new Date(createdDtm);
-//                     endDtm.setMonth(endDtm.getMonth() + relatedCase.monitor_months);
-//                     validityPeriod = `${createdDtm.toISOString()} - ${endDtm.toISOString()}`;
-//                 } else {
-//                     validityPeriod = createdDtm.toISOString();
-//                 }
-//             }
-            
-//             const matchingRequest = requests.find(req => req.RO_Request_Id === log.Interaction_Log_ID);
-//             const approveStatus = matchingRequest?.parameters?.get("Request Accept") || "Unknown";
-            
-//             if (relatedCase?.drc?.length) {
-//                 relatedCase.drc.forEach(drc => {
-//                     responseData.push({
-//                         ...log.toObject(),
-//                         case_details: {
-//                             case_id: relatedCase.case_id,
-//                             case_current_status: relatedCase.case_current_status,
-//                             current_arrears_amount: relatedCase.current_arrears_amount,
-//                             drc: {
-//                                 drc_id: drc.drc_id,
-//                                 drc_name: drc.drc_name,
-//                                 drc_status: drc.drc_status
-//                             },
-//                             Validity_Period: validityPeriod
-//                         },
-//                         Approve_Status: approveStatus,
-//                         Request_Count: requestCount
-//                     });
-//                 });
-//             } else {
-//                 responseData.push({
-//                     ...log.toObject(),
-//                     case_details: {
-//                         case_id: relatedCase?.case_id,
-//                         case_current_status: relatedCase?.case_current_status,
-//                         current_arrears_amount: relatedCase?.current_arrears_amount,
-//                         drc: []
-//                     },
-//                     Validity_Period: validityPeriod,
-//                     Approve_Status: approveStatus,
-//                     Request_Count: requestCount
-//                 });
-//             }
-//         });
-        
-//         return res.json(responseData);
-//     } catch (error) {
-//         console.error("Error fetching request logs:", error);
-//         return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//   try {
+//     const { 
+//       delegate_user_id, 
+//       User_Interaction_Type, 
+//       "Request Accept": Request_Accept, 
+//       drc_id, 
+//       date_from, 
+//       date_to 
+//     } = req.body;
+
+//     if (!delegate_user_id) {
+//       return res.status(400).json({ 
+//         message: "Missing required fields: delegate_user_id is required." 
+//       });
 //     }
+
+//     const validUserInteractionTypes = [
+//       "Mediation board forward request letter",
+//       "Negotiation Settlement plan Request",
+//       "Negotiation period extend Request",
+//       "Negotiation customer further information Request",
+//       "Negotiation Customer request service",
+//       "Mediation Board Settlement plan Request",
+//       "Mediation Board period extend Request",
+//       "Mediation Board customer further information request",
+//       "Mediation Board Customer request service"
+//     ];
+
+//     // Build match filter - only add date filter if both dates are provided
+//     const matchFilter = {
+//       delegate_user_id: delegate_user_id
+//     };
+
+//     // Add date filter only if both dates are provided
+//     if (date_from && date_to) {
+//       const startDate = new Date(date_from);
+//       const endDate = new Date(date_to);
+//       endDate.setHours(23, 59, 59, 999);
+//       matchFilter.CreateDTM = { $gte: startDate, $lte: endDate };
+//     }
+
+//     // Filter User_Interaction_Type
+//     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
+//       matchFilter.User_Interaction_Type = User_Interaction_Type;
+//     } else {
+//       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+//     }
+
+//     // Aggregation pipeline
+//     const pipeline = [
+//       // Stage 1: Match User_Interaction_Log documents
+//       {
+//         $match: matchFilter
+//       },
+      
+//       // Stage 2: Add last status field
+//       {
+//         $addFields: {
+//           last_status: { $arrayElemAt: ["$User_Interaction_Status", -1] }
+//         }
+//       },
+      
+//       // Stage 3: Filter by last User_Interaction_Status
+//       {
+//         $match: {
+//           $or: [
+//             { "last_status.User_Interaction_Status": "Open" },
+//             { "last_status.User_Interaction_Status": "Seen" }
+//           ]
+//         }
+//       },
+      
+//       // Stage 4: Lookup Case_details collection
+//       {
+//         $lookup: {
+//           from: "Case_details",
+//           localField: "parameters.case_id",
+//           foreignField: "case_id",
+//           as: "case_details"
+//         }
+//       },
+      
+//       // Stage 5: Unwind case_details array
+//       {
+//         $unwind: {
+//           path: "$case_details",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+      
+//       // Stage 6: Unwind ro_requests array
+//       {
+//         $unwind: {
+//           path: "$case_details.ro_requests",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+      
+//       // Stage 7: Match ro_requests with Interaction_Log_ID and drc_id
+//       {
+//         $match: {
+//           $expr: {
+//             $and: [
+//               { $eq: ["$case_details.ro_requests.intraction_log_id", "$Interaction_Log_ID"] },
+//               ...(drc_id ? [{ $eq: ["$case_details.ro_requests.drc_id", drc_id] }] : [])
+//             ]
+//           }
+//         }
+//       },
+      
+//       // Stage 8: Lookup Request collection
+//       {
+//         $lookup: {
+//           from: "Request",
+//           localField: "Interaction_Log_ID",
+//           foreignField: "Interaction_Log_ID",
+//           as: "request_docs"
+//         }
+//       },
+      
+//       // Stage 9: Unwind request_docs array
+//       {
+//         $unwind: {
+//           path: "$request_docs",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+      
+//       // Stage 10: Filter by Request_Accept if provided
+//       ...(Request_Accept ? [{
+//         $match: {
+//           "request_docs.parameters.Request_Accept": Request_Accept
+//         }
+//       }] : []),
+      
+//       // Stage 11: Add calculated fields
+//       {
+//         $addFields: {
+//           validity_period: {
+//             $cond: {
+//               if: { 
+//                 $and: [
+//                   { $ne: ["$case_details.created_dtm", null] },
+//                   { $ne: ["$case_details.monitor_months", null] }
+//                 ]
+//               },
+//               then: {
+//                 $concat: [
+//                   { 
+//                     $dateToString: { 
+//                       date: "$case_details.created_dtm",
+//                       format: "%Y-%m-%d"
+//                     }
+//                   },
+//                   " - ",
+//                   { 
+//                     $dateToString: { 
+//                       date: {
+//                         $dateAdd: { 
+//                           startDate: "$case_details.created_dtm", 
+//                           unit: "month", 
+//                           amount: "$case_details.monitor_months" 
+//                         }
+//                       },
+//                       format: "%Y-%m-%d"
+//                     }
+//                   }
+//                 ]
+//               },
+//               else: {
+//                 $cond: {
+//                   if: { $ne: ["$case_details.created_dtm", null] },
+//                   then: {
+//                     $dateToString: { 
+//                       date: "$case_details.created_dtm",
+//                       format: "%Y-%m-%d"
+//                     }
+//                   },
+//                   else: "N/A"
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+      
+//       // Stage 12: Final projection
+//       {
+//         $project: {
+//           _id: 0,
+//           case_id: "$case_details.case_id",
+//           case_current_status: "$case_details.case_current_status",
+//           User_Interaction_Status: "$last_status.User_Interaction_Status",
+//           current_arrears_amount: "$case_details.current_arrears_amount",
+//           Validity_Period: "$validity_period",
+//           drc_id: "$case_details.ro_requests.drc_id",
+//           User_Interaction_Type: "$User_Interaction_Type",
+//           CreateDTM: "$CreateDTM",
+//           Request_Accept: "$request_docs.parameters.Request_Accept"
+//         }
+//       }
+//     ];
+
+//     // Execute the aggregation pipeline
+//     const results = await User_Interaction_Log.aggregate(pipeline);
+
+//     if (!results || results.length === 0) {
+//       return res.status(204).json({ 
+//         message: "No matching data found for the specified criteria." 
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       count: results.length,
+//       data: results
+//     });
+    
+//   } catch (error) {
+//     console.error("Error fetching user interaction response log:", error);
+//     return res.status(500).json({ 
+//       message: "Internal Server Error", 
+//       error: error.message 
+//     });
+//   }
 // };
 
-// After adding aggregration.
-
+// This is handel previous model isses wich 'User_Interaction_Status' is not an array object before.
 export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
   try {
     const {
       delegate_user_id,
       User_Interaction_Type,
-      "Request Accept": requestAccept,
+      Request_Accept, 
       drc_name,
       date_from,
       date_to
     } = req.body;
 
     if (!delegate_user_id) {
-      return res.status(400).json({ message: "delegate_user_id is required" });
+      return res.status(400).json({ 
+        message: "Missing required fields: delegate_user_id is required." 
+      });
     }
 
     const validUserInteractionTypes = [
@@ -5971,184 +6061,214 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
       "Mediation Board Customer request service"
     ];
 
-    // Build match stage for initial filtering
-    let matchStage = { delegate_user_id };
+    // Build match filter - only add date filter if both dates are provided
+    const matchFilter = {
+      delegate_user_id: delegate_user_id
+    };
 
-    if (User_Interaction_Type) {
-      matchStage.User_Interaction_Type = User_Interaction_Type;
-    } else {
-      matchStage.User_Interaction_Type = { $in: validUserInteractionTypes };
-    }
-
+    // Add date filter only if both dates are provided
     if (date_from && date_to) {
-      matchStage.CreateDTM = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      const startDate = new Date(date_from);
+      const endDate = new Date(date_to);
+      endDate.setHours(23, 59, 59, 999);
+      matchFilter.CreateDTM = { $gte: startDate, $lte: endDate };
     }
 
-    // Get total count of open requests in a separate query
-    // This is kept separate as it's a simple count query with different criteria
-    const totalRequestCount = await User_Interaction_Log.countDocuments({
-      ...matchStage,
-      User_Interaction_Status: "Open"
-    });
+    // Filter User_Interaction_Type
+    if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
+      matchFilter.User_Interaction_Type = User_Interaction_Type;
+    } else {
+      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+    }
 
-    // Main aggregation pipeline
+    // Aggregation pipeline
     const pipeline = [
-      // Stage 1: Match interaction logs based on criteria
-      { $match: matchStage },
+      // Stage 1: Match User_Interaction_Log documents
+      {
+        $match: matchFilter
+      },
       
-      // Stage 2: Sort by creation date descending
-      { $sort: { CreateDTM: -1 } },
-      
-      // Stage 3: Add doc_version if it doesn't exist
+      // Stage 2: Add last status field with proper array handling
       {
         $addFields: {
-          doc_version: { $ifNull: ["$doc_version", 1] }
-        }
-      },
-      
-      // Stage 4: Lookup related requests
-      {
-        $lookup: {
-          from: "Request", // Assuming your collection name is "Request"
-          localField: "Interaction_Log_ID",
-          foreignField: "RO_Request_Id",
-          as: "request"
-        }
-      },
-      
-      // Stage 5: Unwind the request array (converts array to object)
-      {
-        $unwind: {
-          path: "$request",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      
-      // Stage 6: Filter by request accept status if specified
-      ...(requestAccept ? [{
-        $match: {
-          $or: [
-            { "request.parameters.Request Accept": { $exists: false } },
-            {
-              $and: [
-                { "request.parameters.Request Accept": requestAccept === "Approve" ? "Yes" : "No" }
-              ]
-            }
-          ]
-        }
-      }] : []),
-      
-      // Stage 7: Add case_id field from either interaction log or request
-      {
-        $addFields: {
-          case_id: {
+          last_status: {
             $cond: {
-              if: { $ifNull: ["$parameters.case_id", false] },
-              then: "$parameters.case_id",
-              else: { $ifNull: ["$request.parameters.case_id", null] }
+              if: { $isArray: "$User_Interaction_Status" },
+              then: {
+                $cond: {
+                  if: { $gt: [{ $size: "$User_Interaction_Status" }, 0] },
+                  then: { $arrayElemAt: ["$User_Interaction_Status", -1] },
+                  else: null
+                }
+              },
+              else: null
             }
           }
         }
       },
       
-      // Stage 8: Lookup case details
+      // Stage 3: Filter by last User_Interaction_Status
       {
-        $lookup: {
-          from: "Case_details", // Assuming your collection name is "Case_details"
-          localField: "case_id",
-          foreignField: "case_id",
-          as: "case"
+        $match: {
+          $or: [
+            { "last_status.User_Interaction_Status": "Open" },
+            { "last_status.User_Interaction_Status": "Seen" }
+          ]
         }
       },
       
-      // Stage 9: Unwind the case array
+      // Stage 4: Lookup Case_details collection
+      {
+        $lookup: {
+          from: "Case_details",
+          localField: "parameters.case_id",
+          foreignField: "case_id",
+          as: "case_details"
+        }
+      },
+      
+      // Stage 5: Unwind case_details array
       {
         $unwind: {
-          path: "$case",
+          path: "$case_details",
           preserveNullAndEmptyArrays: true
         }
       },
       
-      // Stage 10: Filter by DRC name if specified
+      // Stage 6: Unwind ro_requests array
+      {
+        $unwind: {
+          path: "$case_details.ro_requests",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 7: Match ro_requests with Interaction_Log_ID
+      {
+        $match: {
+          $expr: {
+            $eq: ["$case_details.ro_requests.intraction_log_id", "$Interaction_Log_ID"]
+          }
+        }
+      },
+      
+      // Stage 8: Lookup Debt_recovery_company collection for drc_name
+      {
+        $lookup: {
+          from: "Debt_recovery_company",
+          localField: "case_details.ro_requests.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details"
+        }
+      },
+      
+      // Stage 9: Unwind drc_details array
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 10: Filter by drc_name if provided
       ...(drc_name ? [{
         $match: {
-          $or: [
-            { "case.drc": { $exists: false } },
-            { "case.drc.drc_name": drc_name },
-            { "case.drc": { $elemMatch: { drc_name: drc_name } } }
-          ]
+          "drc_details.drc_name": drc_name
         }
       }] : []),
       
-      // Stage 11: Add validity period
+      // Stage 11: Lookup Request collection
+      {
+        $lookup: {
+          from: "Request",
+          localField: "Interaction_Log_ID",
+          foreignField: "Interaction_Log_ID",
+          as: "request_docs"
+        }
+      },
+      
+      // Stage 12: Unwind request_docs array
+      {
+        $unwind: {
+          path: "$request_docs",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 13: Filter by Request_Accept if provided
+      ...(Request_Accept ? [{
+        $match: {
+          "request_docs.parameters.Request_Accept": Request_Accept
+        }
+      }] : []),
+      
+      // Stage 14: Add calculated fields
       {
         $addFields: {
-          "validity_period": {
+          validity_period: {
             $cond: {
-              if: { $and: [
-                { $ifNull: ["$case.created_dtm", false] },
-                { $ifNull: ["$case.monitor_months", false] }
-              ]},
+              if: { 
+                $and: [
+                  { $ne: ["$case_details.created_dtm", null] },
+                  { $ne: ["$case_details.monitor_months", null] }
+                ]
+              },
               then: {
                 $concat: [
-                  { $toString: "$case.created_dtm" },
+                  { 
+                    $dateToString: { 
+                      date: "$case_details.created_dtm",
+                      format: "%Y-%m-%d"
+                    }
+                  },
                   " - ",
                   { 
-                    $toString: { 
-                      $dateAdd: { 
-                        startDate: "$case.created_dtm", 
-                        unit: "month", 
-                        amount: "$case.monitor_months" 
-                      } 
-                    } 
+                    $dateToString: { 
+                      date: {
+                        $dateAdd: { 
+                          startDate: "$case_details.created_dtm", 
+                          unit: "month", 
+                          amount: "$case_details.monitor_months" 
+                        }
+                      },
+                      format: "%Y-%m-%d"
+                    }
                   }
                 ]
               },
-              else: { $ifNull: [{ $toString: "$case.created_dtm" }, ""] }
-            }
-          },
-          "approve_status": {
-            $cond: {
-              if: { $ifNull: ["$request.parameters.Request Accept", false] },
-              then: "$request.parameters.Request Accept",
-              else: "Unknown"
+              else: {
+                $cond: {
+                  if: { $ne: ["$case_details.created_dtm", null] },
+                  then: {
+                    $dateToString: { 
+                      date: "$case_details.created_dtm",
+                      format: "%Y-%m-%d"
+                    }
+                  },
+                  else: "N/A"
+                }
+              }
             }
           }
         }
       },
       
-      // Stage 12: Project the final structure
+      // Stage 15: Final projection
       {
         $project: {
-          _id: 1,
-          Interaction_Log_ID: 1,
-          User_Interaction_Type: 1,
-          User_Interaction_Status: 1,
-          delegate_user_id: 1,
-          parameters: 1,
-          CreateDTM: 1,
-          doc_version: 1,
-          case_details: {
-            case_id: "$case.case_id",
-            case_current_status: "$case.case_current_status",
-            current_arrears_amount: "$case.current_arrears_amount",
-            drc: {
-              $cond: {
-                if: { $isArray: "$case.drc" },
-                then: "$case.drc",
-                else: {
-                  $cond: {
-                    if: { $ifNull: ["$case.drc", false] },
-                    then: ["$case.drc"],
-                    else: []
-                  }
-                }
-              }
-            },
-            Validity_Period: "$validity_period"
+          _id: 0,
+          case_id: "$case_details.case_id",
+          case_current_status: "$case_details.case_current_status",
+          User_Interaction_Status: {
+            $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
           },
-          Approve_Status: "$approve_status",
-          Request_Count: { $literal: totalRequestCount }
+          current_arrears_amount: "$case_details.current_arrears_amount",
+          Validity_Period: "$validity_period",
+          drc_id: "$case_details.ro_requests.drc_id",
+          drc_name: "$drc_details.drc_name",
+          User_Interaction_Type: "$User_Interaction_Type",
+          CreateDTM: "$CreateDTM",
+          Request_Accept: "$request_docs.parameters.Request_Accept"
         }
       }
     ];
@@ -6156,54 +6276,24 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     // Execute the aggregation pipeline
     const results = await User_Interaction_Log.aggregate(pipeline);
 
-    if (!results.length) {
+    if (!results || results.length === 0) {
       return res.status(204).json({ 
-        message: "No matching interactions found.", 
-        Request_Count: totalRequestCount 
+        message: "No matching data found for the specified criteria." 
       });
     }
 
-    // Process DRC data for final response
-    const responseData = [];
-    
-    results.forEach(result => {
-      if (Array.isArray(result.case_details.drc) && result.case_details.drc.length > 0) {
-        // Handle array of DRCs
-        result.case_details.drc.forEach(drc => {
-          if (!drc_name || drc.drc_name === drc_name) {
-            responseData.push({
-              ...result,
-              case_details: {
-                ...result.case_details,
-                drc: {
-                  drc_id: drc.drc_id,
-                  drc_name: drc.drc_name,
-                  drc_status: drc.drc_status
-                }
-              }
-            });
-          }
-        });
-      } else {
-        // Handle case with no DRC or single DRC
-        if (!drc_name) {
-          responseData.push(result);
-        }
-      }
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results
     });
-
-    if (!responseData.length) {
-      return res.status(204).json({ 
-        message: "No matching DRC found.", 
-        Request_Count: totalRequestCount 
-      });
-    }
-
-    return res.json(responseData);
-
+    
   } catch (error) {
-    console.error("Error fetching request logs:", error);
-    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    console.error("Error fetching user interaction response log:", error);
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: error.message 
+    });
   }
 };
 
@@ -7691,106 +7781,22 @@ export const RO_CPE_Collection = async (req,res) => {
   }
 };
 
-// Original Code
-
-// export const List_Request_Response_log = async (req, res) => {
-//   try {
-//     const { case_current_status, date_from, date_to } = req.body;
-
-//     if (!date_from || !date_to || !case_current_status) {
-//       return res.status(400).json({ message: "Missing required fields: case_current_status, date_from, and date_to are required." });
-//     }
-
-//     const startDate = new Date(date_from);
-//     const endDate = new Date(date_to);
-//     endDate.setHours(23, 59, 59, 999);
-
-//     // Step 1: Fetch all requests within the date range
-//     const requests = await Request.find({
-//       created_dtm: { $gte: startDate, $lte: endDate }
-//     });
-
-//     if (!requests.length) {
-//       return res.status(204).json({ message: "No requests found within the given date range." });
-//     }
-
-//     const requestIds = requests.map(req => req.RO_Request_Id);
-//     console.log("Request IDs:", requestIds);
-
-//     // Step 2: Fetch related user interaction logs
-//     const interactions = await User_Interaction_Log.find({ Interaction_Log_ID: { $in: requestIds } });
-//     console.log("Interactions:", interactions);
-
-//     if (!interactions.length) {
-//       return res.status(204).json({ message: "No related user interactions found." });
-//     }
-
-//     // Extract case IDs from interaction logs (handling Map type correctly)
-//     const caseIds = interactions
-//       .map(interaction => interaction.parameters?.get("case_id"))
-//       .filter(Boolean);
-//     console.log("Extracted Case IDs:", caseIds);
-
-//     // Step 3: Fetch all related case details
-//     const allCases = await Case_details.find({ case_id: { $in: caseIds } });
-
-//     if (!allCases.length) {
-//       return res.status(204).json({ message: "No related case details found." });
-//     }
-
-//     // Step 4: Filter cases based on case_current_status
-//     const cases = allCases.filter(caseDoc => caseDoc.case_current_status === case_current_status);
-
-//     if (!cases.length) {
-//       return res.status(404).json({ message: "No matching case details found." });
-//     }
-
-//     // Construct response, grouping data by DRC
-//     const response = cases.flatMap(caseDoc => {
-//       const relatedInteraction = interactions.find(interaction => interaction.parameters?.get("case_id") === caseDoc.case_id);
-//       const relatedRequest = requests.find(request => request.RO_Request_Id === relatedInteraction?.Interaction_Log_ID);
-
-//       const startValidity = new Date(caseDoc.created_dtm);
-//       const expiryValidity = new Date(startValidity);
-//       expiryValidity.setMonth(expiryValidity.getMonth() + caseDoc.monitor_months);
-
-//       return caseDoc.drc.map(drcEntry => ({
-//         drc_id: drcEntry.drc_id,
-//         drc_name: drcEntry.drc_name,
-//         case_id: caseDoc.case_id,
-//         case_current_status: caseDoc.case_current_status,
-//         Validity_Period: `${startValidity.toISOString()} - ${expiryValidity.toISOString()}`,
-//         User_Interaction_Status: relatedInteraction?.User_Interaction_Status || "N/A",
-//         Request_Description: relatedRequest?.Request_Description || "N/A",
-//         Letter_Issued_On: relatedRequest?.parameters?.get("Letter_Send") === "Yes" ? relatedRequest.created_dtm : null,
-//         Approved_on: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_dtm : null,
-//         Approved_by: relatedRequest?.parameters?.get("Request Accept") === "Yes" ? relatedRequest.created_by : null,
-//         Remark: relatedRequest?.parameters?.get("Remark") || "N/A"
-//       }));
-//     });
-
-//     res.status(200).json(response);
-//   } catch (error) {
-//     console.error("Error fetching request response log:", error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
-
-// After adding aggregrations
 
 export const List_Request_Response_log = async (req, res) => {
   try {
     const { case_current_status, date_from, date_to } = req.body;
 
     if (!date_from || !date_to || !case_current_status) {
-      return res.status(400).json({ message: "Missing required fields: case_current_status, date_from, and date_to are required." });
+      return res.status(400).json({ 
+        message: "Missing required fields: case_current_status, date_from, and date_to are required." 
+      });
     }
 
     const startDate = new Date(date_from);
     const endDate = new Date(date_to);
     endDate.setHours(23, 59, 59, 999);
 
-    // Aggregation pipeline to fetch all data in one call
+    // Aggregation pipeline
     const pipeline = [
       // Stage 1: Match requests within date range
       {
@@ -7799,56 +7805,17 @@ export const List_Request_Response_log = async (req, res) => {
         }
       },
       
-      // Stage 2: Lookup related user interaction logs
+      // Stage 2: Lookup Case_details collection
       {
         $lookup: {
-          from: "User_Interaction_Log", // Adjust collection name if needed
-          localField: "RO_Request_Id",
-          foreignField: "Interaction_Log_ID",
-          as: "interactions"
-        }
-      },
-      
-      // Stage 3: Unwind interactions array
-      {
-        $unwind: {
-          path: "$interactions",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      
-      // Stage 4: Add case_id field from interactions.parameters
-      // Note: Handling Map type may require adjustment based on your data structure
-      {
-        $addFields: {
-          case_id: {
-            $cond: {
-              if: { $ifNull: ["$interactions.parameters.case_id", false] },
-              then: "$interactions.parameters.case_id",
-              else: null
-            }
-          }
-        }
-      },
-      
-      // Stage 5: Filter out records without case_id
-      {
-        $match: {
-          case_id: { $ne: null }
-        }
-      },
-      
-      // Stage 6: Lookup case details
-      {
-        $lookup: {
-          from: "Case_details", // Adjust collection name if needed
+          from: "Case_details",
           localField: "case_id",
           foreignField: "case_id",
           as: "case_details"
         }
       },
       
-      // Stage 7: Unwind case_details array
+      // Stage 3: Unwind case_details array
       {
         $unwind: {
           path: "$case_details",
@@ -7856,16 +7823,70 @@ export const List_Request_Response_log = async (req, res) => {
         }
       },
       
-      // Stage 8: Filter by case_current_status
+      // Stage 4: Filter by case_current_status
       {
         $match: {
           "case_details.case_current_status": case_current_status
         }
       },
       
-      // Stage 9: Calculate validity period and add fields
+      // Stage 5: Unwind ro_requests array to find matching interaction_log_id
+      {
+        $unwind: {
+          path: "$case_details.ro_requests",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 6: Match ro_requests with Interaction_Log_ID
+      {
+        $match: {
+          $expr: {
+            $eq: ["$Interaction_Log_ID", "$case_details.ro_requests.intraction_log_id"]
+          }
+        }
+      },
+      
+      // Stage 7: Lookup User_Interaction_Log collection
+      {
+        $lookup: {
+          from: "User_Interaction_Log",
+          localField: "Interaction_Log_ID",
+          foreignField: "Interaction_Log_ID",
+          as: "user_interaction_log"
+        }
+      },
+      
+      // Stage 8: Unwind user_interaction_log array
+      {
+        $unwind: {
+          path: "$user_interaction_log",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 9: Lookup Debt_recovery_company collection for drc_name
+      {
+        $lookup: {
+          from: "Debt_recovery_company",
+          localField: "case_details.ro_requests.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details"
+        }
+      },
+      
+      // Stage 10: Unwind drc_details array
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Stage 11: Add calculated fields
       {
         $addFields: {
+          // Calculate Validity Period
           validity_period: {
             $cond: {
               if: { 
@@ -7876,71 +7897,80 @@ export const List_Request_Response_log = async (req, res) => {
               },
               then: {
                 $concat: [
-                  { $toString: "$case_details.created_dtm" },
+                  { 
+                    $dateToString: { 
+                      date: "$case_details.created_dtm",
+                      format: "%Y-%m-%d"
+                    }
+                  },
                   " - ",
                   { 
-                    $toString: { 
-                      $dateAdd: { 
-                        startDate: "$case_details.created_dtm", 
-                        unit: "month", 
-                        amount: "$case_details.monitor_months" 
-                      } 
-                    } 
+                    $dateToString: { 
+                      date: {
+                        $dateAdd: { 
+                          startDate: "$case_details.created_dtm", 
+                          unit: "month", 
+                          amount: "$case_details.monitor_months" 
+                        }
+                      },
+                      format: "%Y-%m-%d"
+                    }
                   }
                 ]
               },
-              else: { $toString: "$case_details.created_dtm" }
+              else: {
+                $dateToString: { 
+                  date: "$case_details.created_dtm",
+                  format: "%Y-%m-%d"
+                }
+              }
             }
           },
+          
+          // Get last User_Interaction_Status
+          last_user_interaction_status: {
+            $cond: {
+              if: { $gt: [{ $size: "$user_interaction_log.User_Interaction_Status" }, 0] },
+              then: {
+                $arrayElemAt: [
+                  "$user_interaction_log.User_Interaction_Status.User_Interaction_Status",
+                  -1
+                ]
+              },
+              else: null
+            }
+          },
+          
+          // Letter Issued On
           letter_issued_on: {
-            $cond: [
-              { $eq: ["$parameters.Letter_Send", "Yes"] },
-              "$created_dtm",
-              null
-            ]
+            $cond: {
+              if: { $eq: ["$parameters.Letter_Send", true] },
+              then: "$created_dtm",
+              else: null
+            }
           },
-          approved_on: {
-            $cond: [
-              { $eq: ["$parameters.Request Accept", "Yes"] },
-              "$created_dtm",
-              null
-            ]
-          },
-          approved_by: {
-            $cond: [
-              { $eq: ["$parameters.Request Accept", "Yes"] },
-              "$created_by",
-              null
-            ]
-          },
+          
+          // Get Remark from parameters
           remark: {
-            $ifNull: ["$parameters.Remark", "N/A"]
+            $ifNull: ["$parameters.Reamrk", null]
           }
         }
       },
       
-      // Stage 10: Unwind drc array to flatten response
-      {
-        $unwind: {
-          path: "$case_details.drc",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      
-      // Stage 11: Final project to format output
+      // Stage 12: Final projection
       {
         $project: {
           _id: 0,
-          drc_id: "$case_details.drc.drc_id",
-          drc_name: "$case_details.drc.drc_name",
-          case_id: "$case_details.case_id",
+          case_id: "$case_id",
           case_current_status: "$case_details.case_current_status",
+          User_Interaction_Status: "$last_user_interaction_status",
           Validity_Period: "$validity_period",
-          User_Interaction_Status: "$interactions.User_Interaction_Status",
+          drc_id: "$case_details.ro_requests.drc_id",
+          drc_name: "$drc_details.drc_name",
           Request_Description: "$Request_Description",
-          Letter_Issued_On: "$letter_issued_on",
-          Approved_on: "$approved_on",
-          Approved_by: "$approved_by",
+          Letter_Issued_on: "$letter_issued_on",
+          created_dtm: "$created_dtm",
+          created_by: "$created_by",
           Remark: "$remark"
         }
       }
@@ -7950,17 +7980,25 @@ export const List_Request_Response_log = async (req, res) => {
     const results = await Request.aggregate(pipeline);
 
     if (!results || results.length === 0) {
-      return res.status(204).json({ message: "No matching data found." });
+      return res.status(204).json({ 
+        message: "No matching data found for the specified criteria." 
+      });
     }
 
-    return res.status(200).json(results);
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results
+    });
     
   } catch (error) {
     console.error("Error fetching request response log:", error);
-    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: error.message 
+    });
   }
 };
-
 
 
 export const Create_Task_For_Request_Responce_Log_Download = async (req, res) => {
@@ -8087,3 +8125,32 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
+function negotiation_condition_function2(arrears_amount, drc_validity_period, region) {
+  let case_status = "";
+
+  if (arrears_amount < 50000) {
+    if (drc_validity_period > 3) {
+      case_status = "DRC Expired - Low Arrears";
+    } else {
+      case_status = "DRC Valid - Low Arrears";
+    }
+  } else if (arrears_amount > 1000000) {
+    case_status = "Pending FTL LOD";
+  } else {
+    if (region === "metro") {
+      case_status = "RO Negotiation FMB Pending";
+    } else if (region === "region") {
+      if (arrears_amount > 100000) {
+        case_status = "RO Negotiation FMB Pending";
+      } else {
+        if (drc_validity_period > 3) {
+          case_status = "DRC Expired - Region";
+        } else {
+          case_status = "DRC Valid - Region";
+        }
+      }
+    }
+  }
+
+  return case_status;
+}
