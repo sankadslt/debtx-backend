@@ -475,7 +475,8 @@ export const List_FTL_LOD_Cases = async (req, res) => {
         created_by,
         status_reason: 'FTL LOD created',
         notified_dtm: null,
-        expire_dtm: null
+        expire_dtm: null,
+        case_phase:"Letter of Demand"
       };
   
       
@@ -488,7 +489,8 @@ export const List_FTL_LOD_Cases = async (req, res) => {
             case_status: caseStatusEntry
           },
           $set: {
-            case_current_status: 'Initial FTL LOD'
+            case_current_status: 'Initial FTL LOD',
+            case_current_phase:"Letter of Demand",
           }
         }
       );
