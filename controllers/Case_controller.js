@@ -42,6 +42,7 @@ import Incident from "../models/Incident.js";
 import CaseMonitor from "../models/Case_Monitor.js";
 import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
 
 /**
  * Inputs:
@@ -1569,7 +1570,7 @@ export const assignROToCase = async (req, res) => {
 
     // const assigned_by = "System";
     // Extract the RTOM areas assigned to the recovery officer
-    const assignedAreas = recoveryOfficer.rtoms_for_ro.map((r) => r.name);
+    const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name);
 
     const errors = [];
     const updates = [];
@@ -5739,6 +5740,15 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - case_id: String (required)
+ * - recieved_by: String (required)
+ * 
+ * Collection: Case_details
+ * 
+ * Purpose: Accepts a non-settlement request from the Mediation Board and updates the case status accordingly.
+ */
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
       const { case_id, recieved_by } = req.body;  
@@ -5791,7 +5801,7 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
       caseRecord.case_status.push(newCaseStatus);
 
       
-      await caseRecord.save();
+      await caseRecord.save({ validateBeforeSave: false });
 
       
       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
@@ -5848,6 +5858,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     // Filter User_Interaction_Type
     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
       matchFilter.User_Interaction_Type = User_Interaction_Type;
+      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     } else {
       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     }
@@ -7087,21 +7098,67 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
 
 
 // Define the status mapping based on User_Interaction_Type and Request Accept
-const statusMapping = {
-  "Mediation board forward request letter": { Yes: "FMB", No: "RO Negotiation" },
-  "Negotiation Settlement plan Request": { Yes: "RO Negotiation Settle Pending", No: "RO Negotiation" },
-  "Negotiation period extend Request": { Yes: "RO Negotiation extended", No: "RO Negotiation" },
-  "Negotiation customer further information Request": { Yes: "RO Negotiation", No: "RO Negotiation" },
-  "Negotiation Customer request service": { Yes: "RO Negotiation", No: "RO Negotiation" },
-  "Mediation Board Settlement plan Request": { Yes: "MB Negotiation Settle Pending", No: "MB Negotiation" },
-  "Mediation Board period extend Request": { Yes: "MB Negotiation", No: "MB Negotiation" },
-  "Mediation Board customer further information request": { Yes: "MB Negotiation", No: "MB Negotiation" },
-  "Mediation Board Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
-};
+// const statusMapping = {
+//   "Mediation board forward request letter": { Yes: "Forward to Mediation Board", No: "RO Negotiation" },
+//   "Negotiation Settlement plan Request": { Yes: "Negotiation Settle Pending", No: "RO Negotiation" },
+//   "Negotiation period extend Request": { Yes: "RO Negotiation Extension Pending", No: "RO Negotiation" },
+//   "Negotiation customer further information Request": { Yes: "RO Negotiation", No: "RO Negotiation" },
+//   "Negotiation Customer request service": { Yes: "RO Negotiation", No: "RO Negotiation" },
+//   "Mediation Board Settlement plan Request": { Yes: "MB Settle Pending", No: "MB Negotiation" },
+//   "Mediation Board period extend Request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+//   "Mediation Board customer further information request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+//   "Mediation Board Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
+// };
 
+/**
+ * Inputs:
+ * - create_by: String (required)
+ * - Interaction_Log_ID: Number (required)
+ * - case_id: Number (required)
+ * - User_Interaction_Type: String (required)
+ * - Interaction_ID: Number (required)
+ * - requestAccept: String (required)
+ * - Reamrk: String (Optional)
+ * - No_of_Calendar_Month: Number (Optional)
+ * - Letter_Send: String (Optional)
+ * 
+ * Description: Submits a mediation board acceptance request based on the provided parameters.
+ * 
+ * Collections:
+ * - Request
+ * - Case_details
+ * - User_Interaction_Log
+ * - User_Interaction_Progress_Log
+ * 
+ * Success Result:
+ * - Returns a success response.
+ */
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
+
+  // Define the status mapping based on User_Interaction_Type and Request Accept
+  const statusMapping = {
+    "Mediation board forward request letter": { Yes: "Forward to Mediation Board", No: "RO Negotiation" },
+    "Negotiation Settlement plan Request": { Yes: "Negotiation Settle Pending", No: "RO Negotiation" },
+    "Negotiation period extend Request": { Yes: "RO Negotiation Extension Pending", No: "RO Negotiation" },
+    "Negotiation customer further information Request": { Yes: "RO Negotiation", No: "RO Negotiation" },
+    "Negotiation Customer request service": { Yes: "RO Negotiation", No: "RO Negotiation" },
+    "Mediation Board Settlement plan Request": { Yes: "MB Settle Pending", No: "MB Negotiation" },
+    "Mediation Board period extend Request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+    "Mediation Board customer further information request": { Yes: "MB Negotiation", No: "MB Negotiation" },
+    "Mediation Board Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
+  };
+
+  const phaseMapping = {
+    "RO Negotiation": "Negotiation",
+    "Negotiation Settle Pending": "Negotiation",
+    "RO Negotiation Extension Pending": "Negotiation",
+
+    "MB Negotiation": "Mediation Board",
+    "MB Settle Pending": "Mediation Board",
+    "Forward to Mediation Board": "Mediation Board",
+  };
 
   try {
     const {
@@ -7109,14 +7166,24 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       Interaction_Log_ID,
       case_id,
       User_Interaction_Type,
-      Request_Mode,
+      // Request_Mode,
       Interaction_ID,
-      "Request Accept": requestAccept,
+      // "Request Accept": requestAccept,
+      requestAccept,
       Reamrk,
       No_of_Calendar_Month,
       Letter_Send
     } = req.body;
 
+    if (!create_by || !Interaction_Log_ID || !User_Interaction_Type || !case_id || !Interaction_ID || !requestAccept) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept are required."
+      });
+    }
+
+    // Decide the new case status based on User_Interaction_Type and Request Accept
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
 
     if (!caseStatus) {
@@ -7127,15 +7194,18 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       });
     }
 
+    // Create a new request document
     const newRequest = new Request({
-      RO_Request_Id: Interaction_Log_ID,
+      case_id: case_id,
+      Interaction_Log_ID: Interaction_Log_ID,
+      // RO_Request_Id: Interaction_Log_ID,
       Request_Description: User_Interaction_Type,
       created_dtm: new Date(),
       created_by: create_by,
-      Request_Mode: Request_Mode,
+      // Request_Mode: Request_Mode,
       Intraction_ID: Interaction_ID,
       parameters: {
-        "Request Accept": requestAccept,
+        "Request_Accept": requestAccept,
         "Reamrk": Reamrk,
         "No_of_Calendar_Month": No_of_Calendar_Month,
         "Letter_Send": Letter_Send
@@ -7151,48 +7221,73 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       return res.status(204).json({ message: `Case with case_id ${case_id} not found.` });
     }
 
-    const existingMonitorMonths = existingCase.monitor_months || 0;
-    let finalMonitorMonths = existingMonitorMonths;
-    let monthsToAdd = 0;
-
+    // Update the DRC expire_dtm if No_of_Calendar_Month is provided
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      monthsToAdd = parseInt(No_of_Calendar_Month, 10);
+      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
       if (isNaN(monthsToAdd) || monthsToAdd < 0) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ message: "Invalid No_of_Calendar_Month value." });
       }
 
-      finalMonitorMonths = existingMonitorMonths + monthsToAdd;
-      if (finalMonitorMonths > 5) {
+      const drcArrayLength = existingCase.drc.length;
+      const lastDrcIndex = drcArrayLength - 1;
+      const lastDrc = existingCase.drc[lastDrcIndex];
+
+      const startDate = new Date(lastDrc.created_dtm);
+      const endDate = new Date(lastDrc.expire_dtm);
+
+      const currentDuration = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+      
+      const totalAfterAdd = currentDuration + monthsToAdd;
+
+      if (totalAfterAdd > 5) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(405).json({ message: `Cannot update monitor_months beyond 5.` });
+        return res.status(405).json({
+          message: `Cannot extend DRC expire_dtm beyond a total of 5 months.`,
+        });
       }
+      
+      const extendedExpireDate = new Date(lastDrc.expire_dtm);
+      extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
+
+      await Case_details.updateOne(
+        { case_id: case_id },
+        { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } },
+        { session }
+      );
+    }
+    
+    // Update the case status and current phase if it has changed
+    if (existingCase.case_current_status != caseStatus) {
+      const newCaseStatus = {
+        case_status: caseStatus,
+        status_reason: Reamrk || null,
+        created_dtm: new Date(),
+        created_by: create_by,
+        notified_dtm: null,
+        expire_dtm: null,
+        case_phase: phaseMapping[caseStatus] || null,
+      };
+
+      const updateFields = {
+        $push: { case_status: newCaseStatus },
+        $set: { 
+          case_current_status: caseStatus, 
+          case_current_phase: phaseMapping[caseStatus] || null,
+        }
+
+      };
+
+      await Case_details.updateOne(
+        { case_id: case_id }, 
+        updateFields, 
+        { session }
+      );
     }
 
-    const newCaseStatus = {
-      case_status: caseStatus,
-      status_reason: Reamrk || null,
-      created_dtm: new Date(),
-      created_by: create_by,
-      notified_dtm: null,
-      expire_dtm: null,
-      case_phase:  ""
-    };
-
-    const updateFields = {
-      $push: { case_status: newCaseStatus },
-      $set: { case_current_status: caseStatus, monitor_months: finalMonitorMonths, case_current_phase: "" }
-    };
-
-    await Case_details.updateOne({ case_id: case_id }, updateFields, { session });
-    await User_Interaction_Log.updateOne(
-      { Interaction_Log_ID: Interaction_Log_ID },
-      { $set: { User_Interaction_Status: "Complete" } },
-      { session }
-    );
-
+    // Update the completed_dtm for the RO request
     const completedDate = new Date();
     await Case_details.updateOne(
       { case_id: case_id, "ro_requests.intraction_log_id": Interaction_Log_ID },
@@ -7207,65 +7302,43 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       return res.status(404).json({ message: "No matching Interaction_Log_ID found" });
     }
 
+    // Update the User Interaction Log with new status
+    const newUserInteractionStatus = {
+      User_Interaction_Status: "Complete",
+      created_dtm: new Date(),
+    }
+
+    await User_Interaction_Log.updateOne(
+      { Interaction_Log_ID: Interaction_Log_ID },
+      { $push: { User_Interaction_Status: newUserInteractionStatus } },
+      { session }
+    );
+
     const deligate_id = approvalDoc.Created_By;
 
     // --- Create User Interaction Log ---
-    const interaction_id = 19; // This may need to be changed
-    const request_type = "Approved Mediation Board forward request"; 
+    const interaction_id = 19;
+    // const request_type = "Approved Mediation Board forward request"; 
     const created_by = create_by;
-    const dynamicParams = { Interaction_Log_ID };
+    const dynamicParams = { 
+      case_id: case_id,
+      Accept: requestAccept,
+      request_type: User_Interaction_Type,
+     };
 
+    // Inserte a new request log
     await createUserInteractionFunction({
       Interaction_ID: interaction_id,
-      User_Interaction_Type: request_type,
+      User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id,  // Now using created_by as delegate ID
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: new Date(),
+      // User_Interaction_Status: "Open",
+      // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
     });
 
-    const drcArrayLength = existingCase.drc.length;
-    let extendedExpireDate = null;
-    if (drcArrayLength > 0 && monthsToAdd > 0) {
-      const lastDrcIndex = drcArrayLength - 1;
-      const lastExpireDtm = existingCase.drc[lastDrcIndex].expire_dtm;
-      if (lastExpireDtm) {
-        extendedExpireDate = new Date(lastExpireDtm);
-        extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
-        await Case_details.updateOne(
-          { case_id: case_id },
-          { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } },
-          { session }
-        );
-      }
-    }
-
-    if (No_of_Calendar_Month) {
-      const caseMonitor = await CaseMonitor.findOne({ case_id: case_id }).session(session);
-      if (caseMonitor) {
-        let newMonitorExpireDtm = new Date(caseMonitor.Monitor_Expire_Dtm);
-        newMonitorExpireDtm.setMonth(newMonitorExpireDtm.getMonth() + monthsToAdd);
-        await CaseMonitor.updateOne(
-          { case_id: case_id },
-          { $set: { Monitor_Expire_Dtm: newMonitorExpireDtm, Last_Request_On: new Date() } },
-          { session }
-        );
-      }
-    }
-
-    if (No_of_Calendar_Month) {
-      const caseMonitorLog = await CaseMonitorLog.findOne({ case_id: case_id }).session(session);
-      if (caseMonitorLog) {
-        let newnewMonitorExpireDtm = new Date(caseMonitorLog.Monitor_Expire_Dtm);
-        newnewMonitorExpireDtm.setMonth(newnewMonitorExpireDtm.getMonth() + monthsToAdd);
-        await CaseMonitorLog.updateOne(
-          { case_id: case_id },
-          { $set: { Monitor_Expire_Dtm: newnewMonitorExpireDtm } },
-          { session }
-        );
-      }
-    }
+    // Delete the User Interaction Progress Log entry
+    await User_Interaction_Progress_Log.deleteOne({ Interaction_Log_ID }, { session });
 
     await session.commitTransaction();
     session.endSession();
