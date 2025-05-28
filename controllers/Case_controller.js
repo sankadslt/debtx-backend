@@ -5740,6 +5740,15 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - case_id: String (required)
+ * - recieved_by: String (required)
+ * 
+ * Collection: Case_details
+ * 
+ * Purpose: Accepts a non-settlement request from the Mediation Board and updates the case status accordingly.
+ */
 export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, res) => {
   try {
       const { case_id, recieved_by } = req.body;  
@@ -5792,7 +5801,7 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
       caseRecord.case_status.push(newCaseStatus);
 
       
-      await caseRecord.save();
+      await caseRecord.save({ validateBeforeSave: false });
 
       
       return res.status(200).json({ message: 'Mediation board data updated successfully', caseRecord });
@@ -6078,6 +6087,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     // Filter User_Interaction_Type
     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
       matchFilter.User_Interaction_Type = User_Interaction_Type;
+      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     } else {
       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     }
@@ -7424,7 +7434,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       // Request_Mode: Request_Mode,
       Intraction_ID: Interaction_ID,
       parameters: {
-        "Request Accept": requestAccept,
+        "Request_Accept": requestAccept,
         "Reamrk": Reamrk,
         "No_of_Calendar_Month": No_of_Calendar_Month,
         "Letter_Send": Letter_Send

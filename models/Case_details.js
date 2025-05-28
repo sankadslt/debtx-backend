@@ -73,9 +73,9 @@ const drcSchema = new Schema({
   drc_status: {type: String, required:true},
   status_dtm: {type:Date, required: true},
   expire_dtm: {type:Date, required: true},
-  case_removal_remark: { type: String, required: true },
-  removed_by: { type: String, required: true },
-  removed_dtm: { type: Date, required: true },
+  case_removal_remark: { type: String, required: false },
+  removed_by: { type: String, required: false },
+  removed_dtm: { type: Date, required: false },
   drc_selection_logic: {type: String, required: true},
   case_distribution_batch_id:{type:Number, required: true},
   recovery_officers: [recoveryOfficerSchema]
