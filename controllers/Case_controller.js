@@ -28,7 +28,7 @@ import mongoose from "mongoose";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
-
+import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
 import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
@@ -4344,7 +4344,7 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:1,   // should be change this python
+        delegate_user_id:getUserIdOwnedByDRCId(),   // should be change this python
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams

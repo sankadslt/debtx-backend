@@ -1557,7 +1557,5 @@ router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_I
 
 router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
 
-router.post("/Obtain_User_Id_List_Owned_By_Drc_Id", getUserIdOwnedByDRCId);
-
 
 export default router;
