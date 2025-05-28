@@ -90,6 +90,7 @@ import {
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+  getCaseLists,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -10399,6 +10400,11 @@ router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settl
 router.post(
   "/Get_Abandoned_Case_Logs",
   getAbandonedCaseLogs
+);
+
+router.post(
+  "/Get_Case_Lists",
+  getCaseLists
 );
 
 export default router;

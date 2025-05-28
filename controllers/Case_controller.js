@@ -9532,3 +9532,96 @@ export const getAbandonedCaseLogs = async (req, res) => {
   }
 };
 
+export const getCaseLists = async (req, res) => {
+  try {
+    const {
+      rtom,
+      arrears_band,
+      case_current_status,
+      drc_commision_rule,
+      fromDate,
+      toDate,
+      page = 1,
+      limit = 10,
+    } = req.body;
+
+    // Validation
+    if (!rtom || !arrears_band || !case_current_status || !drc_commision_rule || !fromDate || !toDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: rtom, arrears_band, case_current_status, drc_commision_rule, fromDate, and toDate.",
+      });
+    }
+
+    const startDate = new Date(fromDate);
+    const endDate = new Date(toDate);
+
+    // console.log("Parsed startDate:", startDate);
+    // console.log("Parsed endDate:", endDate);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format. Please use 'YYYY-MM-DD'.",
+      });
+    }
+
+    const filter = {
+      rtom,
+      arrears_band,
+      case_current_status,
+      drc_commision_rule,
+      created_dtm: { $gte: startDate, $lte: endDate },
+    };
+
+    const skip = (page - 1) * limit;
+
+    const [total, rawCases] = await Promise.all([
+      CaseDetails.countDocuments(filter),
+      CaseDetails.find(filter)
+        .select("case_id case_current_status account_no drc_commision_rule current_arrears_amount rtom created_dtm last_payment_date remark approve case_status")
+        .skip(skip)
+        .limit(Number(limit)),
+    ]);
+
+    const formattedCases = rawCases.map(doc => {      
+      const sortedStatuses = (Array.isArray(doc.case_status) ? doc.case_status : [])
+        .filter(status => status?.created_dtm)
+        .sort((a, b) => new Date(b.created_dtm) - new Date(a.created_dtm));
+
+      const latestStatus = sortedStatuses.length > 0 ? sortedStatuses[0] : null;
+
+      return {
+        _id: doc._id,
+        case_id: doc.case_id,
+        case_current_status: doc.case_current_status,
+        account_no: doc.account_no,
+        drc_commision_rule: doc.drc_commision_rule,
+        current_arrears_amount: doc.current_arrears_amount,
+        rtom: doc.rtom,
+        created_dtm: doc.created_dtm,
+        last_payment_date: doc.last_payment_date,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: formattedCases.length > 0 ? "Records fetched successfully." : "No records found.",
+      data: formattedCases,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getCaseLists:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+
+
