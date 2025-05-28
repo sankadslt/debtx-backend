@@ -7329,6 +7329,29 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
 //   "Mediation Board Customer request service": { Yes: "MB Negotiation", No: "MB Negotiation" }
 // };
 
+/**
+ * Inputs:
+ * - create_by: String (required)
+ * - Interaction_Log_ID: Number (required)
+ * - case_id: Number (required)
+ * - User_Interaction_Type: String (required)
+ * - Interaction_ID: Number (required)
+ * - requestAccept: String (required)
+ * - Reamrk: String (Optional)
+ * - No_of_Calendar_Month: Number (Optional)
+ * - Letter_Send: String (Optional)
+ * 
+ * Description: Submits a mediation board acceptance request based on the provided parameters.
+ * 
+ * Collections:
+ * - Request
+ * - Case_details
+ * - User_Interaction_Log
+ * - User_Interaction_Progress_Log
+ * 
+ * Success Result:
+ * - Returns a success response.
+ */
 export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -7362,7 +7385,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       Interaction_Log_ID,
       case_id,
       User_Interaction_Type,
-      Request_Mode,
+      // Request_Mode,
       Interaction_ID,
       // "Request Accept": requestAccept,
       requestAccept,
@@ -7370,6 +7393,14 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       No_of_Calendar_Month,
       Letter_Send
     } = req.body;
+
+    if (!create_by || !Interaction_Log_ID || !User_Interaction_Type || !case_id || !Interaction_ID || !requestAccept) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept are required."
+      });
+    }
 
     // Decide the new case status based on User_Interaction_Type and Request Accept
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
