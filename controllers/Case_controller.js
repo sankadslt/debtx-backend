@@ -6048,7 +6048,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
       delegate_user_id,
       User_Interaction_Type,
       Request_Accept, 
-      drc_name,
+      drc_id,
       date_from,
       date_to
     } = req.body;
@@ -6181,10 +6181,10 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         }
       },
       
-      // Stage 10: Filter by drc_name if provided
-      ...(drc_name ? [{
+      // Stage 10: Filter by drc_id if provided
+      ...(drc_id ? [{
         $match: {
-          "drc_details.drc_name": drc_name
+          "case_details.ro_requests.drc_id": drc_id
         }
       }] : []),
       
@@ -7443,7 +7443,10 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
 
     const savedRequest = await newRequest.save({ session });
 
-    const existingCase = await Case_details.findOne({ case_id: case_id }).session(session);
+    const existingCase = await Case_details.findOne(
+      { case_id: case_id },
+      {drc: 1, case_current_status: 1}
+    ).session(session);
     if (!existingCase) {
       await session.abortTransaction();
       session.endSession();
@@ -7561,6 +7564,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id,  // Now using created_by as delegate ID
       Created_By: created_by,
+      session: session,
       // User_Interaction_Status: "Open",
       // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
