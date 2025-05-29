@@ -943,7 +943,9 @@ export const getRODetailsByDrcID = async (req, res) => {
 // };
 
 
-
+// Purpose: Retrieve Active Recovery Officers whose last status is Active by DRC ID
+// Input: drc_id (from request body)
+// Collection: Recovery_officer
 // Retrieve Recovery Officers whose last status is Active
 export const getActiveRODetailsByDrcID = async (req, res) => {
   try {
@@ -958,62 +960,39 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
       });
     }
 
-    // Fetch drc_name by drc_id from MongoDB
-    const drc = await DebtRecoveryCompany.findOne({ drc_id });
-    if (!drc) {
-      return res.status(404).json({
-        status: "error",
-        message: `No Debt Recovery Company found for drc_id: ${drc_id}.`,
-      });
-    }
+    const activeRecoveryOfficers = await Recovery_officer.find({
+      drc_id: drc_id,
+      ro_status: "Active"
+    });
 
-    const drc_name = drc.drc_name;
-
-    // Fetch Recovery Officers whose last status is Active
-    const activeRecoveryOfficers = await Recovery_officer.aggregate([
-      // Match recovery officers by drc_name
-      { $match: { drc_name } },
-      // Add a computed field for the last status in the ro_status array
-      {
-        $addFields: {
-          last_status: { $arrayElemAt: ["$ro_status", -1] }, // Get the last element in ro_status
-        },
-      },
-      // Filter officers whose last status is Active
-      { $match: { "last_status.status": "Active" } },
-    ]);
 
     // Check if any active recovery officers were found
     if (activeRecoveryOfficers.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: `No Active Recovery Officers found for drc_name: ${drc_name}.`,
+        message: `No Active Recovery Officers found for drc.`,
       });
     }
 
     // Format the response
-    const formattedResults = activeRecoveryOfficers.map((ro) => ({
+    const formattedResults = activeRecoveryOfficers?.map((ro) => ({
       ro_id: ro.ro_id,
       ro_name: ro.ro_name,
       ro_contact_no: ro.ro_contact_no,
-      drc_name: ro.drc_name,
-      ro_status: ro.last_status.status,
-      ro_status_date: ro.last_status.ro_status_date,
-      ro_status_edit_by: ro.last_status.ro_status_edit_by,
+      // drc_name: ro.drc_name,
+      ro_status: ro.ro_status,
+      // ro_status_date: ro.last_status.ro_status_date,
+      // ro_status_edit_by: ro.last_status.ro_status_edit_by,
       login_type: ro.login_type,
       login_user_id: ro.login_user_id,
       remark: ro.remark,
       ro_nic: ro.ro_nic,
-      ro_end_date: ro.ro_end_date || null,
-      rtoms_for_ro: ro.rtoms_for_ro.map((rtom) => ({
-        name: rtom.name,
-        status: rtom.status.map((stat) => ({
-          status: stat.status,
-          rtoms_for_ro_status_date: stat.rtoms_for_ro_status_date,
-          rtoms_for_ro_status_edit_by: stat.rtoms_for_ro_status_edit_by,
-        })),
+      ro_end_date: ro.ro_end_dtm || null,
+      rtoms_for_ro: ro.rtom.map((rtom) => ({
+        name: rtom.rtom_name,
+        status: rtom.rtom_status
       })),
-      created_by: ro.created_by,
+      created_by: ro.ro_create_by,
       createdAt: ro.createdAt,
       updatedAt: ro.updatedAt,
     }));
