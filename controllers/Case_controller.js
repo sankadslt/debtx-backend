@@ -28,7 +28,7 @@ import mongoose from "mongoose";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
-
+import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
 import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
 import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
@@ -4344,7 +4344,7 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:1,   // should be change this python
+        delegate_user_id:getUserIdOwnedByDRCId(),   // should be change this python
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams
@@ -5811,235 +5811,6 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (req, re
       return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
-// This is made to the new model structue. This is geanarates erroe while executing because of the model change, User_Interaction_Status Array. previous data is not an array.
-// export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
-//   try {
-//     const { 
-//       delegate_user_id, 
-//       User_Interaction_Type, 
-//       "Request Accept": Request_Accept, 
-//       drc_id, 
-//       date_from, 
-//       date_to 
-//     } = req.body;
-
-//     if (!delegate_user_id) {
-//       return res.status(400).json({ 
-//         message: "Missing required fields: delegate_user_id is required." 
-//       });
-//     }
-
-//     const validUserInteractionTypes = [
-//       "Mediation board forward request letter",
-//       "Negotiation Settlement plan Request",
-//       "Negotiation period extend Request",
-//       "Negotiation customer further information Request",
-//       "Negotiation Customer request service",
-//       "Mediation Board Settlement plan Request",
-//       "Mediation Board period extend Request",
-//       "Mediation Board customer further information request",
-//       "Mediation Board Customer request service"
-//     ];
-
-//     // Build match filter - only add date filter if both dates are provided
-//     const matchFilter = {
-//       delegate_user_id: delegate_user_id
-//     };
-
-//     // Add date filter only if both dates are provided
-//     if (date_from && date_to) {
-//       const startDate = new Date(date_from);
-//       const endDate = new Date(date_to);
-//       endDate.setHours(23, 59, 59, 999);
-//       matchFilter.CreateDTM = { $gte: startDate, $lte: endDate };
-//     }
-
-//     // Filter User_Interaction_Type
-//     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
-//       matchFilter.User_Interaction_Type = User_Interaction_Type;
-//     } else {
-//       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
-//     }
-
-//     // Aggregation pipeline
-//     const pipeline = [
-//       // Stage 1: Match User_Interaction_Log documents
-//       {
-//         $match: matchFilter
-//       },
-      
-//       // Stage 2: Add last status field
-//       {
-//         $addFields: {
-//           last_status: { $arrayElemAt: ["$User_Interaction_Status", -1] }
-//         }
-//       },
-      
-//       // Stage 3: Filter by last User_Interaction_Status
-//       {
-//         $match: {
-//           $or: [
-//             { "last_status.User_Interaction_Status": "Open" },
-//             { "last_status.User_Interaction_Status": "Seen" }
-//           ]
-//         }
-//       },
-      
-//       // Stage 4: Lookup Case_details collection
-//       {
-//         $lookup: {
-//           from: "Case_details",
-//           localField: "parameters.case_id",
-//           foreignField: "case_id",
-//           as: "case_details"
-//         }
-//       },
-      
-//       // Stage 5: Unwind case_details array
-//       {
-//         $unwind: {
-//           path: "$case_details",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-      
-//       // Stage 6: Unwind ro_requests array
-//       {
-//         $unwind: {
-//           path: "$case_details.ro_requests",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-      
-//       // Stage 7: Match ro_requests with Interaction_Log_ID and drc_id
-//       {
-//         $match: {
-//           $expr: {
-//             $and: [
-//               { $eq: ["$case_details.ro_requests.intraction_log_id", "$Interaction_Log_ID"] },
-//               ...(drc_id ? [{ $eq: ["$case_details.ro_requests.drc_id", drc_id] }] : [])
-//             ]
-//           }
-//         }
-//       },
-      
-//       // Stage 8: Lookup Request collection
-//       {
-//         $lookup: {
-//           from: "Request",
-//           localField: "Interaction_Log_ID",
-//           foreignField: "Interaction_Log_ID",
-//           as: "request_docs"
-//         }
-//       },
-      
-//       // Stage 9: Unwind request_docs array
-//       {
-//         $unwind: {
-//           path: "$request_docs",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-      
-//       // Stage 10: Filter by Request_Accept if provided
-//       ...(Request_Accept ? [{
-//         $match: {
-//           "request_docs.parameters.Request_Accept": Request_Accept
-//         }
-//       }] : []),
-      
-//       // Stage 11: Add calculated fields
-//       {
-//         $addFields: {
-//           validity_period: {
-//             $cond: {
-//               if: { 
-//                 $and: [
-//                   { $ne: ["$case_details.created_dtm", null] },
-//                   { $ne: ["$case_details.monitor_months", null] }
-//                 ]
-//               },
-//               then: {
-//                 $concat: [
-//                   { 
-//                     $dateToString: { 
-//                       date: "$case_details.created_dtm",
-//                       format: "%Y-%m-%d"
-//                     }
-//                   },
-//                   " - ",
-//                   { 
-//                     $dateToString: { 
-//                       date: {
-//                         $dateAdd: { 
-//                           startDate: "$case_details.created_dtm", 
-//                           unit: "month", 
-//                           amount: "$case_details.monitor_months" 
-//                         }
-//                       },
-//                       format: "%Y-%m-%d"
-//                     }
-//                   }
-//                 ]
-//               },
-//               else: {
-//                 $cond: {
-//                   if: { $ne: ["$case_details.created_dtm", null] },
-//                   then: {
-//                     $dateToString: { 
-//                       date: "$case_details.created_dtm",
-//                       format: "%Y-%m-%d"
-//                     }
-//                   },
-//                   else: "N/A"
-//                 }
-//               }
-//             }
-//           }
-//         }
-//       },
-      
-//       // Stage 12: Final projection
-//       {
-//         $project: {
-//           _id: 0,
-//           case_id: "$case_details.case_id",
-//           case_current_status: "$case_details.case_current_status",
-//           User_Interaction_Status: "$last_status.User_Interaction_Status",
-//           current_arrears_amount: "$case_details.current_arrears_amount",
-//           Validity_Period: "$validity_period",
-//           drc_id: "$case_details.ro_requests.drc_id",
-//           User_Interaction_Type: "$User_Interaction_Type",
-//           CreateDTM: "$CreateDTM",
-//           Request_Accept: "$request_docs.parameters.Request_Accept"
-//         }
-//       }
-//     ];
-
-//     // Execute the aggregation pipeline
-//     const results = await User_Interaction_Log.aggregate(pipeline);
-
-//     if (!results || results.length === 0) {
-//       return res.status(204).json({ 
-//         message: "No matching data found for the specified criteria." 
-//       });
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       count: results.length,
-//       data: results
-//     });
-    
-//   } catch (error) {
-//     console.error("Error fetching user interaction response log:", error);
-//     return res.status(500).json({ 
-//       message: "Internal Server Error", 
-//       error: error.message 
-//     });
-//   }
-// };
 
 // This is handel previous model isses wich 'User_Interaction_Status' is not an array object before.
 export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
@@ -7858,7 +7629,6 @@ export const RO_CPE_Collection = async (req,res) => {
   }
 };
 
-
 export const List_Request_Response_log = async (req, res) => {
   try {
     const { case_current_status, date_from, date_to } = req.body;
@@ -8202,32 +7972,66 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
-function negotiation_condition_function2(arrears_amount, drc_validity_period, region) {
+function negotiation_condition_function2(arrears_amount, drc_validity_period, region, expair_date) {
   let case_status = "";
+  let message = "";
+  let reason= "";
+
+  const now = new Date();
+  const isDRCExpired = expair_date < now;
 
   if (arrears_amount < 50000) {
     if (drc_validity_period > 3) {
-      case_status = "DRC Expired - Low Arrears";
+      if(isDRCExpired){
+          case_status = "LIT Prescribed";
+          message = "Can not Request Mediation Board Forward Letter for this case";
+          reason  = "DRC validity period is expired"
+      } else {
+        message = "Request Mediation Board Forward Letter is not a valid request";
+        reason  = "DRC validity period is not expired but more than three months"
+      }
     } else {
-      case_status = "DRC Valid - Low Arrears";
+      message = "Request Mediation Board Forward Letter is not a valid request";
+      reason  = "DRC validity period is less than three months"
     }
   } else if (arrears_amount > 1000000) {
     case_status = "Pending FTL LOD";
+    message = "Request Mediation Board Forward Letter is not a valid request";
+    reason  = "arrears amount is more than 1000000"
   } else {
     if (region === "metro") {
-      case_status = "RO Negotiation FMB Pending";
+      message = "Request Mediation Board Forward Letter is a valid request";
+      reason  = "region is metro"
     } else if (region === "region") {
       if (arrears_amount > 100000) {
-        case_status = "RO Negotiation FMB Pending";
+        message = "Request Mediation Board Forward Letter is a valid request";
+        reason  = "region is region and amount more than 100000"
       } else {
         if (drc_validity_period > 3) {
-          case_status = "DRC Expired - Region";
+          if(isDRCExpired){
+            case_status = "LIT Prescribed";
+            message = "Can not Request Mediation Board Forward Letter for this case";
+            reason  = "DRC validity period is expired"
+          } else {
+            message = "Request Mediation Board Forward Letter is not a valid request";
+            reason  = "DRC validity period is not expired but more than three months"
+          }
         } else {
-          case_status = "DRC Valid - Region";
+            message = "Request Mediation Board Forward Letter is not a valid request";
+            reason  = "DRC validity period is less than three months"
         }
       }
     }
   }
+  return {
+    case_status,
+    message,
+    reason
+  };
+};
 
-  return case_status;
-}
+const result = negotiation_condition_function2(40000, 4, "region", new Date("2024-05-01"));
+console.log(result);
+
+// function negotiation_condition_function2(){
+// };
