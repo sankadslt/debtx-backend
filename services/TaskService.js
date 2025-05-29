@@ -94,7 +94,7 @@ export const createTask = async (req, res) => {
 
     try {
       const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
-      console.log("Request body:", req.body);
+      // console.log("Request body:", req.body);
   
       if (!Template_Task_Id || !Created_By) {
         return res.status(400).json({ message: "Template_Task_Id and created_by are required." });
@@ -159,7 +159,7 @@ export const createTask = async (req, res) => {
     }
   };
 
-export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By }) => {
+export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By, Source_type }) => {
   if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
     throw new Error("Missing required parameters");
   }
@@ -177,18 +177,18 @@ export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Inciden
     );
 
     const Task_Id = counterResult.value.seq;
-
+    const dynamicParams = {
+            DRC_Action,
+            Incident_Status,
+            From_Date,
+            To_Date,
+          }
     // Task object
     const taskData = {
       Task_Id,
       Template_Task_Id: 20,
       task_type: "Create Incident list for download",
-      parameters: {
-        DRC_Action,
-        Incident_Status,
-        From_Date,
-        To_Date,
-      },
+      ...dynamicParams,
       Created_By,
       task_status: "open",
       created_dtm: new Date(),
