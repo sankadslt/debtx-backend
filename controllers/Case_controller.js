@@ -5818,8 +5818,8 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     const {
       delegate_user_id,
       User_Interaction_Type,
-      Request_Accept, 
-      drc_name,
+      // Request_Accept, 
+      drc_id,
       date_from,
       date_to
     } = req.body;
@@ -5952,37 +5952,37 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         }
       },
       
-      // Stage 10: Filter by drc_name if provided
-      ...(drc_name ? [{
+      // Stage 10: Filter by drc_id if provided
+      ...(drc_id ? [{
         $match: {
-          "drc_details.drc_name": drc_name
+          "case_details.ro_requests.drc_id": drc_id
         }
       }] : []),
       
       // Stage 11: Lookup Request collection
-      {
-        $lookup: {
-          from: "Request",
-          localField: "Interaction_Log_ID",
-          foreignField: "Interaction_Log_ID",
-          as: "request_docs"
-        }
-      },
+      // {
+      //   $lookup: {
+      //     from: "Request",
+      //     localField: "Interaction_Log_ID",
+      //     foreignField: "Interaction_Log_ID",
+      //     as: "request_docs"
+      //   }
+      // },
       
       // Stage 12: Unwind request_docs array
-      {
-        $unwind: {
-          path: "$request_docs",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+      // {
+      //   $unwind: {
+      //     path: "$request_docs",
+      //     preserveNullAndEmptyArrays: true
+      //   }
+      // },
       
       // Stage 13: Filter by Request_Accept if provided
-      ...(Request_Accept ? [{
-        $match: {
-          "request_docs.parameters.Request_Accept": Request_Accept
-        }
-      }] : []),
+      // ...(Request_Accept ? [{
+      //   $match: {
+      //     "request_docs.parameters.Request_Accept": Request_Accept
+      //   }
+      // }] : []),
       
       // Stage 14: Add calculated fields
       {
@@ -6050,13 +6050,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
           drc_name: "$drc_details.drc_name",
           User_Interaction_Type: "$User_Interaction_Type",
           CreateDTM: "$CreateDTM",
-          Request_Accept: "$request_docs.parameters.Request_Accept"
+          // Request_Accept: "$request_docs.parameters.Request_Accept"
         }
       }
     ];
 
     // Execute the aggregation pipeline
-    const results = await User_Interaction_Log.aggregate(pipeline);
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
 
     if (!results || results.length === 0) {
       return res.status(204).json({ 
@@ -6972,13 +6972,25 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
                 case_id: 1, 
                 customer_ref: 1, 
                 account_no: 1, 
+                customer_name: 1,
                 current_arrears_amount: 1, 
+                account_manager_code: 1,
                 last_payment_date: 1, 
                 monitor_months: 1,
                 incident_id: 1,
+                customer_type_name: 1,
                 case_current_status: 1,
                 ro_negotiation: 1,
-                mediation_board: 1
+                mediation_board: 1,
+                ro_requests: 1,
+                validity_expire_dtm: { $arrayElemAt: ["$drc.expire_dtm", -1] },
+                validity_period_months: {
+                  $dateDiff: {
+                    startDate: { $arrayElemAt: ["$drc.created_dtm", -1] },
+                    endDate: { $arrayElemAt: ["$drc.expire_dtm", -1] },
+                    unit: "month"
+                  }
+              }
               } 
             }
           ],
@@ -6995,22 +7007,22 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       },
       
       // Stage 4: Lookup incident details
-      {
-        $lookup: {
-          from: "Incident", // Adjust collection name if needed
-          let: { incident_id: "$case_details.incident_id" },
-          pipeline: [
-            { $match: { $expr: { $eq: ["$Incident_Id", "$$incident_id"] } } },
-            { 
-              $project: { 
-                "Customer_Details.Customer_Type_Name": 1, 
-                "Marketing_Details.ACCOUNT_MANAGER": 1 
-              } 
-            }
-          ],
-          as: "incident"
-        }
-      },
+      // {
+      //   $lookup: {
+      //     from: "Incident", // Adjust collection name if needed
+      //     let: { incident_id: "$case_details.incident_id" },
+      //     pipeline: [
+      //       { $match: { $expr: { $eq: ["$Incident_Id", "$$incident_id"] } } },
+      //       { 
+      //         $project: { 
+      //           "Customer_Details.Customer_Type_Name": 1, 
+      //           "Marketing_Details.ACCOUNT_MANAGER": 1 
+      //         } 
+      //       }
+      //     ],
+      //     as: "incident"
+      //   }
+      // },
       
       // Stage 5: Unwind incident (optional)
       {
@@ -7021,26 +7033,26 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
       },
       
       // Stage 6: Lookup request history
-      {
-        $lookup: {
-          from: "User_Interaction_Log", // Adjust collection name if needed
-          let: { delegate_id: "$delegate_user_id", log_id: "$Interaction_Log_ID" },
-          pipeline: [
-            { 
-              $match: { 
-                $expr: { 
-                  $and: [
-                    { $eq: ["$delegate_user_id", "$$delegate_id"] },
-                    { $ne: ["$Interaction_Log_ID", "$$log_id"] }
-                  ]
-                } 
-              } 
-            },
-            { $project: { _id: 0, __v: 0 } }
-          ],
-          as: "Request_History"
-        }
-      },
+      // {
+      //   $lookup: {
+      //     from: "User_Interaction_Log", // Adjust collection name if needed
+      //     let: { delegate_id: "$delegate_user_id", log_id: "$Interaction_Log_ID" },
+      //     pipeline: [
+      //       { 
+      //         $match: { 
+      //           $expr: { 
+      //             $and: [
+      //               { $eq: ["$delegate_user_id", "$$delegate_id"] },
+      //               { $ne: ["$Interaction_Log_ID", "$$log_id"] }
+      //             ]
+      //           } 
+      //         } 
+      //       },
+      //       { $project: { _id: 0, __v: 0 } }
+      //     ],
+      //     as: "Request_History"
+      //   }
+      // },
       
       // Stage 7: Format the response
       {
@@ -7048,12 +7060,19 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
           _id: 0,
           case_id: "$case_details.case_id",
           customer_ref: "$case_details.customer_ref",
+          customer_name: "$case_details.customer_name",
+          customer_type_name: "$case_details.customer_type_name",
           account_no: "$case_details.account_no",
           current_arrears_amount: "$case_details.current_arrears_amount",
+          account_manager_code: "$case_details.account_manager_code",
           last_payment_date: "$case_details.last_payment_date",
           monitor_months: "$case_details.monitor_months",
           incident_id: "$case_details.incident_id",
           case_current_status: "$case_details.case_current_status",
+          validity_expire_dtm: "$case_details.validity_expire_dtm",
+          validity_period_months: "$case_details.validity_period_months",
+
+          ro_requests: "$case_details.ro_requests",
           
           // Conditionally include ro_negotiation or mediation_board based on status
           ro_negotiation: {
@@ -7072,17 +7091,17 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
           },
           
           // Add incident details
-          Customer_Type_Name: { $ifNull: ["$incident.Customer_Details.Customer_Type_Name", null] },
-          ACCOUNT_MANAGER: { $ifNull: ["$incident.Marketing_Details.ACCOUNT_MANAGER", null] },
+          // Customer_Type_Name: { $ifNull: ["$incident.Customer_Details.Customer_Type_Name", null] },
+          // ACCOUNT_MANAGER: { $ifNull: ["$incident.Marketing_Details.ACCOUNT_MANAGER", null] },
           
           // Include request history
-          Request_History: 1
+          // Request_History: 1
         }
       }
     ];
     
     // Execute the aggregation pipeline
-    const results = await User_Interaction_Log.aggregate(pipeline);
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
     
     if (!results || results.length === 0) {
       return res.status(204).json({ message: "No matching data found." });
@@ -7214,7 +7233,10 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
 
     const savedRequest = await newRequest.save({ session });
 
-    const existingCase = await Case_details.findOne({ case_id: case_id }).session(session);
+    const existingCase = await Case_details.findOne(
+      { case_id: case_id },
+      {drc: 1, case_current_status: 1}
+    ).session(session);
     if (!existingCase) {
       await session.abortTransaction();
       session.endSession();
@@ -7332,6 +7354,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id,  // Now using created_by as delegate ID
       Created_By: created_by,
+      session: session,
       // User_Interaction_Status: "Open",
       // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
@@ -7349,7 +7372,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error("Error:", error);
+    // console.error("Error:", error);
     return res.status(500).json({ message: "Failed to submit request.", error: error.message });
   }
 };
