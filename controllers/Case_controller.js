@@ -2142,7 +2142,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     const taskData = {
       Template_Task_Id: 26,
       task_type: "Create Case distribution DRC Transaction List for Downloard",
-      ...parameters, // Spreads parameters directly into taskData
+      ...parameters,
       Created_By,
       task_status: "open"
     };
