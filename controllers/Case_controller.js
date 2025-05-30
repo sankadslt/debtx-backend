@@ -3478,10 +3478,33 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       session.endSession();
       return res.status(304).json({ message: "Approval update failed" });
     }
-    
-    // should be call to the case_phase API
-    // const case_phase = await pythonapi(case_current_status);
+    const payload = {case_status:newStatus};
+    let case_phase = ""
+    try {
+      const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
 
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+      console.log("case_phase:", case_phase);
+    } catch (error) {
+      console.error('Error during axios call:', error.message);
+      if (error.response) {
+        console.error('API Error Response:', error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
     // Update all active DRCs to Inactive if this is a DRC Re-Assign Approval
     if (approvalDoc.approver_type === "DRC Re-Assign Approval" && caseDetails.drc && caseDetails.drc.length > 0) {
       // Update all active DRCs to inactive
@@ -3517,22 +3540,22 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
           status_reason: "Case Approved",
           created_dtm: currentDate,
           created_by: approved_by,
-          case_phase: "python" //case_phase,
+          case_phase,
         }
       },
       $set: {
         case_current_status: newStatus,
-        case_current_phase:"python",  //case_phase,
+        case_current_phase: case_phase
       },
     };
 
     if (approvalDoc.approver_type === "DRC Re-Assign Approval" && approvalDoc.parameters) 
       {
-        const drcId = approvalDoc.parameters.get('drc_id');
-        const drcName = approvalDoc.parameters.get('drc_name');
+        const drcId = approvalDoc.parameters?.drc_id;
+        const drcName = approvalDoc.parameters?.drc_name;
+
 
         if (drcId && drcName) {
-          // Add new DRC object to the drc array
           caseUpdateOperation.$push.drc = {
             order_id: null,
             drc_id: drcId,
@@ -3557,35 +3580,32 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       }
     else if (approvalDoc.approver_type === "Case Withdrawal Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
-           remark: "Approved Case Withdrawal Approval",                                         
+          remark: "Approved Case Withdrawal Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else if (approvalDoc.approver_type === "Case Abandoned Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
           remark: "Approved Case Abandoned Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else if (approvalDoc.approver_type === "Case Write-Off Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
-           remark: "Approved Case Write-Off Approval",                                         
+          remark: "Approved Case Write-Off Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else{
@@ -3902,7 +3922,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
 
   try {
     session.startTransaction();
-    const { case_id, drc_id, remark, assigned_by, drc_name } = req.body;
+    const { case_id, drc_id, remark, assigned_by, drc_name, case_current_status } = req.body;
     
     if (!case_id|| !drc_id || !assigned_by || !drc_name) {
       await session.abortTransaction();
@@ -3944,10 +3964,35 @@ export const Assign_DRC_To_Case = async (req, res) => {
       drc_id,
       drc_name
     };
-    // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
+    const payload = {case_status:case_current_status};
+    let case_phase = ""
+    try {
+      const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
+
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+      console.log("case_phase:", case_phase);
+    } catch (error) {
+      console.error('Error during axios call:', error.message);
+      if (error.response) {
+        console.error('API Error Response:', error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
     const delegate_id = await getApprovalUserIdService({
-        case_phase: "python status",
+        case_phase,
         approval_type: "DRC Re-Assign Approval"
     });
     const result = await createUserInteractionFunction({
@@ -3962,7 +4007,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
 
     if(!result || result.status === "error"){
       await session.abortTransaction();
-      res.status(404).json({
+      return res.status(404).json({
         status: "error",
         message: "DRC Reassining send to the Aprover process has a error.",
       }); 
@@ -5533,10 +5578,36 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       }
 
       const currentDate = new Date();
-      // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
+      const payload = {case_status};
+      let case_phase = ""
+      try {
+        const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
+
+        if (!response.data.case_phase) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "case_phase not found in API response",
+          });
+        }
+        case_phase = response.data.case_phase;
+        console.log("case_phase:", case_phase);
+      } catch (error) {
+        console.error('Error during axios call:', error.message);
+        if (error.response) {
+          console.error('API Error Response:', error.response.data);
+        }
+        // Abort and end session on axios error
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({
+          message: "Failed to get case_phase from external API",
+          error: error.message,
+        });
+      };
+
       const delegate_id = await getApprovalUserIdService({
-          case_phase: "python",
+          case_phase,
           approval_type: "DRC Assign Approval"
       });
 
@@ -5560,9 +5631,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
 
       await newDocument.save({ session });
 
-      // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
-
       // Update approve array in CaseDetails with requested_on and requested_by
       const caseResult = await Case_details.updateOne(
           { case_id: approver_reference },
@@ -5573,12 +5641,12 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
                     status_reason: "Case send for Withdrawal Approval",
                     created_dtm: currentDate,
                     created_by: created_by,
-                    case_phase: "python"  // case_phase
+                    case_phase,
                   }
               },
               $set: {
                 case_current_status: "Pending Case Withdrawal",
-                case_current_phase:"python"  // case_phase
+                case_current_phase:case_phase,
               },
           },
           { session }
@@ -6651,8 +6719,6 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
-
 
 export const Customer_Negotiations = async (req, res) => {
   const session = await mongoose.startSession(); // Start a session
