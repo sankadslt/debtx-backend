@@ -6877,30 +6877,31 @@ export const Create_task_for_Request_log_download_when_select_more_than_one_mont
   session.startTransaction();
 
   try {
-    const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to, Created_By } = req.body;
-
-    if (!Created_By) {
+    const {
+      delegate_user_id,
+      User_Interaction_Type,
+      drc_id,
+      date_from,
+      date_to
+    } = req.body;
+    if (!delegate_user_id) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: "Created_By is required" });
     }
     const parameters = {
-      case_current_status,
+      drc_id,
+      delegate_user_id,
+      User_Interaction_Type,
       date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
       date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
-      Created_By,
-      task_status: "open"
     };
     // --- Create Task ---
     const taskData = {
       Template_Task_Id: 37, 
       task_type: "Create Task for Request log List for Download",
-      delegate_user_id,
-      User_Interaction_Type,
-      requestAccept,
-      date_from,
-      date_to,
-      Created_By, // Assigned creator
+      ...parameters,
+      Created_By:delegate_user_id, 
       task_status: "open",
     };
 
@@ -7886,15 +7887,15 @@ export const Create_Task_For_Request_Responce_Log_Download = async (req, res) =>
       case_current_status,
       date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
       date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
-      Created_By,
-      task_status: "open"
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 38,
-      task_type: "Create Request Responce Log List for Downloard",
+      task_type: "Create Request Response Log List for Download",
       ...parameters, 
+      task_status: "open",
+      Created_By,
     };
 
     // Call createTaskFunction
