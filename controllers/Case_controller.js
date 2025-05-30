@@ -8071,7 +8071,7 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
-function negotiation_condition_function2(arrears_amount, drc_validity_period, region, expair_date) {
+function negotiation_condition_function(arrears_amount, drc_validity_period, region, expair_date) {
   let case_status = "";
   let message = "";
   let reason= "";
@@ -8128,12 +8128,6 @@ function negotiation_condition_function2(arrears_amount, drc_validity_period, re
     reason
   };
 };
-
-const result = negotiation_condition_function2(40000, 4, "region", new Date("2024-05-01"));
-console.log(result);
-
-// function negotiation_condition_function2(){
-// };
 
 export const listdownCaseDetailsByCaseId = async (req, res) => {
   try {
@@ -8274,8 +8268,6 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
         'settlement'
       );
     }
-
-    
 
     if (hasData(cleanedCaseDetails.abnormal_stop)) {
       response. abnormal_stop= addNavigationMetadata(
