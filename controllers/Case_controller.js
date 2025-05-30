@@ -43,7 +43,7 @@ import CaseMonitor from "../models/Case_Monitor.js";
 import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
 import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
-
+import CaseDetails from "../models/Case_details.js";
 /**
  * Inputs:
  * - None
@@ -8054,3 +8054,187 @@ console.log(result);
 
 // function negotiation_condition_function2(){
 // };
+
+export const listdownCaseDetailsByCaseId = async (req, res) => {
+  try {
+    const caseId = parseInt(req.params.caseId);
+
+    if (isNaN(caseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid case ID provided"
+      });
+    }
+
+    const caseDetails = await CaseDetails.findOne({ case_id: caseId }).lean().exec();
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "Case details not found for the provided ID"
+      });
+    }
+
+   
+    const { _id, __v, ...cleanedCaseDetails } = caseDetails;
+
+    const hasData = (field) => Array.isArray(field) && field.length > 0;
+ 
+
+    const addNavigationMetadata = (dataArray) => {
+      if (!Array.isArray(dataArray) || dataArray.length === 0) return dataArray;
+
+      return dataArray.map((item) => {
+        const { _id, __v, ...cleanedItem } = item;
+        return {
+          ...cleanedItem,
+        
+     
+        };
+      });
+    };
+
+    const response = {
+      caseInfo: {
+        caseId: cleanedCaseDetails.case_id,
+        createdDtm: cleanedCaseDetails.created_dtm,
+        daysCount: Math.floor((new Date() - new Date(cleanedCaseDetails.created_dtm)) / (1000 * 60 * 60 * 24))
+      },
+      basicInfo: {
+        accountNo: cleanedCaseDetails.account_no,
+        customerName: cleanedCaseDetails.customer_name,
+        customerRef: cleanedCaseDetails.customer_ref,
+        area: cleanedCaseDetails.area,
+        rtom: cleanedCaseDetails.rtom,
+        arrearsAmount: cleanedCaseDetails.current_arrears_amount,
+        actionType: cleanedCaseDetails.action_type,
+        currentStatus: cleanedCaseDetails.case_current_status,
+        lastPaymentDate: cleanedCaseDetails.last_payment_date,
+        lastBssReadingDate: cleanedCaseDetails.last_bss_reading_date,
+        remark: cleanedCaseDetails.remark?.[0]?.remark || null
+      }
+    };
+
+    // if (hasData(cleanedCaseDetails.ref_products) || hasData(cleanedCaseDetails.current_contact)) {
+    //   response.referenceData = {};
+
+    //   if (hasData(cleanedCaseDetails.ref_products)) {
+    //     response.referenceData.products = addNavigationMetadata(
+    //       cleanedCaseDetails.ref_products,
+    //       'products'
+    //     );
+    //   }
+
+    //   if (hasData(cleanedCaseDetails.current_contact)) {
+    //     response.referenceData.contacts = addNavigationMetadata(
+    //       cleanedCaseDetails.current_contact,
+    //       'contacts'
+    //     );
+    //   }
+
+    //   // response.referenceData._totalItems =
+    //   //   (response.referenceData.products?.length || 0) +
+    //   //   (response.referenceData.contacts?.length || 0);
+    // }
+
+  
+
+
+    if (hasData(cleanedCaseDetails.drc)) {
+      response.drcInfo = cleanedCaseDetails.drc.map((drc) => {
+        const { recovery_officers, ...restDrc } = drc;
+        return {
+          ...restDrc,
+          recoveryOfficers: Array.isArray(drc.recovery_officers)
+            ? drc.recovery_officers
+            : []
+        };
+      });
+    }
+    
+
+    if (hasData(cleanedCaseDetails.ro_negotiation)) {
+      response.roNegotiations = addNavigationMetadata(
+        cleanedCaseDetails.ro_negotiation,
+        'ro_negotiation'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_cpe_collect)) {
+      response.roCpeCollections = addNavigationMetadata(
+        cleanedCaseDetails.ro_cpe_collect,
+        'ro_cpe_collect'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_negotiate_cpe_collect)) {
+      response.ro_negotiatepecollections = addNavigationMetadata(
+        cleanedCaseDetails.ro_negotiate_cpe_collect,
+        'ro_negotiate_cpe_collect'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_edited_customer_details)) {
+      response.roCustomerUpdates = addNavigationMetadata(
+        cleanedCaseDetails.ro_edited_customer_details,
+        'ro_edited_customer_details'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.mediation_board)) {
+      response.mediationBoard = addNavigationMetadata(
+        cleanedCaseDetails.mediation_board,
+        'mediation_board'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.settlement)) {
+      response.settlements = addNavigationMetadata(
+        cleanedCaseDetails.settlement,
+        'settlement'
+      );
+    }
+
+    
+
+    if (hasData(cleanedCaseDetails.abnormal_stop)) {
+      response. abnormal_stop= addNavigationMetadata(
+        cleanedCaseDetails.abnormal_stop,
+        ' abnormal_stop'
+      );
+    }
+    if (hasData(cleanedCaseDetails.money_transactions)) {
+      response.payments = addNavigationMetadata(
+        cleanedCaseDetails.money_transactions,
+        'money_transactions'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.litigation)) {
+      response.litigation = addNavigationMetadata(
+        cleanedCaseDetails.litigation,
+        'litigation'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ftl_lod)) {
+      response.lod = addNavigationMetadata(
+        cleanedCaseDetails.ftl_lod,
+        'ftl_lod'
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: response
+    });
+
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching case details",
+      error: error.message
+    });
+  }
+};
