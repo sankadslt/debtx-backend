@@ -1314,7 +1314,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       case_distribution_batch_id,
     };
 
-    // Call createTaskFunction
     const result = await createTaskFunction({
       Template_Task_Id: 3,
       task_type: "Case Distribution Planning among DRC",
@@ -2141,7 +2140,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 26,
-      task_type: "Create Case distribution DRC Transaction List for Downloard",
+      task_type: "Create Case distribution DRC Transaction List for Download",
       ...parameters,
       Created_By,
       task_status: "open"
@@ -2539,7 +2538,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 
     const taskData = {
       Template_Task_Id: 27,
-      task_type: "Crealist_distribution_array_of_a_transactionte Case distribution DRC Transaction_1 _Batch List for Downloard",
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List for Download",
       ...parameters,
       Created_By,
       task_status:"open"
@@ -2682,7 +2681,7 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
 
     const taskData = {
       Template_Task_Id: 28,
-      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Downloard",
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download",
       Created_By,
       ...parameters,
       task_status:"open"
@@ -3201,16 +3200,15 @@ export const Create_task_for_batch_approval = async (req, res) => {
       return res.status(400).json({ message: "Created_By is required" });
     }
 
-    const currentDate = new Date();
     const dynamicParams = {
       approver_references, // List of approver references
     }; 
-    // --- Create Task ---
+
     const taskData = {
-      Template_Task_Id: 30, // Different Task ID for approval tasks
-      task_type: "Create batch approval List for Downloard",
+      Template_Task_Id: 30, 
+      task_type: "Create batch approval List for Download",
       ...dynamicParams,
-      Created_By, // Assigned creator
+      Created_By,
       task_status: "open",
     };
 
@@ -3852,7 +3850,6 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     const parameters = {
-      //approver_references, // List of approver references
       date_from,
       date_to,
       approver_status,
@@ -3860,10 +3857,10 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     };
     // --- Create Task ---
     const taskData = {
-      Template_Task_Id: 33, // Different Task ID for approval tasks
-      task_type: "Create DRC Assign maneger approval List for Downloard",
+      Template_Task_Id: 33, 
+      task_type: "Create DRC Assign maneger approval List for Download",
       ...parameters,
-      Created_By, // Assigned creator
+      Created_By,
       task_status: "open",
     };
 
@@ -4129,17 +4126,15 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
           return res.status(204).json({ message: "DRC not found for the given drc_id" });
       }
 
-      const currentDate = new Date();
       const dynamicParams = {
         drc_id,
-        drc_name: drcDetails.drc_name, // Include DRC name
+        drc_name: drcDetails.drc_name, 
         case_distribution_batch_id,
       }
-      // --- Create Task ---
       const taskData = {
-          Template_Task_Id: 32, // Different Task ID for approval tasks
-          task_type: "Create Case Distribution DRC Summary List for Downloard",
-          Created_By, // Assigned creator
+          Template_Task_Id: 32, 
+          task_type: "Create Case Distribution DRC Summary List for Download",
+          Created_By,
           task_status: "open",
           ...dynamicParams,
       };
@@ -5290,7 +5285,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
     const taskData = {
       Template_Task_Id: 35,
       task_type: "Create task for download the Assigned DRC's case list when selected date range is higher than one month",
-      ...parameters, // Spreads parameters directly into taskData
+      ...parameters, 
       Created_By,
       task_status: "open"
     };
@@ -6889,19 +6884,22 @@ export const Create_task_for_Request_log_download_when_select_more_than_one_mont
       session.endSession();
       return res.status(400).json({ message: "Created_By is required" });
     }
-
-    const currentDate = new Date();
-
+    const parameters = {
+      case_current_status,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      Created_By,
+      task_status: "open"
+    };
     // --- Create Task ---
     const taskData = {
-      Template_Task_Id: 37, // Different Task ID for approval tasks
-      task_type: "Create Task for Request log List for Downloard",
+      Template_Task_Id: 37, 
+      task_type: "Create Task for Request log List for Download",
       delegate_user_id,
       User_Interaction_Type,
       requestAccept,
       date_from,
       date_to,
-      created_on: currentDate.toISOString(),
       Created_By, // Assigned creator
       task_status: "open",
     };
@@ -7873,7 +7871,7 @@ export const Create_Task_For_Request_Responce_Log_Download = async (req, res) =>
     const taskData = {
       Template_Task_Id: 38,
       task_type: "Create Request Responce Log List for Downloard",
-      ...parameters, // Spreads parameters directly into taskData
+      ...parameters, 
     };
 
     // Call createTaskFunction
