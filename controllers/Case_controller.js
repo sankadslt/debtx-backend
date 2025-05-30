@@ -9,7 +9,7 @@
     Related Files: Case_route.js
     Notes:  
 */
-
+import axios from 'axios';
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Case_transactions from "../models/Case_transactions.js";
@@ -4262,6 +4262,7 @@ export const Mediation_Board = async (req, res) => {
       drc_id,
       ro_id,
       next_calling_date,
+      current_arrears_amount,
       request_id,
       request_type,
       request_comment,
@@ -4270,11 +4271,9 @@ export const Mediation_Board = async (req, res) => {
       customer_available,
       comment,
       settle,
-      settlement_count,
       initial_amount,
       calendar_month,
-      duration_start_date,
-      duration_end_date,
+      case_current_status,
       remark,
       fail_reason,
       created_by,
@@ -4303,12 +4302,12 @@ export const Mediation_Board = async (req, res) => {
       ro_id, 
       created_dtm: new Date(), 
       mediation_board_calling_dtm: next_calling_date,
-      customer_available: customer_available, // Optional field (must be 'yes' or 'no' if provided)
-      comment: fail_reason === "" ? null : comment, // Optional field (default: null)
-      agree_to_settle: settle, // Optional field (no default)
-      customer_response: settle === "no" ? fail_reason : null, // Optional field (default: null)
+      customer_available: customer_available, 
+      comment: fail_reason === "" ? null : comment, 
+      agree_to_settle: settle, 
+      customer_response: settle === "no" ? fail_reason : null, 
       handed_over_non_settlemet_on: handed_over_non_settlemet === "yes" ? new Date() : null,
-      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, // Optional field (default: null)
+      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, 
     };
     if (request_id !=="") {
       if (!request_id || !request_type || !intraction_id) {
@@ -4339,7 +4338,7 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:getUserIdOwnedByDRCId(),   // should be change this python
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams
@@ -4381,7 +4380,7 @@ export const Mediation_Board = async (req, res) => {
                   case_current_phase:"Mediation Board"
             }
         },
-        { new: true, session } // Correct placement of options
+        { new: true, session } 
       );
       if (!updatedCase) {
         await session.abortTransaction();
@@ -4426,16 +4425,32 @@ export const Mediation_Board = async (req, res) => {
       }
     }
     if(settle === "yes"){
-      if(!settlement_count || !initial_amount || !calendar_month || !duration_start_date || !duration_end_date){
+      if(!current_arrears_amount || !initial_amount || !calendar_month ||!case_current_status){
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ 
           status: "error",
-          message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
+          message: "Missing required fields:current_arrears_amount, initial amount, calendar months, case_current_status" 
         });
       };
-      // call settlement APi
-      console.log("call settlement APi");
+      const payload = {
+        created_by,
+        case_phase: "Mediation Board",
+        case_current_status,
+        settlement_type: "Type A",
+        settlement_amount: current_arrears_amount,
+        drc_id,
+        settlement_plan_received:[initial_amount,calendar_month],
+        case_id,
+        remark,
+        ro_id,
+      };
+      try {
+        const response = await axios.post('http://124.43.177.52:6000/app3/api/v1/Create_Settlement_Plan',payload);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Settelment API call failed:', error.message);
+      }
     };
     await session.commitTransaction();
     session.endSession();
