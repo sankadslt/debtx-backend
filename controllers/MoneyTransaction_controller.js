@@ -112,20 +112,20 @@ export const Create_task_for_Download_Payment_Case_List = async (req, res) => {
 
     // Flatten the parameters structure
     const parameters = {
-      Created_By,
-      task_status: "open",
-      Account_No: Account_Number,
-      case_ID: Case_ID,
-      Phase: Phase,
-      from_date: from_date,
-      to_date: to_date,
+      Account_Number,
+      Case_ID,
+      Phase,
+      from_date,
+      to_date,
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 44,
       task_type: "Create task for Download Payment Case List",
-      ...parameters
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction

@@ -269,22 +269,22 @@ export const Create_task_for_Download_Commision_Case_List = async (req, res) => 
     }
 
     // Flatten the parameters structure
-    const parameters = {
-      Created_By,
-      task_status: "open",
-      Account_No: Account_Number,
-      case_ID: Case_ID,
-      DRC_ID: DRC_ID,
-      Commission_Type: Commission_Type,
-      from_date: from_date,
-      to_date: to_date,
+    const parameters = {  
+      Account_Number,
+      Case_ID,
+      DRC_ID,
+      Commission_Type,
+      from_date,
+      to_date,
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 45,
       task_type: "Create task for Download Commision Case List",
-      ...parameters
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
