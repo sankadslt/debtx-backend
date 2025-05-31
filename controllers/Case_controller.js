@@ -9,7 +9,7 @@
     Related Files: Case_route.js
     Notes:  
 */
-
+import axios from 'axios';
 import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Case_transactions from "../models/Case_transactions.js";
@@ -43,7 +43,7 @@ import CaseMonitor from "../models/Case_Monitor.js";
 import CaseMonitorLog from "../models/Case_Monitor_Log.js";
 import { ro } from "date-fns/locale";
 import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
-
+import CaseDetails from "../models/Case_details.js";
 /**
  * Inputs:
  * - None
@@ -1314,7 +1314,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       case_distribution_batch_id,
     };
 
-    // Call createTaskFunction
     const result = await createTaskFunction({
       Template_Task_Id: 3,
       task_type: "Case Distribution Planning among DRC",
@@ -2141,7 +2140,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 26,
-      task_type: "Create Case distribution DRC Transaction List for Downloard",
+      task_type: "Create Case distribution DRC Transaction List for Download",
       ...parameters,
       Created_By,
       task_status: "open"
@@ -2539,7 +2538,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 
     const taskData = {
       Template_Task_Id: 27,
-      task_type: "Crealist_distribution_array_of_a_transactionte Case distribution DRC Transaction_1 _Batch List for Downloard",
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List for Download",
       ...parameters,
       Created_By,
       task_status:"open"
@@ -2682,7 +2681,7 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
 
     const taskData = {
       Template_Task_Id: 28,
-      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Downloard",
+      task_type: "Create Case distribution DRC Transaction_1 _Batch List distribution array for Download",
       Created_By,
       ...parameters,
       task_status:"open"
@@ -3201,16 +3200,15 @@ export const Create_task_for_batch_approval = async (req, res) => {
       return res.status(400).json({ message: "Created_By is required" });
     }
 
-    const currentDate = new Date();
     const dynamicParams = {
       approver_references, // List of approver references
     }; 
-    // --- Create Task ---
+
     const taskData = {
-      Template_Task_Id: 30, // Different Task ID for approval tasks
-      task_type: "Create batch approval List for Downloard",
+      Template_Task_Id: 30, 
+      task_type: "Create batch approval List for Download",
       ...dynamicParams,
-      Created_By, // Assigned creator
+      Created_By,
       task_status: "open",
     };
 
@@ -3480,10 +3478,33 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       session.endSession();
       return res.status(304).json({ message: "Approval update failed" });
     }
-    
-    // should be call to the case_phase API
-    // const case_phase = await pythonapi(case_current_status);
+    const payload = {case_status:newStatus};
+    let case_phase = ""
+    try {
+      const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
 
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+      console.log("case_phase:", case_phase);
+    } catch (error) {
+      console.error('Error during axios call:', error.message);
+      if (error.response) {
+        console.error('API Error Response:', error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
     // Update all active DRCs to Inactive if this is a DRC Re-Assign Approval
     if (approvalDoc.approver_type === "DRC Re-Assign Approval" && caseDetails.drc && caseDetails.drc.length > 0) {
       // Update all active DRCs to inactive
@@ -3519,22 +3540,22 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
           status_reason: "Case Approved",
           created_dtm: currentDate,
           created_by: approved_by,
-          case_phase: "python" //case_phase,
+          case_phase,
         }
       },
       $set: {
         case_current_status: newStatus,
-        case_current_phase:"python",  //case_phase,
+        case_current_phase: case_phase
       },
     };
 
     if (approvalDoc.approver_type === "DRC Re-Assign Approval" && approvalDoc.parameters) 
       {
-        const drcId = approvalDoc.parameters.get('drc_id');
-        const drcName = approvalDoc.parameters.get('drc_name');
+        const drcId = approvalDoc.parameters?.drc_id;
+        const drcName = approvalDoc.parameters?.drc_name;
+
 
         if (drcId && drcName) {
-          // Add new DRC object to the drc array
           caseUpdateOperation.$push.drc = {
             order_id: null,
             drc_id: drcId,
@@ -3559,35 +3580,32 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       }
     else if (approvalDoc.approver_type === "Case Withdrawal Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
-           remark: "Approved Case Withdrawal Approval",                                         
+          remark: "Approved Case Withdrawal Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else if (approvalDoc.approver_type === "Case Abandoned Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
           remark: "Approved Case Abandoned Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else if (approvalDoc.approver_type === "Case Write-Off Approval")
       {
-        // Add new abnormal stop object to the abnormal_stop array
         caseUpdateOperation.$push.abnormal_stop = {
-           remark: "Approved Case Write-Off Approval",                                         
+          remark: "Approved Case Write-Off Approval",                                         
           done_by: approved_by,
           done_on: currentDate,
           action: approver_reference,
-          Case_phase: "python" //case_phase,   // case_current_status = Case Withdrawed // approve karata passe phace eka one nam python api ekata mee status eka denna.
+          Case_phase:case_phase,
         };
       }
     else{
@@ -3852,7 +3870,6 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     const parameters = {
-      //approver_references, // List of approver references
       date_from,
       date_to,
       approver_status,
@@ -3860,10 +3877,10 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     };
     // --- Create Task ---
     const taskData = {
-      Template_Task_Id: 33, // Different Task ID for approval tasks
-      task_type: "Create DRC Assign maneger approval List for Downloard",
+      Template_Task_Id: 33, 
+      task_type: "Create DRC Assign maneger approval List for Download",
       ...parameters,
-      Created_By, // Assigned creator
+      Created_By,
       task_status: "open",
     };
 
@@ -3905,7 +3922,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
 
   try {
     session.startTransaction();
-    const { case_id, drc_id, remark, assigned_by, drc_name } = req.body;
+    const { case_id, drc_id, remark, assigned_by, drc_name, case_current_status } = req.body;
     
     if (!case_id|| !drc_id || !assigned_by || !drc_name) {
       await session.abortTransaction();
@@ -3947,10 +3964,35 @@ export const Assign_DRC_To_Case = async (req, res) => {
       drc_id,
       drc_name
     };
-    // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
+    const payload = {case_status:case_current_status};
+    let case_phase = ""
+    try {
+      const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
+
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+      console.log("case_phase:", case_phase);
+    } catch (error) {
+      console.error('Error during axios call:', error.message);
+      if (error.response) {
+        console.error('API Error Response:', error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
     const delegate_id = await getApprovalUserIdService({
-        case_phase: "python status",
+        case_phase,
         approval_type: "DRC Re-Assign Approval"
     });
     const result = await createUserInteractionFunction({
@@ -3965,7 +4007,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
 
     if(!result || result.status === "error"){
       await session.abortTransaction();
-      res.status(404).json({
+      return res.status(404).json({
         status: "error",
         message: "DRC Reassining send to the Aprover process has a error.",
       }); 
@@ -4129,17 +4171,15 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
           return res.status(204).json({ message: "DRC not found for the given drc_id" });
       }
 
-      const currentDate = new Date();
       const dynamicParams = {
         drc_id,
-        drc_name: drcDetails.drc_name, // Include DRC name
+        drc_name: drcDetails.drc_name, 
         case_distribution_batch_id,
       }
-      // --- Create Task ---
       const taskData = {
-          Template_Task_Id: 32, // Different Task ID for approval tasks
-          task_type: "Create Case Distribution DRC Summary List for Downloard",
-          Created_By, // Assigned creator
+          Template_Task_Id: 32, 
+          task_type: "Create Case Distribution DRC Summary List for Download",
+          Created_By,
           task_status: "open",
           ...dynamicParams,
       };
@@ -4267,6 +4307,7 @@ export const Mediation_Board = async (req, res) => {
       drc_id,
       ro_id,
       next_calling_date,
+      current_arrears_amount,
       request_id,
       request_type,
       request_comment,
@@ -4275,11 +4316,9 @@ export const Mediation_Board = async (req, res) => {
       customer_available,
       comment,
       settle,
-      settlement_count,
       initial_amount,
       calendar_month,
-      duration_start_date,
-      duration_end_date,
+      case_current_status,
       remark,
       fail_reason,
       created_by,
@@ -4308,12 +4347,12 @@ export const Mediation_Board = async (req, res) => {
       ro_id, 
       created_dtm: new Date(), 
       mediation_board_calling_dtm: next_calling_date,
-      customer_available: customer_available, // Optional field (must be 'yes' or 'no' if provided)
-      comment: fail_reason === "" ? null : comment, // Optional field (default: null)
-      agree_to_settle: settle, // Optional field (no default)
-      customer_response: settle === "no" ? fail_reason : null, // Optional field (default: null)
+      customer_available: customer_available, 
+      comment: fail_reason === "" ? null : comment, 
+      agree_to_settle: settle, 
+      customer_response: settle === "no" ? fail_reason : null, 
       handed_over_non_settlemet_on: handed_over_non_settlemet === "yes" ? new Date() : null,
-      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, // Optional field (default: null)
+      non_settlement_comment: handed_over_non_settlemet === "yes" ? comment : null, 
     };
     if (request_id !=="") {
       if (!request_id || !request_type || !intraction_id) {
@@ -4344,7 +4383,7 @@ export const Mediation_Board = async (req, res) => {
       const result = await createUserInteractionFunction({
         Interaction_ID:intraction_id,
         User_Interaction_Type:request_type,
-        delegate_user_id:getUserIdOwnedByDRCId(),   // should be change this python
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By:created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams
@@ -4386,7 +4425,7 @@ export const Mediation_Board = async (req, res) => {
                   case_current_phase:"Mediation Board"
             }
         },
-        { new: true, session } // Correct placement of options
+        { new: true, session } 
       );
       if (!updatedCase) {
         await session.abortTransaction();
@@ -4431,16 +4470,32 @@ export const Mediation_Board = async (req, res) => {
       }
     }
     if(settle === "yes"){
-      if(!settlement_count || !initial_amount || !calendar_month || !duration_start_date || !duration_end_date){
+      if(!current_arrears_amount || !initial_amount || !calendar_month ||!case_current_status){
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ 
           status: "error",
-          message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
+          message: "Missing required fields:current_arrears_amount, initial amount, calendar months, case_current_status" 
         });
       };
-      // call settlement APi
-      console.log("call settlement APi");
+      const payload = {
+        created_by,
+        case_phase: "Mediation Board",
+        case_current_status,
+        settlement_type: "Type A",
+        settlement_amount: current_arrears_amount,
+        drc_id,
+        settlement_plan_received:[initial_amount,calendar_month],
+        case_id,
+        remark,
+        ro_id,
+      };
+      try {
+        const response = await axios.post('http://124.43.177.52:6000/app3/api/v1/Create_Settlement_Plan',payload);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Settelment API call failed:', error.message);
+      }
     };
     await session.commitTransaction();
     session.endSession();
@@ -5290,7 +5345,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (req, res) 
     const taskData = {
       Template_Task_Id: 35,
       task_type: "Create task for download the Assigned DRC's case list when selected date range is higher than one month",
-      ...parameters, // Spreads parameters directly into taskData
+      ...parameters, 
       Created_By,
       task_status: "open"
     };
@@ -5523,10 +5578,36 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       }
 
       const currentDate = new Date();
-      // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
+      const payload = {case_status};
+      let case_phase = ""
+      try {
+        const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
+
+        if (!response.data.case_phase) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "case_phase not found in API response",
+          });
+        }
+        case_phase = response.data.case_phase;
+        console.log("case_phase:", case_phase);
+      } catch (error) {
+        console.error('Error during axios call:', error.message);
+        if (error.response) {
+          console.error('API Error Response:', error.response.data);
+        }
+        // Abort and end session on axios error
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({
+          message: "Failed to get case_phase from external API",
+          error: error.message,
+        });
+      };
+
       const delegate_id = await getApprovalUserIdService({
-          case_phase: "python",
+          case_phase,
           approval_type: "DRC Assign Approval"
       });
 
@@ -5550,9 +5631,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
 
       await newDocument.save({ session });
 
-      // should be call to the case_phase API
-      // const case_phase = await pythonapi(case_status);
-
       // Update approve array in CaseDetails with requested_on and requested_by
       const caseResult = await Case_details.updateOne(
           { case_id: approver_reference },
@@ -5563,12 +5641,12 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
                     status_reason: "Case send for Withdrawal Approval",
                     created_dtm: currentDate,
                     created_by: created_by,
-                    case_phase: "python"  // case_phase
+                    case_phase,
                   }
               },
               $set: {
                 case_current_status: "Pending Case Withdrawal",
-                case_current_phase:"python"  // case_phase
+                case_current_phase:case_phase,
               },
           },
           { session }
@@ -6642,8 +6720,6 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
   }
 };
 
-
-
 export const Customer_Negotiations = async (req, res) => {
   const session = await mongoose.startSession(); // Start a session
   session.startTransaction(); // Begin the transaction
@@ -6882,27 +6958,31 @@ export const Create_task_for_Request_log_download_when_select_more_than_one_mont
   session.startTransaction();
 
   try {
-    const { delegate_user_id, User_Interaction_Type, "Request Accept": requestAccept, date_from, date_to, Created_By } = req.body;
-
-    if (!Created_By) {
+    const {
+      delegate_user_id,
+      User_Interaction_Type,
+      drc_id,
+      date_from,
+      date_to
+    } = req.body;
+    if (!delegate_user_id) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: "Created_By is required" });
     }
-
-    const currentDate = new Date();
-
-    // --- Create Task ---
-    const taskData = {
-      Template_Task_Id: 37, // Different Task ID for approval tasks
-      task_type: "Create Task for Request log List for Downloard",
+    const parameters = {
+      drc_id,
       delegate_user_id,
       User_Interaction_Type,
-      requestAccept,
-      date_from,
-      date_to,
-      created_on: currentDate.toISOString(),
-      Created_By, // Assigned creator
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+    };
+    // --- Create Task ---
+    const taskData = {
+      Template_Task_Id: 37, 
+      task_type: "Create Task for Request log List for Download",
+      ...parameters,
+      Created_By:delegate_user_id, 
       task_status: "open",
     };
 
@@ -7888,15 +7968,15 @@ export const Create_Task_For_Request_Responce_Log_Download = async (req, res) =>
       case_current_status,
       date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
       date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
-      Created_By,
-      task_status: "open"
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 38,
-      task_type: "Create Request Responce Log List for Downloard",
-      ...parameters, // Spreads parameters directly into taskData
+      task_type: "Create Request Response Log List for Download",
+      ...parameters, 
+      task_status: "open",
+      Created_By,
     };
 
     // Call createTaskFunction
@@ -7991,7 +8071,7 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
-function negotiation_condition_function2(arrears_amount, drc_validity_period, region, expair_date) {
+function negotiation_condition_function(arrears_amount, drc_validity_period, region, expair_date) {
   let case_status = "";
   let message = "";
   let reason= "";
@@ -8049,8 +8129,184 @@ function negotiation_condition_function2(arrears_amount, drc_validity_period, re
   };
 };
 
-const result = negotiation_condition_function2(40000, 4, "region", new Date("2024-05-01"));
-console.log(result);
+export const listdownCaseDetailsByCaseId = async (req, res) => {
+  try {
+    const caseId = parseInt(req.params.caseId);
 
-// function negotiation_condition_function2(){
-// };
+    if (isNaN(caseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid case ID provided"
+      });
+    }
+
+    const caseDetails = await CaseDetails.findOne({ case_id: caseId }).lean().exec();
+
+    if (!caseDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "Case details not found for the provided ID"
+      });
+    }
+
+   
+    const { _id, __v, ...cleanedCaseDetails } = caseDetails;
+
+    const hasData = (field) => Array.isArray(field) && field.length > 0;
+ 
+
+    const addNavigationMetadata = (dataArray) => {
+      if (!Array.isArray(dataArray) || dataArray.length === 0) return dataArray;
+
+      return dataArray.map((item) => {
+        const { _id, __v, ...cleanedItem } = item;
+        return {
+          ...cleanedItem,
+        
+     
+        };
+      });
+    };
+
+    const response = {
+      caseInfo: {
+        caseId: cleanedCaseDetails.case_id,
+        createdDtm: cleanedCaseDetails.created_dtm,
+        daysCount: Math.floor((new Date() - new Date(cleanedCaseDetails.created_dtm)) / (1000 * 60 * 60 * 24))
+      },
+      basicInfo: {
+        accountNo: cleanedCaseDetails.account_no,
+        customerName: cleanedCaseDetails.customer_name,
+        customerRef: cleanedCaseDetails.customer_ref,
+        area: cleanedCaseDetails.area,
+        rtom: cleanedCaseDetails.rtom,
+        arrearsAmount: cleanedCaseDetails.current_arrears_amount,
+        actionType: cleanedCaseDetails.action_type,
+        currentStatus: cleanedCaseDetails.case_current_status,
+        lastPaymentDate: cleanedCaseDetails.last_payment_date,
+        lastBssReadingDate: cleanedCaseDetails.last_bss_reading_date,
+        remark: cleanedCaseDetails.remark?.[0]?.remark || null
+      }
+    };
+
+    // if (hasData(cleanedCaseDetails.ref_products) || hasData(cleanedCaseDetails.current_contact)) {
+    //   response.referenceData = {};
+
+    //   if (hasData(cleanedCaseDetails.ref_products)) {
+    //     response.referenceData.products = addNavigationMetadata(
+    //       cleanedCaseDetails.ref_products,
+    //       'products'
+    //     );
+    //   }
+
+    //   if (hasData(cleanedCaseDetails.current_contact)) {
+    //     response.referenceData.contacts = addNavigationMetadata(
+    //       cleanedCaseDetails.current_contact,
+    //       'contacts'
+    //     );
+    //   }
+
+    //   // response.referenceData._totalItems =
+    //   //   (response.referenceData.products?.length || 0) +
+    //   //   (response.referenceData.contacts?.length || 0);
+    // }
+
+  
+
+
+    if (hasData(cleanedCaseDetails.drc)) {
+      response.drcInfo = cleanedCaseDetails.drc.map((drc) => {
+        const { recovery_officers, ...restDrc } = drc;
+        return {
+          ...restDrc,
+          recoveryOfficers: Array.isArray(drc.recovery_officers)
+            ? drc.recovery_officers
+            : []
+        };
+      });
+    }
+    
+
+    if (hasData(cleanedCaseDetails.ro_negotiation)) {
+      response.roNegotiations = addNavigationMetadata(
+        cleanedCaseDetails.ro_negotiation,
+        'ro_negotiation'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_cpe_collect)) {
+      response.roCpeCollections = addNavigationMetadata(
+        cleanedCaseDetails.ro_cpe_collect,
+        'ro_cpe_collect'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_negotiate_cpe_collect)) {
+      response.ro_negotiatepecollections = addNavigationMetadata(
+        cleanedCaseDetails.ro_negotiate_cpe_collect,
+        'ro_negotiate_cpe_collect'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ro_edited_customer_details)) {
+      response.roCustomerUpdates = addNavigationMetadata(
+        cleanedCaseDetails.ro_edited_customer_details,
+        'ro_edited_customer_details'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.mediation_board)) {
+      response.mediationBoard = addNavigationMetadata(
+        cleanedCaseDetails.mediation_board,
+        'mediation_board'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.settlement)) {
+      response.settlements = addNavigationMetadata(
+        cleanedCaseDetails.settlement,
+        'settlement'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.abnormal_stop)) {
+      response. abnormal_stop= addNavigationMetadata(
+        cleanedCaseDetails.abnormal_stop,
+        ' abnormal_stop'
+      );
+    }
+    if (hasData(cleanedCaseDetails.money_transactions)) {
+      response.payments = addNavigationMetadata(
+        cleanedCaseDetails.money_transactions,
+        'money_transactions'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.litigation)) {
+      response.litigation = addNavigationMetadata(
+        cleanedCaseDetails.litigation,
+        'litigation'
+      );
+    }
+
+    if (hasData(cleanedCaseDetails.ftl_lod)) {
+      response.lod = addNavigationMetadata(
+        cleanedCaseDetails.ftl_lod,
+        'ftl_lod'
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: response
+    });
+
+  } catch (error) {
+    console.error("Error fetching case details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching case details",
+      error: error.message
+    });
+  }
+};

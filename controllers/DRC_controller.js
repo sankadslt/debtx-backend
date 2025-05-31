@@ -1665,10 +1665,7 @@ export const updateDRCInfo = async (req, res) => {
 export const getUserIdOwnedByDRCId = async (drc_id) => {
   try {
     if (!drc_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "DRC ID is required.",
-      });
+      throw new Error("DRC ID is required.");
     }
     const drc = await DRC.aggregate([
       { $match: { drc_id: drc_id } },
