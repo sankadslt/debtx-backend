@@ -1375,13 +1375,67 @@ export const DRCRemarkDetailsById = async (req, res) => {
   }
 };
 
+// export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
+//   try {
+//     const { drc_id } = req.body;
+
+//     // Step 1: Find DRC by drc_id
+//     const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
+
+//     if (!drc) {
+//       return res.status(404).json({ message: "DRC not found" });
+//     }
+
+//     // Extract RTOM IDs
+//     const rtomIds = drc.rtom.map(r => r.rtom_id);
+
+//     // Step 2: Query RTOM collection for full RTOM data
+//     const rtomDetails = await RTOM.find(
+//       { rtom_id: { $in: rtomIds } },
+//       {
+//         _id: 0,
+//         rtom_name: 1,
+//         rtom_mobile_no: 1,
+//         billing_center_Code: 1,
+//         rtom_end_date: 1
+//       }
+//     );
+
+//     // Step 3: Add RO count to each RTOM object (assuming "RO count" means service count)
+//     const roCount = drc.services.length;
+
+//     const result = rtomDetails.map(rtom => ({
+//       ...rtom._doc,
+//       ro_count: roCount
+//     }));
+
+//     res.status(200).json(result);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
+
 export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
-    const { drc_id } = req.body;
+    const { drc_id, pages, rtom } = req.body;
+
+    if (!drc_id) {
+      return res.status(400).json({ message: 'drc_id is required' });
+    }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    //Base Query
+    const query ={drc_id};
+
+    if(rtom) query.ro_rtom =rtom;
 
     // Step 1: Find DRC by drc_id
     const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
-
     if (!drc) {
       return res.status(404).json({ message: "DRC not found" });
     }
@@ -1399,25 +1453,59 @@ export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
         billing_center_Code: 1,
         rtom_end_date: 1
       }
-    );
+    )
+    .skip(skip)
+    .limit(limit);
 
     // Step 3: Add RO count to each RTOM object (assuming "RO count" means service count)
     const roCount = drc.services.length;
-
     const result = rtomDetails.map(rtom => ({
       ...rtom._doc,
       ro_count: roCount
     }));
 
-    res.status(200).json(result);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
+// export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
+//   try {
+//     const { drc_id } = req.body;
+
+//     const drc = await DRC.findOne(
+//       { drc_id: parseInt(drc_id) },
+//       { services: 1, _id: 0 }
+//     );
+
+//     if (!drc) {
+//       return res.status(404).json({ message: 'DRC not found' });
+//     }
+
+//     // Extract only required fields from each service
+//     const servicesData = drc.services.map(service => ({
+//       service_type: service.service_type,
+//       enable_date: service.create_on,
+//       status: service.service_status
+//     }));
+
+//     res.status(200).json(servicesData);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
 export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
-    const { drc_id } = req.body;
+    const { drc_id, pages, status, service } = req.body;
+
+    if (!drc_id) {
+      return res.status(400).json({ message: 'drc_id is required' });
+    }
 
     const drc = await DRC.findOne(
       { drc_id: parseInt(drc_id) },
@@ -1428,18 +1516,44 @@ export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
       return res.status(404).json({ message: 'DRC not found' });
     }
 
-    // Extract only required fields from each service
-    const servicesData = drc.services.map(service => ({
+    // Filter services based on status and service_type if provided
+    let filteredServices = drc.services;
+
+    if (status) {
+      filteredServices = filteredServices.filter(s => s.service_status === status);
+    }
+
+    if (service) {
+      filteredServices = filteredServices.filter(s => s.service_type === service);
+    }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const paginatedServices = filteredServices.slice(skip, skip + limit);
+
+    const servicesData = paginatedServices.map(service => ({
       service_type: service.service_type,
       enable_date: service.create_on,
       status: service.service_status
     }));
 
-    res.status(200).json(servicesData);
+    res.status(200).json({
+      services: servicesData,
+      totalCount: filteredServices.length,
+      currentPage: page,
+      totalPages: Math.ceil(filteredServices.length / limit)
+    });
+
   } catch (error) {
+    console.error("List_Service_Details_Owen_By_DRC_ID error:", error);
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 export const getDebtCompanyByDRCID = async (req, res) => {
   try {

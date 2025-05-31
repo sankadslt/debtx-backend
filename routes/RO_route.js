@@ -1580,7 +1580,7 @@ router.patch("/Change_RO_profile", EditRO);
  */
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
 
-router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
+// router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 router.post("/List_All_RO_Cases", listROAllCases );
 
