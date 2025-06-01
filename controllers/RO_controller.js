@@ -2555,8 +2555,8 @@ export const Update_RO_Details_With_RTOM = async (req, res) => {
           updateQuery.$set[`rtom.${existingRtomIndex}.rtom_edited_dtm`] = new Date();
         }
       } else {
-        // Add new RTOM - only if both rtom_status and rtom_name are provided
-        if (rtom_status && rtom_name) {
+        // Add new RTOM - rtom_id, rtom_status and rtom_name are all required for new RTOM
+        if (rtom_id && rtom_name) {
           if (!updateQuery.$push) updateQuery.$push = {};
           updateQuery.$push.rtom = {
             rtom_id,
@@ -2566,6 +2566,12 @@ export const Update_RO_Details_With_RTOM = async (req, res) => {
             rtom_create_by: edited_by || ro_name || "System",
             rtom_end_dtm: null
           };
+        } else {
+          // Return error if trying to add new RTOM without required fields
+          return res.status(400).json({
+            status: "error",
+            message: "Both rtom_status and rtom_name are required to add a new RTOM"
+          });
         }
       }
     }
@@ -2605,3 +2611,121 @@ export const Update_RO_Details_With_RTOM = async (req, res) => {
     });
   }
 };
+
+// export const Update_RO_Details_With_RTOM = async (req, res) => {
+//   const {
+//     ro_id,
+//     ro_status,
+//     ro_name,
+//     ro_login_email,
+//     ro_login_contact_no,
+//     rtom_id,
+//     rtom_status,
+//     rtom_name,
+//     remark,
+//     edited_by // Add this field to track who is making the edit
+//   } = req.body;
+
+//   try {
+//     // Validate required fields
+//     if (!ro_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "RO ID is required"
+//       });
+//     }
+
+//     const mongoConnection = await db.connectMongoDB();
+//     if (!mongoConnection) {
+//       throw new Error("MongoDB connection failed");
+//     }
+
+//     const existingRO = await Recovery_officer.findOne({ ro_id });
+//     if (!existingRO) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: `Recovery Officer with ID ${ro_id} not found`
+//       });
+//     }
+
+//     // Prepare update data for RO basic fields
+//     const updateData = {
+//       doc_version: existingRO.doc_version + 1
+//     };
+
+//     // Only update fields if they are provided
+//     if (ro_name) updateData.ro_name = ro_name;
+//     if (ro_status) updateData.ro_status = ro_status; // Added ro_status support
+//     if (ro_login_contact_no) updateData.ro_login_contact_no = ro_login_contact_no;
+//     if (ro_login_email !== undefined) updateData.ro_login_email = ro_login_email;
+    
+//     let updateQuery = { $set: updateData };
+
+//     // Handle RTOM updates if rtom_id is provided
+//     if (rtom_id) {
+//       const existingRtomIndex = existingRO.rtom.findIndex(r => r.rtom_id === rtom_id);
+      
+//       if (existingRtomIndex !== -1) {
+//         // Update existing RTOM
+//         if (rtom_status) {
+//           updateQuery.$set[`rtom.${existingRtomIndex}.rtom_status`] = rtom_status;
+//         }
+//         if (rtom_name) {
+//           updateQuery.$set[`rtom.${existingRtomIndex}.rtom_name`] = rtom_name;
+//         }
+//         // Track who edited the RTOM
+//         if (edited_by) {
+//           updateQuery.$set[`rtom.${existingRtomIndex}.rtom_edited_by`] = edited_by;
+//           updateQuery.$set[`rtom.${existingRtomIndex}.rtom_edited_dtm`] = new Date();
+//         }
+//       } else {
+//         // Add new RTOM - only if both rtom_status and rtom_name are provided
+//         if (rtom_status && rtom_name) {
+//           if (!updateQuery.$push) updateQuery.$push = {};
+//           updateQuery.$push.rtom = {
+//             rtom_id,
+//             rtom_status,
+//             rtom_name,
+//             rtom_create_dtm: new Date(),
+//             rtom_create_by: edited_by || ro_name || "System",
+//             rtom_end_dtm: null
+//           };
+//         }
+//       }
+//     }
+
+//     // Handle remark if provided
+//     if (remark) {
+//       if (!updateQuery.$push) updateQuery.$push = {};
+//       updateQuery.$push.remark = {
+//         remark: remark,
+//         remark_by: edited_by || ro_name || "System",
+//         remark_dtm: new Date()
+//       };
+//     }
+
+//     const result = await Recovery_officer.findOneAndUpdate(
+//       { ro_id },
+//       updateQuery,
+//       { new: true }
+//     );
+
+//     if (!result) {
+//       throw new Error("Failed to update Recovery Officer");
+//     }
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Recovery Officer updated successfully",
+//       data: result
+//     });
+
+//   } catch (error) {
+//     console.error("Error updating Recovery Officer:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to update Recovery Officer",
+//       error: error.message
+//     });
+//   }
+// };
