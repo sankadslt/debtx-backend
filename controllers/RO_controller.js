@@ -2459,33 +2459,82 @@ export const CreateRO = async (req, res) => {
   }
 };
 
-// RO LIST
+// // RO LIST
+// export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
+//     try {
+//         const { drc_id } = req.body;
+
+//         if (!drc_id) {
+//             return res.status(400).json({ message: 'drc_id is required' });
+//         }
+
+//         const roList = await Recovery_officer.find({ drc_id })
+//             .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
+
+//         const formattedList = roList.map(ro => {
+//             //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
+//             return {
+//                 ro_name: ro.ro_name,
+//                 status: ro.ro_status,
+//                 ro_end_dtm: ro.ro_end_dtm,
+//                 ro_contact_no: ro.ro_login_contact_no, 
+//             };
+//         });
+
+//         res.status(200).json(formattedList);
+//     } catch (error) {
+//         console.error('Error fetching RO list:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
+
 export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
-    try {
-        const { drc_id } = req.body;
+  try {
+    const { drc_id, pages, status, rtom } = req.body;
 
-        if (!drc_id) {
-            return res.status(400).json({ message: 'drc_id is required' });
-        }
-
-        const roList = await Recovery_officer.find({ drc_id })
-            .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
-
-        const formattedList = roList.map(ro => {
-            //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
-            return {
-                ro_name: ro.ro_name,
-                status: ro.ro_status,
-                ro_end_dtm: ro.ro_end_dtm,
-                ro_contact_no: ro.ro_login_contact_no, 
-            };
-        });
-
-        res.status(200).json(formattedList);
-    } catch (error) {
-        console.error('Error fetching RO list:', error);
-        res.status(500).json({ message: 'Server error' });
+    if (!drc_id) {
+      return res.status(400).json({ message: 'drc_id is required' });
     }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Base query
+    const query = { drc_id };
+
+    // Apply filters
+    if (rtom) query['rtom.rtom_id'] = parseInt(rtom);
+    if (status) query.ro_status = status;
+
+    const roList = await Recovery_officer.find(query)
+      .select('ro_name ro_status ro_end_dtm ro_login_contact_no')
+      .skip(skip)
+      .limit(limit);
+
+    const formattedList = roList.map(ro => ({
+      ro_name: ro.ro_name,
+      status: ro.ro_status,
+      ro_end_dtm: ro.ro_end_dtm,
+      ro_contact_no: ro.ro_login_contact_no,
+    }));
+
+    res.status(200).json({
+      status: 'success',
+      current_page: page,
+      per_page: limit,
+      data: formattedList,
+    });
+
+  } catch (error) {
+    console.error('Error fetching RO list:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
+
+
 
 
