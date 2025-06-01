@@ -1415,6 +1415,68 @@ export const DRCRemarkDetailsById = async (req, res) => {
 //   }
 // };
 
+// export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
+//   try {
+//     const { drc_id, pages, rtom } = req.body;
+
+//     if (!drc_id) {
+//       return res.status(400).json({ message: 'drc_id is required' });
+//     }
+
+//     // Pagination logic
+//     let page = Number(pages);
+//     if (isNaN(page) || page < 1) page = 1;
+//     const limit = page === 1 ? 10 : 30;
+//     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+//     //Base Query
+//     const query ={drc_id};
+
+//     if(rtom) query.ro_rtom =rtom;
+
+//     // Step 1: Find DRC by drc_id
+//     const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
+//     if (!drc) {
+//       return res.status(404).json({ message: "DRC not found" });
+//     }
+
+//     // Extract RTOM IDs
+//     const rtomIds = drc.rtom.map(r => r.rtom_id);
+
+//     // Step 2: Query RTOM collection for full RTOM data
+//     const rtomDetails = await RTOM.find(
+//       { rtom_id: { $in: rtomIds } },
+//       {
+//         _id: 0,
+//         rtom_name: 1,
+//         rtom_mobile_no: 1,
+//         billing_center_Code: 1,
+//         rtom_end_date: 1
+//       }
+//     )
+//     .skip(skip)
+//     .limit(limit);
+
+//     if (!rtomDetails || rtomDetails.length === 0) {
+//       return res.status(404).json({ message: "No RTOMs found for the given criteria." });
+//     }
+
+//     // Step 3: Add RO count to each RTOM object (assuming "RO count" means service count)
+//     const roCount = drc.services.length;
+//     const result = rtomDetails.map(rtom => ({
+//       ...rtom._doc,
+//       ro_count: roCount
+//     }));
+
+//     res.status(200).json({
+//       status: 'success',
+//       data: result,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
+
 export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id, pages, rtom } = req.body;
@@ -1423,31 +1485,33 @@ export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
       return res.status(400).json({ message: 'drc_id is required' });
     }
 
-    // Pagination logic
+    const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
+
+    if (!drc) {
+      return res.status(404).json({ message: "DRC not found" });
+    }
+
+    const allRtomIds = drc.rtom.map(r => r.rtom_id);
+
+    // Step 1: Filter if `rtom` is specified
+    let filteredRtomIds = allRtomIds;
+    if (rtom) {
+      const parsedRtom = parseInt(rtom);
+      filteredRtomIds = allRtomIds.filter(id => id === parsedRtom);
+    }
+
+    // Step 2: Pagination logic
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    //Base Query
-    const query ={drc_id};
-
-    if(rtom) query.ro_rtom =rtom;
-
-    // Step 1: Find DRC by drc_id
-    const drc = await DRC.findOne({ drc_id: parseInt(drc_id) }, { rtom: 1, services: 1 });
-    if (!drc) {
-      return res.status(404).json({ message: "DRC not found" });
-    }
-
-    // Extract RTOM IDs
-    const rtomIds = drc.rtom.map(r => r.rtom_id);
-
-    // Step 2: Query RTOM collection for full RTOM data
+    // Step 3: Query RTOM details from DB
     const rtomDetails = await RTOM.find(
-      { rtom_id: { $in: rtomIds } },
+      { rtom_id: { $in: filteredRtomIds } },
       {
         _id: 0,
+        rtom_id: 1,
         rtom_name: 1,
         rtom_mobile_no: 1,
         billing_center_Code: 1,
@@ -1457,8 +1521,12 @@ export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-    // Step 3: Add RO count to each RTOM object (assuming "RO count" means service count)
+    if (rtomDetails.length === 0) {
+      return res.status(404).json({ message: "No RTOMs found for given filter." });
+    }
+
     const roCount = drc.services.length;
+
     const result = rtomDetails.map(rtom => ({
       ...rtom._doc,
       ro_count: roCount
@@ -1467,11 +1535,16 @@ export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
     res.status(200).json({
       status: 'success',
       data: result,
+      totalCount: filteredRtomIds.length,
+      currentPage: page,
+      totalPages: Math.ceil(filteredRtomIds.length / limit)
     });
   } catch (error) {
+    console.error("List_RTOM_Details_Owen_By_DRC_ID error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
+
 
 // export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
 //   try {

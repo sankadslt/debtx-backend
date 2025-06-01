@@ -2506,9 +2506,9 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
     // Base query
     const query = { drc_id };
 
-    // Apply optional filters
-    if (rtom) query.ro_rtom = rtom;
-    if (status) query.ro_status = status; // Optional: adapt this line if ro_status is an array
+    // Apply filters
+    if (rtom) query['rtom.rtom_id'] = parseInt(rtom);
+    if (status) query.ro_status = status;
 
     const roList = await Recovery_officer.find(query)
       .select('ro_name ro_status ro_end_dtm ro_login_contact_no')
