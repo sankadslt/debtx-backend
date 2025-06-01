@@ -27,7 +27,8 @@ import {
     CreateRO , 
     List_RO_Details_Owen_By_DRC_ID, 
     listROAllCases, 
-    listROInfoByROId   } from "../controllers/RO_controller.js";
+    listROInfoByROId,   
+    Update_RO_Details_With_RTOM} from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -1587,6 +1588,8 @@ router.post("/List_All_RO_Cases", listROAllCases );
 router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
 
 router.post("/Create_RO", CreateRO);
+
+router.post("/Update_RO_Details_With_RTOM", Update_RO_Details_With_RTOM);
 
 //DRC LIST
 router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
