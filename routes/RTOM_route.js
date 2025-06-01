@@ -24,6 +24,10 @@ import {
     getActiveRTOMDetails,
     suspend_RTOM,
     getAllActiveRTOMsByDRCID,
+    ListAllRTOMDetails,
+    CreateActiveRTOM,
+    ListRTOMDetailsByRTOMID,
+    UpdateRTOMDetails
 } from '../controllers/RTOM_controller.js';
  
 const router = Router();
@@ -1338,5 +1342,12 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
 // Route to retrieve all active RTOMs by DRC ID
 router.post('/List_ALL_Active_RTOM_Ownned_By_DRC',getAllActiveRTOMsByDRCID);
 
+router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
+
+router.post('/Create_Active_RTOM' , CreateActiveRTOM);
+
+router.post("/List_RTOM_Details_By_RTOM_ID", ListRTOMDetailsByRTOMID);
+
+router.post("/Update_RTOM_Details", UpdateRTOMDetails);
 
 export default router;

@@ -6,6 +6,9 @@ import mongoose from "mongoose";
 
 //Create Task Function
 export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams }) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       // Validate required parameters
       if (!Template_Task_Id || !Created_By) {
@@ -22,15 +25,15 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
       const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
   
       const Task_Id = counterResult.seq; // Use `value` to access the updated document
-      console.log("Task_Id:", Task_Id);
+      // console.log("Task_Id:", Task_Id);
   
       if (!Task_Id) {
         throw new Error("Failed to generate Task_Id.");
-      }
+      } 
 
      
       // Prepare task data
@@ -46,11 +49,14 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
   
       // Insert into System_task collection
       const newTask = new Task(taskData);
-      await newTask.save();
+      await newTask.save({ session });
   
       // Insert into System_task_Inprogress collection
       const newTaskInProgress = new Task_Inprogress(taskData);
-      await newTaskInProgress.save();
+      await newTaskInProgress.save({ session });
+
+      await session.commitTransaction(); // Commit the transaction
+      session.endSession();
   
       // Return success response
       return {
@@ -65,7 +71,11 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
         },
       };
     } catch (error) {
+      await session.abortTransaction(); // Rollback on error
+      session.endSession(); 
+      
       console.error("Error creating task:", error);
+
       // Return error response as a structured object
     //   return {
     //     status: "error",
@@ -79,9 +89,12 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
 
   //Create Task API
 export const createTask = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
-      console.log("Request body:", req.body);
+      // console.log("Request body:", req.body);
   
       if (!Template_Task_Id || !Created_By) {
         return res.status(400).json({ message: "Template_Task_Id and created_by are required." });
@@ -97,7 +110,7 @@ export const createTask = async (req, res) => {
       const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
   
       const Task_Id = counterResult.seq;
@@ -119,11 +132,14 @@ export const createTask = async (req, res) => {
   
       // Insert into System_task collection
       const newTask = new Task(taskData);
-      await newTask.save();
+      await newTask.save({ session });
   
       // Insert into System_task_Inprogress collection
       const newTaskInProgress = new Task_Inprogress(taskData);
-      await newTaskInProgress.save();
+      await newTaskInProgress.save({ session });
+
+      await session.commitTransaction(); // Commit the transaction
+      session.endSession();
   
       return res.status(201).json({ 
         message: "Task created successfully", 
@@ -134,13 +150,16 @@ export const createTask = async (req, res) => {
         Created_By 
       });
     } catch (error) {
+      await session.abortTransaction(); // Rollback on error
+      session.endSession();
+      
       console.error("Error creating task:", error);
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
      
     }
   };
 
-export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By }) => {
+export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By, Source_type }) => {
   if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
     throw new Error("Missing required parameters");
   }
@@ -158,18 +177,18 @@ export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Inciden
     );
 
     const Task_Id = counterResult.value.seq;
-
+    const dynamicParams = {
+            DRC_Action,
+            Incident_Status,
+            From_Date,
+            To_Date,
+          }
     // Task object
     const taskData = {
       Task_Id,
       Template_Task_Id: 20,
       task_type: "Create Incident list for download",
-      parameters: {
-        DRC_Action,
-        Incident_Status,
-        From_Date,
-        To_Date,
-      },
+      ...dynamicParams,
       Created_By,
       task_status: "open",
       created_dtm: new Date(),

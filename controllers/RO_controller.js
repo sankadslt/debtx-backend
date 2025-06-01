@@ -21,7 +21,7 @@ import CaseDetails from "../models/CaseMode.js";
 // Update Recovery Officer Status by ID
 export const Change_RO_Status = async (req, res) => {
   const ro_status_edit_by = "Admin";
-  const { ro_id, ro_status} = req.body;
+  const { ro_id, ro_status } = req.body;
   if (!ro_id || !ro_status || !ro_status_edit_by) {
     return res.status(400).json({
       status: "error",
@@ -29,45 +29,45 @@ export const Change_RO_Status = async (req, res) => {
     });
   }
 
-    // Update MongoDB
-    
-    const newStatus = {
-      status: ro_status,
-      ro_status_date: new Date().toLocaleDateString('en-GB'), // Format date as dd/mm/yyyy
-      ro_status_edit_by: ro_status_edit_by,
+  // Update MongoDB
+
+  const newStatus = {
+    status: ro_status,
+    ro_status_date: new Date().toLocaleDateString("en-GB"), // Format date as dd/mm/yyyy
+    ro_status_edit_by: ro_status_edit_by,
+  };
+
+  try {
+    const filter = { ro_id: ro_id };
+    const update = {
+      $push: {
+        ro_status: newStatus,
+      },
     };
+    const updatedResult = await Recovery_officer.updateOne(filter, update);
 
-    try{
-        const filter = { ro_id: ro_id };
-        const update = {
-          $push: {
-            ro_status: newStatus,
-          },
-        };
-        const updatedResult = await Recovery_officer.updateOne(filter, update);
-        
-        if (updatedResult.matchedCount === 0) {
-          console.log("Recovery Officer not found in MongoDB:", updatedResult);
-          return res.status(400).json({
-                status: "error",
-                message: "Recovery Officer not found in MongoDB",
-          });
-        }
-        return res.status(200).json({
-          status: "success",
-          message: "Recovery Officer status updated successfully.",
-          data: updatedResult,
-        });
-    }catch (mongoError) {
-        console.error("Error updating MongoDB:", mongoError.message);
+    if (updatedResult.matchedCount === 0) {
+      console.log("Recovery Officer not found in MongoDB:", updatedResult);
+      return res.status(400).json({
+        status: "error",
+        message: "Recovery Officer not found in MongoDB",
+      });
     }
+    return res.status(200).json({
+      status: "success",
+      message: "Recovery Officer status updated successfully.",
+      data: updatedResult,
+    });
+  } catch (mongoError) {
+    console.error("Error updating MongoDB:", mongoError.message);
+  }
 
-    // Send final response
-    // return res.status(200).json({
-    //   status: "success",
-    //   message: "Recovery Officer status updated successfully.",
-    //   data: mysqlResults,
-    // });
+  // Send final response
+  // return res.status(200).json({
+  //   status: "success",
+  //   message: "Recovery Officer status updated successfully.",
+  //   data: mysqlResults,
+  // });
   // } catch (error) {
   //   console.error("Error updating MySQL:", error.message);
   //   return res.status(500).json({
@@ -128,14 +128,13 @@ export const Change_RO_Status = async (req, res) => {
 // };
 
 //Suspend RTOM From RO Officer Profile details
-
 export const Suspend_Ro = async (req, res) => {
   const { ro_id, remark, remark_edit_by, ro_end_date } = req.body;
   const ro_status = "Terminate";
   // const ro_end_date = new Date();
 
   if (!ro_id || !remark) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       status: "error",
       message: "All fields are required",
     });
@@ -169,8 +168,8 @@ export const Suspend_Ro = async (req, res) => {
         ro_status: {
           status: ro_status,
           ro_status_date: ro_end_date,
-          ro_status_edit_by: remark_edit_by || "system"
-        }
+          ro_status_edit_by: remark_edit_by || "system",
+        },
       },
     };
 
@@ -199,85 +198,91 @@ export const Suspend_Ro = async (req, res) => {
 };
 
 export const Suspend_RTOM_From_RO = async (req, res) => {
-  const { ro_id, rtom_id} = req.body; 
+  const { ro_id, rtom_id } = req.body;
   const rtom_status = "Inactive";
   if (!ro_id || !rtom_id || !rtom_status) {
-      return res.status(400).json({
-        status: "error",
-        message: 'ro_id, rtom_name, and new_status are required.' });
+    return res.status(400).json({
+      status: "error",
+      message: "ro_id, rtom_name, and new_status are required.",
+    });
   }
 
-  if (!['Active', 'Inactive', 'Pending'].includes(rtom_status)) {
-    return res.status(400).json({ 
+  if (!["Active", "Inactive", "Pending"].includes(rtom_status)) {
+    return res.status(400).json({
       status: "error",
-      message: 'Invalid status value.' });
+      message: "Invalid status value.",
+    });
   }
 
   // const updateStatusQue = `UPDATE recovery_officer_rtoms SET ro_for_rtom_status = ? WHERE ro_id = ? AND rtom_id = ?;`
 
   // try {
-    // const updateStatus = () =>
-    //   new Promise((resolve, reject) => {
-    //     db.mysqlConnection.query(updateStatusQue, [rtom_status, ro_id, rtom_id], (err, result) => {
-    //       if (err) return reject(err);
-    //       resolve(result);
-    //     });
-    //   });
+  // const updateStatus = () =>
+  //   new Promise((resolve, reject) => {
+  //     db.mysqlConnection.query(updateStatusQue, [rtom_status, ro_id, rtom_id], (err, result) => {
+  //       if (err) return reject(err);
+  //       resolve(result);
+  //     });
+  //   });
 
-    // const result = await updateStatus();
+  // const result = await updateStatus();
 
-    // if (result.affectedRows > 0) {
-      //return res.status(200).json({ message: 'RTOM status updated successfully.', data: result });
-      try {
-        const rtomdetails = await Rtom.findOne({rtom_id});
-        if (!rtomdetails) {
-          console.log(rtomdetails);
-          return res.status(404).json({ 
-            status: "error",
-            message: 'RTOM not found in Rtom collection.' });
-        }
-        const rtom_name = rtomdetails.area_name;
-        const updatedRo = await Recovery_officer.findOneAndUpdate(
-          { ro_id, 'rtoms_for_ro.name': rtom_name }, 
-          { $set: { 'rtoms_for_ro.$.status': rtom_status} }, 
-          { new: true } 
-        );
-        if (!updatedRo) {
-          return res.status(404).json({ 
-            status: "error",
-            message: 'Recovery Officer or RTOM not found.' });
-        }
-    
-        res.status(200).json({ 
-          status: "success",
-          message: 'RTOM status updated successfully.', data: updatedRo });
-    
-      } catch (error) {
-        console.error('Error updating RTOM status:', error);
-        res.status(500).json({
-          status: "error",
-          message: 'Internal server error.' });
-      }  
-    // } else {
-    //   return res.status(404).json({ 
-    //     status: "error",
-    //     message: 'No matching record found for the provided ro_id and rtom_id.' });
-    // }
+  // if (result.affectedRows > 0) {
+  //return res.status(200).json({ message: 'RTOM status updated successfully.', data: result });
+  try {
+    const rtomdetails = await Rtom.findOne({ rtom_id });
+    if (!rtomdetails) {
+      console.log(rtomdetails);
+      return res.status(404).json({
+        status: "error",
+        message: "RTOM not found in Rtom collection.",
+      });
+    }
+    const rtom_name = rtomdetails.area_name;
+    const updatedRo = await Recovery_officer.findOneAndUpdate(
+      { ro_id, "rtoms_for_ro.name": rtom_name },
+      { $set: { "rtoms_for_ro.$.status": rtom_status } },
+      { new: true }
+    );
+    if (!updatedRo) {
+      return res.status(404).json({
+        status: "error",
+        message: "Recovery Officer or RTOM not found.",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "RTOM status updated successfully.",
+      data: updatedRo,
+    });
+  } catch (error) {
+    console.error("Error updating RTOM status:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+    });
+  }
+  // } else {
+  //   return res.status(404).json({
+  //     status: "error",
+  //     message: 'No matching record found for the provided ro_id and rtom_id.' });
+  // }
 
   // } catch (error) {
   //   console.error('Error updating RTOM status:', error.message);
   //   return res.status(500).json({ message: 'Internal server error.', error: error.message });
   // }
-
-}
+};
 
 // Get RTOM list of RO
 export const List_All_RTOM_Ownned_By_RO = async (req, res) => {
-  const {ro_id} = req.body;
+  const { ro_id } = req.body;
   if (!ro_id) {
-      return res.status(400).json({ 
-        status: 'error',
-        message: 'ro_id is required.' });
+    return res.status(400).json({
+      status: "error",
+      message: "ro_id is required.",
+    });
   }
 
   // const getRtomque = `SELECT rtom.area_name FROM rtom JOIN recovery_officer_rtoms ON rtom.rtom_id = recovery_officer_rtoms.rtom_id WHERE recovery_officer_rtoms.ro_id = ?;`
@@ -295,53 +300,56 @@ export const List_All_RTOM_Ownned_By_RO = async (req, res) => {
     // const areaNames = result.map(rtom => rtom.area_name);
     // if (result.length > 0 && areaNames.length > 0) {
 
-      const rtom_names_with_status = await Recovery_officer.aggregate([
-        { $match: { ro_id: ro_id } },
-        { $unwind: "$rtoms_for_ro" },
-        {
-          $lookup: {
-            from: "Rtom",
-            localField: "rtoms_for_ro.name",
-            foreignField: "rtom_abbreviation", 
-            as: "rtom_details", 
-          },
+    const rtom_names_with_status = await Recovery_officer.aggregate([
+      { $match: { ro_id: ro_id } },
+      { $unwind: "$rtoms_for_ro" },
+      {
+        $lookup: {
+          from: "Rtom",
+          localField: "rtoms_for_ro.name",
+          foreignField: "rtom_abbreviation",
+          as: "rtom_details",
         },
-        { $unwind: "$rtom_details" },
-        {
-          $project: {
-            name: "$rtoms_for_ro.name",
-            status: "$rtoms_for_ro.status",
-            rtom_id: "$rtom_details.rtom_id",
-          },
+      },
+      { $unwind: "$rtom_details" },
+      {
+        $project: {
+          name: "$rtoms_for_ro.name",
+          status: "$rtoms_for_ro.status",
+          rtom_id: "$rtom_details.rtom_id",
         },
-      ]);
-      console.log(rtom_names_with_status);
+      },
+    ]);
+    console.log(rtom_names_with_status);
 
-      return res.status(200).json({
-        status: 'success',
-        message: 'RTOM areas retrieved successfully.',
-        data: rtom_names_with_status,
-      });
+    return res.status(200).json({
+      status: "success",
+      message: "RTOM areas retrieved successfully.",
+      data: rtom_names_with_status,
+    });
     // } else {
-    //   return res.status(404).json({ 
+    //   return res.status(404).json({
     //     status: 'error',
     //     message: 'No RTOMs found for the given ro_id.' });
     // }
-  }catch (error){ 
-    console.error('Error retrieving RTOM areas:', error);
-    return res.status(500).json({ 
-      status: 'error',
-      message: 'Internal server error.', error: error.message });
+  } catch (error) {
+    console.error("Error retrieving RTOM areas:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
-}
+};
 
 //Get active RTOM list of RO
 export const List_Active_RTOM_Ownned_By_RO = async (req, res) => {
-  const {ro_id} = req.body; 
-  if(!ro_id){
+  const { ro_id } = req.body;
+  if (!ro_id) {
     return res.status(400).json({
-      status:"error",
-      message : "ro id is required"});
+      status: "error",
+      message: "ro id is required",
+    });
   }
   const required_status = "Active";
   // const getActiveRtomque = `SELECT rtom.area_name FROM rtom JOIN recovery_officer_rtoms ON rtom.rtom_id = recovery_officer_rtoms.rtom_id WHERE recovery_officer_rtoms.ro_id = ? AND recovery_officer_rtoms.ro_for_rtom_status = ?;`
@@ -356,76 +364,82 @@ export const List_Active_RTOM_Ownned_By_RO = async (req, res) => {
     //   const result = await getActiveRtom();
     //   const actiive_area_name_in_sql =result.map(rtom => rtom.area_name);
 
-      // if (result.length > 0 && actiive_area_name_in_sql.length > 0) {
+    // if (result.length > 0 && actiive_area_name_in_sql.length > 0) {
 
-      const active_rtom_names_list = await Recovery_officer.aggregate([
-        { $match: { ro_id: ro_id } }, // Match the Recovery Officer by ro_id
-        { $unwind: "$rtoms_for_ro" }, // Flatten the rtoms_for_ro array
-        { 
-          $match: { "rtoms_for_ro.status": required_status } // Filter by the required status
+    const active_rtom_names_list = await Recovery_officer.aggregate([
+      { $match: { ro_id: ro_id } }, // Match the Recovery Officer by ro_id
+      { $unwind: "$rtoms_for_ro" }, // Flatten the rtoms_for_ro array
+      {
+        $match: { "rtoms_for_ro.status": required_status }, // Filter by the required status
+      },
+      {
+        $lookup: {
+          from: "Rtom", // The target collection to join with
+          localField: "rtoms_for_ro.name", // The local field in Recovery_officer
+          foreignField: "rtom_abbreviation", // The field in Rtom to match against
+          as: "rtom_details", // The field to hold the joined data
         },
-        {
-          $lookup: {
-            from: "Rtom", // The target collection to join with
-            localField: "rtoms_for_ro.name", // The local field in Recovery_officer
-            foreignField: "rtom_abbreviation", // The field in Rtom to match against
-            as: "rtom_details", // The field to hold the joined data
-          },
+      },
+      { $unwind: "$rtom_details" }, // Flatten the rtom_details array
+      {
+        $project: {
+          name: "$rtoms_for_ro.name", // Include RTOM name
+          status: "$rtoms_for_ro.status", // Include RTOM status
+          rtom_id: "$rtom_details.rtom_id", // Include RTOM ID from the joined data
         },
-        { $unwind: "$rtom_details" }, // Flatten the rtom_details array
-        {
-          $project: {
-            name: "$rtoms_for_ro.name", // Include RTOM name
-            status: "$rtoms_for_ro.status", // Include RTOM status
-            rtom_id: "$rtom_details.rtom_id", // Include RTOM ID from the joined data
-          },
-        },
-      ]);
-      console.log(active_rtom_names_list)
-        return res.status(200).json({
-          status:"success",
-          message: 'RTOM areas retrieved successfully.',
-          data: active_rtom_names_list,
-        });
-      // } else {
-      //   return res.status(404).json({ 
-      //     status:"error",
-      //     message: 'No RTOMs found for the given ro_id.' });
-      // }
+      },
+    ]);
+    console.log(active_rtom_names_list);
+    return res.status(200).json({
+      status: "success",
+      message: "RTOM areas retrieved successfully.",
+      data: active_rtom_names_list,
+    });
+    // } else {
+    //   return res.status(404).json({
+    //     status:"error",
+    //     message: 'No RTOMs found for the given ro_id.' });
+    // }
   } catch (error) {
-    console.error('Error retrieving RTOM areas:', error);
-    return res.status(500).json({ 
-      status:"error",
-      message: 'Internal server error.', error: error.message });
+    console.error("Error retrieving RTOM areas:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
-}
+};
 
-//Add the RTOM to the RO 
+//Add the RTOM to the RO
 export const Issue_RTOM_To_RO = async (req, res) => {
-
   const { ro_id, rtom_id } = req.body;
 
   const rtoms_for_ro_status_edit_by = "Admin";
 
   const now = new Date();
-  const day = now.getDate().toString().padStart(2, "0"); 
-  const month = (now.getMonth() + 1).toString().padStart(2, "0"); 
+  const day = now.getDate().toString().padStart(2, "0");
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
   const year = now.getFullYear();
-  const localDate = `${day}/${month}/${year}`; 
+  const localDate = `${day}/${month}/${year}`;
 
   if (!ro_id || !rtom_id || !rtoms_for_ro_status_edit_by) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       status: "Error",
-      message: "RO ID and RTOM ID are required" });
+      message: "RO ID and RTOM ID are required",
+    });
   }
 
   try {
-    const rtomData = await Rtom.findOne({ rtom_id: rtom_id }, { area_name: 1, _id: 0 });
+    const rtomData = await Rtom.findOne(
+      { rtom_id: rtom_id },
+      { area_name: 1, _id: 0 }
+    );
 
     if (!rtomData) {
       return res.status(404).json({
         status: "Error",
-        message: "RTOM not found" });
+        message: "RTOM not found",
+      });
     }
 
     const newRtomName = rtomData.area_name;
@@ -433,16 +447,20 @@ export const Issue_RTOM_To_RO = async (req, res) => {
     const recoveryOfficer = await Recovery_officer.findOne({ ro_id: ro_id });
 
     if (!recoveryOfficer) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         status: "Error",
-        message: "RO not found" });
+        message: "RO not found",
+      });
     }
 
-    const isDuplicate = recoveryOfficer.rtoms_for_ro.some(rtom => rtom.name === newRtomName);
+    const isDuplicate = recoveryOfficer.rtoms_for_ro.some(
+      (rtom) => rtom.name === newRtomName
+    );
     if (isDuplicate) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: "Error",
-        message: "RTOM with this name already exists for this RO." });
+        message: "RTOM with this name already exists for this RO.",
+      });
     }
 
     // Push the new RTOM
@@ -455,9 +473,9 @@ export const Issue_RTOM_To_RO = async (req, res) => {
             status: [
               {
                 status: "Active",
-                rtoms_for_ro_status_date: localDate, 
+                rtoms_for_ro_status_date: localDate,
                 rtoms_for_ro_status_edit_by: rtoms_for_ro_status_edit_by,
-              }, 
+              },
             ],
             rtom_id: rtom_id,
           },
@@ -467,18 +485,18 @@ export const Issue_RTOM_To_RO = async (req, res) => {
     );
 
     return res.status(200).json({
-      status:"success",
+      status: "success",
       message: "RTOM assigned successfully",
       updatedRO,
     });
   } catch (error) {
     console.error("Error assigning RTOM to RO:", error.message);
-    return res.status(500).json({ 
+    return res.status(500).json({
       status: "Error",
-      message: "Internal server error" });
+      message: "Internal server error",
+    });
   }
 };
-
 
 // Retrieve Recovery Officers (MongoDB Only)
 export const getRODetails = async (req, res) => {
@@ -505,8 +523,8 @@ export const getRODetails = async (req, res) => {
       login_user_id: ro.login_user_id,
       remark: ro.remark,
       ro_nic: ro.ro_nic,
-      ro_end_date:ro.ro_end_date,
-      created_by:ro.created_by,
+      ro_end_date: ro.ro_end_date,
+      created_by: ro.created_by,
       rtoms_for_ro: ro.rtoms_for_ro || [], // Include RTOMs if present
       createdAt: ro.createdAt,
       updatedAt: ro.updatedAt,
@@ -600,7 +618,9 @@ export const getRODetailsByID = async (req, res) => {
     }
 
     // Fetch Recovery Officer details from MongoDB by ro_id
-    const recoveryOfficer = await Recovery_officer.findOne({ ro_id: parseInt(ro_id) });
+    const recoveryOfficer = await Recovery_officer.findOne({
+      ro_id: parseInt(ro_id),
+    });
 
     // Check if a Recovery Officer is found
     if (!recoveryOfficer) {
@@ -633,10 +653,10 @@ export const getRODetailsByID = async (req, res) => {
       login_user_id: recoveryOfficer.login_user_id,
       remark: recoveryOfficer.remark,
       ro_nic: recoveryOfficer.ro_nic,
-      ro_end_date:recoveryOfficer.ro_end_date,
-      created_by:recoveryOfficer.created_by,
+      ro_end_date: recoveryOfficer.ro_end_date,
+      created_by: recoveryOfficer.created_by,
       rtoms_for_ro: rtomsWithIDs, // Include updated RTOMs with rtom_id
-      added_date:recoveryOfficer.added_date,
+      added_date: recoveryOfficer.added_date,
       createdAt: recoveryOfficer.createdAt,
       updatedAt: recoveryOfficer.updatedAt,
     };
@@ -656,8 +676,6 @@ export const getRODetailsByID = async (req, res) => {
     });
   }
 };
-
-
 
 // Retrieve Recovery Officers by DRC ID (MongoDB Only)
 // export const getRODetailsByDrcID = async (req, res) => {
@@ -821,15 +839,16 @@ export const getRODetailsByDrcID = async (req, res) => {
           },
         },
         {
-            $match: {
-                "ro_status.status": "Active"  // Ensure the last element's status is 'Active'
-            }
+          $match: {
+            "ro_status.status": "Active", // Ensure the last element's status is 'Active'
+          },
         },
       ]);
-
-
     } catch (mongoErr) {
-      console.error("Error retrieving Recovery Officers from MongoDB:", mongoErr.message);
+      console.error(
+        "Error retrieving Recovery Officers from MongoDB:",
+        mongoErr.message
+      );
       return res.status(500).json({
         status: "error",
         message: "Error retrieving Recovery Officers.",
@@ -860,8 +879,6 @@ export const getRODetailsByDrcID = async (req, res) => {
     });
   }
 };
-
-
 
 // Retrieve Active Recovery Officers by DRC ID (MongoDB Only)
 // export const getActiveRODetailsByDrcID = async (req, res) => {
@@ -926,7 +943,9 @@ export const getRODetailsByDrcID = async (req, res) => {
 // };
 
 
-
+// Purpose: Retrieve Active Recovery Officers whose last status is Active by DRC ID
+// Input: drc_id (from request body)
+// Collection: Recovery_officer
 // Retrieve Recovery Officers whose last status is Active
 export const getActiveRODetailsByDrcID = async (req, res) => {
   try {
@@ -941,62 +960,39 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
       });
     }
 
-    // Fetch drc_name by drc_id from MongoDB
-    const drc = await DebtRecoveryCompany.findOne({ drc_id });
-    if (!drc) {
-      return res.status(404).json({
-        status: "error",
-        message: `No Debt Recovery Company found for drc_id: ${drc_id}.`,
-      });
-    }
+    const activeRecoveryOfficers = await Recovery_officer.find({
+      drc_id: drc_id,
+      ro_status: "Active"
+    });
 
-    const drc_name = drc.drc_name;
-
-    // Fetch Recovery Officers whose last status is Active
-    const activeRecoveryOfficers = await Recovery_officer.aggregate([
-      // Match recovery officers by drc_name
-      { $match: { drc_name } },
-      // Add a computed field for the last status in the ro_status array
-      {
-        $addFields: {
-          last_status: { $arrayElemAt: ["$ro_status", -1] }, // Get the last element in ro_status
-        },
-      },
-      // Filter officers whose last status is Active
-      { $match: { "last_status.status": "Active" } },
-    ]);
 
     // Check if any active recovery officers were found
     if (activeRecoveryOfficers.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: `No Active Recovery Officers found for drc_name: ${drc_name}.`,
+        message: `No Active Recovery Officers found for drc.`,
       });
     }
 
     // Format the response
-    const formattedResults = activeRecoveryOfficers.map((ro) => ({
+    const formattedResults = activeRecoveryOfficers?.map((ro) => ({
       ro_id: ro.ro_id,
       ro_name: ro.ro_name,
       ro_contact_no: ro.ro_contact_no,
-      drc_name: ro.drc_name,
-      ro_status: ro.last_status.status,
-      ro_status_date: ro.last_status.ro_status_date,
-      ro_status_edit_by: ro.last_status.ro_status_edit_by,
+      // drc_name: ro.drc_name,
+      ro_status: ro.ro_status,
+      // ro_status_date: ro.last_status.ro_status_date,
+      // ro_status_edit_by: ro.last_status.ro_status_edit_by,
       login_type: ro.login_type,
       login_user_id: ro.login_user_id,
       remark: ro.remark,
       ro_nic: ro.ro_nic,
-      ro_end_date: ro.ro_end_date || null,
-      rtoms_for_ro: ro.rtoms_for_ro.map((rtom) => ({
-        name: rtom.name,
-        status: rtom.status.map((stat) => ({
-          status: stat.status,
-          rtoms_for_ro_status_date: stat.rtoms_for_ro_status_date,
-          rtoms_for_ro_status_edit_by: stat.rtoms_for_ro_status_edit_by,
-        })),
+      ro_end_date: ro.ro_end_dtm || null,
+      rtoms_for_ro: ro.rtom.map((rtom) => ({
+        name: rtom.rtom_name,
+        status: rtom.rtom_status
       })),
-      created_by: ro.created_by,
+      created_by: ro.ro_create_by,
       createdAt: ro.createdAt,
       updatedAt: ro.updatedAt,
     }));
@@ -1865,7 +1861,14 @@ export const RegisterRO = async (req, res) => {
 
   try {
     // Step 1: Input Validation
-    if (!ro_name || !ro_contact_no || !drc_id || !ro_nic || !rtoms_for_ro || rtoms_for_ro.length === 0) {
+    if (
+      !ro_name ||
+      !ro_contact_no ||
+      !drc_id ||
+      !ro_nic ||
+      !rtoms_for_ro ||
+      rtoms_for_ro.length === 0
+    ) {
       return res.status(400).json({
         status: "error",
         message: "All required fields must be provided, including RTOMs.",
@@ -1874,11 +1877,13 @@ export const RegisterRO = async (req, res) => {
 
     // Step 2: Generate ro_id
     const mongoConnection = await db.connectMongoDB();
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "ro_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "ro_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     const ro_id = counterResult.value?.seq || counterResult.seq;
     if (!ro_id) {
@@ -1978,744 +1983,17 @@ export const RegisterRO = async (req, res) => {
   }
 };
 
-
-
-
-
-// Edit Recovery Officer (MongoDB Only)
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, login_type, login_user_id, remark, ro_nic, ro_end_date } = req.body; // Extract all fields, including ro_id, from the body
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Update the Recovery Officer with the new remark
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(login_type && { login_type }),
-//       ...(login_user_id && { login_user_id }),
-//       ...(ro_nic && { ro_nic }),
-//       ...(ro_end_date && { ro_end_date }),
-//       updatedAt: moment().toDate(), // Always update the updatedAt field
-//     };
-
-//     if (remark) {
-//       // Add new remark to the remark array
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark } } // Push the new remark to the remark array
-//       );
-//     }
-
-//     // Update other fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) }, // Filter by ro_id
-//       { $set: updateFields },
-//       { new: true } // Return the updated document
-//     );
-
-//     // Step 4: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-// Edit Recovery Officer (MongoDB Only - Restricted Fields)
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, remark, ro_end_date, remark_edit_by } = req.body; // Exclude restricted fields
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields (Exclude Restricted Fields)
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date }),
-//       updatedAt: moment().toDate(), // Always update the updatedAt field
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: moment().format("DD/MM/YYYY"), // Current date in DD/MM/YYYY format
-//         remark_edit_by: remark_edit_by || "System", // Default to "System" if not provided
-//       };
-
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } } // Push the new remark to the remark array
-//       );
-//     }
-
-//     // Step 5: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) }, // Filter by ro_id
-//       { $set: updateFields },
-//       { new: true } // Return the updated document
-//     );
-
-//     // Step 6: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-
-// Edit Recovery Officer (MongoDB Only - Restricted Fields)
-// export const EditRO = async (req, res) => {
-//   const {
-//     ro_id,
-//     ro_contact_no,
-//     remark,
-//     ro_end_date,
-//     remark_edit_by,
-//     rtoms_for_ro, // Add RTOMs to the request body
-//   } = req.body;
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields (Exclude Restricted Fields)
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date }),
-//       updatedAt: moment().toISOString(), // Always update the updatedAt field
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: moment().format("DD/MM/YYYY"), // Current date in DD/MM/YYYY format
-//         remark_edit_by: remark_edit_by || "System", // Default to "System" if not provided
-//       };
-
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } } // Push the new remark to the remark array
-//       );
-//     }
-
-//     // Step 5: Update RTOMs (if provided)
-//     if (rtoms_for_ro && rtoms_for_ro.length > 0) {
-//       const rtoms_with_details = await Promise.all(
-//         rtoms_for_ro.map(async (rtom) => {
-//           const rtomDetails = await Rtom.findOne({ rtom_id: rtom.rtom_id });
-//           if (!rtomDetails) {
-//             throw new Error(`RTOM with ID ${rtom.rtom_id} not found.`);
-//           }
-//           return {
-//             name: rtomDetails.area_name,
-//             status: [
-//               {
-//                 status: "Active",
-//                 rtoms_for_ro_status_date: moment().format("DD/MM/YYYY"),
-//                 rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//               },
-//             ],
-//             rtom_id: rtom.rtom_id, // Include rtom_id for reference
-//           };
-//         })
-//       );
-
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $set: { rtoms_for_ro: rtoms_with_details } } // Replace the rtoms_for_ro array
-//       );
-//     }
-
-//     // Step 6: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) }, // Filter by ro_id
-//       { $set: updateFields },
-//       { new: true } // Return the updated document
-//     );
-
-//     // Step 7: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, remark, ro_end_date, remark_edit_by, rtoms_for_ro } = req.body;
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date }),
-//       updatedAt: moment().toDate(),
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: moment().format("DD/MM/YYYY"),
-//         remark_edit_by: remark_edit_by || "System",
-//       };
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } }
-//       );
-//     }
-
-//     // Step 5: Append New RTOMs to `rtoms_for_ro`
-//     if (rtoms_for_ro && rtoms_for_ro.length > 0) {
-//       const newRTOMs = [];
-
-//       for (const rtom of rtoms_for_ro) {
-//         const rtomDetails = await Rtom.findOne({ rtom_id: rtom.rtom_id });
-
-//         if (!rtomDetails) {
-//           return res.status(404).json({
-//             status: "error",
-//             message: `RTOM with ID ${rtom.rtom_id} not found.`,
-//           });
-//         }
-
-//         // Check if RTOM is already in the array
-//         const isAlreadyAssigned = existingRO.rtoms_for_ro.some(
-//           (existingRtom) => existingRtom.rtom_id === rtom.rtom_id
-//         );
-
-//         if (!isAlreadyAssigned) {
-//           newRTOMs.push({
-//             name: rtomDetails.area_name,
-//             rtom_id: rtom.rtom_id,
-//             status: [
-//               {
-//                 status: "Active",
-//                 rtoms_for_ro_status_date: moment().format("DD/MM/YYYY"),
-//                 rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//               },
-//             ],
-//           });
-//         }
-//       }
-
-//       if (newRTOMs.length > 0) {
-//         await Recovery_officer.updateOne(
-//           { ro_id: Number(ro_id) },
-//           { $push: { rtoms_for_ro: { $each: newRTOMs } } }
-//         );
-//       }
-//     }
-
-//     // Step 6: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) },
-//       { $set: updateFields },
-//       { new: true }
-//     );
-
-//     // Step 7: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-//Base code  2025/01/02
-
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, remark, ro_end_date, remark_edit_by, rtoms_for_ro } = req.body;
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date }),
-//       updatedAt: moment().toDate(),
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: moment().format("DD/MM/YYYY"),
-//         remark_edit_by: remark_edit_by || "System",
-//       };
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } }
-//       );
-//     }
-
-//     // Step 5: Update or Append RTOMs
-//     if (rtoms_for_ro && rtoms_for_ro.length > 0) {
-//       const updatedRTOMs = [...existingRO.rtoms_for_ro]; // Clone existing RTOMs array
-
-//       for (const rtom of rtoms_for_ro) {
-//         const { rtom_id, status } = rtom;
-
-//         // Validate RTOM
-//         const rtomDetails = await Rtom.findOne({ rtom_id });
-//         if (!rtomDetails) {
-//           return res.status(404).json({
-//             status: "error",
-//             message: `RTOM with ID ${rtom_id} not found.`,
-//           });
-//         }
-
-//         // Check if RTOM already exists
-//         const existingIndex = updatedRTOMs.findIndex(
-//           (existingRtom) => existingRtom.rtom_id === rtom_id
-//         );
-
-//         if (existingIndex > -1) {
-//           // Update existing RTOM status
-//           updatedRTOMs[existingIndex].status = [
-//             {
-//               status: status || "Active",
-//               rtoms_for_ro_status_date: moment().format("DD/MM/YYYY"),
-//               rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//             },
-//           ];
-//         } else {
-//           // Append new RTOM
-//           updatedRTOMs.push({
-//             name: rtomDetails.area_name,
-//             rtom_id,
-//             status: [
-//               {
-//                 status: status || "Active",
-//                 rtoms_for_ro_status_date: moment().format("DD/MM/YYYY"),
-//                 rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//               },
-//             ],
-//           });
-//         }
-//       }
-
-//       // Update RTOMs in the database
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $set: { rtoms_for_ro: updatedRTOMs } }
-//       );
-//     }
-
-//     // Step 6: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) },
-//       { $set: updateFields },
-//       { new: true }
-//     );
-
-//     // Step 7: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-
-//Try code 1
-
-
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, remark, ro_end_date, remark_edit_by, rtoms_for_ro } = req.body;
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date: new Date(ro_end_date) }),
-//       updatedAt: new Date(), // Use new Date() for current date
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: new Date(), // Save current date as Date type
-//         remark_edit_by: remark_edit_by || "System",
-//       };
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } }
-//       );
-//     }
-
-//     // Step 5: Update or Append RTOMs
-//     if (rtoms_for_ro && rtoms_for_ro.length > 0) {
-//       const updatedRTOMs = [...existingRO.rtoms_for_ro]; // Clone existing RTOMs array
-
-//       for (const rtom of rtoms_for_ro) {
-//         const { rtom_id, status } = rtom;
-
-//         // Validate RTOM
-//         const rtomDetails = await Rtom.findOne({ rtom_id });
-//         if (!rtomDetails) {
-//           return res.status(404).json({
-//             status: "error",
-//             message: `RTOM with ID ${rtom_id} not found.`,
-//           });
-//         }
-
-//         // Check if RTOM already exists
-//         const existingIndex = updatedRTOMs.findIndex(
-//           (existingRtom) => existingRtom.rtom_id === rtom_id
-//         );
-
-//         if (existingIndex > -1) {
-//           // Update existing RTOM status
-//           updatedRTOMs[existingIndex].status = [
-//             {
-//               status: status || "Active",
-//               rtoms_for_ro_status_date: new Date(), // Save current date as Date type
-//               rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//             },
-//           ];
-//         } else {
-//           // Append new RTOM
-//           updatedRTOMs.push({
-//             name: rtomDetails.area_name,
-//             rtom_id,
-//             status: [
-//               {
-//                 status: status || "Active",
-//                 rtoms_for_ro_status_date: new Date(), // Save current date as Date type
-//                 rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//               },
-//             ],
-//           });
-//         }
-//       }
-
-//       // Update RTOMs in the database
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $set: { rtoms_for_ro: updatedRTOMs } }
-//       );
-//     }
-
-//     // Step 6: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) },
-//       { $set: updateFields },
-//       { new: true }
-//     );
-
-//     // Step 7: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-  
-
-//Try code 2
-
-// export const EditRO = async (req, res) => {
-//   const { ro_id, ro_contact_no, remark, ro_end_date, remark_edit_by, rtoms_for_ro } = req.body;
-
-//   try {
-//     // Step 1: Input Validation
-//     if (!ro_id) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Recovery Officer ID (ro_id) is required in the body.",
-//       });
-//     }
-
-//     // Step 2: Find the Recovery Officer
-//     const existingRO = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-//     if (!existingRO) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: `Recovery Officer with ID ${ro_id} not found.`,
-//       });
-//     }
-
-//     // Step 3: Prepare Update Fields
-//     const updateFields = {
-//       ...(ro_contact_no && { ro_contact_no }),
-//       ...(ro_end_date && { ro_end_date: new Date(ro_end_date) }),
-//       updatedAt: new Date(),
-//     };
-
-//     // Step 4: Add a New Remark (if provided)
-//     if (remark) {
-//       const newRemark = {
-//         remark,
-//         remark_date: new Date(),
-//         remark_edit_by: remark_edit_by || "System",
-//       };
-//       await Recovery_officer.updateOne(
-//         { ro_id: Number(ro_id) },
-//         { $push: { remark: newRemark } }
-//       );
-//     }
-
-//     // // Step 5: Update or Append RTOMs
-//     if (rtoms_for_ro && rtoms_for_ro.length > 0) {
-//       // Fetch all RTOM details from the database
-//       const rtomIds = rtoms_for_ro.map((rtom) => rtom.rtom_id);
-//       const rtomDetailsList = await Rtom.find({ rtom_id: { $in: rtomIds } });
-
-//       if (rtomDetailsList.length === 0) {
-//           return res.status(404).json({
-//               status: "error",
-//               message: "No matching RTOMs found in the database.",
-//           });
-//       }
-
-//       const updatedRTOMs = [...existingRO.rtoms_for_ro]; // Clone the current RTOMs array
-
-//       for (const rtom of rtoms_for_ro) {
-//           const { rtom_id, status } = rtom;
-
-//           // Find the RTOM details from the fetched list
-//           const rtomDetails = rtomDetailsList.find((rtomDetail) => rtomDetail.rtom_id === rtom_id);
-
-//           if (!rtomDetails) {
-//               return res.status(404).json({
-//                   status: "error",
-//                   message: `RTOM with ID ${rtom_id} not found.`,
-//               });
-//           }
-
-//           // Match RTOM by area_name
-//           const existingRTOM = updatedRTOMs.find(
-//               (existingRtom) => existingRtom.name === rtomDetails.area_name
-//           );
-
-//           if (existingRTOM) {
-//               // Add the new status to the existing RTOM's status array
-//               existingRTOM.status.push({
-//                   status: status || "Active",
-//                   rtoms_for_ro_status_date: new Date(), // Save current date
-//                   rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//               });
-//           } else {
-//               // Add a new RTOM entry with the new status
-//               updatedRTOMs.push({
-//                   name: rtomDetails.area_name,
-//                   rtom_id,
-//                   status: [
-//                       {
-//                           status: status || "Active",
-//                           rtoms_for_ro_status_date: new Date(), // Save current date
-//                           rtoms_for_ro_status_edit_by: remark_edit_by || "System",
-//                       },
-//                   ],
-//               });
-//           }
-//       }
-
-//       // Update RTOMs in the database
-//       await Recovery_officer.updateOne(
-//           { ro_id: Number(ro_id) },
-//           { $set: { rtoms_for_ro: updatedRTOMs } }
-//       );
-//     }
-
-//     // Step 6: Update Other Fields
-//     const updatedRO = await Recovery_officer.findOneAndUpdate(
-//       { ro_id: Number(ro_id) },
-//       { $set: updateFields },
-//       { new: true }
-//     );
-
-//     // Step 7: Success Response
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Recovery Officer updated successfully.",
-//       data: updatedRO,
-//     });
-//   } catch (error) {
-//     console.error("Error in EditRO:", error.message);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Failed to update Recovery Officer.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// };
-
-
 export const EditRO = async (req, res) => {
-  const { 
-    ro_id, 
-    ro_contact_no, 
-    remark, 
-    ro_end_date, 
-    remark_edit_by, 
-    rtoms_for_ro, 
-    login_type, 
-    login_user_id, 
-    ro_status 
+  const {
+    ro_id,
+    ro_contact_no,
+    remark,
+    ro_end_date,
+    remark_edit_by,
+    rtoms_for_ro,
+    login_type,
+    login_user_id,
+    ro_status,
   } = req.body;
 
   try {
@@ -2777,7 +2055,9 @@ export const EditRO = async (req, res) => {
         const { rtom_id, status } = rtom;
 
         // Find the RTOM details from the fetched list
-        const rtomDetails = rtomDetailsList.find((rtomDetail) => rtomDetail.rtom_id === rtom_id);
+        const rtomDetails = rtomDetailsList.find(
+          (rtomDetail) => rtomDetail.rtom_id === rtom_id
+        );
 
         if (!rtomDetails) {
           return res.status(404).json({
@@ -2860,7 +2140,6 @@ export const EditRO = async (req, res) => {
   }
 };
 
-
 export const listDRCAllCases = async (req, res) => {
   try {
     const { drc_id, ro_id, From_DAT, TO_DAT, case_current_status } = req.body; // Correct extraction from body
@@ -2900,4 +2179,313 @@ export const listDRCAllCases = async (req, res) => {
     });
   }
 };
+
+export const listROAllCases = async (req, res) => {
+  try {
+    const { status, pages, drc_id } = req.body;
+
+    // Validate required field
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required field: drc_id",
+        errors: {
+          code: 400,
+          description: "drc_id is required to filter recovery officers.",
+        },
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Build query with optional status and required drc_id
+    const query = {
+      drc_id,
+      ...(status && { ro_status: status })
+    };
+
+    const recoveryOfficers = await Recovery_officer.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ ro_id: -1 });
+
+    const roDetails = recoveryOfficers.map(ro => {
+      const rtomArray = ro.rtoms_for_ro || [];
+      const activeRtomCount = rtomArray.filter(r => {
+        const lastStatus = Array.isArray(r.status) ? r.status.at(-1) : null;
+        return lastStatus?.status === "Active";
+      }).length;
+
+      return {
+        ro_id: ro.ro_id,
+        ro_name: ro.ro_name,
+        ro_contact_no: ro.ro_login_contact_no,
+        ro_nic: ro.ro_nic,
+        status: ro.ro_status,
+        drc_id: ro.drc_id,
+        rtom_counts: {
+          active: activeRtomCount,
+          total: rtomArray.length
+        },
+        created_at: ro.createdAt
+      };
+    });
+
+    const totalRecords = await Recovery_officer.countDocuments(query);
+    const totalPages = Math.ceil(totalRecords / (page === 1 ? 10 : 30));
+
+    return res.status(200).json({
+      status: "success",
+      message: "Recovery officers fetched successfully",
+      data: {
+        roDetails,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalRecords
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error in listROAllCases:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch recovery officers",
+      error: error.message
+    });
+  }
+};
+
+// Get RO list of RO
+export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
+  const {ro_id} = req.body;
+  if (!ro_id) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'ro_id is required.' });
+  }
+
+  try {
+
+      const rtom_names_with_status = await Recovery_officer.aggregate([
+        { $match: { ro_id: ro_id } },
+        { $unwind: "$rtoms_for_ro" },
+        {
+          $lookup: {
+            from: "Rtom",
+            localField: "rtoms_for_ro.name",
+            foreignField: "rtom_abbreviation", 
+            as: "rtom_details", 
+          },
+        },
+        { $unwind: "$rtom_details" },
+        {
+          $project: {
+            name: "$rtoms_for_ro.name",
+            status: "$rtoms_for_ro.status",
+            rtom_id: "$rtom_details.rtom_id",
+          },
+        },
+      ]);
+      console.log(rtom_names_with_status);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'RTOM areas retrieved successfully.',
+        data: rtom_names_with_status,
+      });
+   
+  }catch (error){ 
+    console.error('Error retrieving RTOM areas:', error);
+    return res.status(500).json({ 
+      status: 'error',
+      message: 'Internal server error.', error: error.message });
+  }
+}
+
+// Controller to list recovery officer info by ro_id using POST method
+export const listROInfoByROId = async (req, res) => {
+    try {
+        const { ro_id } = req.body;
+
+        // Validate input
+        if (!ro_id) {
+            return res.status(400).json({ message: 'ro_id is required in the request body' });
+        }
+
+        // Fetch recovery officer
+        const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
+
+        if (!recoveryOfficer) {
+            return res.status(404).json({ message: 'Recovery Officer not found' });
+        }
+
+        // Format helper for dates
+        const formatDate = (date) => {
+            return date ? new Date(date).toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            }) : null;
+        };
+
+        // Map RTOM areas with their statuses
+        const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
+            name: rtom.rtom_name,
+            status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
+        }));
+
+        // Map remarks to log history
+        const log_history = (recoveryOfficer.remark || []).map(rem => ({
+            edited_on: formatDate(rem.remark_dtm),
+            action: rem.remark,
+            edited_by: rem.remark_by
+        }));
+
+        // Construct response matching the page
+        const response = {
+            added_date: formatDate(recoveryOfficer.ro_create_dtm),
+            recovery_officer_name: recoveryOfficer.ro_name,
+            nic: recoveryOfficer.ro_nic,
+            contact_no: recoveryOfficer.ro_login_contact_no,
+            email: recoveryOfficer.ro_login_email,
+            rtom_areas,
+            log_history
+        };
+
+        return res.status(200).json(response);
+    } catch (error) {
+        console.error('Error fetching recovery officer info:', error);
+        return res.status(500).json({ 
+            message: 'Internal server error',
+            error: error.message || error.toString()
+        });
+    }
+};
+
+// Create Recovery Officer
+export const CreateRO = async (req, res) => {
+  const { drc_id, ro_name, ro_login_email, ro_login_contact_no, ro_nic, ro_create_by, rtoms_for_ro } = req.body;
+
+  try {
+    // Validate required fields
+    if (!drc_id || !ro_name || !ro_login_contact_no || !ro_nic || !ro_create_by) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to add Recovery Officer due to missing fields.",
+        errors: { field_name: "All fields are required" },
+      });
+    }
+
+    // Establish MongoDB connection
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed.");
+    }
+
+    // Generate unique ro_id
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "ro_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
+
+    if (
+      !counterResult ||
+      !counterResult.seq ||
+      typeof counterResult.seq === "undefined"
+    ) {
+      throw new Error("Failed to generate ro_id.");
+    }
+
+    const ro_id = counterResult.seq;
+
+    const rtoms = Array.isArray(rtoms_for_ro)
+  ? rtoms_for_ro.map((rtom) => {
+      if (!rtom.rtom_id || !rtom.rtom_name || !rtom.rtom_status) {
+        throw new Error("Invalid RTOM structure in rtoms_for_ro.");
+      }
+      return {
+        rtom_id: rtom.rtom_id,
+        rtom_name: rtom.rtom_name,
+        rtom_status: rtom.rtom_status,
+        rtom_create_dtm: rtom.rtom_create_dtm,
+        rtom_create_by: rtom.rtom_create_by,
+        rtom_end_dtm: rtom.rtom_end_dtm || null,
+      };
+    })
+  : [];
+
+
+
+    // Create a new Recovery Officer document
+    const newRO = new Recovery_officer({
+      drc_id,
+      ro_id,
+      ro_name,
+      ro_login_email,
+      ro_login_contact_no,
+      ro_nic,
+      ro_status: "Active",
+      ro_create_by,
+      ro_create_dtm: new Date(),
+      rtom:rtoms,
+    });
+
+    // Save the new Recovery Officer to the database
+    await newRO.save();
+
+    // Return success response
+    res.status(201).json({
+      status: "success",
+      message: "Recovery Officer added successfully.",
+      
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to add Recovery Officer.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+// RO LIST
+export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
+    try {
+        const { drc_id } = req.body;
+
+        if (!drc_id) {
+            return res.status(400).json({ message: 'drc_id is required' });
+        }
+
+        const roList = await Recovery_officer.find({ drc_id })
+            .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
+
+        const formattedList = roList.map(ro => {
+            //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
+            return {
+                ro_name: ro.ro_name,
+                status: ro.ro_status,
+                ro_end_dtm: ro.ro_end_dtm,
+                ro_contact_no: ro.ro_login_contact_no, 
+            };
+        });
+
+        res.status(200).json(formattedList);
+    } catch (error) {
+        console.error('Error fetching RO list:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 

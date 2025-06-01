@@ -46,7 +46,7 @@ import {
   Exchange_DRC_RTOM_Cases,
   Case_Distribution_Details_With_Drc_Rtom_ByBatchId,
   List_All_Batch_Details,
-  Approve_Batch_or_Batches,
+  Approve_Batch,
   Create_task_for_batch_approval,
   List_DRC_Assign_Manager_Approval,
   Approve_DRC_Assign_Manager_Approval,
@@ -71,7 +71,7 @@ import {
   updateDrcCaseDetails,
   AssignDRCToCaseDetails,
   Withdraw_CasesOwened_By_DRC,
-  // List_All_DRCs_Mediation_Board_Cases,
+  List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListAllRequestLogFromRecoveryOfficers,
   ListAllRequestLogFromRecoveryOfficersWithoutUserID,
@@ -84,11 +84,12 @@ import {
   Withdraw_Mediation_Board_Acceptance,
   Count_Mediation_Board_Phase_Cases,
   Count_Negotiation_Phase_Cases,
-
+  List_Settlement_Details_Owen_By_SettlementID_and_DRCID,
   //   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+  listdownCaseDetailsByCaseId
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -4614,16 +4615,16 @@ router.post("/List_All_Batch_Details", List_All_Batch_Details);
 
 /**
  * @swagger
- * /api/case/Approve_Batch_or_Batches:
+ * /api/case/Approve_Batch:
  *   post:
- *     summary: C-1P28 Approve Batch or Batches
+ *     summary: C-1P28 Approve Batch
  *     description: |
- *       Approves batches by updating their approval status and logs a user interaction.
+ *       Approves batch by updating their approval status and logs a user interaction.
  *       Also creates a task for tracking approved cases.
  *
  *       | Version | Date        | Description                | Changed By       |
  *       |---------|-------------|----------------------------|------------------|
- *       | 01      | 2025-Mar-11 | Approve Batch or Batches   | Dinusha Anupama       |
+ *       | 01      | 2025-Mar-11 | Approve Batch   | Dinusha Anupama       |
  *
  *     tags: [Case Management]
  *     parameters:
@@ -4716,7 +4717,7 @@ router.post("/List_All_Batch_Details", List_All_Batch_Details);
  *                   type: string
  *                   example: "Internal server error."
  */
-router.post("/Approve_Batch_or_Batches", Approve_Batch_or_Batches);
+router.post("/Approve_Batch", Approve_Batch);
 
 /**
  * @swagger
@@ -8296,7 +8297,7 @@ router.post("/AssignDRCToCaseDetails", AssignDRCToCaseDetails);
 
 router.post("/Withdraw_CasesOwened_By_DRC", Withdraw_CasesOwened_By_DRC);
 
-// router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
+router.post("/List_All_DRCs_Mediation_Board_Cases", List_All_DRCs_Mediation_Board_Cases);
 
 /**
  * @swagger
@@ -10393,4 +10394,6 @@ router.post(
   Create_Task_For_Request_Responce_Log_Download
 );
 
+router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
+router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
 export default router;

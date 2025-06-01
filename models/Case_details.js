@@ -22,6 +22,7 @@ const approvalSchema = new Schema({
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
+  rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
@@ -38,16 +39,6 @@ const caseStatusSchema = new Schema({
   case_phase:{ type: String, required: true },
 }, { _id: false });
 
-// Define the contact 
-// const contactsSchema = new Schema({
-//   mob: { type: String, required: false },
-//   email: { type: String, required: true },
-//   nic: { type: String, required: true },
-//   lan: { type: String, required: false },
-//   address: { type: String, required: true },
-//   geo_location: {type: String, default:null},
-// },{ _id: false });
-
 // Define the edited contact
 const contactsSchema = new Schema({
   contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },
@@ -60,15 +51,15 @@ const contactsSchema = new Schema({
 },{ _id: false });
 
 const editedcontactsSchema = new Schema({
-  ro_id: { type: Number, required: true },
+  ro_id: { type: Number },
   drc_id: { type: Number, required: true },
   edited_dtm: { type: Date, required: true },
-  contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },
-  contact_no: { type: Number, required: true },
-  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport', "Driving License"] },
-  customer_identification: { type: String, required: true },
-  email: { type: String, required: true },
-  address: { type: String, required: true },
+  contact_type: { type: String, enum: ['Mobile', 'Landline'],default:null },
+  contact_no: { type: Number, default:null},
+  customer_identification_type: { type: String, enum: ['NIC', 'Passport', "Driving License"],default:null },
+  customer_identification: { type: String,default:null },
+  email: { type: String,default:null},
+  address: { type: String,default:null },
   geo_location: {type: String, default:null},
   remark:{type: String, default:null},
 },{ _id: false });
@@ -82,9 +73,9 @@ const drcSchema = new Schema({
   drc_status: {type: String, required:true},
   status_dtm: {type:Date, required: true},
   expire_dtm: {type:Date, required: true},
-  case_removal_remark: { type: String, required: true },
-  removed_by: { type: String, required: true },
-  removed_dtm: { type: Date, required: true },
+  case_removal_remark: { type: String, required: false },
+  removed_by: { type: String, required: false },
+  removed_dtm: { type: Date, required: false },
   drc_selection_logic: {type: String, required: true},
   case_distribution_batch_id:{type:Number, required: true},
   recovery_officers: [recoveryOfficerSchema]
@@ -94,7 +85,8 @@ const abnormalSchema = new Schema({
   remark: {type: String, required:true},
   done_by:{type: String, required:true},
   done_on: {type:Date, required:true},
-  action: {type:String, required:true}
+  action: {type:Number, required:true},
+  Case_phase: {type:String, required:true},
 },{_id: false });
 
 const productDetailsSchema = new Schema({
@@ -127,8 +119,8 @@ const RoCpeCollectSchema = new mongoose.Schema({
 });
 
 const roNegotiationSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
@@ -345,11 +337,13 @@ const caseDetailsSchema = new Schema({
   filtered_reason: { type: String, default: null }, 
   proceed_dtm: { type: Date, required: null },
   Proceed_By: { type: String, required: null },
+  region:{ type: String, required: null},
   ro_edited_customer_details: [editedcontactsSchema],
   current_contact: [contactsSchema],
   remark: [remarkSchema],
   approve: [approvalSchema],
   case_status: [caseStatusSchema],
+  case_current_phase:{ type: String, required: true },
   drc: [drcSchema],
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 

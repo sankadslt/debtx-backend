@@ -20,7 +20,7 @@ import {
 import {
   Case_Details_Settlement_LOD_FTL_LOD,
 } from "../controllers/Settlement_controller.js";
-import { Case_Details_Settlement_LOD_FTL_LOD_Ext_01 } from "../controllers/Settlement_controller.js";
+import { Settlement_Details_By_Settlement_ID_Case_ID } from "../controllers/Settlement_controller.js";
 
 
 const router = Router();
@@ -32,7 +32,7 @@ const router = Router();
  *   - name: Case Settlement
  *     description: Endpoints for retrieving all settlement cases based on various filters.
  * 
- * /api/case/List_All_Settlement_Cases:
+ * /api/settlement/List_All_Settlement_Cases:
  *   post:
  *     summary: Retrieve settlement cases with filtering options.
  *     description: |
@@ -43,6 +43,7 @@ const router = Router();
  *       | Version | Date       | Description                           | Changed By         |
  *       |---------|------------|---------------------------------------|--------------------|
  *       | 01      | 2025-Mar-16| Retrieve settlement cases with filters | Sasindu Srinayaka  |
+ *       | 02      | 2025-May- 14| Added paging logic                    | Janani Kumarasiri  |
  *     tags:
  *       - Case Settlement
  *     requestBody:
@@ -55,7 +56,7 @@ const router = Router();
  *               case_id:
  *                 type: integer
  *                 description: Unique identifier of the case.
- *                 example: 12
+ *                 example: ""
  *               settlement_phase:
  *                 type: string
  *                 description: Phase of the settlement.
@@ -63,17 +64,21 @@ const router = Router();
  *               settlement_status:
  *                 type: string
  *                 description: Current status of the settlement.
- *                 example: "Open_Pending"
+ *                 example: ""
  *               from_date:
  *                 type: string
  *                 format: date
  *                 description: Start date for filtering settlement cases.
- *                 example: "2025-02-01"
+ *                 example: ""
  *               to_date:
  *                 type: string
  *                 format: date
  *                 description: End date for filtering settlement cases.
- *                 example: "2025-02-20"
+ *                 example: ""
+ *               pages:
+ *                 type: integer
+ *                 description: Page number for pagination.
+ *                 example: 1
   *     responses:
  *       200:
  *         description: Settlement cases retrieved successfully.
@@ -471,9 +476,363 @@ router.post("/Case_Details_Settlement_Phase", Case_Details_Settlement_Phase);
 
 router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_FTL_LOD);
 
+/**
+ * @swagger
+ * /api/settlement/Create_Task_For_Downloard_Settlement_List:
+ *   post:
+ *     summary: Create task to download settlement case list
+ *     description: |
+ *       Creates a background task to generate and download a list of settlement cases filtered by multiple criteria such as date range, case ID, account number, and more.
+ *
+ *       | Version | Date         | Description                                    | Changed By      |
+ *       |---------|--------------|------------------------------------------------|-----------------|
+ *       | 01      | 2025-May-14  | Initial version for task creation              | Janani Kumarasiri |
+ *
+ *     tags: [Case Settlement]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Created_By
+ *             properties:
+ *               Created_By:
+ *                 type: string
+ *                 example: "super@gmail.com"
+ *                 description: The user creating the task
+ *               Phase:
+ *                 type: string
+ *                 example: ""
+ *                 description: Task phase (optional)
+ *               Case_Status:
+ *                 type: string
+ *                 example: ""
+ *                 description: Filter by case status
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *                 description: Start date filter
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-31"
+ *                 description: End date filter
+ *               Case_ID:
+ *                 type: integer
+ *                 example: 4
+ *                 description: Optional specific case ID
+ *               Account_Number:
+ *                 type: integer
+ *                 example: ""
+ *                 description: Optional specific account number
+ *     responses:
+ *       200:
+ *         description: Task created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task created successfully.
+ *                 data:
+ *                   type: object
+ *                   example:
+ *                     Template_Task_Id: 42
+ *                     task_type: Create task for Download Settlement Case List
+ *                     Created_By: "admin_user"
+ *                     task_status: "open"
+ *                     Account_No: 123456789
+ *                     case_ID: 2005
+ *                     Phase: "Recovery"
+ *                     Case_Status: "Open"
+ *                     from_date: "2025-01-01"
+ *                     to_date: "2025-01-31"
+ *       400:
+ *         description: Missing required parameter (Created_By)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: created by is a required parameter.
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Some exception message
+ */
+
+
 router.post("/Create_Task_For_Downloard_Settlement_List", Create_Task_For_Downloard_Settlement_List);
 
-router.post("/Case_Details_Settlement_LOD_FTL_LOD_Ext_01", Case_Details_Settlement_LOD_FTL_LOD_Ext_01);
+/**
+ * @swagger
+ * /api/settlement/Settlement_Details_By_Settlement_ID_Case_ID:
+ *   post:
+ *     summary: Get settlement details by settlement ID and case ID
+ *     description: |
+ *       Retrieves detailed settlement information using both `case_id` and `settlement_id`. 
+ *       Includes arrears, status, phase, type, and plan information.
+ *
+ *       | Version | Date         | Description                          | Changed By      |
+ *       |---------|--------------|--------------------------------------|-----------------|
+ *       | 01      | 2025-May-14  | Initial version for settlement lookup | Janani Kumarasiri |
+ *
+ *     tags: [Case Settlement]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_id
+ *               - settlement_id
+ *             properties:
+ *               case_id:
+ *                 type: integer
+ *                 example: 4
+ *                 description: Unique case identifier
+ *               settlement_id:
+ *                 type: integer
+ *                 example: 50
+ *                 description: Unique settlement identifier
+ *     responses:
+ *       200:
+ *         description: Settlement details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Settlement details retrieved successfully
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     settlement_id:
+ *                       type: string
+ *                       example: "SETT-2345"
+ *                     case_id:
+ *                       type: integer
+ *                       example: 1501
+ *                     account_no:
+ *                       type: string
+ *                       example: "ACC-1010"
+ *                     arrears_amount:
+ *                       type: number
+ *                       example: 8200.50
+ *                     last_monitoring_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-20T10:00:00Z"
+ *                     settlement_status:
+ *                       type: string
+ *                       example: "Pending"
+ *                     status_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-21T12:00:00Z"
+ *                     status_reason:
+ *                       type: string
+ *                       example: "Awaiting documents"
+ *                     settlement_phase:
+ *                       type: string
+ *                       example: "Initial Review"
+ *                     settlement_type:
+ *                       type: string
+ *                       example: "Lump Sum"
+ *                     created_by:
+ *                       type: string
+ *                       example: "user_admin"
+ *                     created_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-04-15T09:00:00Z"
+ *                     drc_id:
+ *                       type: string
+ *                       example: "DRC-999"
+ *                     ro_id:
+ *                       type: string
+ *                       example: "RO-888"
+ *                     settlement_plans:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                       example: []
+ *                     settlement_plan_received:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Missing required parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: case_id is required
+ *       404:
+ *         description: Case or settlement not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Settlement not found
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ */
+
+
+router.post("/Settlement_Details_By_Settlement_ID_Case_ID", Settlement_Details_By_Settlement_ID_Case_ID);
+
+/**
+ * @swagger
+ * /api/settlement/Create_Task_For_Downloard_Settlement_Details_By_Case_ID:
+ *   post:
+ *     summary: Create a task to download settlement details by Case ID
+ *     description: |
+ *       This endpoint creates a task to download settlement details associated with a specific Case ID and Settlement ID.
+ *       
+ *       | Version | Date         | Description                                            | Changed By    |
+ *       |---------|--------------|--------------------------------------------------------|---------------|
+ *       | 01      | 2025-May-14  | Initial version for task creation                      | Janani Kumarasiri |
+ *
+ *     tags: [Settlement Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Created_By
+ *               - Case_ID
+ *               - Settlement_ID
+ *             properties:
+ *               Created_By:
+ *                 type: string
+ *                 example: "super@gmail.com"
+ *                 description: User who initiated the task
+ *               Case_ID:
+ *                 type: integer
+ *                 example: 4
+ *                 description: Unique identifier for the case
+ *               Settlement_ID:
+ *                 type: integer
+ *                 example: 50
+ *                 description: Unique identifier for the settlement
+ *     responses:
+ *       200:
+ *         description: Task created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Task created successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Template_Task_Id:
+ *                       type: integer
+ *                       example: 43
+ *                     task_type:
+ *                       type: string
+ *                       example: Create task for Download Settlement Details By Case_Id
+ *                     Created_By:
+ *                       type: string
+ *                       example: admin_user
+ *                     task_status:
+ *                       type: string
+ *                       example: open
+ *                     case_ID:
+ *                       type: integer
+ *                       example: 1510
+ *                     settlement_id:
+ *                       type: string
+ *                       example: SETT-7890
+ *       400:
+ *         description: Missing required parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Case_ID and Settlement_ID are required parameter.
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: "Some unexpected error occurred"
+ */
 
 router.post("/Create_Task_For_Downloard_Settlement_Details_By_Case_ID", Create_Task_For_Downloard_Settlement_Details_By_Case_ID);
 

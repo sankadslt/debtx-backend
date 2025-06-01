@@ -114,7 +114,7 @@ const incidentSchema = new Schema(
         },
         Incident_Remark: { type: [String] },
         Validity_period:{type:Number},
-        Proceed_Dtm: { type: Date, required: null },
+        Proceed_Dtm: { type: Date, default:null },
         Proceed_By: { type: String, required: null },
         Contact_Details: { type: [contactDetailsSchema], required: true },
         Product_Details: { type: [productDetailsSchema], required: true },

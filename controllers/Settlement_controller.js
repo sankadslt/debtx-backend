@@ -52,147 +52,63 @@ import mongoose from "mongoose";
   - 404: No matching settlements found
   - 500: Internal server error
 */
-
 export const ListAllSettlementCases = async (req, res) => {
-  const {
-    account_no,
-    case_id,
-    settlement_phase,
-    settlement_status,
-    from_date,
-    to_date,
-    page = 1,  // Add default value
-    limit = 10,  // Add default value
-    recent = false  // Add default value
-  } = req.body;
-
   try {
-    // Validate required fields
+    const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
+
     if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
       return res.status(400).json({
         status: "error",
-        message: "At least one of case_id, settlement_phase, settlement_status, from_date or to_date is required."
+        message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
       });
     }
-    // Query
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     const query = {};
 
-    // Initialize $and array if needed for date filtering
-    // if (from_date && to_date) {
-    //   query.$and = [];
-    // }
-
-    if (account_no) {
-      const matchedCases = await Case_details.find({ account_no }, 'case_id');
-      const caseIds = matchedCases.map(c => c.case_id);
-      query.case_id = { $in: caseIds };
-    }
-
-    let pageNum = Number(page);
-    // let limitNum = Number(limit);
-    let limitNum = Number(page) === 1 ? 10 : 30;
-
+    if (account_no) query.account_no = account_no;
     if (case_id) query.case_id = case_id;
     if (settlement_phase) query.settlement_phase = settlement_phase;
     if (settlement_status) query.settlement_status = settlement_status;
-    if (from_date && to_date) {
-      query.$and = [];
-      query.$and.push({ created_dtm: { $gt: new Date(from_date) } });
-      query.$and.push({ created_dtm: { $lt: new Date(to_date) } });
+
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (Object.keys(dateFilter).length > 0) {
+      query.created_dtm = dateFilter;
     }
 
-    const sortOptions = { created_dtm: -1, settlement_id: -1 };
-
-    // If recent is true, limit to 10 latest entries and ignore pagination
-    // if (recent === true) {
-    //   limitNum = 10;
-    //   pageNum = 1;
-    //   // Clear any filters if we just want recent payments
-    //   Object.keys(query).forEach(key => delete query[key]);
-    // }
-
-    // Calculate skip for pagination
-    // const skip = (pageNum - 1) * limitNum;
-    const skip = pageNum === 1 ? 0 : 10 + (pageNum - 2) * 30;
-
-    // Execute query with descending sort
-    const settlements = await CaseSettlement.find(query)
-      .sort(sortOptions)
+    const filtered_cases = await CaseSettlement.find(query)
       .skip(skip)
-      .limit(limitNum);
+      .limit(limit)
+      .sort({ settlement_id: -1 });
 
-    const caseIds = settlements.map(s => s.case_id);
-    const caseDetailsMap = {};
-      
-    const caseDetails = await Case_details.find({ case_id: { $in: caseIds } }, 'case_id account_no');
-    caseDetails.forEach(cd => {
-      caseDetailsMap[cd.case_id.toString()] = cd.account_no;
-    });
-
-    if (settlements.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No data found for the provided parameters"
-      });
-    }
-
-    // Format response data - include all fields from model
-    const formattedSettlements = settlements.map(settlement => {
-      // Convert Mongoose document to plain object
-      const SettlementDetails = settlement.toObject();
-      const caseIdStr = SettlementDetails.case_id.toString();
-
-      // Format date fields for better readability
-      if (SettlementDetails.created_dtm) {
-        SettlementDetails.created_dtm = SettlementDetails.created_dtm.toISOString();
-      }
-
-      if (SettlementDetails.last_monitoring_dtm) {
-        SettlementDetails.last_monitoring_dtm = SettlementDetails.last_monitoring_dtm.toISOString();
-      }
-
-      // Return all fields from model with properly formatted names
+    const responseData = filtered_cases.map((caseData) => {
       return {
-        case_id: SettlementDetails.case_id,
-        account_no: caseDetailsMap[caseIdStr] || '-',
-        settlement_status: SettlementDetails.settlement_status,
-        created_dtm: SettlementDetails.created_dtm,
-        settlement_phase: SettlementDetails.settlement_phase,
-        settlement_id: SettlementDetails.settlement_id,
+        case_id: caseData.case_id,
+        account_no: caseData.account_no,
+        settlement_status: caseData.settlement_status,
+        created_dtm: caseData.created_dtm,
+        settlement_phase: caseData.settlement_phase,
+        settlement_id: caseData.settlement_id,
       };
-    });
-
-    // Prepare response data
-    const responseData = {
-      message: 'Case settlements retrieved successfully',
-      data: formattedSettlements,
-    };
-
-    // Add pagination info if not in recent mode
-    // if (recent !== true) {
-      const total = await CaseSettlement.countDocuments(query);
-      responseData.pagination = {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        // pages: Math.ceil(total / limitNum)
-        pages: total <= 10 ? 1 : Math.ceil((total - 10) / 30) + 1
-      };
-    // } else {
-      // responseData.total = formattedSettlements.length;
-    // }
+    })
 
     return res.status(200).json({
       status: "success",
-      message: "Successfully retrieved case settlements.",
+      message: "Cases retrieved successfully.",
       data: responseData,
     });
 
   } catch (error) {
-    console.error("Error fetching settlement data:", error);
+    console.error("Error fetching Settlement Cases:", error.message);
     return res.status(500).json({
       status: "error",
-      message: "Internal Server error. Please try again later.",
+      message: "There is an error "
     });
   }
 };
@@ -358,6 +274,18 @@ export const Case_Details_Settlement_Phase = async (req, res) => {
   }
 };
 
+/*
+  Purpose: This API endpoint creates a task for downloading the settlement list.
+  Calling Function: createTaskFunction
+  Request Body Parameters:
+    Created_By
+    Phase
+    Case_Status
+    from_date
+    to_date
+    Case_ID
+    Account_Number
+*/
 export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -375,9 +303,7 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     }
 
     // Flatten the parameters structure
-    const parameters = {
-      Created_By,
-      task_status: "open",
+    const parameters = {  
       Account_No: Account_Number,
       case_ID: Case_ID,
       Phase: Phase,
@@ -390,7 +316,9 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     const taskData = {
       Template_Task_Id: 42,
       task_type: "Create task for Download Settlement Case List",
-      ...parameters
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
@@ -417,12 +345,23 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
   }
 };
 
-export const Case_Details_Settlement_LOD_FTL_LOD_Ext_01 = async (req, res) => {
+/*
+  Purpose: This API endpoint retrieves settlement details based on the provided case_id and settlement_id.
+  Table: case_settlement
+  Request Body Parameters:
+    - case_id (required)
+    - settlement_id (required)
+*/
+export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
   try {
-    const { case_id } = req.body;
+    const { case_id, settlement_id } = req.body;
 
     if (!case_id) {
       return res.status(400).json({ message: "case_id is required" });
+    }
+
+    if (!settlement_id) {
+      return res.status(400).json({ message: "settlement_id is required" });
     }
 
     const caseDetails = await Case_details.findOne({ case_id });
@@ -430,72 +369,55 @@ export const Case_Details_Settlement_LOD_FTL_LOD_Ext_01 = async (req, res) => {
       return res.status(404).json({ message: "Case not found" });
     }
 
-    const settlementIds = caseDetails.settlement?.map(s => s.settlement_id) || [];
-    const settlements = await CaseSettlement.find({ settlement_id: { $in: settlementIds } });
-
-    const settlementPlans = settlements.map(s => ({
-      settlement_id: s.settlement_id,
-      drc_id: s.drc_id,
-      ro_id: s.ro_id,
-      settlement_status: s.settlement_status,
-      status_reason: s.status_reason || null,
-      status_dtm: s.status_dtm || null,
-      settlement_phase: s.settlement_phase || null,
-      settlement_type: s.settlement_type || null,
-      created_by: s.created_by || null,
-      created_dtm: s.created_dtm || null,
-      settlement_plan: s.settlement_plan,
-      last_monitoring_dtm: s.last_monitoring_dtm || null,
-      settlement_plan_received: s.settlement_plan_received || null
-    }));
-
-    const moneyTransactions = caseDetails.money_transactions || [];
-    const transactionIds = moneyTransactions.map(txn => txn.money_transaction_id);
-
-    const payments = await CasePayment.find({ money_transaction_id: { $in: transactionIds } });
-
-    // const paymentDetails = moneyTransactions.map(txn => {
-    //   const paymentDoc = payments.find(p => p.money_transaction_id === txn.money_transaction_id);
-    //   return {
-    //     money_transaction_id: txn.money_transaction_id,
-    //     payment: txn.payment,
-    //     payment_Dtm: txn.payment_Dtm,
-    //     cummilative_settled_balance: paymentDoc?.cummilative_settled_balance || null,
-    //     installment_seq: paymentDoc?.installment_seq || null,
-    //     money_transaction_type: paymentDoc?.money_transaction_type || null,
-    //     money_transaction_amount: paymentDoc?.money_transaction_amount || null,
-    //     money_transaction_date: paymentDoc?.money_transaction_date || null
-    //   };
-    // });
+    const SettlementDetails = await CaseSettlement.findOne({ settlement_id });
+    if (!SettlementDetails) {
+      return res.status(404).json({ message: "Settlement not found" });
+    }
 
     const response = {
-      case_id: caseDetails.case_id,
-      customer_ref: caseDetails.customer_ref,
-      account_no: caseDetails.account_no,
-      current_arrears_amount: caseDetails.current_arrears_amount,
-      last_payment_date: caseDetails.last_payment_date,
-      case_current_status: caseDetails.case_current_status,
-      // lod_response: caseDetails.lod_final_reminder,
-      // ftl_lod_responce: caseDetails.ftl_lod,
-      settlement_count: settlements.length,
-      settlement_plans: settlementPlans,
-      // settlement_plan_received: settlements.settlement_plan_received,
-      // payment_details: paymentDetails
+      settlement_id: SettlementDetails.settlement_id,
+      case_id: SettlementDetails.case_id,
+      account_no: SettlementDetails.account_no, 
+      arrears_amount: caseDetails.current_arrears_amount,
+      last_monitoring_dtm: SettlementDetails.last_monitoring_dtm,
+      settlement_status: SettlementDetails.settlement_status,
+      status_dtm: SettlementDetails.status_dtm,
+      status_reason: SettlementDetails.status_reason,
+      settlement_phase: SettlementDetails.settlement_phase,
+      settlement_type: SettlementDetails.settlement_type,
+      created_by: SettlementDetails.created_by,
+      created_dtm: SettlementDetails.created_dtm,
+      drc_id: SettlementDetails.drc_id,
+      ro_id: SettlementDetails.ro_id,
+      settlement_plans: SettlementDetails.settlement_plan,
+      settlement_plan_received: SettlementDetails.settlement_plan_received,
     };
 
-    return res.status(200).json(response);
+    return res.status(200).json({
+      message: "Settlement details retrieved successfully",
+      status: "success",
+      data: response,
+    });
   } catch (error) {
     console.error("Error fetching case details:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
+/* 
+  Purpose: This API endpoint creates a task for downloading settlement details by case ID and Settlement_ID.
+  Calling Function: createTaskFunction
+  Request Body Parameters:
+    Created_By
+    Case_ID
+    Settlement_ID
+*/
 export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { Created_By, Case_ID } = req.body;
+    const { Created_By, Case_ID, Settlement_ID } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -506,27 +428,28 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
       });
     }
 
-    if (!Case_ID) {
+    if (!Case_ID || !Settlement_ID) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "Case_ID is a required parameter.",
+        message: "Case_ID and Settlement_ID are required parameter.",
       });
     }
 
     // Flatten the parameters structure
     const parameters = {
-      Created_By,
-      task_status: "open",
-      case_ID: Case_ID,
+      Case_ID,
+      Settlement_ID,
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 43,
-      task_type: "Create task for Download Settlement Details By Case_Id",
-      ...parameters
+      task_type: "Create task for Download Settlement Details By  Settlement_Id and Case_Id",
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
