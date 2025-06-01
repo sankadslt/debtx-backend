@@ -1293,47 +1293,49 @@ export const endDRC = async (req, res) => {
 //List DRCs with RO & RTOM count
 export const List_All_DRC_Details = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, pages = 1, search } = req.body;
+    const page = Number(pages) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
-    // Only add filter if status is defined and non-empty
-    const filter = status ? { drc_status: status } : {};
+    // Build query
+    const query = {};
+    if (status) query.drc_status = status;
+    
+    
 
-    const drcList = await DRC.find(filter);
+    // Get DRCs with pagination
+    const drcs = await DRC.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ create_on: -1 })
+      .lean();
 
-    // // 1. Get DRCs filtered by status
-    // const drcList = await DRC.find({ drc_status: status });
-
-    // 2. Count ROs, RTOMs, and services for each DRC
-    const responseData = await Promise.all(
-      drcList.map(async (drc) => {
-        const roList = await RO.find({ drc_id: drc.drc_id });
-
-        const roCount = roList.length;
-
-        const rtomCount = roList.reduce((acc, ro) => {
-          return acc + (ro.rtoms_for_ro?.length || 0);
-        }, 0);
-
+    // Count ROs, RTOMs, and services for each DRC
+    const drcsWithCounts = await Promise.all(
+      drcs.map(async drc => {
+        const roCount = await RO.countDocuments({ drc_id: drc.drc_id });
+        const rtomCount = drc.rtom?.length || 0;
         const serviceCount = drc.services?.length || 0;
 
         return {
-          drc_id: drc.drc_id,
-          drc_name: drc.drc_name,
-          drc_email: drc.drc_email,
-          drc_status: drc.drc_status,
-          teli_no: drc.drc_contact_no,
+          ...drc,
           ro_count: roCount,
           rtom_count: rtomCount,
-          service_count: serviceCount,
-          drc_business_registration_number: drc.drc_business_registration_number,
+          service_count: serviceCount
         };
       })
     );
 
-    res.status(200).json(responseData);
+    res.status(200).json(drcsWithCounts);
+    
   } catch (err) {
-    console.error("Error fetching DRC data with counts:", err);
-    res.status(500).json({ error: "Server Error" });
+    console.error("Error in List_All_DRC_Details:", err);
+    res.status(500).json({ 
+      status: "error",
+      message: "Failed to fetch DRC list",
+      error: err.message 
+    });
   }
 };
 
