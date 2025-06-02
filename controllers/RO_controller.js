@@ -2164,7 +2164,7 @@ export const listDRCAllCases = async (req, res) => {
 
     // Fetch cases from the database
     const cases = await CaseDetails.find(query);
-
+    
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
@@ -2336,6 +2336,7 @@ export const listROInfoByROId = async (req, res) => {
         // Map RTOM areas with their statuses
         const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
             name: rtom.rtom_name,
+            rtom_id: rtom.rtom_id,
             status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
         }));
 
