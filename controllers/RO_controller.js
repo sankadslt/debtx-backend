@@ -2349,6 +2349,7 @@ export const listROInfoByROId = async (req, res) => {
 
         // Construct response matching the page
         const response = {
+            ro_status: recoveryOfficer.ro_status,
             added_date: formatDate(recoveryOfficer.ro_create_dtm),
             recovery_officer_name: recoveryOfficer.ro_name,
             nic: recoveryOfficer.ro_nic,
@@ -2579,7 +2580,7 @@ export const Update_RO_Details_With_RTOM = async (req, res) => {
 
     // Only update fields if they are provided
     if (ro_name) updateData.ro_name = ro_name;
-    if (ro_status) updateData.ro_status = ro_status; // Added ro_status support
+    updateData.ro_status = ro_status ? "Active" : "Inactive";
     if (ro_login_contact_no) updateData.ro_login_contact_no = ro_login_contact_no;
     if (ro_login_email !== undefined) updateData.ro_login_email = ro_login_email;
     
