@@ -5935,8 +5935,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
 
     // Filter User_Interaction_Type
     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
-      matchFilter.User_Interaction_Type = User_Interaction_Type;
-      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      // matchFilter.User_Interaction_Type = User_Interaction_Type;
+      // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      if (validUserInteractionTypes.includes(User_Interaction_Type.trim())) {
+        matchFilter.User_Interaction_Type = User_Interaction_Type;
+      } else {
+        console.error("Invalid interaction type provided");
+      }
     } else {
       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     }
