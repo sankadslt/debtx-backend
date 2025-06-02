@@ -6119,6 +6119,8 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
           _id: 0,
           case_id: "$case_details.case_id",
           case_current_status: "$case_details.case_current_status",
+          Interaction_Log_ID: "$Interaction_Log_ID",
+          Interaction_ID: "$Interaction_ID",
           User_Interaction_Status: {
             $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
           },
