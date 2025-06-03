@@ -8082,8 +8082,8 @@ export const getCaseLists = async (req, res) => {
     const startDate = new Date(fromDate);
     const endDate = new Date(toDate);
 
-    // console.log("Parsed startDate:", startDate);
-    // console.log("Parsed endDate:", endDate);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return res.status(400).json({
@@ -8092,22 +8092,29 @@ export const getCaseLists = async (req, res) => {
       });
     }
 
+    const currentPage = Math.max(parseInt(page) || 1, 1);
+    const currentLimit = Math.max(parseInt(limit) || 10, 1);
+    const skip = (currentPage - 1) * currentLimit;
+
     const filter = {
       rtom,
       arrears_band,
       case_current_status,
       drc_commision_rule,
-      created_dtm: { $gte: startDate, $lte: endDate },
+      $expr: {
+        $and: [
+          { $gte: [{ $toDate: "$created_dtm" }, startDate] },
+          { $lte: [{ $toDate: "$created_dtm" }, endDate] }
+        ]
+      }
     };
-
-    const skip = (page - 1) * limit;
 
     const [total, rawCases] = await Promise.all([
       CaseDetails.countDocuments(filter),
       CaseDetails.find(filter)
         .select("case_id case_current_status account_no drc_commision_rule current_arrears_amount rtom created_dtm last_payment_date remark approve case_status")
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(currentLimit),
     ]);
 
     const formattedCases = rawCases.map(doc => {      
@@ -8136,9 +8143,9 @@ export const getCaseLists = async (req, res) => {
       data: formattedCases,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        pages: Math.ceil(total / limit),
+        page: currentPage,
+        limit: currentLimit,
+        pages: Math.ceil(total / currentLimit),
       },
     });
   } catch (error) {
