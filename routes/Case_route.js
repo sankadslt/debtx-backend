@@ -75,6 +75,7 @@ import {
   List_All_DRCs_Mediation_Board_Cases,
   Accept_Non_Settlement_Request_from_Mediation_Board,
   ListAllRequestLogFromRecoveryOfficers,
+  List_All_Open_Requests_For_To_Do_List,
   ListAllRequestLogFromRecoveryOfficersWithoutUserID,
   ListRequestLogFromRecoveryOfficers,
   Customer_Negotiations,
@@ -90,6 +91,7 @@ import {
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
+  listdownCaseDetailsByCaseId,
   getCaseLists,
 } from "../controllers/Case_controller.js";
 
@@ -8729,6 +8731,11 @@ router.post(
   ListAllRequestLogFromRecoveryOfficers
 );
 
+router.post(
+  "/List_All_Open_Requests_For_To_Do_List",
+  List_All_Open_Requests_For_To_Do_List
+);
+
 /**
  * @swagger
  * /api/case/ListAllRequestLogFromRecoveryOfficersWithoutUserID:
@@ -10396,7 +10403,6 @@ router.post(
 );
 
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
-
 router.post(
   "/Get_Abandoned_Case_Logs",
   getAbandonedCaseLogs
