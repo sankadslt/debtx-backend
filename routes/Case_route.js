@@ -10403,8 +10403,6 @@ router.patch('/Create_Wthdraw_case',verifyToken,WithdrawCase);
 
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
-
-
 export default router;
 
 

@@ -153,18 +153,16 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
       });
     }
 
-    // Flatten the parameters structure
     const parameters = {
-      case_current_status : "LIT Prescribed",
-      Created_By,
-      task_status: "open"
+      case_current_status : "LIT Prescribed", 
     };
 
-    // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 39,
       task_type: "Create Task For Downloard All Digital Signature LOD Cases",
       ...parameters, 
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
@@ -210,16 +208,16 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases = async 
       // Flatten the parameters structure
       const parameters = {
         case_current_status : "LIT Prescribed",
-        current_document_type,
-        Created_By,
-        task_status: "open"
+        current_document_type,  
       };
   
       // Pass parameters directly (without nesting it inside another object)
       const taskData = {
         Template_Task_Id: 40,
-        task_type: "Create Task For Downloard Each Digital Signature LOD Cases",
+        task_type: "Create Task For Downloard Each LOD OR Final Reminder Cases",
         ...parameters, 
+        Created_By,
+        task_status: "open"
       };
   
       // Call createTaskFunction
@@ -339,8 +337,6 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
       const parameters = {
         case_current_status : "LIT Prescribed",
         current_document_type,
-        Created_By,
-        task_status: "open",
         Case_count,
       };
   
@@ -349,6 +345,8 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
         Template_Task_Id: 41,
         task_type: "Create Task for Proceed LOD OR Final_Reminder List",
         ...parameters, 
+        Created_By,
+        task_status: "open",
       };
   
       // Call createTaskFunction
@@ -378,7 +376,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (req, re
 };
 
 export const List_Final_Reminder_Lod_Cases = async (req, res) => {
-  try {
+  try{
       const { case_status, date_type, date_from, date_to, current_document_type, pages } = req.body;
       const allowedStatusTypes = [
           "Initial LOD",
