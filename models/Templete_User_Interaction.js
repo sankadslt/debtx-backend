@@ -7,7 +7,7 @@ const templeteUserInteractionSchema = new Schema({
   Interaction_Description: { type: String, required: true },
   created_dtm: { type: Date, default: Date.now },
   end_dtm: { type: Date, default: null },
-  ToDoID: { type: String, required: true },
+  ToDoID: { type: Number, required: true },
   Task_Id: { type: Number, default: null },
   Requeted_Group: { type: String, required: true },
   Interation_Mode: { type: String, required: true },
