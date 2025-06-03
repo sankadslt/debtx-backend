@@ -5991,7 +5991,7 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       }
 
       if  (RTOM) {
-        pipeline.push({ $match: { rtom: RTOM } });
+        pipeline.push({ $match: { rtom: Number(RTOM) } });
       }
 
       const dateFilter = {};
@@ -6066,6 +6066,7 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
           status: caseData.case_current_status,
           date: caseData.last_mediation_board?.created_dtm || null,
           rtom: caseData.rtom,
+          area: caseData.area,
           drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
           drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
           ro_name: caseData.recovery_officer ? caseData.recovery_officer.ro_name : null,
@@ -6535,6 +6536,7 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
           },
           Process: "$To_Do_List_info.Process",
           parameters: "$parameters",
+          showParameters: "$To_Do_List_info.parameters",
         }
       }
     ];
