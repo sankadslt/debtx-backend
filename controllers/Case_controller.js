@@ -6434,6 +6434,18 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - delegate_user_id: String (required)
+ * 
+ * Collection: 
+ * - User_Interaction_Progress_Log
+ * - To_Do_List
+ * - Templete_User_Interaction
+ * 
+ * Success Result:
+ * - Returns a success response with a list of all open requests for the to-do list assigned to the specified delegate user.
+ */
 export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
   try {
     const {
@@ -6446,37 +6458,10 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
       });
     }
 
-    // const validUserInteractionTypes = [
-    //   "Mediation board forward request letter",
-    //   "Negotiation Settlement plan Request",
-    //   "Negotiation period extend Request",
-    //   "Negotiation customer further information Request",
-    //   "Negotiation Customer request service",
-    //   "Mediation Board Settlement plan Request",
-    //   "Mediation Board period extend Request",
-    //   "Mediation Board customer further information request",
-    //   "Mediation Board Customer request service"
-    // ];
-
     // Build match filter - only add date filter if both dates are provided
     const matchFilter = {
       delegate_user_id: delegate_user_id
     };
-
-    // Filter User_Interaction_Type
-    // if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
-    //   // matchFilter.User_Interaction_Type = User_Interaction_Type;
-    //   // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
-    //   if (validUserInteractionTypes.includes(User_Interaction_Type.trim())) {
-    //     matchFilter.User_Interaction_Type = User_Interaction_Type;
-    //   } else {
-    //     console.error("Invalid interaction type provided");
-    //   }
-    // } else {
-    //   matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
-    // }
-
-    // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
 
     // Aggregation pipeline
     const pipeline = [
