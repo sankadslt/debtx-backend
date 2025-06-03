@@ -45,8 +45,11 @@ import { ro } from "date-fns/locale";
 import CaseDetails from "../models/Case_details.js";
 import TemplateForwardedApprover from "../models/Template_forwarded_approver.js";
 import jwt from "jsonwebtoken";
-import { request } from "express";import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
+import { request } from "express";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
  
+ import Templete_User_Interaction from '../models/Templete_User_Interaction.js';
+ import To_Do_List from '../models/To_Do_List.js';
 /**
  * 
  * Inputs:
@@ -8550,3 +8553,57 @@ function negotiation_condition_function(arrears_amount, drc_validity_period, reg
 };
 
  
+
+export const getUserProcesses = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'Missing userId' });
+
+    // Step 1: Find Open interactions for the user
+    const openInteractions = await User_Interaction_Progress_Log.find({
+      delegate_user_id: userId,
+      User_Interaction_Status: {
+        $elemMatch: {
+          User_Interaction_Status: 'Open'
+        }
+      }
+    });
+
+    
+
+    // Step 2: Extract interaction IDs
+    const interactionIds = openInteractions.map(ui => ui.Interaction_ID);
+   
+
+    // Step 3: Find corresponding templates
+    const templates = await Templete_User_Interaction.find({
+      Interaction_ID: { $in: interactionIds },
+    });
+
+    
+
+    // Step 4: Extract ToDoIDs as numbers
+    const todoIds = templates.map(t => Number(t.ToDoID)).filter(Boolean);
+    
+
+    // Step 5: Debug list of all available ToDoIDs in DB
+    const allTodos = await To_Do_List.find({}, { ToDoID: 1 }).lean();
+     
+
+    // Step 6: Find matching processes
+    const processes = await To_Do_List.find({
+      ToDoID: { $in: todoIds },
+    });
+
+    const result = processes.map(p => ({
+      ToDoID: p.ToDoID,
+      ProcessName: p.Process,
+    }));
+
+   
+    return res.json({ processes: result });
+  } catch (error) {
+    console.error('Error in getUserProcesses:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
