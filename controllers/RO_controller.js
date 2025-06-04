@@ -2308,56 +2308,131 @@ export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
 }
 
 // Controller to list recovery officer info by ro_id using POST method
+// export const listROInfoByROId = async (req, res) => {
+//     try {
+//         const { ro_id } = req.body;
+
+//         // Validate input
+//         if (!ro_id) {
+//             return res.status(400).json({ message: 'ro_id is required in the request body' });
+//         }
+
+//         // Fetch recovery officer
+//         const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
+
+//         if (!recoveryOfficer) {
+//             return res.status(404).json({ message: 'Recovery Officer not found' });
+//         }
+
+//         // Format helper for dates
+//         const formatDate = (date) => {
+//             return date ? new Date(date).toLocaleDateString('en-US', {
+//                 month: '2-digit',
+//                 day: '2-digit',
+//                 year: 'numeric'
+//             }) : null;
+//         };
+
+//         // Map RTOM areas with their statuses
+//         const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
+//             name: rtom.rtom_name,
+//             status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
+//         }));
+
+//         // Map remarks to log history
+//         const log_history = (recoveryOfficer.remark || []).map(rem => ({
+//             edited_on: formatDate(rem.remark_dtm),
+//             action: rem.remark,
+//             edited_by: rem.remark_by
+//         }));
+
+//         // Construct response matching the page
+//         const response = {
+//             added_date: formatDate(recoveryOfficer.ro_create_dtm),
+//             recovery_officer_name: recoveryOfficer.ro_name,
+//             nic: recoveryOfficer.ro_nic,
+//             contact_no: recoveryOfficer.ro_login_contact_no,
+//             email: recoveryOfficer.ro_login_email,
+//             rtom_areas,
+//             log_history
+//         };
+
+//         return res.status(200).json(response);
+//     } catch (error) {
+//         console.error('Error fetching recovery officer info:', error);
+//         return res.status(500).json({ 
+//             message: 'Internal server error',
+//             error: error.message || error.toString()
+//         });
+//     }
+// };
+
+// Modifyed by Dinusha
+// Added aggregrations and lookups for better db performance.
 export const listROInfoByROId = async (req, res) => {
     try {
         const { ro_id } = req.body;
 
-        // Validate input
         if (!ro_id) {
             return res.status(400).json({ message: 'ro_id is required in the request body' });
         }
 
-        // Fetch recovery officer
-        const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
+        const pipeline = [
+            { $match: { ro_id: Number(ro_id) } },
+            {
+                $lookup: {
+                    from: "Debt_recovery_company", // Adjust collection name if needed
+                    localField: "drc_id",
+                    foreignField: "drc_id",
+                    as: "drc_info"
+                }
+            },
+            { 
+                $project: {
+                    added_date: { $dateToString: { format: "%m-%d-%Y", date: "$ro_create_dtm" } },
+                    recovery_officer_name: "$ro_name",
+                    nic: "$ro_nic",
+                    contact_no: "$ro_login_contact_no",
+                    email: "$ro_login_email",
+                    drc_id: "$drc_id",
+                    drc_name: { 
+                        $ifNull: [
+                            { $arrayElemAt: ["$drc_info.drc_name", 0] }, 
+                            null
+                        ] 
+                    },
+                    rtom_areas: {
+                        $map: {
+                            input: "$rtom",
+                            as: "rtom",
+                            in: {
+                                name: "$$rtom.rtom_name",
+                                status: { $eq: ["$$rtom.rtom_status", "Active"] }
+                            }
+                        }
+                    },
+                    log_history: {
+                        $map: {
+                            input: "$remark",
+                            as: "rem",
+                            in: {
+                                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
+                                action: "$$rem.remark",
+                                edited_by: "$$rem.remark_by"
+                            }
+                        }
+                    }
+                } 
+            }
+        ];
 
-        if (!recoveryOfficer) {
+        const result = await Recovery_officer.aggregate(pipeline);
+
+        if (!result || result.length === 0) {
             return res.status(404).json({ message: 'Recovery Officer not found' });
         }
 
-        // Format helper for dates
-        const formatDate = (date) => {
-            return date ? new Date(date).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric'
-            }) : null;
-        };
-
-        // Map RTOM areas with their statuses
-        const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
-            name: rtom.rtom_name,
-            status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
-        }));
-
-        // Map remarks to log history
-        const log_history = (recoveryOfficer.remark || []).map(rem => ({
-            edited_on: formatDate(rem.remark_dtm),
-            action: rem.remark,
-            edited_by: rem.remark_by
-        }));
-
-        // Construct response matching the page
-        const response = {
-            added_date: formatDate(recoveryOfficer.ro_create_dtm),
-            recovery_officer_name: recoveryOfficer.ro_name,
-            nic: recoveryOfficer.ro_nic,
-            contact_no: recoveryOfficer.ro_login_contact_no,
-            email: recoveryOfficer.ro_login_email,
-            rtom_areas,
-            log_history
-        };
-
-        return res.status(200).json(response);
+        return res.status(200).json(result[0]);
     } catch (error) {
         console.error('Error fetching recovery officer info:', error);
         return res.status(500).json({ 
@@ -2366,6 +2441,8 @@ export const listROInfoByROId = async (req, res) => {
         });
     }
 };
+
+
 
 // Create Recovery Officer
 export const CreateRO = async (req, res) => {

@@ -1584,11 +1584,15 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 router.post("/List_All_RO_Cases", listROAllCases );
 
-router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
-
 router.post("/Create_RO", CreateRO);
 
 //DRC LIST
 router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
+
+
+
+// After Revamp
+
+router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
 
 export default router;
