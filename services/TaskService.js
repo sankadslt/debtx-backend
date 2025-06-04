@@ -2,6 +2,8 @@ import Task from "../models/Task.js";
 import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
+import User_Interaction_Log from "../models/User_Interaction_Log.js";
 
 
 //Create Task Function
@@ -322,6 +324,105 @@ export const getOpenTaskCount = async (req, res) => {
   }
 };
 
+export const Handle_Interaction_Acknowledgement = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Interaction_Log_ID, delegate_user_id } = req.body;
+
+    if (!Interaction_Log_ID || !delegate_user_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Interaction_Log_ID is required." });
+    }
+
+    const matchFilter = {
+      Interaction_Log_ID: Number(Interaction_Log_ID),
+      delegate_user_id: delegate_user_id
+    }
+
+    const pipeline = [
+      {
+        $match: matchFilter
+      },
+
+      {
+        $lookup: {
+          from: "Templete_User_Interaction",
+          localField: "Interaction_ID",
+          foreignField: "Interaction_ID",
+          as: "Templete_User_Interaction_info"
+        }
+      },
+
+      {
+        $unwind: {
+          path: "$Templete_User_Interaction_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          Interaction_Log_ID: 1,
+          delegate_user_id: "$delegate_user_id",
+          Interaction_Mode: "$Templete_User_Interaction_info.Interation_Mode",
+        }
+      }
+    ]
+
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+    
+    if (results.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "User Interaction Progress Log not found." });
+    }
+
+    const interactionMode = results[0].Interaction_Mode;
+
+    // Update User_Interaction_Log status to "Seen"
+    const seenStatus = {
+      User_Interaction_Status: "Seen",
+      created_dtm: new Date()
+    };
+
+    await User_Interaction_Log.updateOne(
+      { Interaction_Log_ID },
+      { $push: { User_Interaction_Status: seenStatus } },
+      { session }
+    );
+
+    // Branch logic based on interaction mode
+    if (interactionMode === "Special" || interactionMode === "Approval") {
+      // Delete progress log
+      await User_Interaction_Progress_Log.deleteOne({ Interaction_Log_ID: Number(Interaction_Log_ID) }, { session });
+    } else {
+      // Update progress log status to "Seen"
+      await User_Interaction_Progress_Log.updateOne(
+        { Interaction_Log_ID },
+        { $push: { User_Interaction_Status: seenStatus } },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Interaction acknowledged successfully.",
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
 
 
   
