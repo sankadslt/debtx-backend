@@ -27,7 +27,8 @@ import {
     CreateRO , 
     List_RO_Details_Owen_By_DRC_ID, 
     listROAllCases, 
-    listROInfoByROId   } from "../controllers/RO_controller.js";
+    listROInfoByROId, 
+    Terminate_RO  } from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -1594,5 +1595,7 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 // After Revamp
 
 router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
+
+router.post('/Terminate_RO', Terminate_RO);
 
 export default router;
