@@ -95,6 +95,7 @@ import {
   listdownCaseDetailsByCaseId,
   WithdrawCase,
   getUserProcesses,
+  getCaseLists,
  
 } from "../controllers/Case_controller.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
@@ -10511,6 +10512,9 @@ router.patch('/Create_Wthdraw_case',verifyToken,WithdrawCase);
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
 router.post('/getUserProcesses',getUserProcesses);
+
+
+router.post('/getCaseLists',getCaseLists)
 export default router;
 
 
