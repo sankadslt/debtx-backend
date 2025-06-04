@@ -5991,7 +5991,7 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
       }
 
       if  (RTOM) {
-        pipeline.push({ $match: { rtom: RTOM } });
+        pipeline.push({ $match: { rtom: Number(RTOM) } });
       }
 
       const dateFilter = {};
@@ -6066,6 +6066,7 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
           status: caseData.case_current_status,
           date: caseData.last_mediation_board?.created_dtm || null,
           rtom: caseData.rtom,
+          area: caseData.area,
           drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
           drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
           ro_name: caseData.recovery_officer ? caseData.recovery_officer.ro_name : null,
@@ -6205,8 +6206,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
 
     // Filter User_Interaction_Type
     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
-      matchFilter.User_Interaction_Type = User_Interaction_Type;
-      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      // matchFilter.User_Interaction_Type = User_Interaction_Type;
+      // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      if (validUserInteractionTypes.includes(User_Interaction_Type.trim())) {
+        matchFilter.User_Interaction_Type = User_Interaction_Type;
+      } else {
+        console.error("Invalid interaction type provided");
+      }
     } else {
       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     }
@@ -6417,6 +6423,135 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: results.length,
+      data: results
+    });
+    
+  } catch (error) {
+    console.error("Error fetching user interaction response log:", error);
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Inputs:
+ * - delegate_user_id: String (required)
+ * 
+ * Collection: 
+ * - User_Interaction_Progress_Log
+ * - To_Do_List
+ * - Templete_User_Interaction
+ * 
+ * Success Result:
+ * - Returns a success response with a list of all open requests for the to-do list assigned to the specified delegate user.
+ */
+export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
+  try {
+    const {
+      delegate_user_id,
+    } = req.body;
+
+    if (!delegate_user_id) {
+      return res.status(400).json({ 
+        message: "Missing required fields: delegate_user_id is required." 
+      });
+    }
+
+    // Build match filter - only add date filter if both dates are provided
+    const matchFilter = {
+      delegate_user_id: delegate_user_id
+    };
+
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $match: matchFilter
+      },
+      
+      {
+        $addFields: {
+          last_status: {
+            $cond: {
+              if: { $isArray: "$User_Interaction_Status" },
+              then: {
+                $cond: {
+                  if: { $gt: [{ $size: "$User_Interaction_Status" }, 0] },
+                  then: { $arrayElemAt: ["$User_Interaction_Status", -1] },
+                  else: null
+                }
+              },
+              else: null
+            }
+          }
+        }
+      },
+      
+      {
+        $match: {
+          "last_status.User_Interaction_Status": "Open" 
+        },
+      },
+      
+      {
+        $lookup: {
+          from: "Templete_User_Interaction",
+          localField: "Interaction_ID",
+          foreignField: "Interaction_ID",
+          as: "Templete_User_Interaction_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$Templete_User_Interaction_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $lookup: {
+          from: "To_Do_List",
+          localField: "Templete_User_Interaction_info.ToDoID",
+          foreignField: "ToDoID",
+          as: "To_Do_List_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$To_Do_List_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          delegate_user_id: "$delegate_user_id",
+          User_Interaction_Status: {
+            $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
+          },
+          Process: "$To_Do_List_info.Process",
+          parameters: "$parameters",
+          showParameters: "$To_Do_List_info.parameters",
+        }
+      }
+    ];
+
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+
+    if (!results || results.length === 0) {
+      return res.status(204).json({ 
+        message: "No matching data found for the specified criteria." 
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
       data: results
     });
     
