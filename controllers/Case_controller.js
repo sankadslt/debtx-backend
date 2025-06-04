@@ -4303,8 +4303,31 @@ export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
   }
 };
 
-
-
+/**
+ * Inputs:
+ * - case_id: Number (required)
+ * - drc_id: Number (required)
+ * - ro_id: Number (optional)
+ * - next_calling_date: date (optional, ISO Date)
+ * - current_arrears_amount: Number (required if settle is "yes")
+ * - request_id: Number (optional)
+ * - request_type: String (required if request_id is provided)
+ * - request_comment: String (optional)
+ * - handed_over_non_settlemet: String ("yes" or "no")
+ * - intraction_id: Number (required if request_id is provided)
+ * - customer_available: String (required if handed_over_non_settlemet is "no")
+ * - comment: String (optional)
+ * - settle: String ("yes" or "no")
+ * - initial_amount: Number (required if settle is "yes")
+ * - calendar_month: Number (required if settle is "yes")
+ * - case_current_status: String (required if settle is "yes")
+ * - remark: String (optional)
+ * - fail_reason: String (optional)
+ * - created_by: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response confirming the mediation board operation and optional settlement plan creation.
+ */
 export const Mediation_Board = async (req, res) => {
   const session = await mongoose.startSession();
   try {
@@ -4502,6 +4525,12 @@ export const Mediation_Board = async (req, res) => {
         console.log(response.data);
       } catch (error) {
         console.error('Settelment API call failed:', error.message);
+        await session.abortTransaction();
+        return res.status(500).json({
+          status: "error",
+          message: "Settlement API call failed",
+          error: error.message
+        });
       }
     };
     await session.commitTransaction();
@@ -4520,6 +4549,247 @@ export const Mediation_Board = async (req, res) => {
     }); 
  }
 }
+
+/**
+ * Inputs:
+ * - case_id: Number (required)
+ * - request_id: Number (optional)
+ * - request_type: String (required if request_id is provided)
+ * - request_comment: String (required if request_id is provided)
+ * - current_arrears_amount: Number (required if field_reason is "Agreed To Settle")
+ * - case_current_status: String (required if field_reason is "Agreed To Settle")
+ * - drc_id: Number (required)
+ * - ro_id: Number (optional)
+ * - ro_name: String (optional)
+ * - drc: String (optional)
+ * - expire_dtm: String (optional, ISO Date)
+ * - created_dtm: String (optional, ISO Date)
+ * - field_reason: String (optional)
+ * - field_reason_remark: String (required if field_reason is provided)
+ * - intraction_id: String (required if request_id is provided)
+ * - initial_amount: Number (required if field_reason is "Agreed To Settle")
+ * - calender_month: Number (required if field_reason is "Agreed To Settle")
+ * - settlement_remark: String (optional)
+ * - region: String (optional)
+ * - created_by: String (required)
+ * 
+ * Success Result:
+ * - Returns a success response indicating the operation completed successfully.
+ */
+export const Customer_Negotiations = async (req, res) => {
+  const session = await mongoose.startSession(); 
+  session.startTransaction(); 
+  try {
+    const {
+      case_id,
+      request_id,
+      request_type,
+      request_comment,
+      current_arrears_amount,
+      case_current_status,
+      drc_id,
+      ro_id,
+      ro_name,
+      drc,
+      expire_dtm,
+      created_dtm,
+      field_reason,
+      field_reason_remark,
+      intraction_id,
+      initial_amount,
+      calender_month,
+      settlement_remark,
+      region,
+      created_by,
+    } = req.body;
+    if (!case_id || !drc_id) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        status: "error",
+        message: "Missing required fields: case_id and drc_id" 
+      });
+    }
+    if (field_reason) {
+      if (!field_reason_remark) {
+        await session.abortTransaction();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: field_reason_remark" 
+        });
+      }
+    }
+    const negotiationData = {
+      drc_id, 
+      ro_id, 
+      drc,
+      ro_name,
+      created_dtm: new Date(),
+      field_reason,
+      remark:field_reason_remark,
+    };
+    const start = new Date(created_dtm);
+    const end = new Date(expire_dtm);
+
+    const years = end.getFullYear() - start.getFullYear();
+    const months = end.getMonth() - start.getMonth();
+
+    const validity_period = years * 12 + months;
+
+    if (request_id !=="") {
+      if (!request_type || !intraction_id ||!request_comment) {
+        await session.abortTransaction();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields: request_id, request_type, intraction_id" 
+        });
+      }
+      if(request_type == "Forward to Mediation Board"){
+        const result = negotiation_condition_function(current_arrears_amount, validity_period, region, expire_dtm);
+        await session.abortTransaction();
+        return res.status(404).json({ 
+          status: "negotiation_condition_function output",
+          result
+        });
+      } 
+      const dynamicParams = {
+        case_id,
+        drc_id,
+        ro_id,
+        request_id,
+        request_type,
+        request_comment,
+        intraction_id,
+      };
+      const result = await createUserInteractionFunction({
+        Interaction_ID:intraction_id,
+        User_Interaction_Type:request_type,
+        delegate_user_id:1,  
+        Created_By:created_by,
+        User_Interaction_Status: "Open",
+        ...dynamicParams
+      });
+
+      if (!result || !result.Interaction_Log_ID) {
+        await session.abortTransaction();
+        return res.status(500).json({ 
+          status: "error", 
+          message: "Failed to create user interaction" 
+        });
+      }
+      const intraction_log_id = result.Interaction_Log_ID;
+      let case_status_with_request =  "RO Negotiation";
+      const statusMap = {
+        "Mediation board forward request letter": "RO Negotiation FMB Pending",
+        "Negotiation Settlement plan Request": "RO Negotiation",
+        "Negotiation period extend Request": "RO Negotiation extension Pending",
+        "Negotiation customer further information Request": "RO Negotiation",
+        "Negotiation Customer request service": "RO Negotiation",
+      };
+      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
+      const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id, 'drc.drc_id': drc_id }, 
+        { 
+            $push: { 
+              ro_negotiation: negotiationData,
+              ro_requests: {
+                  drc_id,
+                  ro_id,
+                  created_dtm: new Date(),
+                  ro_request_id: request_id,
+                  ro_request: request_type,
+                  request_remark:request_comment,
+                  intraction_id: intraction_id,
+                  intraction_log_id,
+              },
+              case_status:{
+                case_status:case_status_with_request,
+                created_dtm: new Date(),
+                created_by:created_by,
+                case_phase:"Negotiation"
+              }
+            },
+            $set: {
+              case_current_status: case_status_with_request,
+              case_current_phase: "Negotiation",
+            }
+        },
+        { new: true, session }
+      );
+      if (!updatedCase) {
+        await session.abortTransaction();
+        return res.status(404).json({ 
+          status: "error",
+          message: 'Case not found this case id' 
+        });
+      }
+    }
+    else{
+      const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
+        { case_id: case_id, 'drc.drc_id': drc_id }, 
+        {
+          $push: {
+            ro_negotiation: negotiationData,
+          },
+        },
+        { new: true, session }
+      );
+      if (!updatedMediationBoardCase) {
+        await session.abortTransaction();
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Case not found for this case id' 
+        });
+      }
+    }
+    if(field_reason === "Agreed To Settle"){
+      if(!current_arrears_amount || !initial_amount || !calender_month ||!case_current_status){
+        await session.abortTransaction();
+        return res.status(400).json({ 
+          status: "error",
+          message: "Missing required fields:current_arrears_amount, initial amount, calendar months, case_current_status" 
+        });
+      };
+      const payload = {
+        created_by,
+        case_phase: "Negotiation",
+        case_current_status,
+        settlement_type: "Type A",
+        settlement_amount: current_arrears_amount,
+        drc_id,
+        settlement_plan_received:[initial_amount,calender_month],
+        case_id,
+        settlement_remark,
+        ro_id,
+      };
+      try {
+        const response = await axios.post('http://124.43.177.52:6000/app3/api/v1/Create_Settlement_Plan',payload);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Settelment API call failed:', error.message);
+        await session.abortTransaction();
+        return res.status(500).json({
+          status: "error",
+          message: "Settlement API call failed",
+          error: error.message
+        });
+      }
+    };
+    await session.commitTransaction();
+    return res.status(200).json({ 
+      status: "success", 
+      message: "Operation completed successfully" 
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    return res.status(500).json({ 
+      status:"error",
+      message: "Server error", 
+      error: error.message 
+    }); 
+ }  finally {
+    session.endSession();
+ };
+};
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
   let { drc_id, case_id, account_no, from_date, to_date } = req.body;
@@ -5942,8 +6212,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
 
     // Filter User_Interaction_Type
     if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
-      matchFilter.User_Interaction_Type = User_Interaction_Type;
-      matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      // matchFilter.User_Interaction_Type = User_Interaction_Type;
+      // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+      if (validUserInteractionTypes.includes(User_Interaction_Type.trim())) {
+        matchFilter.User_Interaction_Type = User_Interaction_Type;
+      } else {
+        console.error("Invalid interaction type provided");
+      }
     } else {
       matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
     }
@@ -6154,6 +6429,149 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: results.length,
+      data: results
+    });
+    
+  } catch (error) {
+    console.error("Error fetching user interaction response log:", error);
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: error.message 
+    });
+  }
+};
+
+export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
+  try {
+    const {
+      delegate_user_id,
+    } = req.body;
+
+    if (!delegate_user_id) {
+      return res.status(400).json({ 
+        message: "Missing required fields: delegate_user_id is required." 
+      });
+    }
+
+    // const validUserInteractionTypes = [
+    //   "Mediation board forward request letter",
+    //   "Negotiation Settlement plan Request",
+    //   "Negotiation period extend Request",
+    //   "Negotiation customer further information Request",
+    //   "Negotiation Customer request service",
+    //   "Mediation Board Settlement plan Request",
+    //   "Mediation Board period extend Request",
+    //   "Mediation Board customer further information request",
+    //   "Mediation Board Customer request service"
+    // ];
+
+    // Build match filter - only add date filter if both dates are provided
+    const matchFilter = {
+      delegate_user_id: delegate_user_id
+    };
+
+    // Filter User_Interaction_Type
+    // if (User_Interaction_Type && User_Interaction_Type.trim() !== "") {
+    //   // matchFilter.User_Interaction_Type = User_Interaction_Type;
+    //   // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+    //   if (validUserInteractionTypes.includes(User_Interaction_Type.trim())) {
+    //     matchFilter.User_Interaction_Type = User_Interaction_Type;
+    //   } else {
+    //     console.error("Invalid interaction type provided");
+    //   }
+    // } else {
+    //   matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+    // }
+
+    // matchFilter.User_Interaction_Type = { $in: validUserInteractionTypes };
+
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $match: matchFilter
+      },
+      
+      {
+        $addFields: {
+          last_status: {
+            $cond: {
+              if: { $isArray: "$User_Interaction_Status" },
+              then: {
+                $cond: {
+                  if: { $gt: [{ $size: "$User_Interaction_Status" }, 0] },
+                  then: { $arrayElemAt: ["$User_Interaction_Status", -1] },
+                  else: null
+                }
+              },
+              else: null
+            }
+          }
+        }
+      },
+      
+      {
+        $match: {
+          "last_status.User_Interaction_Status": "Open" 
+        },
+      },
+      
+      {
+        $lookup: {
+          from: "Templete_User_Interaction",
+          localField: "Interaction_ID",
+          foreignField: "Interaction_ID",
+          as: "Templete_User_Interaction_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$Templete_User_Interaction_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $lookup: {
+          from: "To_Do_List",
+          localField: "Templete_User_Interaction_info.ToDoID",
+          foreignField: "ToDoID",
+          as: "To_Do_List_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$To_Do_List_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          delegate_user_id: "$delegate_user_id",
+          User_Interaction_Status: {
+            $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
+          },
+          Process: "$To_Do_List_info.Process",
+          parameters: "$parameters",
+        }
+      }
+    ];
+
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+
+    if (!results || results.length === 0) {
+      return res.status(204).json({ 
+        message: "No matching data found for the specified criteria." 
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
       data: results
     });
     
@@ -6727,180 +7145,6 @@ export const ListAllRequestLogFromRecoveryOfficersWithoutUserID = async (req, re
     console.error("Error fetching request logs:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
-};
-
-export const Customer_Negotiations = async (req, res) => {
-  const session = await mongoose.startSession(); // Start a session
-  session.startTransaction(); // Begin the transaction
-  try {
-    const {
-      case_id,
-      request_id,
-      request_type,
-      request_comment,
-      drc_id,
-      ro_id,
-      ro_name,
-      drc,
-      field_reason,
-      field_reason_remark,
-      intraction_id,
-      initial_amount,
-      calender_month,
-      duration_from,
-      duration_to,
-      settlement_remark,
-      created_by,
-    } = req.body;
-    console.log("details are ", req.body);
-    if (!case_id || !drc_id || !field_reason) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ 
-        status: "error",
-        message: "Missing required fields: case_id, drc_id, field_reason" 
-      });
-    }
-    const negotiationData = {
-      drc_id, 
-      ro_id, 
-      drc,
-      ro_name,
-      created_dtm: new Date(),
-      field_reason,
-      remark:field_reason_remark,
-    };
-    if (request_id !=="") {
-      if (!request_id || !request_type || !intraction_id) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ 
-          status: "error",
-          message: "Missing required fields: request_id, request_type, intraction_id" 
-        });
-      }
-      const dynamicParams = {
-        case_id,
-        drc_id,
-        ro_id,
-        request_id,
-        request_type,
-        request_comment,
-        intraction_id,
-      };
-      const result = await createUserInteractionFunction({
-        Interaction_ID:intraction_id,
-        User_Interaction_Type:request_type,
-        delegate_user_id:1,   // should be change this python
-        Created_By:created_by,
-        User_Interaction_Status: "Open",
-        ...dynamicParams
-      });
-
-      if (!result || !result.Interaction_Log_ID) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(500).json({ 
-          status: "error", 
-          message: "Failed to create user interaction" 
-        });
-      }
-      const intraction_log_id = result.Interaction_Log_ID;
-      let case_status_with_request =  "RO Negotiation";
-      const statusMap = {
-        "Mediation board forward request letter": "RO Negotiation FMB Pending",
-        "Negotiation Settlement plan Request": "RO Negotiation",
-        "Negotiation period extend Request": "RO Negotiation extension Pending",
-        "Negotiation customer further information Request": "RO Negotiation",
-        "Negotiation Customer request service": "RO Negotiation",
-      };
-      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
-      const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id, 'drc.drc_id': drc_id }, 
-        { 
-            $push: { 
-              ro_negotiation: negotiationData,
-              ro_requests: {
-                  drc_id,
-                  ro_id,
-                  created_dtm: new Date(),
-                  ro_request_id: request_id,
-                  ro_request: request_type,
-                  request_remark:request_comment,
-                  intraction_id: intraction_id,
-                  intraction_log_id,
-              },
-              case_status:{
-                case_status:case_status_with_request,
-                created_dtm: new Date(),
-                created_by:created_by,
-                case_phase:"Negotiation"
-              }
-            },
-            $set: {
-              case_current_status: case_status_with_request,
-              case_current_phase: "Negotiation",
-            }
-        },
-        { new: true, session } // Correct placement of options
-      );
-      if (!updatedCase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ 
-          status: "error",
-          message: 'Case not found this case id' 
-        });
-      }
-    }
-    else{
-      const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id, 'drc.drc_id': drc_id }, 
-        {
-          $push: {
-            ro_negotiation: negotiationData,
-          },
-        },
-        { new: true, session }
-      );
-      if (!updatedMediationBoardCase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Case not found for this case id' 
-        });
-      }
-    }
-    if(field_reason === "Agreed To Settle"){
-      if(!initial_amount || !calender_month || !duration_from || !duration_to){
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ 
-          status: "error",
-          message: "Missing required fields: settlement count, initial amount, calendar months, duration" 
-        });
-      };
-      // call settlement APi
-      console.log("call settlement APi");
-    };
-    await session.commitTransaction();
-    session.endSession();
-    return res.status(200).json({ 
-      status: "success", 
-      message: "Operation completed successfully" 
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(500).json({ 
-      status:"error",
-      message: "Server error", 
-      error: error.message 
-    }); 
- }  finally {
-    session.endSession();
- };
 };
 
 /**
