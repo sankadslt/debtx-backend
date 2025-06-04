@@ -8410,6 +8410,7 @@ export const getCaseLists = async (req, res) => {
   try {
     const {
       rtom,
+      RTOM,
       arrears_band,
       case_current_status,
       drc_commision_rule,
@@ -8420,10 +8421,10 @@ export const getCaseLists = async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!rtom || !arrears_band || !case_current_status || !drc_commision_rule || !fromDate || !toDate) {
+    if (!RTOM && !arrears_band && !case_current_status && !drc_commision_rule && !fromDate && !toDate) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: rtom, arrears_band, case_current_status, drc_commision_rule, fromDate, and toDate.",
+        message: "At least one of RTOM, arrears_band, case_current_status, drc_commision_rule, fromDate, and toDate.",
       });
     }
 
@@ -8445,7 +8446,7 @@ export const getCaseLists = async (req, res) => {
     const skip = (currentPage - 1) * currentLimit;
 
     const filter = {
-      rtom,
+      RTOM,
       arrears_band,
       case_current_status,
       drc_commision_rule,
@@ -8460,7 +8461,7 @@ export const getCaseLists = async (req, res) => {
     const [total, rawCases] = await Promise.all([
       CaseDetails.countDocuments(filter),
       CaseDetails.find(filter)
-        .select("case_id case_current_status account_no drc_commision_rule current_arrears_amount rtom created_dtm last_payment_date remark approve case_status")
+        .select("case_id case_current_status account_no drc_commision_rule current_arrears_amount RTOM created_dtm last_payment_date remark approve case_status")
         .skip(skip)
         .limit(currentLimit),
     ]);
