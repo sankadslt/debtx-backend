@@ -6525,18 +6525,75 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
           preserveNullAndEmptyArrays: true
         }
       },
+
+      {
+        $addFields: {
+          parameter_entries: {
+            $objectToArray: "$parameters"
+          }
+        }
+      },
+
+      { 
+        $addFields: {
+          normalized_showParameters: {
+            $map: {
+              input: { $ifNull: ["$To_Do_List_info.parameters", []] },
+              as: "param",
+              in: {
+                $toLower: {
+                  $replaceAll: {
+                    input: "$$param",
+                    find: " ",
+                    replacement: "_"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          filtered_parameters_array: {
+            $filter: {
+              input: "$parameter_entries",
+              as: "entry",
+              cond: {
+                $in: [
+                  { $toLower: "$$entry.k" },
+                  "$normalized_showParameters"
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          filtered_parameters: {
+            $arrayToObject: "$filtered_parameters_array"
+          }
+        }
+      },
+
       
       // Final projection
       {
         $project: {
           _id: 1,
+          Interaction_Log_ID: 1,
           delegate_user_id: "$delegate_user_id",
           User_Interaction_Status: {
             $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
           },
           Process: "$To_Do_List_info.Process",
-          parameters: "$parameters",
-          showParameters: "$To_Do_List_info.parameters",
+          CreateDTM: 1,
+          // parameters: "$parameters",
+          // showParameters: "$To_Do_List_info.parameters",
+          filtered_parameters: 1
         }
       }
     ];
