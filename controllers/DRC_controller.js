@@ -1441,46 +1441,169 @@ export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
   }
 };
 
-export const getDebtCompanyByDRCID = async (req, res) => {
+/*
+  /List_DRC_Details_By_DRC_ID
+
+  Description:
+  This endpoint retrieves a summary of DRC (Debt Recovery Company) information based on a given DRC ID. 
+  The response includes metadata about the DRC, latest SLT coordinator details, all associated services, and RTOM statuses.
+
+  Collections Used:
+  - DRC: Main collection containing debt recovery company data, services, coordinators, and RTOM info.
+
+  Request Body Parameters:
+  - drc_id (Required): The unique identifier of the DRC. Must be a valid DRC ID already present in the database.
+
+  Response:
+  - HTTP 200: Success. Returns the summarized DRC details including metadata, coordinator, services, and RTOMs.
+  - HTTP 400: DRC ID not provided in the request body.
+  - HTTP 404: No DRC found with the provided ID.
+  - HTTP 500: Internal server error or DB aggregation failure.
+
+  Output Fields:
+  - create_on: Timestamp when the DRC entry was created (`create_dtm` field).
+  - drc_business_registration_number: Business registration number of the DRC.
+  - drc_contact_no: Contact number of the DRC.
+  - drc_email: Email address of the DRC.
+  - drc_address: Address of the DRC.
+  - slt_coordinator: The most recent SLT coordinator entry with:
+    - service_no
+    - slt_coordinator_name
+    - slt_coordinator_email
+  - services: Array of service entries, each containing:
+    - service_type
+    - service_status
+    - status_update_dtm
+  - rtom: Array of RTOM entries, each containing:
+    - rtom_name
+    - rtom_status
+    - status_update_dtm
+
+  Flow:
+  1. Validate the presence of `drc_id` in the request.
+  2. Perform an aggregation on the DRC collection:
+     - Match the document using the provided `drc_id`.
+     - Project only the required fields from the main DRC record.
+     - Extract and format the latest SLT coordinator.
+     - Transform and format the `services` and `rtom` arrays to include relevant summary fields.
+  3. Return the result in a clean, structured response.
+  4. Handle all errors with appropriate logging and status codes.
+*/
+export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
 
-    // Validate input
     if (!drc_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "DRC_ID is required.",
-      });
+      return res.status(400).json({ status: "error", message: "DRC_ID is required." });
     }
 
-    // Find debt company by DRC_ID
-    const debtCompany = await DRC.findOne({ drc_id });
+    const result = await DRC.aggregate([
+      { $match: { drc_id } },
+      {
+        $project: {
+          _id: 0,
+          create_on: 1,
+          drc_business_registration_number: 1,
+          drc_contact_no: 1,
+          drc_email: 1,
+          drc_address: 1,
+          
+          // Latest SLT Coordinator
+          slt_coordinator: {
+            $let: {
+              vars: { lastCoordinator: { $arrayElemAt: ["$slt_coordinator", -1] } },
+              in: {
+                service_no: "$$lastCoordinator.service_no",
+                slt_coordinator_name: "$$lastCoordinator.slt_coordinator_name",
+                slt_coordinator_email: "$$lastCoordinator.slt_coordinator_email",
+              }
+            }
+          },
 
-    // Check if company exists
-    if (!debtCompany) {
+          // Map Services
+          services: {
+            $map: {
+              input: "$services",
+              as: "srv",
+              in: {
+                service_type: "$$srv.service_type",
+                status_update_dtm: "$$srv.status_update_dtm",
+                service_status: "$$srv.service_status"
+              }
+            }
+          },
+
+          // Map RTOMs
+          rtom: {
+            $map: {
+              input: "$rtom",
+              as: "r",
+              in: {
+                rtom_name: "$$r.rtom_name",
+                status_update_dtm: "$$r.status_update_dtm",
+                rtom_status: "$$r.rtom_status"
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    if (result.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+        message: `No DRC found with ID: ${drc_id}`
       });
     }
 
-    // Return success response with debt company data
     return res.status(200).json({
       status: "success",
-      message: "Debt Company details retrieved successfully.",
-      data: debtCompany,
+      message: "DRC summary retrieved successfully.",
+      data: result[0]
     });
+
   } catch (error) {
-    console.error("Error fetching debt company details:", error);
+    console.error("Error in aggregation:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve Debt Company details.",
-      errors: { exception: error.message },
+      message: "Failed to fetch DRC Details.",
+      errors: { exception: error.message }
     });
   }
 };
 
-export const terminateCompanyByDRCID = async (req, res) => {
+/*
+  /Terminate_Company_By_DRC_ID
+
+  Description:
+  This endpoint updates the status of a Debt Recovery Company (DRC) to "Terminate". It also logs a termination remark with the user who performed the termination and the timestamp.
+
+  Collections Used:
+  - DRC: Updates the `drc_status`, `drc_end_dtm`, `drc_end_by`, and appends to the `remark` array.
+
+  Request Body Parameters:
+  - drc_id:        [Required] Unique identifier of the DRC to terminate.
+  - remark:        [Required] A textual reason or note describing why the DRC is being terminated.
+  - remark_by:     [Required] Identifier (User Id) of the user performing the termination.
+  - remark_dtm:    [Required] ISO timestamp of when the termination is recorded.
+
+  Response:
+  - HTTP 200: Success. Returns the updated DRC document with termination applied.
+  - HTTP 400: Validation error. Missing required fields like drc_id, remark, or remark_dtm.
+  - HTTP 404: No DRC found for the given drc_id.
+  - HTTP 500: Internal server error occurred while processing the request.
+
+  Flow:
+  1. Validate required input parameters.
+  2. Find the DRC by `drc_id`. Return 404 if not found.
+  3. Update the DRC:
+     - Set `drc_status` to "Terminate".
+     - Optionally set `drc_end_dtm` and `drc_end_by`.
+     - Push the `remark` into the `remark` array with timestamp and author.
+  4. Return the updated DRC document in the response.
+  5. Handle and log any server or DB errors.
+*/
+export const Terminate_Company_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id, remark, remark_by, remark_dtm } = req.body;
 
@@ -1537,7 +1660,53 @@ export const terminateCompanyByDRCID = async (req, res) => {
   }
 };
 
-export const updateDRCInfo = async (req, res) => {
+/*
+  /Update_DRC_With_Services_and_SLT_Cordinator
+
+  Description:
+  This endpoint updates the contact details, services, RTOMs, SLT coordinators, and remarks associated with a specific Debt Recovery Company (DRC). It supports partial updates and tracks modification metadata such as update timestamps and updated_by info.
+
+  Collections Used:
+  - DRC: Main collection updated with contact info, services, RTOMs, SLT coordinator entries, and remarks.
+
+  Request Body Parameters:
+  - drc_id:            [Required] Unique identifier of the DRC to update.
+  - updated_by:        [Required] User performing the update (email or username).
+  - drc_contact_no:    [Required] New contact number to update.
+  - drc_email:         [Optional] New email address to update.
+  - coordinator:       [Required] New SLT coordinator entry with fields:
+                          - service_no
+                          - slt_coordinator_name
+                          - slt_coordinator_email
+  - services:          [Required] Array of service entries to replace the current services list.
+                          Each entry should have:
+                          - service_type
+                          - service_status
+                          - (Auto-populated) status_update_dtm, status_update_by
+  - rtom:              [Required] Array of RTOM entries to replace the current RTOMs list.
+                          Each entry should have:
+                          - rtom_name
+                          - rtom_status
+                          - (Auto-populated) status_update_dtm, status_update_by
+  - remark:            [Optional] A textual note to be added as a remark with a timestamp and user reference.
+
+  Response:
+  - HTTP 200: Success. Returns the updated DRC document.
+  - HTTP 400: Missing required parameters like drc_id or updated_by.
+  - HTTP 404: No DRC found with the provided drc_id.
+  - HTTP 500: Internal server/database error occurred.
+
+  Flow:
+  1. Validate presence of `drc_id` and `updated_by`.
+  2. Fetch and validate that the DRC exists.
+  3. Construct an update object dynamically for contact, services, and RTOMs.
+  4. For services and RTOMs, auto-attach update metadata (`status_update_dtm`, `status_update_by`).
+  5. Push new SLT coordinator and remark entries if provided.
+  6. Apply `$set` update for contact, services, and RTOMs.
+  7. Return the updated DRC document.
+  8. Catch and handle any runtime errors.
+*/
+export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
   try {
     const {
       drc_id,
