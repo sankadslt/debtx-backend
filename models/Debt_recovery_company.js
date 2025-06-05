@@ -158,7 +158,7 @@ const serviceSchema = new Schema({
     required: true,
   },
   create_on: {
-    type: String,
+    type: Date,
     required: true,
   },
   status_update_dtm: {
