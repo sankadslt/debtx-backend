@@ -481,7 +481,7 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
           Process: "$To_Do_List_info.Process",
           CreateDTM: 1,
           // parameters: "$parameters",
-          // showParameters: "$To_Do_List_info.parameters",
+          showParameters: "$To_Do_List_info.parameters",
           filtered_parameters: 1
         }
       }
