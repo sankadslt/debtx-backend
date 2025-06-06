@@ -8396,99 +8396,117 @@ export const getAbandonedCaseLogs = async (req, res) => {
 export const getCaseLists = async (req, res) => {
   try {
     const {
-      rtom,
+      // case_status,
+      From_DAT,
+      TO_DAT,
       RTOM,
+      DRC,
       arrears_band,
-      case_current_status,
-      drc_commision_rule,
-      fromDate,
-      toDate,
-      page = 1,
-      limit = 10,
+      service_type,
+      pages
     } = req.body;
 
-    // Validation
-    if (!RTOM && !arrears_band && !case_current_status && !drc_commision_rule && !fromDate && !toDate) {
+    if (
+        !RTOM && !DRC && !arrears_band   && !service_type && !From_DAT && !TO_DAT
+    ) {
       return res.status(400).json({
-        success: false,
-        message: "At least one of RTOM, arrears_band, case_current_status, drc_commision_rule, fromDate, and toDate.",
+        status: "error",
+        message: "At least one filter is required"
       });
     }
 
-    const startDate = new Date(fromDate);
-    const endDate = new Date(toDate);
+    const pipeline = [];
 
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    
+   
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid date format. Please use 'YYYY-MM-DD'.",
-      });
+     
+    if  (RTOM) {
+      pipeline.push({ $match: { rtom: Number(RTOM) } });
     }
 
-    const currentPage = Math.max(parseInt(page) || 1, 1);
-    const currentLimit = Math.max(parseInt(limit) || 10, 1);
-    const skip = (currentPage - 1) * currentLimit;
+   
+    if (arrears_band) {
+      pipeline.push({ $match: { arrears_band } });
+    }
+ 
+    if (service_type) {
+      pipeline.push({ $match: { service_type } });
+    }
+ 
+    const dateFilter = {};
+    const fromDate = From_DAT ? new Date(From_DAT) : null;
+    const toDate = TO_DAT ? new Date(TO_DAT) : null;
 
-    const filter = {
-      RTOM,
-      arrears_band,
-      case_current_status,
-      drc_commision_rule,
-      $expr: {
-        $and: [
-          { $gte: [{ $toDate: "$created_dtm" }, startDate] },
-          { $lte: [{ $toDate: "$created_dtm" }, endDate] }
-        ]
+    if (fromDate && toDate && fromDate > toDate) {
+      dateFilter.$gte = toDate;
+      dateFilter.$lte = fromDate;
+    } else {
+      if (fromDate) dateFilter.$gte = fromDate;
+      if (toDate) dateFilter.$lte = toDate;
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({ $match: { created_dtm: dateFilter } });
+    }
+ 
+    pipeline.push({
+      $addFields: {
+        last_drc: { $arrayElemAt: ["$drc", -1] }
       }
-    };
-
-    const [total, rawCases] = await Promise.all([
-      CaseDetails.countDocuments(filter),
-      CaseDetails.find(filter)
-        .select("case_id case_current_status account_no drc_commision_rule current_arrears_amount RTOM created_dtm last_payment_date remark approve case_status")
-        .skip(skip)
-        .limit(currentLimit),
-    ]);
-
-    const formattedCases = rawCases.map(doc => {      
-      const sortedStatuses = (Array.isArray(doc.case_status) ? doc.case_status : [])
-        .filter(status => status?.created_dtm)
-        .sort((a, b) => new Date(b.created_dtm) - new Date(a.created_dtm));
-
-      const latestStatus = sortedStatuses.length > 0 ? sortedStatuses[0] : null;
-
-      return {
-        _id: doc._id,
-        case_id: doc.case_id,
-        case_current_status: doc.case_current_status,
-        account_no: doc.account_no,
-        drc_commision_rule: doc.drc_commision_rule,
-        current_arrears_amount: doc.current_arrears_amount,
-        rtom: doc.rtom,
-        created_dtm: doc.created_dtm,
-        last_payment_date: doc.last_payment_date,
-      };
     });
+
+    pipeline.push({
+      $match: {
+        'last_drc.drc_status': 'Active',
+        'last_drc.removed_dtm': null
+      }
+    });
+
+    if (DRC) {
+      pipeline.push({
+        $match: {
+          'last_drc.drc_id': Number(DRC)
+        }
+      });
+    }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const filtered_cases = await Case_details.aggregate(pipeline);
+
+    const responseData = filtered_cases.map((caseData) => {
+      return{
+      case_id: caseData.case_id,
+      status: caseData.case_current_status,
+      date: caseData.created_dtm || null,
+      rtom: caseData.rtom || null,
+      service_type: caseData.service_type || null,
+      current_arrears_amount: caseData.current_arrears_amount || null,
+      account_no: caseData.account_no || null,
+      drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
+      drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
+      last_payment_date:caseData.last_payment_date || null,
+    };});
 
     return res.status(200).json({
-      success: true,
-      message: formattedCases.length > 0 ? "Records fetched successfully." : "No records found.",
-      data: formattedCases,
-      pagination: {
-        total,
-        page: currentPage,
-        limit: currentLimit,
-        pages: Math.ceil(total / currentLimit),
-      },
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: responseData
     });
   } catch (error) {
-    console.error("Error in getCaseLists:", error);
+    console.error("Failed to fetch cases:", error.message);
     return res.status(500).json({
-      success: false,
-      message: "Internal server error.",
+      status: "error",
+      message: "There is an error fetching case list."
     });
   }
 };
