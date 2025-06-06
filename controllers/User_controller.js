@@ -62,16 +62,16 @@ export const getUserDetailsByRole = async (req, res) => {
  *
  * Description:
  * Retrieves a paginated list of user details from the database using optional filters.
- * Filters (user_id, role, user_type, user_status) are passed through the request body.
+ * Filters (user_id, user_roles, user_type, user_status) are passed through the request body.
  * Pagination is handled based on the page number:
  *   - Page 1 returns 10 records
  *   - Pages 2 and onward return 30 records per page
  *
  * Request Body Parameters:
  * @param {String} [user_id]        - Optional filter by specific user ID
- * @param {String} [role]           - Optional filter by user role (e.g., "admin", "user")
- * @param {String} [user_type]      - Optional filter by user type ("slt", "drc", "ro")
- * @param {String} [user_status]    - Optional filter by status ("enable", "disable")
+ * @param {String} [user_roles]     - Optional filter by user role (e.g., "admin", "user")
+ * @param {String} [user_type]      - Optional filter by user type ("slt", "DRCuser", "ro")
+ * @param {String} [user_status]    - Optional filter by user status ("enabled", "disabled")
  * @param {Number} [page]           - Page number for pagination
  *
  * Responses:
@@ -80,13 +80,13 @@ export const getUserDetailsByRole = async (req, res) => {
  * - 500: Internal server/database error
  */
 export const List_All_User_Details = async (req, res) => {
-  const { user_id, role, user_type, user_status, page } = req.body;
+  const { user_id, user_roles, user_type, user_status, page } = req.body;
 
   try {
     const query = {};
 
     if (user_id) query.user_id = user_id;
-    if (role) query.role = role;
+    if (user_roles) query.user_roles = { $in: [user_roles] };
     if (user_type) query.user_type = user_type;
     if (user_status) query.user_status = user_status;
 
@@ -103,16 +103,18 @@ export const List_All_User_Details = async (req, res) => {
           user_id: 1,
           user_status: 1,
           user_type: 1,
-          username: 1,
-          email: 1,
-          created_on: 1
-        }
+          user_name: 1,
+          user_mail: 1,
+          created_dtm: 1,
+        },
       },
-      { $sort: { created_on: -1 } },
+      { $sort: { created_dtm: -1 } },
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
     ]);
 
+    console.log("Users", users);
+    
     if (!users || users.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -151,4 +153,79 @@ export const List_All_User_Details = async (req, res) => {
     });
   }
 };
+
+/**
+ * User_Controller: List_All_User_Details_By_ID
+ *
+ * Description:
+ * Retrieves detailed user information by a specific user ID. This is typically used for
+ * viewing or editing a single user's data. Returns core account metadata such as type,
+ * email, login method, roles, approval status, and any recorded remarks.
+ *
+ * Request Body Parameters:
+ * @param {String} user_id          - Required: the unique identifier of the user to fetch
+ *
+ * Responses:
+ * - 200: Success with detailed user data
+ * - 400: Missing user ID in the request
+ * - 404: No user found with the provided ID
+ * - 500: Internal server/database error
+ */
+export const List_All_User_Details_By_ID = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "User ID is required.",
+    });
+  }
+
+  try {
+    const user = await User.aggregate([
+      { $match: { user_id: user_id } },
+      {
+        $project: {
+          _id: 0,
+          user_type: 1,
+          user_mail: 1,
+          login_method: 1,
+          user_roles: 1,
+          user_status: 1,
+          created_dtm: 1,
+          created_by: 1,
+          approved_dtm: 1,
+          approved_by: 1,
+          remark: 1,
+        },
+      },
+    ]);
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No user found with the given user ID.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User details retrieved successfully.",
+      data: user[0],
+    });
+
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
 
