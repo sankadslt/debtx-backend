@@ -369,17 +369,25 @@ const rtomforRoSchema = new Schema({
         type: String,
         required: true,
     },
-    rtom_create_dtm: {
+    billing_center_code: {
+        type: String,
+        required: true,
+    },
+    rtom_update_dtm: {
         type: Date,
         required: true,
     },
-    rtom_create_by: {
+    rtom_update_by: {
         type: String,
         required: true,
     },
     rtom_end_dtm: {
         type: Date,
         default: null,
+    },
+    handling_type: {
+        type: String,
+        required: true,
     },
 });
 
@@ -396,6 +404,10 @@ const roSchema = new Schema({
             required: true,
             unique: true,
         },
+        drcuser_id: {
+            type: String,
+            default: null,
+        },
         ro_name:{
             type: String,
             required: true,
@@ -411,6 +423,16 @@ const roSchema = new Schema({
         ro_nic: {
             type: String,
             required: true,
+        },
+        drcuser_type: {
+            type: String,
+            required: true,
+            enum: ['DRCuser', 'ro'],
+        },
+        drcuser_status: {
+            type: String,
+            required: true,
+            enum: ['Active', 'Inactive', 'Terminate'],
         },
         ro_status: {
             type: String,
