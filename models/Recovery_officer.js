@@ -370,8 +370,8 @@ const rtomforRoSchema = new Schema({
         required: true,
     },
     billing_center_code: {
-        type: String, 
-        required: true 
+        type: String,
+        required: true,
     },
     rtom_update_dtm: {
         type: Date,
@@ -388,7 +388,6 @@ const rtomforRoSchema = new Schema({
     handling_type: {
         type: String,
         required: true,
-        enum: ["CPE", "Arrears", "All-Type"]
     },
 });
 
@@ -405,10 +404,9 @@ const roSchema = new Schema({
             required: true,
             unique: true,
         },
-        drcUser_id: {
-            type: Number,
+        drcuser_id: {
+            type: String,
             required: true,
-            unique: true,
         },
         ro_name:{
             type: String,
@@ -428,7 +426,7 @@ const roSchema = new Schema({
         },
         drcUser_type: {
             type: String,
-            enum: ['RO', 'drcUser'],
+            enum: ['RO', 'DRCUser'],
             required: true,
         },
         drcUser_status: {
@@ -448,7 +446,7 @@ const roSchema = new Schema({
             type: Date,
             default: null,
         },
-        ro_end_by:{
+        end_by:{
             type: String,
             default: null,
         },
