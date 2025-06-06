@@ -96,6 +96,7 @@ import {
   WithdrawCase,
   getUserProcesses,
   getCaseLists,
+  CaseStatus,
  
 } from "../controllers/Case_controller.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
@@ -10515,6 +10516,8 @@ router.post('/getUserProcesses',getUserProcesses);
 
 
 router.post('/getCaseLists',getCaseLists)
+router.get('/CaseStatus',CaseStatus)
+ 
 export default router;
 
 

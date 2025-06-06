@@ -8905,7 +8905,7 @@ export const getUserProcesses = async (req, res) => {
 export const getCaseLists = async (req, res) => {
   try {
     const {
-      case_status,
+      case_current_status,
       From_DAT,
       TO_DAT,
       RTOM,
@@ -8916,8 +8916,9 @@ export const getCaseLists = async (req, res) => {
     } = req.body;
 
     if (
-      !case_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
-    ) {
+      !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
+    )
+    {
       return res.status(400).json({
         status: "error",
         message: "At least one filter is required"
@@ -8927,10 +8928,10 @@ export const getCaseLists = async (req, res) => {
     const pipeline = [];
 
     
-    if (case_status) {
-      pipeline.push({ $match: { case_current_status: case_status } });
+     
+    if  (case_current_status) {
+      pipeline.push({ $match: {case_current_status} });
     }
-
      
     if  (RTOM) {
       pipeline.push({ $match: { rtom: Number(RTOM) } });
@@ -9005,6 +9006,7 @@ export const getCaseLists = async (req, res) => {
       account_no: caseData.account_no || null,
       drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
       drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
+      last_payment_date:caseData.last_payment_date || null,
     };});
 
     return res.status(200).json({
@@ -9017,6 +9019,35 @@ export const getCaseLists = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "There is an error fetching case list."
+    });
+  }
+};
+
+
+export const CaseStatus = async (req, res) => {
+  try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+    const statuses = await mongoConnection
+      .collection("Case_status")
+      .find({})
+      .toArray();
+      
+    return res.status(200).json({
+      status: "success",
+      message: "Data retrieved successfully.",
+      data: statuses, // Return raw data with case_status field
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving Case status.",
+      errors: {
+        code: 500,
+        description: error.message,  
+      },
     });
   }
 };
