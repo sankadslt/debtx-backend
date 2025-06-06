@@ -53,7 +53,7 @@ const validateCreateTaskParameters = (params) => {
  */
 export const Create_Incident = async (req, res) => {
 
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number, file_name_dump } = req.body;
 
   // Validate required fields
   if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
@@ -124,6 +124,7 @@ export const Create_Incident = async (req, res) => {
       Created_By,
       Source_Type,
       Created_Dtm: moment().toDate(),
+      file_name_dump
     };
 
     if (DRC_Action === "collect CPE" && Contact_Number) {
