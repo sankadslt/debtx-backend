@@ -13,7 +13,7 @@ router.post('/Open_Task_Count', getOpenTaskCount);
 
 /**
  * @swagger
- * /api/case/List_All_Open_Requests_For_To_Do_List:
+ * /api/task/List_All_Open_Requests_For_To_Do_List:
  *   post:
  *     summary: Retrieve all open requests assigned to a delegate user
  *     description: |
@@ -116,6 +116,83 @@ router.post(
   List_All_Open_Requests_For_To_Do_List
 );
 
+
+/**
+ * @swagger
+ * /api/task/Handle_Interaction_Acknowledgement:
+ *   post:
+ *     summary: Acknowledge an interaction log
+ *     description: |
+ *       Marks an interaction as "Seen" in the `User_Interaction_Log` and either updates or removes the corresponding record in the `User_Interaction_Progress_Log`, depending on its mode (e.g., Special or Approval).
+ *
+ *       | Version | Date        | Description              | Changed By |
+ *       |---------|-------------|--------------------------|------------|
+ *       | 01      | 2025-Jun-03 | Initial implementation   | Janani Kumarasiri  |
+ *
+ *     tags: [Interaction Management]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Interaction_Log_ID
+ *               - delegate_user_id
+ *             properties:
+ *               Interaction_Log_ID:
+ *                 type: integer
+ *                 example: 100
+ *                 description: Unique ID of the interaction log to acknowledge.
+ *               delegate_user_id:
+ *                 type: string
+ *                 example: "super@gmail.com"
+ *                 description: ID of the delegate user acknowledging the interaction.
+ *     responses:
+ *       200:
+ *         description: Interaction acknowledged successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Interaction acknowledged successfully."
+ *       400:
+ *         description: Validation error due to missing required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Interaction_Log_ID is required."
+ *       404:
+ *         description: Interaction log not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User Interaction Progress Log not found."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *                 error:
+ *                   type: string
+ *                   example: "Detailed error message here"
+ */
 router.post('/Handle_Interaction_Acknowledgement', Handle_Interaction_Acknowledgement);
 
 export default router;
