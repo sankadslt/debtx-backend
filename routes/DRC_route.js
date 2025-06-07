@@ -1520,6 +1520,142 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  */
 router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Services_and_SLT_Cordinator);
 
+/**
+ * @swagger
+ * /api/DRC/List_All_DRC_Details:
+ *   post:
+ *     summary: Retrieve a paginated list of DRCs with summary details
+ *     description: |
+ *       Returns a summary of Debt Recovery Companies (DRCs), including counts of services, RTOMs, and Recovery Officers.
+ *       
+ *       | Version | Date       | Description                          |
+ *       |---------|------------|--------------------------------------|
+ *       | 01      | 2025-06-08 | Initial paginated DRC summary fetch  |
+ *       
+ *       Pagination logic:
+ *       - Page 1 returns 10 items.
+ *       - Page 2 and onward return 30 items per page.
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 description: Optional status to filter DRCs (Active, Inactive, Terminate).
+ *                 example: Active
+ *               page:
+ *                 type: integer
+ *                 description: Page number for pagination.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: List of DRCs retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC details fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 101
+ *                       drc_name:
+ *                         type: string
+ *                         example: "Ravindu Recovery Services"
+ *                       drc_email:
+ *                         type: string
+ *                         example: "ravindu@example.com"
+ *                       drc_status:
+ *                         type: string
+ *                         example: Active
+ *                       drc_contact_no:
+ *                         type: string
+ *                         example: "0711234567"
+ *                       drc_business_registration_number:
+ *                         type: string
+ *                         example: "BRN-452348"
+ *                       service_count:
+ *                         type: integer
+ *                         example: 4
+ *                       rtom_count:
+ *                         type: integer
+ *                         example: 3
+ *                       ro_count:
+ *                         type: integer
+ *                         example: 2
+ *                       created_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-15T08:23:41.000Z"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 43
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     perPage:
+ *                       type: integer
+ *                       example: 10
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *       404:
+ *         description: No matching DRC records found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching DRC records found.
+ *                 data:
+ *                   type: array
+ *                   example: []
+ *       500:
+ *         description: Internal server error occurred during the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Error stack or message
+ */
 router.post("/List_All_DRC_Details", List_All_DRC_Details);
 
 router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_ID);

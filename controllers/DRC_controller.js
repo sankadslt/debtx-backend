@@ -1290,53 +1290,183 @@ export const endDRC = async (req, res) => {
 // };
 
 
-//List DRCs with RO & RTOM count
+// //List DRCs with RO & RTOM count
+// export const List_All_DRC_Details = async (req, res) => {
+//   try {
+//     const { status } = req.body;
+
+//     // Only add filter if status is defined and non-empty
+//     const filter = status ? { drc_status: status } : {};
+
+//     const drcList = await DRC.find(filter);
+
+//     // // 1. Get DRCs filtered by status
+//     // const drcList = await DRC.find({ drc_status: status });
+
+//     // 2. Count ROs, RTOMs, and services for each DRC
+//     const responseData = await Promise.all(
+//       drcList.map(async (drc) => {
+//         const roList = await RO.find({ drc_id: drc.drc_id });
+
+//         const roCount = roList.length;
+
+//         const rtomCount = roList.reduce((acc, ro) => {
+//           return acc + (ro.rtoms_for_ro?.length || 0);
+//         }, 0);
+
+//         const serviceCount = drc.services?.length || 0;
+
+//         return {
+//           drc_id: drc.drc_id,
+//           drc_name: drc.drc_name,
+//           drc_email: drc.drc_email,
+//           drc_status: drc.drc_status,
+//           teli_no: drc.drc_contact_no,
+//           ro_count: roCount,
+//           rtom_count: rtomCount,
+//           service_count: serviceCount,
+//           drc_business_registration_number: drc.drc_business_registration_number,
+//         };
+//       })
+//     );
+
+//     res.status(200).json(responseData);
+//   } catch (err) {
+//     console.error("Error fetching DRC data with counts:", err);
+//     res.status(500).json({ error: "Server Error" });
+//   }
+// };
+
+/**
+ * /List_All_DRC_Details
+ *
+ * Description:
+ * This endpoint retrieves a paginated summary of all Debt Recovery Companies (DRCs) based on optional status filtering.
+ * It returns key metadata for each DRC, such as business details, number of services, RTOMs, and associated Recovery Officers.
+ *
+ * Collections Used:
+ * - Debt_recovery_company: Main collection containing debt recovery company data.
+ * - Recovery_officer: Used to count the number of Recovery Officers assigned to each DRC.
+ *
+ * Request Body Parameters:
+ * - status (Optional): Filters the results based on DRC status (e.g., "Active", "Inactive", "Terminate").
+ * - page (Optional): Page number for pagination. Defaults to 1 if not provided or invalid.
+ *
+ * Response:
+ * - HTTP 200: Success. Returns a paginated list of DRC summaries with counts.
+ * - HTTP 404: No DRC records found matching the query.
+ * - HTTP 500: Internal server error during aggregation or DB operations.
+ *
+ * Output Fields:
+ * - drc_id: Unique identifier for the DRC.
+ * - drc_name: Name of the DRC.
+ * - drc_email: Email address of the DRC.
+ * - drc_status: Current status of the DRC (Active, Inactive, or Terminate).
+ * - drc_contact_no: Contact number of the DRC.
+ * - drc_business_registration_number: Official BRN of the DRC.
+ * - service_count: Total number of service entries associated with the DRC.
+ * - rtom_count: Total number of RTOM entries listed under the DRC.
+ * - ro_count: Total number of Recovery Officers associated with the DRC (via `Recovery_officer` collection).
+ * - created_on: Timestamp when the DRC record was created.
+ *
+ * Flow:
+ * 1. Parse and validate `status` and `page` from the request body.
+ * 2. Construct a MongoDB aggregation pipeline:
+ *    - Filter DRCs by status (if provided).
+ *    - Lookup Recovery Officers and count them per DRC.
+ *    - Count services and RTOMs directly from the embedded arrays in the DRC document.
+ *    - Project only the necessary summary fields.
+ *    - Sort by creation date (descending), then apply pagination.
+ * 3. Count total matching documents for pagination metadata.
+ * 4. Return results and pagination metadata in a structured JSON response.
+ * 5. Catch and log errors, returning appropriate status messages.
+ */
 export const List_All_DRC_Details = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, page } = req.body;
 
-    // Only add filter if status is defined and non-empty
-    const filter = status ? { drc_status: status } : {};
+    const query = {};
+    if (status) query.drc_status = status;
 
-    const drcList = await DRC.find(filter);
+    let currentPage = Number(page);
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    const limit = currentPage === 1 ? 10 : 30;
+    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
-    // // 1. Get DRCs filtered by status
-    // const drcList = await DRC.find({ drc_status: status });
+    const pipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: "Recovery_officer",
+          localField: "drc_id",
+          foreignField: "drc_id",
+          as: "ros",
+        },
+      },
+      {
+        $addFields: {
+          ro_count: { $size: "$ros" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          drc_id: 1,
+          drc_name: 1,
+          drc_email: 1,
+          drc_status: 1,
+          drc_contact_no: "$drc_contact_no",
+          drc_business_registration_number: 1,
+          service_count: { $size: { $ifNull: ["$services", []] } },
+          ro_count: 1,
+          rtom_count: { $size: { $ifNull: ["$rtom", []] } },
+          created_on: 1,
+        }
+      },
+      { $sort: { created_on: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
 
-    // 2. Count ROs, RTOMs, and services for each DRC
-    const responseData = await Promise.all(
-      drcList.map(async (drc) => {
-        const roList = await RO.find({ drc_id: drc.drc_id });
+    const drcData = await DRC.aggregate(pipeline);
 
-        const roCount = roList.length;
+    if (!drcData || drcData.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching DRC records found.",
+        data: [],
+      });
+    }
 
-        const rtomCount = roList.reduce((acc, ro) => {
-          return acc + (ro.rtoms_for_ro?.length || 0);
-        }, 0);
+    const totalCount = await DRC.countDocuments(query);
 
-        const serviceCount = drc.services?.length || 0;
-
-        return {
-          drc_id: drc.drc_id,
-          drc_name: drc.drc_name,
-          drc_email: drc.drc_email,
-          drc_status: drc.drc_status,
-          teli_no: drc.drc_contact_no,
-          ro_count: roCount,
-          rtom_count: rtomCount,
-          service_count: serviceCount,
-          drc_business_registration_number: drc.drc_business_registration_number,
-        };
-      })
-    );
-
-    res.status(200).json(responseData);
-  } catch (err) {
-    console.error("Error fetching DRC data with counts:", err);
-    res.status(500).json({ error: "Server Error" });
+    return res.status(200).json({
+      status: "success",
+      message: "DRC details fetched successfully",
+      data: drcData,
+      pagination: {
+        total: totalCount,
+        page: currentPage,
+        perPage: limit,
+        totalPages: Math.ceil(
+          totalCount <= 10
+            ? totalCount / 10
+            : (totalCount - 10) / 30 + 1
+        ),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching All DRC details", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
   }
 };
-
 
 export const DRCRemarkDetailsById = async (req, res) => {
   try {
@@ -1449,7 +1579,7 @@ export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
   The response includes metadata about the DRC, latest SLT coordinator details, all associated services, and RTOM statuses.
 
   Collections Used:
-  - DRC: Main collection containing debt recovery company data, services, coordinators, and RTOM info.
+  - Debt_recovery_company: Main collection containing debt recovery company data, services, coordinators, and RTOM info.
 
   Request Body Parameters:
   - drc_id (Required): The unique identifier of the DRC. Must be a valid DRC ID already present in the database.
@@ -1494,11 +1624,15 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
     const { drc_id } = req.body;
 
     if (!drc_id) {
-      return res.status(400).json({ status: "error", message: "DRC_ID is required." });
+      return res.status(400).json({
+        status: "error",
+        message: "DRC_ID is required.",
+      });
     }
 
     const result = await DRC.aggregate([
       { $match: { drc_id } },
+
       {
         $project: {
           _id: 0,
@@ -1507,70 +1641,71 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_contact_no: 1,
           drc_email: 1,
           drc_address: 1,
-          
+
           // Latest SLT Coordinator
           slt_coordinator: {
-            $let: {
-              vars: { lastCoordinator: { $arrayElemAt: ["$slt_coordinator", -1] } },
+            $map: {
+              input: { $ifNull: ["$slt_coordinator", []] },
+              as: "coord",
               in: {
-                service_no: "$$lastCoordinator.service_no",
-                slt_coordinator_name: "$$lastCoordinator.slt_coordinator_name",
-                slt_coordinator_email: "$$lastCoordinator.slt_coordinator_email",
+                service_no: "$$coord.service_no",
+                slt_coordinator_name: "$$coord.slt_coordinator_name",
+                slt_coordinator_email: "$$coord.slt_coordinator_email"
               }
             }
           },
 
-          // Map Services
+          // Filtered and Mapped Services
           services: {
             $map: {
-              input: "$services",
+              input: { $ifNull: ["$services", []] },
               as: "srv",
               in: {
                 service_type: "$$srv.service_type",
                 status_update_dtm: "$$srv.status_update_dtm",
-                service_status: "$$srv.service_status"
-              }
-            }
+                service_status: "$$srv.service_status",
+              },
+            },
           },
 
-          // Map RTOMs
+          // Filtered and Mapped RTOMs
           rtom: {
             $map: {
-              input: "$rtom",
+              input: { $ifNull: ["$rtom", []] },
               as: "r",
               in: {
                 rtom_name: "$$r.rtom_name",
                 status_update_dtm: "$$r.status_update_dtm",
-                rtom_status: "$$r.rtom_status"
-              }
-            }
-          }
-        }
-      }
+                rtom_status: "$$r.rtom_status",
+              },
+            },
+          },
+        },
+      },
     ]);
 
     if (result.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: `No DRC found with ID: ${drc_id}`
+        message: `No DRC found with ID: ${drc_id}`,
       });
     }
 
     return res.status(200).json({
       status: "success",
       message: "DRC summary retrieved successfully.",
-      data: result[0]
+      data: result[0],
     });
-
   } catch (error) {
-    console.error("Error in aggregation:", error);
+    console.error("Internal Server Error", error);
     return res.status(500).json({
       status: "error",
       message: "Failed to fetch DRC Details.",
-      errors: { exception: error.message }
+      errors: { exception: error.message },
     });
   }
 };
+
 
 /*
   /Terminate_Company_By_DRC_ID
