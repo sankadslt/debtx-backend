@@ -56,12 +56,12 @@ export const ListAllSettlementCases = async (req, res) => {
   try {
     const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
-      });
-    }
+    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
