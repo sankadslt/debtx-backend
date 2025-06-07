@@ -37,7 +37,7 @@
 
 import express from "express";
 import passport from "passport";
-import { registerUser, loginUser, refreshToken, getUserData } from "../controllers/authController.js";
+import { registerUser, loginUser, refreshToken, getUserData, handleAzureLogin } from "../controllers/authController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -84,8 +84,11 @@ router.get(
   (req, res) => {
     const accessToken = req.user.accessToken;
     res.redirect(`${process.env.CLIENT_URL}/google-login?accessToken=${accessToken}`);
-    console.log("ACCT "+ accessToken)
+    // console.log("ACCT "+ accessToken)
   }
 );
+
+//aure login route
+router.post("/azure", handleAzureLogin);
 
 export default router;
