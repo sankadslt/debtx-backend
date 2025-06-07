@@ -402,13 +402,13 @@ const roSchema = new Schema({
         },
         ro_id: {
             type: Number,
-            required: true,
             unique: true,
+            sparse: true,
         },
         drcUser_id: {
             type: Number,
-            required: true,
             unique: true,
+            sparse: true,
         },
         ro_name:{
             type: String,
