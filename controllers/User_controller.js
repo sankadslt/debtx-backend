@@ -114,7 +114,7 @@ export const List_All_User_Details = async (req, res) => {
       { $limit: limit },
     ]);
 
-    console.log("Users", users);
+    // console.log("Users", users);
     
     if (!users || users.length === 0) {
       return res.status(404).json({
@@ -124,7 +124,7 @@ export const List_All_User_Details = async (req, res) => {
       });
     }
 
-    const totalCount = await User.countDocuments(query);
+    const totalCount = await User_log.countDocuments(query);
 
     return res.status(200).json({
       status: "success",
