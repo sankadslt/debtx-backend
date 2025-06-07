@@ -48,7 +48,8 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(json());
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173",credentials: true,}));
+// app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173",credentials: true,}));
+app.use(cors({ origin:[ process.env.CLIENT_URL || "http://124.43.177.52:8080","http://debtx.slt.lk:8080","https://debtx.slt.lk"],credentials: true,}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
