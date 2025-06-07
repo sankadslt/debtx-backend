@@ -11,6 +11,7 @@
 */
 
 import User from '../models/User.js';
+import User_log from '../models/User_Log.js';
 
 // Function to Get user details by user roles
 export const getUserDetailsByRole = async (req, res) => {
@@ -95,7 +96,7 @@ export const List_All_User_Details = async (req, res) => {
     const limit = currentPage === 1 ? 10 : 30;
     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
-    const users = await User.aggregate([
+    const users = await User_log.aggregate([
       { $match: query },
       {
         $project: {
@@ -182,7 +183,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   }
 
   try {
-    const user = await User.aggregate([
+    const user = await User_log.aggregate([
       { $match: { user_id: user_id } },
       {
         $project: {
