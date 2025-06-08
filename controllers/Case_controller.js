@@ -8902,7 +8902,7 @@ export const getUserProcesses = async (req, res) => {
 
 
  
-export const getCaseLists = async (req, res) => {
+export const List_All_Cases = async (req, res) => {
   try {
     const {
       case_current_status,
