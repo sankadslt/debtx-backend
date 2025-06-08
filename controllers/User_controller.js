@@ -188,6 +188,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
       {
         $project: {
           _id: 0,
+          user_name: 1,
           user_type: 1,
           user_mail: 1,
           login_method: 1,
