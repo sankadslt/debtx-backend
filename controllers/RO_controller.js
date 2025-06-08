@@ -2650,38 +2650,66 @@ export const Terminate_RO = async (req, res) => {
     const session = await mongoose.startSession();
     
     try {
-        const { ro_id, ro_end_by, remark } = req.body;
+        const { ro_id, drcUser_id, end_by, remark } = req.body;
 
-        // Validate required fields
-        if (!ro_id) {
-            return res.status(400).json({ message: 'ro_id is required in the request body' });
+        // Validate that at least one ID is provided
+        if (!ro_id && !drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Either ro_id or drcUser_id is required in the request body' 
+            });
         }
-        if (!ro_end_by) {
-            return res.status(400).json({ message: 'ro_end_by is required in the request body' });
+
+        // Validate that both IDs are not provided at the same time
+        if (ro_id && drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Please provide either ro_id or drcUser_id, not both' 
+            });
+        }
+
+        // Validate other required fields
+        if (!end_by) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'ro_end_by is required in the request body' 
+            });
         }
         if (!remark) {
-            return res.status(400).json({ message: 'remark is required in the request body' });
+            return res.status(400).json({ 
+                status: "error",
+                message: 'remark is required in the request body' 
+            });
         }
 
         let updatedRO;
         let newRemark;
+        let queryCondition = {};
+        let drcUser_type = '';
+
+        // Build query condition based on provided ID
+        if (ro_id) {
+            queryCondition = { ro_id: Number(ro_id) };
+            drcUser_type = 'RO';
+        } else if (drcUser_id) {
+            queryCondition = { drcUser_id: Number(drcUser_id) };
+            drcUser_type = 'drcUser';
+        }
 
         // Start transaction
         await session.withTransaction(async () => {
-            // Check if recovery officer exists
-            const recoveryOfficer = await Recovery_officer.findOne(
-                { ro_id: Number(ro_id) }
-            ).session(session);
+            // Check if user exists
+            const user = await Recovery_officer.findOne(queryCondition).session(session);
             
-            if (!recoveryOfficer) {
-                const error = new Error('Recovery Officer not found');
+            if (!user) {
+                const error = new Error(`${drcUser_type} not found`);
                 error.statusCode = 404;
                 throw error;
             }
 
             // Check if already terminated
-            if (recoveryOfficer.ro_status === 'Terminate') {
-                const error = new Error('Recovery Officer is already terminated');
+            if (user.drcUser_status === 'Terminate') {
+                const error = new Error(`${drcUser_type} is already terminated`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -2689,18 +2717,18 @@ export const Terminate_RO = async (req, res) => {
             // Create new remark object
             newRemark = {
                 remark: remark,
-                remark_by: ro_end_by,
+                remark_by: end_by,
                 remark_dtm: new Date()
             };
 
-            // Update the recovery officer
+            // Update the user
             updatedRO = await Recovery_officer.findOneAndUpdate(
-                { ro_id: Number(ro_id) },
+                queryCondition,
                 {
                     $set: {
-                        ro_status: 'Terminate',
-                        ro_end_dtm: new Date(),
-                        ro_end_by: ro_end_by
+                        drcUser_status: 'Terminate',
+                        end_dtm: new Date(),
+                        end_by: end_by
                     },
                     $push: {
                         remark: newRemark
@@ -2714,33 +2742,44 @@ export const Terminate_RO = async (req, res) => {
             );
 
             if (!updatedRO) {
-                const error = new Error('Failed to terminate Recovery Officer');
+                const error = new Error(`Failed to terminate ${drcUser_type}`);
                 error.statusCode = 500;
                 throw error;
             }
         });
 
+        // Build response data based on user type
+        let responseData = {
+            ro_name: updatedRO.ro_name,
+            drcUser_status: updatedRO.drcUser_status,
+            end_dtm: updatedRO.end_dtm,
+            end_by: updatedRO.end_by,
+            termination_remark: newRemark
+        };
+
+        // Add specific ID field to response
+        if (ro_id) {
+            responseData.ro_id = updatedRO.ro_id;
+        } else if (drcUser_id) {
+            responseData.drcUser_id = updatedRO.drcUser_id;
+        }
+
         // Transaction completed successfully
         return res.status(200).json({
-            message: 'Recovery Officer terminated successfully',
-            data: {
-                ro_id: updatedRO.ro_id,
-                ro_name: updatedRO.ro_name,
-                ro_status: updatedRO.ro_status,
-                ro_end_dtm: updatedRO.ro_end_dtm,
-                ro_end_by: updatedRO.ro_end_by,
-                termination_remark: newRemark
-            }
+            status: "success",
+            message: `${drcUser_type} terminated successfully`,
+            data: responseData
         });
 
     } catch (error) {
-        console.error('Error terminating recovery officer:', error);
+        console.error('Error terminating user:', error);
         
         // Handle errors with status codes
         const statusCode = error.statusCode || 500;
         const message = error.message || 'Internal server error';
         
         return res.status(statusCode).json({
+            status: "error",
             message: message,
             ...(statusCode === 500 && { error: error.toString() })
         });
