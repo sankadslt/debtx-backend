@@ -29,7 +29,8 @@ import {
     listROAllCases, 
     listROInfoByROId, 
     Terminate_RO,
-    List_All_RO_and_DRCuser_Details_to_DRC  } from "../controllers/RO_controller.js";
+    List_All_RO_and_DRCuser_Details_to_DRC,
+    List_All_RO_and_DRCuser_Details_to_SLT  } from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -1600,5 +1601,7 @@ router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
 router.post('/Terminate_RO', Terminate_RO);
 
 router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_Details_to_DRC);
+
+router.post('/List_All_RO_and_DRCuser_Details_to_SLT', List_All_RO_and_DRCuser_Details_to_SLT);
 
 export default router;
