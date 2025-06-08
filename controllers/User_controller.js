@@ -103,6 +103,7 @@ export const List_All_User_Details = async (req, res) => {
           _id: 0,
           user_id: 1,
           user_status: 1,
+          user_roles: 1,
           user_type: 1,
           user_name: 1,
           user_mail: 1,
