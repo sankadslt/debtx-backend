@@ -2878,6 +2878,132 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
     }
 };
 
+export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
+    try {
+        // Extract parameters from request body
+        const { drcUser_type, drcUser_status, pages } = req.body;
+
+        // Validate required fields
+        if (!drcUser_type) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drcUser_type is required fields'
+            });
+        }
+
+        // Validate drcUser_type enum
+        if (!['RO', 'drcUser'].includes(drcUser_type)) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drcUser_type must be either "RO" or "drcUser"'
+            });
+        }
+
+        // Build filter object
+        const filter = {
+            drcUser_type: drcUser_type
+        };
+
+        // Add drcUser_status to filter if provided
+        if (drcUser_status) {
+            // Validate drcUser_status enum if provided
+            if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: 'drcUser_status must be one of: Active, Inactive, Terminate'
+                });
+            }
+            filter.drcUser_status = drcUser_status;
+        }
+
+        // Pagination logic
+        let page = Number(pages);
+        if (isNaN(page) || page < 1) page = 1;
+
+        const limit = page === 1 ? 10 : 10;
+        const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+
+        // Define projection fields based on drcUser_type
+        let projection = {};
+        if (drcUser_type === 'RO') {
+            projection = {
+                ro_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1,
+                rtom: 1 // Need rtom to calculate rtom_area_count
+            };
+        } else if (drcUser_type === 'drcUser') {
+            projection = {
+                drcUser_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1
+            };
+        }
+
+        // Fetch the total count of documents that match the filter criteria (without pagination)
+        const totalCount = await Recovery_officer.countDocuments(filter);
+
+        // Find documents based on filter with pagination and projection
+        const documents = await Recovery_officer.find(filter, projection)
+            .skip(skip)
+            .limit(limit)
+            .sort({ ro_id: -1, drcUser_id: -1 }); // Sort by ro_id and drcUser_id in descending order
+
+        if (!documents || documents.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: 'No matching records found'
+            });
+        }
+
+        // Process documents based on drcUser_type
+        const processedData = documents.map(doc => {
+            if (drcUser_type === 'RO') {
+                // Calculate rtom_area_count (count of rtom objects with status "Active")
+                const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+
+                return {
+                    ro_id: doc.ro_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no,
+                    rtom_area_count: rtom_area_count
+                };
+            } else if (drcUser_type === 'drcUser') {
+                return {
+                    drcUser_id: doc.drcUser_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no
+                };
+            }
+        });
+
+        // Return successful response
+        return res.status(200).json({
+            status: "success",
+            message: 'Data retrieved successfully',
+            data: processedData,
+            total_records: totalCount,
+            current_page: page,
+            records_per_page: limit
+        });
+
+    } catch (error) {
+        console.error('Error in List_All_RO_and_DRCuser_Details_to_SLT:', error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
 
 
 
