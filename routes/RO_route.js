@@ -1754,7 +1754,7 @@ router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
  *   patch:
  *     summary: RO-2A02 Terminate a Recovery Officer
  *     description: |
- *       Terminates a Recovery Officer or a DRC User in MongoDB.
+ *       Terminates a Recovery Officer or a DRC User in MongoDB. Use `ro_id` for terminate Recovery Officer and `drcUser_id` for terminate drcUser.
  * 
  *       | Version | Date        | Description                        | Changed By      |
  *       |---------|-------------|------------------------------------|-----------------|
@@ -1904,6 +1904,187 @@ router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
  */
 
 router.patch('/Terminate_RO', Terminate_RO);
+
+/**
+ * @swagger
+ * /api/recovery_officer/List_All_RO_and_DRCuser_Details_to_DRC:
+ *   post:
+ *     summary: RO-1P01 List all Recovery Officers and DRC Users under a DRC
+ *     description: |
+ *       Retrieves a paginated list of Recovery Officers (RO) or DRC Users associated with a specific Debt Recovery Company (DRC). Use `ro_id` for List Recovery Officers and `drcUser_id` for List drcUsers.
+ * 
+ *       | Version | Date        | Description                                        | Changed By      |
+ *       |---------|-------------|----------------------------------------------------|-----------------|
+ *       | 01      | 2025-June-09 | List ROs and DRC Users under a specific DRC       | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Recovery Officer.
+ *       - in: query
+ *         name: drcUser_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the drcUser.
+ *       - in: query
+ *         name: drcUser_type
+ *         required: true
+ *         schema:
+ *           enum: [RO, drcUser]
+ *           example: RO
+ *         description: Type of user to list (RO or drcUser).
+ *       - in: query
+ *         name: drcUser_status
+ *         schema:
+ *           type: string
+ *           enum: [Active, Inactive, Terminate]
+ *           example: Active
+ *         description: Filter users by status (optional).
+ *       - in: query
+ *         name: pages
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Page number for pagination.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - drcUser_type
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 example: 1
+ *                 description: ID of the Debt Recovery Company.
+ *               drcUser_type:
+ *                 type: string
+ *                 enum: [RO, drcUser]
+ *                 example: RO
+ *                 description: Type of user to list (RO or drcUser).
+ *               drcUser_status:
+ *                 type: string
+ *                 enum: [Active, Inactive, Terminate]
+ *                 example: Active
+ *                 description: Filter users by status (optional).
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination.
+ *     responses:
+ *       200:
+ *         description: Data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Data retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     oneOf:
+ *                       - type: object
+ *                         properties:
+ *                           ro_id:
+ *                             type: integer
+ *                             example: 101
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "200122101858"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "Kaveesha"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+94771234567"
+ *                           rtom_area_count:
+ *                             type: integer
+ *                             example: 3
+ *                       - type: object
+ *                         properties:
+ *                           drcUser_id:
+ *                             type: integer
+ *                             example: 201
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "123456789V"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+1234567890"
+ *                 total_records:
+ *                   type: integer
+ *                   example: 2
+ *                 current_page:
+ *                   type: integer
+ *                   example: 1
+ *                 records_per_page:
+ *                   type: integer
+ *                   example: 10
+ *       400:
+ *         description: Validation error - required fields missing or invalid values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drc_id and drcUser_type are required fields
+ *       404:
+ *         description: No matching records found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching records found
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error message
+ */
+
 
 router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_Details_to_DRC);
 
