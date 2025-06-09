@@ -14,7 +14,7 @@ const moneyTransactionSchema = new Schema({
     required: true,
   },
   money_transaction_ref: {  type: String, required: true },
-  money_transaction_amount: { type: Number, required: true },
+  c: { type: Number, required: true },
   money_transaction_Reference_type: { 
     type: String, 
     enum: ["Payment", "Bill", "Adjustment", "Dispute"],

@@ -23,7 +23,9 @@ const incidentLogSchema = new Schema({
     Rejected_Dtm: { type: Date, required: null },
 
     // Add Contact_Number only when DRC_Action is "collect CPE"
-    Contact_Number: { type: String, required: function () { return this.Actions === "collect CPE"; } }
+    Contact_Number: { type: String},
+    
+    file_name_dump: { type: String }
 }, {
     collection: 'Incident_log', // Specify the collection name
 });

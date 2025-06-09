@@ -56,12 +56,12 @@ export const ListAllSettlementCases = async (req, res) => {
   try {
     const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
-      });
-    }
+    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -303,9 +303,7 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     }
 
     // Flatten the parameters structure
-    const parameters = {
-      Created_By,
-      task_status: "open",
+    const parameters = {  
       Account_No: Account_Number,
       case_ID: Case_ID,
       Phase: Phase,
@@ -318,7 +316,9 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     const taskData = {
       Template_Task_Id: 42,
       task_type: "Create task for Download Settlement Case List",
-      ...parameters
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
@@ -439,17 +439,17 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
 
     // Flatten the parameters structure
     const parameters = {
-      Created_By,
-      task_status: "open",
-      case_ID: Case_ID,
-      settlement_id: Settlement_ID
+      Case_ID,
+      Settlement_ID,
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 43,
-      task_type: "Create task for Download Settlement Details By Case_Id",
-      ...parameters
+      task_type: "Create task for Download Settlement Details By  Settlement_Id and Case_Id",
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction

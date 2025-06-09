@@ -11,7 +11,25 @@ Notes:  */
 // import express from "express";
 import { Router } from "express";
 
-import { getRODetails, getRODetailsByID, Change_RO_Status, getRODetailsByDrcID, getActiveRODetailsByDrcID, RegisterRO, Suspend_RTOM_From_RO, List_All_RTOM_Ownned_By_RO, List_Active_RTOM_Ownned_By_RO,Issue_RTOM_To_RO, EditRO,Suspend_Ro, listDRCAllCases   } from "../controllers/RO_controller.js";
+import { 
+    getRODetails, 
+    getRODetailsByID, 
+    Change_RO_Status, 
+    getRODetailsByDrcID, 
+    getActiveRODetailsByDrcID, 
+    RegisterRO, Suspend_RTOM_From_RO, 
+    List_All_RTOM_Ownned_By_RO, 
+    List_Active_RTOM_Ownned_By_RO,
+    Issue_RTOM_To_RO, 
+    EditRO,
+    Suspend_Ro, 
+    listDRCAllCases, 
+    CreateRO , 
+    List_RO_Details_Owen_By_DRC_ID, 
+    listROAllCases, 
+    listROInfoByROId, 
+    Terminate_RO,
+    List_All_RO_and_DRCuser_Details_to_DRC  } from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -142,9 +160,6 @@ const router = Router();
  *                   type: string
  *                   example: Detailed error message here.
  */
-
-
-
 // Route to retrieve Recovery Officer details
 router.get("/RO_Details", (req, res) => { getRODetails(req, res); });
 
@@ -303,8 +318,6 @@ router.get("/RO_Details", (req, res) => { getRODetails(req, res); });
  *                   type: string
  *                   example: Detailed error message.
  */
-
-
 // Route to retrieve Recovery Officer details by ID
 router.post("/RO_Details_By_ID", getRODetailsByID);
 
@@ -565,7 +578,6 @@ router.patch("/Suspend_Ro", Suspend_Ro);
  */
 //Route to update the profile details of recovery officer
 router.post("/Suspend_RTOM_From_RO", Suspend_RTOM_From_RO);
-
 
 /**
  * @swagger
@@ -868,7 +880,6 @@ router.post("/List_Active_RTOM_Ownned_By_RO",List_Active_RTOM_Ownned_By_RO);
  *                   type: string
  *                   example: Detailed error message.
  */
-
 // Route to retrieve recovery officer details by DRC ID
 router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
 
@@ -993,7 +1004,6 @@ router.post("/List_RO_Owned_By_DRC", getRODetailsByDrcID);
  *                   type: string
  *                   example: Detailed error message.
  */
-
 // Route to retrieve active recovery officer details by DRC ID
 router.post("/List_Active_RO_Owned_By_DRC", getActiveRODetailsByDrcID);
 
@@ -1095,7 +1105,6 @@ router.post("/List_Active_RO_Owned_By_DRC", getActiveRODetailsByDrcID);
  */
 // Route to add the RTOM to recovery officer
 router.post("/Issue_RTOM_To_RO",Issue_RTOM_To_RO);
-
 
 /**
  * @swagger
@@ -1328,9 +1337,6 @@ router.post("/Issue_RTOM_To_RO",Issue_RTOM_To_RO);
  *                       type: string
  *                       example: Detailed error message here.
  */
-
-
-
 // Route to register recovery officers
 router.post("/Register_RO", RegisterRO);
 
@@ -1490,8 +1496,6 @@ router.post("/Register_RO", RegisterRO);
  *                       type: string
  *                       example: Detailed error message here.
  */
-
-
 // Route to change recovery officer profile
 router.patch("/Change_RO_profile", EditRO);
 
@@ -1576,7 +1580,25 @@ router.patch("/Change_RO_profile", EditRO);
  *       500:
  *         description: Internal server error.
  */
-
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
+
+router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
+
+router.post("/List_All_RO_Cases", listROAllCases );
+
+router.post("/Create_RO", CreateRO);
+
+//DRC LIST
+router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
+
+
+
+// After Revamp
+
+router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
+
+router.post('/Terminate_RO', Terminate_RO);
+
+router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_Details_to_DRC);
 
 export default router;

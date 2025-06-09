@@ -51,15 +51,15 @@ const contactsSchema = new Schema({
 },{ _id: false });
 
 const editedcontactsSchema = new Schema({
-  ro_id: { type: Number, required: true },
+  ro_id: { type: Number },
   drc_id: { type: Number, required: true },
   edited_dtm: { type: Date, required: true },
-  contact_type: { type: String, required: true, enum: ['Mobile', 'Landline'] },
-  contact_no: { type: Number, required: true },
-  customer_identification_type: { type: String, required: true, enum: ['NIC', 'Passport', "Driving License"] },
-  customer_identification: { type: String, required: true },
-  email: { type: String, required: true },
-  address: { type: String, required: true },
+  contact_type: { type: String, enum: ['Mobile', 'Landline'],default:null },
+  contact_no: { type: Number, default:null},
+  customer_identification_type: { type: String, enum: ['NIC', 'Passport', "Driving License"],default:null },
+  customer_identification: { type: String,default:null },
+  email: { type: String,default:null},
+  address: { type: String,default:null },
   geo_location: {type: String, default:null},
   remark:{type: String, default:null},
 },{ _id: false });
@@ -73,9 +73,9 @@ const drcSchema = new Schema({
   drc_status: {type: String, required:true},
   status_dtm: {type:Date, required: true},
   expire_dtm: {type:Date, required: true},
-  case_removal_remark: { type: String, required: true },
-  removed_by: { type: String, required: true },
-  removed_dtm: { type: Date, required: true },
+  case_removal_remark: { type: String, required: false },
+  removed_by: { type: String, required: false },
+  removed_dtm: { type: Date, required: false },
   drc_selection_logic: {type: String, required: true},
   case_distribution_batch_id:{type:Number, required: true},
   recovery_officers: [recoveryOfficerSchema]
@@ -119,8 +119,8 @@ const RoCpeCollectSchema = new mongoose.Schema({
 });
 
 const roNegotiationSchema = new mongoose.Schema({
-  drc_id: { type: String, required: true },
-  ro_id: { type: String, required: true },
+  drc_id: { type: Number, required: true },
+  ro_id: { type: Number, required: true },
   drc: {type: String, required: true},
   ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
@@ -322,7 +322,7 @@ const caseDetailsSchema = new Schema({
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
   area: { type: String, required: true },
-  rtom: { type: String, required: true },
+  rtom: { type: Number, required: true },
   arrears_band: {type: String, required: true},
   bss_arrears_amount: { type: Number, required: true },
   current_arrears_amount: { type: Number, required: true },
@@ -343,6 +343,7 @@ const caseDetailsSchema = new Schema({
   remark: [remarkSchema],
   approve: [approvalSchema],
   case_status: [caseStatusSchema],
+  case_current_phase:{ type: String, required: true },
   drc: [drcSchema],
   abnormal_stop: [abnormalSchema],
   ref_products: [productDetailsSchema], 
