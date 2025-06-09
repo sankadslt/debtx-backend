@@ -1748,7 +1748,162 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
 
-router.post('/Terminate_RO', Terminate_RO);
+/**
+ * @swagger
+ * /api/recovery_officer/Terminate_RO:
+ *   patch:
+ *     summary: RO-2A02 Terminate a Recovery Officer
+ *     description: |
+ *       Terminates a Recovery Officer or a DRC User in MongoDB.
+ * 
+ *       | Version | Date        | Description                        | Changed By      |
+ *       |---------|-------------|------------------------------------|-----------------|
+ *       | 01      | 2025-Jun-09 | Terminate a Recovery Officer/User | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Recovery Officer.
+ *       - in: query
+ *         name: drcUser_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the drcUser.
+ *       - in: query
+ *         name: end_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Jagath"
+ *         description: Name of the person who initiated the termination
+ *       - in: query
+ *         name: remark
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Termination of RO due to policy violation"
+ *         description: Reason for termination
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             oneOf:
+ *               - required: [ro_id, end_by, remark]
+ *               - required: [drcUser_id, end_by, remark]
+ *             properties:
+ *               ro_id:
+ *                 type: integer
+ *                 example: 2
+ *                 description: ID of the Recovery Officer (optional if drcUser_id is provided)
+ *               end_by:
+ *                 type: string
+ *                 example: "Jagath"
+ *                 description: Name of the person who initiated the termination
+ *               remark:
+ *                 type: string
+ *                 example: "Termination of RO due to policy violation"
+ *                 description: Reason for termination
+ *     responses:
+ *       200:
+ *         description: Recovery Officer or DRC User terminated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: drcUser terminated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ro_id:
+ *                       type: integer
+ *                       example: 2
+ *                     drcUser_id:
+ *                       type: integer
+ *                       example: 1
+ *                     ro_name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     drcUser_status:
+ *                       type: string
+ *                       example: Terminate
+ *                     end_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-08T05:06:36.098Z"
+ *                     end_by:
+ *                       type: string
+ *                       example: "Jagath"
+ *                     termination_remark:
+ *                       type: object
+ *                       properties:
+ *                         remark:
+ *                           type: string
+ *                           example: "Termination the RO"
+ *                         remark_by:
+ *                           type: string
+ *                           example: "Jagath"
+ *                         remark_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-06-08T05:06:36.098Z"
+ *       400:
+ *         description: Validation error - missing or conflicting IDs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Please provide either ro_id or drcUser_id, not both
+ *       404:
+ *         description: Recovery Officer or DRC User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drcUser not found
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to terminate user
+ *                 error:
+ *                   type: string
+ *                   example: "Error terminating user: Error: Cannot read properties of undefined (reading 'x')"
+ */
+
+router.patch('/Terminate_RO', Terminate_RO);
 
 router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_Details_to_DRC);
 
