@@ -158,7 +158,7 @@ const serviceSchema = new Schema({
     required: true,
   },
   create_on: {
-    type: String,
+    type: Date,
     required: true,
   },
   status_update_dtm: {
@@ -190,13 +190,10 @@ const rtomSchema = new Schema({
     type: String,
     required: true
   },
-  create_by: {
+  handling_type: {
     type: String,
-    required: true
-  },
-  create_dtm: {
-    type: Date,
-    required: true
+    required: true,
+    enum: ["CPE", "Arrears", "All-Type"]
   },
   status_update_by: {
     type: String,
@@ -223,6 +220,7 @@ const remarkSchema = new Schema({
     required: true
   },
 });
+
 const drcSchema = new Schema(
   {
     doc_version : {type:Number, required: true, default: 1},

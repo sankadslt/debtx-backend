@@ -10,11 +10,13 @@ Related Files: RO_route.js
 Notes:  */
 
 import db from "../config/db.js";
+import mongoose from 'mongoose';
 import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
+
 
 
 
@@ -2307,65 +2309,169 @@ export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
   }
 }
 
-// Controller to list recovery officer info by ro_id using POST method
+/**
+ * Fetches detailed Recovery Officer or DRC User information, including DRC and RTOM data, 
+ * based on a unique identifier (`ro_id` or `drcUser_id`).
+ *
+ * Request Body:
+ * - ro_id: number (optional) – The ID of the Recovery Officer. Cannot be sent with `drcUser_id`.
+ * - drcUser_id: number (optional) – The ID of the DRC User. Cannot be sent with `ro_id`.
+ *
+ * Logic:
+ * 1. Validates the presence of either `ro_id` or `drcUser_id`, but not both. Returns 400 if validation fails.
+ * 2. Constructs a MongoDB aggregation pipeline:
+ *    - $match: Filters documents based on the provided ID.
+ *    - $lookup: Joins with `Debt_recovery_company` collection using `drc_id` to get DRC information.
+ *    - $project: Selects and formats relevant fields, including:
+ *        - Basic contact info (name, NIC, phone, email)
+ *        - Active status of the user
+ *        - Associated DRC name
+ *        - RTOM area info with status (only for Recovery Officer)
+ *        - Change log history with remarks
+ * 3. If no matching document is found, responds with 404.
+ * 4. If successful, responds with 200 and the formatted data.
+ *
+ * Responses:
+ * - 200: Recovery Officer or DRC User data retrieved successfully.
+ * - 400: Validation error – either no ID or both IDs provided.
+ * - 404: No matching Recovery Officer or DRC User found.
+ * - 500: Internal server error during aggregation.
+ */
+
 export const listROInfoByROId = async (req, res) => {
     try {
-        const { ro_id } = req.body;
+        const { ro_id, drcUser_id } = req.body;
 
-        // Validate input
-        if (!ro_id) {
-            return res.status(400).json({ message: 'ro_id is required in the request body' });
+        // Validate that at least one ID is provided
+        if (!ro_id && !drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Either ro_id or drcUser_id is required in the request body' 
+            });
         }
 
-        // Fetch recovery officer
-        const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-
-        if (!recoveryOfficer) {
-            return res.status(404).json({ message: 'Recovery Officer not found' });
+        // Validate that both IDs are not provided at the same time
+        if (ro_id && drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Please provide either ro_id or drcUser_id, not both' 
+            });
         }
 
-        // Format helper for dates
-        const formatDate = (date) => {
-            return date ? new Date(date).toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: 'numeric'
-            }) : null;
-        };
+        // Build match condition based on provided ID
+        let matchCondition = {};
+        let projectStage = {};
 
-        // Map RTOM areas with their statuses
-        const rtom_areas = (recoveryOfficer.rtom || []).map(rtom => ({
-            name: rtom.rtom_name,
-            status: rtom.rtom_status === 'Active' ? true : false // Convert to boolean for toggle switch display
-        }));
+        if (ro_id) {
+            matchCondition = { ro_id: Number(ro_id) };
+            projectStage = {
+                $project: {
+                    added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
+                    recovery_officer_name: "$ro_name",
+                    nic: "$nic",
+                    contact_no: "$login_contact_no",
+                    email: "$login_email",
+                    drcUser_status: { $eq: ["$drcUser_status", "Active"] },
+                    drc_id: "$drc_id",
+                    drc_name: { 
+                        $ifNull: [
+                            { $arrayElemAt: ["$drc_info.drc_name", 0] }, 
+                            null
+                        ] 
+                    },
+                    rtom_areas: {
+                        $map: {
+                            input: "$rtom",
+                            as: "rtom",
+                            in: {
+                                name: "$$rtom.rtom_name",
+                                status: { $eq: ["$$rtom.rtom_status", "Active"] }
+                            }
+                        }
+                    },
+                    log_history: {
+                        $map: {
+                            input: "$remark",
+                            as: "rem",
+                            in: {
+                                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
+                                action: "$$rem.remark",
+                                edited_by: "$$rem.remark_by"
+                            }
+                        }
+                    }
+                }
+            };
+        } else if (drcUser_id) {
+            matchCondition = { drcUser_id: Number(drcUser_id) };
+            projectStage = {
+                $project: {
+                    added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
+                    drcUser_name: "$ro_name",
+                    nic: "$nic",
+                    contact_no: "$login_contact_no",
+                    email: "$login_email",
+                    drcUser_status: { $eq: ["$drcUser_status", "Active"] },
+                    drc_id: "$drc_id",
+                    drc_name: { 
+                        $ifNull: [
+                            { $arrayElemAt: ["$drc_info.drc_name", 0] }, 
+                            null
+                        ] 
+                    },
+                    log_history: {
+                        $map: {
+                            input: "$remark",
+                            as: "rem",
+                            in: {
+                                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
+                                action: "$$rem.remark",
+                                edited_by: "$$rem.remark_by"
+                            }
+                        }
+                    }
+                }
+            };
+        }
 
-        // Map remarks to log history
-        const log_history = (recoveryOfficer.remark || []).map(rem => ({
-            edited_on: formatDate(rem.remark_dtm),
-            action: rem.remark,
-            edited_by: rem.remark_by
-        }));
+        const pipeline = [
+            { $match: matchCondition },
+            {
+                $lookup: {
+                    from: "Debt_recovery_company", // Adjust collection name if needed
+                    localField: "drc_id",
+                    foreignField: "drc_id",
+                    as: "drc_info"
+                }
+            },
+            projectStage
+        ];
 
-        // Construct response matching the page
-        const response = {
-            added_date: formatDate(recoveryOfficer.ro_create_dtm),
-            recovery_officer_name: recoveryOfficer.ro_name,
-            nic: recoveryOfficer.ro_nic,
-            contact_no: recoveryOfficer.ro_login_contact_no,
-            email: recoveryOfficer.ro_login_email,
-            rtom_areas,
-            log_history
-        };
+        const result = await Recovery_officer.aggregate(pipeline);
 
-        return res.status(200).json(response);
+        if (!result || result.length === 0) {
+            return res.status(404).json({ 
+                status: "error",
+                message: ro_id ? 'Recovery Officer not found' : 'DRC User not found' 
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Data retrieved successfully",
+            data: result[0]
+        });
+
     } catch (error) {
-        console.error('Error fetching recovery officer info:', error);
+        console.error('Error fetching recovery officer/drcUser info:', error);
         return res.status(500).json({ 
+            status: "error",
             message: 'Internal server error',
             error: error.message || error.toString()
         });
     }
 };
+
 
 // Create Recovery Officer
 export const CreateRO = async (req, res) => {
@@ -2487,5 +2593,501 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+/**
+ * Terminates a Recovery Officer or DRC User by updating their status to "Terminate", recording
+ * the termination details, and appending a remark entry in the system.
+ *
+ * Request Body:
+ * - ro_id: number (optional) – The ID of the Recovery Officer to be terminated.
+ * - drcUser_id: number (optional) – The ID of the DRC User to be terminated.
+ * - end_by: string (required) – Identifier of the person initiating the termination.
+ * - remark: string (required) – Reason or remark for the termination.
+ *
+ * Logic:
+ * 1. Validates that either `ro_id` or `drcUser_id` is provided, but not both.
+ * 2. Validates required fields: `end_by` and `remark`.
+ * 3. Starts a MongoDB session and initiates a transaction.
+ * 4. Fetches the user based on the provided ID. Returns 404 if not found.
+ * 5. Checks if the user is already terminated. Returns 400 if so.
+ * 6. Updates the user document by:
+ *    - Setting `drcUser_status` to "Terminate"
+ *    - Recording `end_dtm` and `end_by`
+ *    - Appending a new entry in the `remark` array
+ * 7. Commits the transaction if all operations succeed.
+ * 8. Returns 200 with termination confirmation and updated user data.
+ *
+ * Responses:
+ * - 200: Termination successful, user data returned.
+ * - 400: Validation error (missing fields or already terminated).
+ * - 404: Recovery Officer or DRC User not found.
+ * - 500: Internal server error during transaction or update.
+ */
+
+export const Terminate_RO = async (req, res) => {
+    const session = await mongoose.startSession();
+    
+    try {
+        const { ro_id, drcUser_id, end_by, remark } = req.body;
+
+        // Validate that at least one ID is provided
+        if (!ro_id && !drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Either ro_id or drcUser_id is required in the request body' 
+            });
+        }
+
+        // Validate that both IDs are not provided at the same time
+        if (ro_id && drcUser_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Please provide either ro_id or drcUser_id, not both' 
+            });
+        }
+
+        // Validate other required fields
+        if (!end_by) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'ro_end_by is required in the request body' 
+            });
+        }
+        if (!remark) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'remark is required in the request body' 
+            });
+        }
+
+        let updatedRO;
+        let newRemark;
+        let queryCondition = {};
+        let drcUser_type = '';
+
+        // Build query condition based on provided ID
+        if (ro_id) {
+            queryCondition = { ro_id: Number(ro_id) };
+            drcUser_type = 'RO';
+        } else if (drcUser_id) {
+            queryCondition = { drcUser_id: Number(drcUser_id) };
+            drcUser_type = 'drcUser';
+        }
+
+        // Start transaction
+        await session.withTransaction(async () => {
+            // Check if user exists
+            const user = await Recovery_officer.findOne(queryCondition).session(session);
+            
+            if (!user) {
+                const error = new Error(`${drcUser_type} not found`);
+                error.statusCode = 404;
+                throw error;
+            }
+
+            // Check if already terminated
+            if (user.drcUser_status === 'Terminate') {
+                const error = new Error(`${drcUser_type} is already terminated`);
+                error.statusCode = 400;
+                throw error;
+            }
+
+            // Create new remark object
+            newRemark = {
+                remark: remark,
+                remark_by: end_by,
+                remark_dtm: new Date()
+            };
+
+            // Update the user
+            updatedRO = await Recovery_officer.findOneAndUpdate(
+                queryCondition,
+                {
+                    $set: {
+                        drcUser_status: 'Terminate',
+                        end_dtm: new Date(),
+                        end_by: end_by
+                    },
+                    $push: {
+                        remark: newRemark
+                    }
+                },
+                { 
+                    new: true, 
+                    runValidators: true,
+                    session: session
+                }
+            );
+
+            if (!updatedRO) {
+                const error = new Error(`Failed to terminate ${drcUser_type}`);
+                error.statusCode = 500;
+                throw error;
+            }
+        });
+
+        // Build response data based on user type
+        let responseData = {
+            ro_name: updatedRO.ro_name,
+            drcUser_status: updatedRO.drcUser_status,
+            end_dtm: updatedRO.end_dtm,
+            end_by: updatedRO.end_by,
+            termination_remark: newRemark
+        };
+
+        // Add specific ID field to response
+        if (ro_id) {
+            responseData.ro_id = updatedRO.ro_id;
+        } else if (drcUser_id) {
+            responseData.drcUser_id = updatedRO.drcUser_id;
+        }
+
+        // Transaction completed successfully
+        return res.status(200).json({
+            status: "success",
+            message: `${drcUser_type} terminated successfully`,
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error('Error terminating user:', error);
+        
+        // Handle errors with status codes
+        const statusCode = error.statusCode || 500;
+        const message = error.message || 'Internal server error';
+        
+        return res.status(statusCode).json({
+            status: "error",
+            message: message,
+            ...(statusCode === 500 && { error: error.toString() })
+        });
+    } finally {
+        // Always end the session
+        await session.endSession();
+    }
+};
+
+/**
+ * Lists Recovery Officers (RO) or DRC Users associated with a specific DRC ID,
+ * with optional status filtering and pagination. This endpoint is used by DRCs
+ * to fetch associated users along with a count of active RTOM areas (for ROs).
+ *
+ * Request Body:
+ * - drc_id: string (required) – The unique identifier of the DRC.
+ * - drcUser_type: string (required) – Must be either "RO" or "drcUser".
+ * - drcUser_status: string (optional) – One of "Active", "Inactive", or "Terminate".
+ * - pages: number (optional) – Page number for pagination (default: 1).
+ *
+ * Logic:
+ * 1. Validates required fields (`drc_id`, `drcUser_type`) and accepted enum values.
+ * 2. Constructs a filter object based on input parameters.
+ * 3. Adds pagination using skip/limit with 10 records per page.
+ * 4. Defines specific projection fields depending on the `drcUser_type`:
+ *    - For "RO": Includes `ro_id`, `rtom`, and others.
+ *    - For "drcUser": Includes `drcUser_id` and user info fields.
+ * 5. Queries the `Recovery_officer` collection with the filters and projections.
+ * 6. Maps the result to a simplified response format:
+ *    - For ROs: Adds `rtom_area_count` (count of active RTOM entries).
+ * 7. Returns the formatted data with metadata like total records and current page.
+ *
+ * Responses:
+ * - 200: Data successfully retrieved.
+ * - 400: Missing or invalid request fields.
+ * - 404: No records found matching the filter criteria.
+ * - 500: Internal server error during data retrieval.
+ */
+
+export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
+    try {
+        // Extract parameters from request body
+        const { drc_id, drcUser_type, drcUser_status, pages } = req.body;
+
+        // Validate required fields
+        if (!drc_id || !drcUser_type) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drc_id and drcUser_type are required fields'
+            });
+        }
+
+        // Validate drcUser_type enum
+        if (!['RO', 'drcUser'].includes(drcUser_type)) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drcUser_type must be either "RO" or "drcUser"'
+            });
+        }
+
+        // Build filter object
+        const filter = {
+            drc_id: drc_id,
+            drcUser_type: drcUser_type
+        };
+
+        // Add drcUser_status to filter if provided
+        if (drcUser_status) {
+            // Validate drcUser_status enum if provided
+            if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: 'drcUser_status must be one of: Active, Inactive, Terminate'
+                });
+            }
+            filter.drcUser_status = drcUser_status;
+        }
+
+        // Pagination logic
+        let page = Number(pages);
+        if (isNaN(page) || page < 1) page = 1;
+
+        const limit = page === 1 ? 10 : 10;
+        const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+
+        // Define projection fields based on drcUser_type
+        let projection = {};
+        if (drcUser_type === 'RO') {
+            projection = {
+                ro_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1,
+                rtom: 1 // Need rtom to calculate rtom_area_count
+            };
+        } else if (drcUser_type === 'drcUser') {
+            projection = {
+                drcUser_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1
+            };
+        }
+
+        // Fetch the total count of documents that match the filter criteria (without pagination)
+        const totalCount = await Recovery_officer.countDocuments(filter);
+
+        // Find documents based on filter with pagination and projection
+        const documents = await Recovery_officer.find(filter, projection)
+            .skip(skip)
+            .limit(limit)
+            .sort({ ro_id: -1, drcUser_id: -1 }); // Sort by ro_id and drcUser_id in descending order
+
+        if (!documents || documents.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: 'No matching records found'
+            });
+        }
+
+        // Process documents based on drcUser_type
+        const processedData = documents.map(doc => {
+            if (drcUser_type === 'RO') {
+                // Calculate rtom_area_count (count of rtom objects with status "Active")
+                const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+
+                return {
+                    ro_id: doc.ro_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no,
+                    rtom_area_count: rtom_area_count
+                };
+            } else if (drcUser_type === 'drcUser') {
+                return {
+                    drcUser_id: doc.drcUser_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no
+                };
+            }
+        });
+
+        // Return successful response
+        return res.status(200).json({
+            status: "success",
+            message: 'Data retrieved successfully',
+            data: processedData,
+            total_records: totalCount,
+            current_page: page,
+            records_per_page: limit
+        });
+
+    } catch (error) {
+        console.error('Error in List_All_RO_and_DRCuser_Details_to_DRC:', error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Retrieves a paginated list of Recovery Officers (RO) or DRC Users for SLT,
+ * based on user type and optional status filter. Useful for SLT-level overviews without filtering by DRC ID.
+ *
+ * Request Body:
+ * - drcUser_type: string (required) – Must be either "RO" or "drcUser".
+ * - drcUser_status: string (optional) – Filter by status; one of "Active", "Inactive", or "Terminate".
+ * - pages: number (optional) – Page number for pagination; defaults to 1.
+ *
+ * Function Logic:
+ * 1. Validates presence and value of `drcUser_type`.
+ * 2. Optionally validates and applies `drcUser_status` to the filter.
+ * 3. Constructs MongoDB filter and projection objects based on user type.
+ * 4. Implements pagination using skip/limit (10 records per page).
+ * 5. Sorts results by `ro_id` and `drcUser_id` in descending order.
+ * 6. For each RO:
+ *    - Calculates `rtom_area_count` by counting RTOM entries with status "Active".
+ * 7. For each drcUser:
+ *    - Returns basic user info without RTOM count.
+ * 8. Responds with formatted data including pagination and total record count.
+ *
+ * Successful Response (HTTP 200):
+ * {
+ *   status: "success",
+ *   message: "Data retrieved successfully",
+ *   data: [...],
+ *   total_records: <number>,
+ *   current_page: <number>,
+ *   records_per_page: 10
+ * }
+ *
+ * Error Responses:
+ * - 400: If `drcUser_type` is missing or invalid.
+ * - 404: If no records match the filter.
+ * - 500: If an internal error occurs.
+ */
+
+export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
+    try {
+        // Extract parameters from request body
+        const { drcUser_type, drcUser_status, pages } = req.body;
+
+        // Validate required fields
+        if (!drcUser_type) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drcUser_type is required fields'
+            });
+        }
+
+        // Validate drcUser_type enum
+        if (!['RO', 'drcUser'].includes(drcUser_type)) {
+            return res.status(400).json({
+                status: "error",
+                message: 'drcUser_type must be either "RO" or "drcUser"'
+            });
+        }
+
+        // Build filter object
+        const filter = {
+            drcUser_type: drcUser_type
+        };
+
+        // Add drcUser_status to filter if provided
+        if (drcUser_status) {
+            // Validate drcUser_status enum if provided
+            if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
+                return res.status(400).json({
+                    status: "error",
+                    message: 'drcUser_status must be one of: Active, Inactive, Terminate'
+                });
+            }
+            filter.drcUser_status = drcUser_status;
+        }
+
+        // Pagination logic
+        let page = Number(pages);
+        if (isNaN(page) || page < 1) page = 1;
+
+        const limit = page === 1 ? 10 : 10;
+        const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+
+        // Define projection fields based on drcUser_type
+        let projection = {};
+        if (drcUser_type === 'RO') {
+            projection = {
+                ro_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1,
+                rtom: 1 // Need rtom to calculate rtom_area_count
+            };
+        } else if (drcUser_type === 'drcUser') {
+            projection = {
+                drcUser_id: 1,
+                drcUser_status: 1,
+                nic: 1,
+                ro_name: 1,
+                login_contact_no: 1
+            };
+        }
+
+        // Fetch the total count of documents that match the filter criteria (without pagination)
+        const totalCount = await Recovery_officer.countDocuments(filter);
+
+        // Find documents based on filter with pagination and projection
+        const documents = await Recovery_officer.find(filter, projection)
+            .skip(skip)
+            .limit(limit)
+            .sort({ ro_id: -1, drcUser_id: -1 }); // Sort by ro_id and drcUser_id in descending order
+
+        if (!documents || documents.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: 'No matching records found'
+            });
+        }
+
+        // Process documents based on drcUser_type
+        const processedData = documents.map(doc => {
+            if (drcUser_type === 'RO') {
+                // Calculate rtom_area_count (count of rtom objects with status "Active")
+                const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+
+                return {
+                    ro_id: doc.ro_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no,
+                    rtom_area_count: rtom_area_count
+                };
+            } else if (drcUser_type === 'drcUser') {
+                return {
+                    drcUser_id: doc.drcUser_id,
+                    drcUser_status: doc.drcUser_status,
+                    nic: doc.nic,
+                    ro_name: doc.ro_name,
+                    login_contact_no: doc.login_contact_no
+                };
+            }
+        });
+
+        // Return successful response
+        return res.status(200).json({
+            status: "success",
+            message: 'Data retrieved successfully',
+            data: processedData,
+            total_records: totalCount,
+            current_page: page,
+            records_per_page: limit
+        });
+
+    } catch (error) {
+        console.error('Error in List_All_RO_and_DRCuser_Details_to_SLT:', error);
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
+
 
 
