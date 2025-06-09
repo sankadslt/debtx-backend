@@ -2309,8 +2309,35 @@ export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
   }
 }
 
-// Modifyed by Dinusha according to modifyed model.
-// Added aggregrations and lookups for better db performance.
+/**
+ * Fetches detailed Recovery Officer or DRC User information, including DRC and RTOM data, 
+ * based on a unique identifier (`ro_id` or `drcUser_id`).
+ *
+ * Request Body:
+ * - ro_id: number (optional) – The ID of the Recovery Officer. Cannot be sent with `drcUser_id`.
+ * - drcUser_id: number (optional) – The ID of the DRC User. Cannot be sent with `ro_id`.
+ *
+ * Logic:
+ * 1. Validates the presence of either `ro_id` or `drcUser_id`, but not both. Returns 400 if validation fails.
+ * 2. Constructs a MongoDB aggregation pipeline:
+ *    - $match: Filters documents based on the provided ID.
+ *    - $lookup: Joins with `Debt_recovery_company` collection using `drc_id` to get DRC information.
+ *    - $project: Selects and formats relevant fields, including:
+ *        - Basic contact info (name, NIC, phone, email)
+ *        - Active status of the user
+ *        - Associated DRC name
+ *        - RTOM area info with status (only for Recovery Officer)
+ *        - Change log history with remarks
+ * 3. If no matching document is found, responds with 404.
+ * 4. If successful, responds with 200 and the formatted data.
+ *
+ * Responses:
+ * - 200: Recovery Officer or DRC User data retrieved successfully.
+ * - 400: Validation error – either no ID or both IDs provided.
+ * - 404: No matching Recovery Officer or DRC User found.
+ * - 500: Internal server error during aggregation.
+ */
+
 export const listROInfoByROId = async (req, res) => {
     try {
         const { ro_id, drcUser_id } = req.body;
@@ -2446,8 +2473,6 @@ export const listROInfoByROId = async (req, res) => {
 };
 
 
-
-
 // Create Recovery Officer
 export const CreateRO = async (req, res) => {
   const { drc_id, ro_name, ro_login_email, ro_login_contact_no, ro_nic, ro_create_by, rtoms_for_ro } = req.body;
@@ -2570,81 +2595,35 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 };
 
 
-// export const Terminate_RO = async (req, res) => {
-//     try {
-//         const { ro_id, ro_end_by, remark } = req.body;
-
-//         // Validate required fields
-//         if (!ro_id) {
-//             return res.status(400).json({ message: 'ro_id is required in the request body' });
-//         }
-//         if (!ro_end_by) {
-//             return res.status(400).json({ message: 'ro_end_by is required in the request body' });
-//         }
-//         if (!remark) {
-//             return res.status(400).json({ message: 'remark is required in the request body' });
-//         }
-
-//         // Check if recovery officer exists
-//         const recoveryOfficer = await Recovery_officer.findOne({ ro_id: Number(ro_id) });
-        
-//         if (!recoveryOfficer) {
-//             return res.status(404).json({ message: 'Recovery Officer not found' });
-//         }
-
-//         // Check if already terminated
-//         if (recoveryOfficer.ro_status === 'Terminate') {
-//             return res.status(400).json({ message: 'Recovery Officer is already terminated' });
-//         }
-
-//         // Create new remark object
-//         const newRemark = {
-//             remark: remark,
-//             remark_by: ro_end_by,
-//             remark_dtm: new Date()
-//         };
-
-//         // Update the recovery officer
-//         const updatedRO = await Recovery_officer.findOneAndUpdate(
-//             { ro_id: Number(ro_id) },
-//             {
-//                 $set: {
-//                     ro_status: 'Terminate',
-//                     ro_end_dtm: new Date(),
-//                     ro_end_by: ro_end_by
-//                 },
-//                 $push: {
-//                     remark: newRemark
-//                 }
-//             },
-//             { new: true, runValidators: true }
-//         );
-
-//         if (!updatedRO) {
-//             return res.status(500).json({ message: 'Failed to terminate Recovery Officer' });
-//         }
-
-//         return res.status(200).json({
-//             message: 'Recovery Officer terminated successfully',
-//             data: {
-//                 ro_id: updatedRO.ro_id,
-//                 ro_name: updatedRO.ro_name,
-//                 ro_status: updatedRO.ro_status,
-//                 ro_end_dtm: updatedRO.ro_end_dtm,
-//                 ro_end_by: updatedRO.ro_end_by,
-//                 termination_remark: newRemark
-//             }
-//         });
-
-//     } catch (error) {
-//         console.error('Error terminating recovery officer:', error);
-//         return res.status(500).json({
-//             message: 'Internal server error',
-//             error: error.message || error.toString()
-//         });
-//     }
-// };
-
+/**
+ * Terminates a Recovery Officer or DRC User by updating their status to "Terminate", recording
+ * the termination details, and appending a remark entry in the system.
+ *
+ * Request Body:
+ * - ro_id: number (optional) – The ID of the Recovery Officer to be terminated.
+ * - drcUser_id: number (optional) – The ID of the DRC User to be terminated.
+ * - end_by: string (required) – Identifier of the person initiating the termination.
+ * - remark: string (required) – Reason or remark for the termination.
+ *
+ * Logic:
+ * 1. Validates that either `ro_id` or `drcUser_id` is provided, but not both.
+ * 2. Validates required fields: `end_by` and `remark`.
+ * 3. Starts a MongoDB session and initiates a transaction.
+ * 4. Fetches the user based on the provided ID. Returns 404 if not found.
+ * 5. Checks if the user is already terminated. Returns 400 if so.
+ * 6. Updates the user document by:
+ *    - Setting `drcUser_status` to "Terminate"
+ *    - Recording `end_dtm` and `end_by`
+ *    - Appending a new entry in the `remark` array
+ * 7. Commits the transaction if all operations succeed.
+ * 8. Returns 200 with termination confirmation and updated user data.
+ *
+ * Responses:
+ * - 200: Termination successful, user data returned.
+ * - 400: Validation error (missing fields or already terminated).
+ * - 404: Recovery Officer or DRC User not found.
+ * - 500: Internal server error during transaction or update.
+ */
 
 export const Terminate_RO = async (req, res) => {
     const session = await mongoose.startSession();
@@ -2789,6 +2768,35 @@ export const Terminate_RO = async (req, res) => {
     }
 };
 
+/**
+ * Lists Recovery Officers (RO) or DRC Users associated with a specific DRC ID,
+ * with optional status filtering and pagination. This endpoint is used by DRCs
+ * to fetch associated users along with a count of active RTOM areas (for ROs).
+ *
+ * Request Body:
+ * - drc_id: string (required) – The unique identifier of the DRC.
+ * - drcUser_type: string (required) – Must be either "RO" or "drcUser".
+ * - drcUser_status: string (optional) – One of "Active", "Inactive", or "Terminate".
+ * - pages: number (optional) – Page number for pagination (default: 1).
+ *
+ * Logic:
+ * 1. Validates required fields (`drc_id`, `drcUser_type`) and accepted enum values.
+ * 2. Constructs a filter object based on input parameters.
+ * 3. Adds pagination using skip/limit with 10 records per page.
+ * 4. Defines specific projection fields depending on the `drcUser_type`:
+ *    - For "RO": Includes `ro_id`, `rtom`, and others.
+ *    - For "drcUser": Includes `drcUser_id` and user info fields.
+ * 5. Queries the `Recovery_officer` collection with the filters and projections.
+ * 6. Maps the result to a simplified response format:
+ *    - For ROs: Adds `rtom_area_count` (count of active RTOM entries).
+ * 7. Returns the formatted data with metadata like total records and current page.
+ *
+ * Responses:
+ * - 200: Data successfully retrieved.
+ * - 400: Missing or invalid request fields.
+ * - 404: No records found matching the filter criteria.
+ * - 500: Internal server error during data retrieval.
+ */
 
 export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
     try {
@@ -2916,6 +2924,43 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
         });
     }
 };
+
+/**
+ * Retrieves a paginated list of Recovery Officers (RO) or DRC Users for SLT,
+ * based on user type and optional status filter. Useful for SLT-level overviews without filtering by DRC ID.
+ *
+ * Request Body:
+ * - drcUser_type: string (required) – Must be either "RO" or "drcUser".
+ * - drcUser_status: string (optional) – Filter by status; one of "Active", "Inactive", or "Terminate".
+ * - pages: number (optional) – Page number for pagination; defaults to 1.
+ *
+ * Function Logic:
+ * 1. Validates presence and value of `drcUser_type`.
+ * 2. Optionally validates and applies `drcUser_status` to the filter.
+ * 3. Constructs MongoDB filter and projection objects based on user type.
+ * 4. Implements pagination using skip/limit (10 records per page).
+ * 5. Sorts results by `ro_id` and `drcUser_id` in descending order.
+ * 6. For each RO:
+ *    - Calculates `rtom_area_count` by counting RTOM entries with status "Active".
+ * 7. For each drcUser:
+ *    - Returns basic user info without RTOM count.
+ * 8. Responds with formatted data including pagination and total record count.
+ *
+ * Successful Response (HTTP 200):
+ * {
+ *   status: "success",
+ *   message: "Data retrieved successfully",
+ *   data: [...],
+ *   total_records: <number>,
+ *   current_page: <number>,
+ *   records_per_page: 10
+ * }
+ *
+ * Error Responses:
+ * - 400: If `drcUser_type` is missing or invalid.
+ * - 404: If no records match the filter.
+ * - 500: If an internal error occurs.
+ */
 
 export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
     try {

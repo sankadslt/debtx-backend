@@ -1596,6 +1596,156 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 // After Revamp
 
+/**
+ * @swagger
+ * /api/recovery_officer/List_RO_Info_Own_By_RO_Id:
+ *   post:
+ *     summary: RO-1P03 Get Recovery Officer Info by ID
+ *     description: |
+ *       Retrieves Recovery Officer information based on either `ro_id` or `drcUser_id`.
+ * 
+ *       | Version | Date        | Description                                  | Changed By      |
+ *       |---------|-------------|----------------------------------------------|-----------------|
+ *       | 01      | 2025-Jun-09 | Retrieve Recovery Officer or DRC User info   | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Recovery Officer.
+ *       - in: query
+ *         name: drcUser_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the drcUser.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ro_id:
+ *                 type: integer
+ *                 description: ID of the Recovery Officer.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Data retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: 68432826b89343629cd32f90
+ *                     added_date:
+ *                       type: string
+ *                       example: 06-01-2025
+ *                     drcUser_name:
+ *                       type: string
+ *                       example: John Doe
+ *                     nic:
+ *                       type: string
+ *                       example: 123456789V
+ *                     contact_no:
+ *                       type: string
+ *                       example: +1234567890
+ *                     email:
+ *                       type: string
+ *                       example: john.doe@example.com
+ *                     drcUser_status:
+ *                       type: boolean
+ *                       example: false
+ *                     drc_id:
+ *                       type: integer
+ *                       example: 1
+ *                     drc_name:
+ *                       type: string
+ *                       example: D1
+ *                     rtom_areas:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: Hambantota
+ *                           status:
+ *                             type: boolean
+ *                             example: true
+ *                     log_history:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           edited_on:
+ *                             type: string
+ *                             example: 06-01-2025
+ *                           action:
+ *                             type: string
+ *                             example: Initial assignment completed successfully
+ *                           edited_by:
+ *                             type: string
+ *                             example: admin_user
+ *       400:
+ *         description: Validation error - missing or conflicting parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Either ro_id or drcUser_id is required in the request body
+ *       404:
+ *         description: Recovery Officer or DRC User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC User not found
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 error:
+ *                   type: string
+ *                   example: Error message here
+ */
+
 router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
 
 router.post('/Terminate_RO', Terminate_RO);
