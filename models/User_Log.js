@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
 // Sub-schema for remarks
 const contactNumberSchema = new Schema({
@@ -132,11 +132,11 @@ const userSchema = new Schema(
   },
   {
     timestamps: true, // Automatically manage createdAt and updatedAt fields
-     collection: "User",
+    collection: "User_log",
   }
 );
 
 // Create the User model
-const User = model("User", userSchema);
+const User_log = mongoose.model("User_log", userSchema);
 
-export default User;
+export default User_log;
