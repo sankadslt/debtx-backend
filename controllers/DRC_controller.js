@@ -1432,7 +1432,7 @@ export const List_All_DRC_Details = async (req, res) => {
 
     if (!drcData || drcData.length === 0) {
       return res.status(404).json({
-        status: "error",
+        status: "success",
         message: "No matching DRC records found.",
         data: [],
       });
@@ -1636,11 +1636,14 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
       {
         $project: {
           _id: 0,
+          drc_id: 1,
+          drc_name: 1,
           create_on: 1,
           drc_business_registration_number: 1,
           drc_contact_no: 1,
           drc_email: 1,
           drc_address: 1,
+
 
           // Latest SLT Coordinator
           slt_coordinator: {
