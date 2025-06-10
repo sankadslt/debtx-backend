@@ -1421,28 +1421,36 @@ export const List_Service_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
 
-    const drc = await DRC.findOne(
-      { drc_id: parseInt(drc_id) },
-      { services: 1, _id: 0 }
-    );
-
-    if (!drc) {
-      return res.status(404).json({ message: 'DRC not found' });
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC ID is required"
+      });
     }
 
-    // Extract only required fields from each service
-    const servicesData = drc.services.map(service => ({
-      service_type: service.service_type,
-      enable_date: service.create_on,
-      status: service.service_status
-    }));
+    // Query your database for services owned by this DRC
+    const services = await Service.find({ 
+      drc_id: parseInt(drc_id),
+      status: "Active"
+    }).lean();
 
-    res.status(200).json(servicesData);
+    return res.status(200).json({
+      status: "success",
+      services: services.map(service => ({
+        service_type: service.service_type,
+        status: service.status,
+        enable_date: service.enable_date
+      }))
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Error fetching services:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve services",
+      error: error.message
+    });
   }
 };
-
 export const getDebtCompanyByDRCID = async (req, res) => {
   try {
     const { drc_id } = req.body;
