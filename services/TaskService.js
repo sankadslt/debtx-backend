@@ -24,7 +24,7 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
       }
   
       // Generate a unique Task_Id
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
@@ -109,7 +109,7 @@ export const createTask = async (req, res) => {
       }
   
       // Generate a unique Task_Id
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
@@ -172,7 +172,7 @@ export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Inciden
   try {
     // Generate a unique Task_Id
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
       { _id: "task_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
