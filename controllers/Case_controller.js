@@ -8414,3 +8414,152 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
     });
   }
 };
+
+export const List_All_Cases = async (req, res) => {
+  try {
+    const {
+      case_current_status,
+      From_DAT,
+      TO_DAT,
+      RTOM,
+      DRC,
+      arrears_band,
+      service_type,
+      pages
+    } = req.body;
+
+    if (
+      !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
+    )
+    {
+      return res.status(400).json({
+        status: "error",
+        message: "At least one filter is required"
+      });
+    }
+
+    const pipeline = [];
+
+    
+     
+    if  (case_current_status) {
+      pipeline.push({ $match: {case_current_status} });
+    }
+     
+    if  (RTOM) {
+      pipeline.push({ $match: { rtom: Number(RTOM) } });
+    }
+
+   
+    if (arrears_band) {
+      pipeline.push({ $match: { arrears_band } });
+    }
+ 
+    if (service_type) {
+      pipeline.push({ $match: { service_type } });
+    }
+ 
+    const dateFilter = {};
+    const fromDate = From_DAT ? new Date(From_DAT) : null;
+    const toDate = TO_DAT ? new Date(TO_DAT) : null;
+
+    if (fromDate && toDate && fromDate > toDate) {
+      dateFilter.$gte = toDate;
+      dateFilter.$lte = fromDate;
+    } else {
+      if (fromDate) dateFilter.$gte = fromDate;
+      if (toDate) dateFilter.$lte = toDate;
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({ $match: { created_dtm: dateFilter } });
+    }
+ 
+    pipeline.push({
+      $addFields: {
+        last_drc: { $arrayElemAt: ["$drc", -1] }
+      }
+    });
+
+    pipeline.push({
+      $match: {
+        'last_drc.drc_status': 'Active',
+        'last_drc.removed_dtm': null
+      }
+    });
+
+    if (DRC) {
+      pipeline.push({
+        $match: {
+          'last_drc.drc_id': Number(DRC)
+        }
+      });
+    }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const filtered_cases = await Case_details.aggregate(pipeline);
+
+    const responseData = filtered_cases.map((caseData) => {
+      return{
+      case_id: caseData.case_id,
+      status: caseData.case_current_status,
+      date: caseData.created_dtm || null,
+      rtom: caseData.rtom || null,
+      service_type: caseData.service_type || null,
+      current_arrears_amount: caseData.current_arrears_amount || null,
+      account_no: caseData.account_no || null,
+      drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
+      drc_id: caseData.last_drc ? caseData.last_drc.drc_id : null,
+      last_payment_date:caseData.last_payment_date || null,
+    };});
+
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: responseData
+    });
+  } catch (error) {
+    console.error("Failed to fetch cases:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "There is an error fetching case list."
+    });
+  }
+};
+
+export const CaseStatus = async (req, res) => {
+  try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+    const statuses = await mongoConnection
+      .collection("Case_Phases")
+      .find({end_dtm: null})
+      .toArray();
+      
+    return res.status(200).json({
+      status: "success",
+      message: "Data retrieved successfully.",
+      data: statuses, // Return raw data with case_status field
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving Case status.",
+      errors: {
+        code: 500,
+        description: error.message,  
+      },
+    });
+  }
+};
