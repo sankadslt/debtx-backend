@@ -8915,15 +8915,15 @@ export const List_All_Cases = async (req, res) => {
       pages
     } = req.body;
 
-    if (
-      !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
-    )
-    {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filter is required"
-      });
-    }
+    // if (
+    //   !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
+    // )
+    // {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filter is required"
+    //   });
+    // }
 
     const pipeline = [];
 
@@ -8943,7 +8943,7 @@ export const List_All_Cases = async (req, res) => {
     }
  
     if (service_type) {
-      pipeline.push({ $match: { service_type } });
+      pipeline.push({ $match: { drc_commision_rule: service_type } });
     }
  
     const dateFilter = {};
@@ -9032,7 +9032,7 @@ export const CaseStatus = async (req, res) => {
     }
     const statuses = await mongoConnection
       .collection("Case_status")
-      .find({})
+      .find({ end_dtm: null })
       .toArray();
       
     return res.status(200).json({

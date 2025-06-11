@@ -5,7 +5,7 @@ const Case_statusSchema = new Schema({
     doc_version: { type: Number, required: true, default: 1 },
     case_status: { type: String, required: true },
     case_phase: { type: String, required: true },
-    end_DTM: { type: Date, default: null },
+    end_dtm: { type: Date, default: null },
      
 });
 
