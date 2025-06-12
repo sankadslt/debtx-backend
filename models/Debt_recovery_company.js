@@ -232,7 +232,6 @@ const drcSchema = new Schema(
     drc_name: {
       type: String,
       required: true,
-      unique: true
     },
     drc_business_registration_number: {
         type: String, 
