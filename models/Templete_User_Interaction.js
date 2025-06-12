@@ -18,7 +18,7 @@ const templeteUserInteractionSchema = new Schema({
   para4: { type: String, default: null },
   para5: { type: String, default: null },
 }, {
-  collection: 'Templete_User_Interaction',
+  collection: 'Template_User_Interaction',
 });
 
 const TempleteUserInteraction = model('TempleteUserInteraction', templeteUserInteractionSchema);

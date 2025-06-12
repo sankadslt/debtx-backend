@@ -20,6 +20,14 @@ const TemplateNegotiationSchema = new mongoose.Schema(
       enum: ["Field", "Fail"], // Allowed values: Field, Fail
       required: true,
     },
+    Field: {
+      type: Boolean,
+      required: true
+    },
+    Fail: {
+      type: Boolean,
+      required: true
+    },
     commision: { 
         type: Number, 
         required: true, 
