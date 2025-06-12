@@ -16,6 +16,7 @@ import Rtom  from '../models/Rtom.js';
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
+import User_log from "../models/User_Log.js";
 
 
 
@@ -2597,7 +2598,8 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 
 /**
  * Terminates a Recovery Officer or DRC User by updating their status to "Terminate", recording
- * the termination details, and appending a remark entry in the system.
+ * the termination details, appending a remark entry in the system, and updating the related
+ * User_log document to reflect the termination status.
  *
  * Request Body:
  * - ro_id: number (optional) – The ID of the Recovery Officer to be terminated.
@@ -2609,21 +2611,28 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
  * 1. Validates that either `ro_id` or `drcUser_id` is provided, but not both.
  * 2. Validates required fields: `end_by` and `remark`.
  * 3. Starts a MongoDB session and initiates a transaction.
- * 4. Fetches the user based on the provided ID. Returns 404 if not found.
+ * 4. Fetches the user from Recovery_officer collection based on the provided ID. Returns 404 if not found.
  * 5. Checks if the user is already terminated. Returns 400 if so.
- * 6. Updates the user document by:
+ * 6. Updates the Recovery_officer document by:
  *    - Setting `drcUser_status` to "Terminate"
  *    - Recording `end_dtm` and `end_by`
  *    - Appending a new entry in the `remark` array
- * 7. Commits the transaction if all operations succeed.
- * 8. Returns 200 with termination confirmation and updated user data.
+ * 7. Updates the corresponding User_log document by:
+ *    - Setting `user_status_type` to "RO_update"
+ *    - Setting `user_status` to "false"
+ *    - Recording `user_status_dtm` and `user_status_by`
+ *    - Recording `user_end_dtm` and `user_end_by`
+ *    - Appending a new entry in the `remark` array
+ * 8. Commits the transaction if all operations succeed.
+ * 9. Returns 200 with termination confirmation and updated user data.
  *
  * Responses:
  * - 200: Termination successful, user data returned.
  * - 400: Validation error (missing fields or already terminated).
  * - 404: Recovery Officer or DRC User not found.
- * - 500: Internal server error during transaction or update.
+ * - 500: Internal server error during transaction, update, or User_log update failure.
  */
+
 
 export const Terminate_RO = async (req, res) => {
     const session = await mongoose.startSession();
@@ -2725,6 +2734,42 @@ export const Terminate_RO = async (req, res) => {
                 error.statusCode = 500;
                 throw error;
             }
+
+            // Update User_log document
+            const userLogQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+            const userLogRemark = {
+                remark: remark,
+                remark_by: end_by,
+                remark_dtm: new Date()
+            };
+
+            const updatedUserLog = await User_log.findOneAndUpdate(
+                userLogQuery,
+                {
+                    $set: {
+                        user_status_type: 'RO_update',
+                        user_status: 'false',
+                        user_status_dtm: new Date(),
+                        user_status_by: end_by,
+                        user_end_dtm: new Date(),
+                        user_end_by: end_by
+                    },
+                    $push: {
+                        remark: userLogRemark
+                    }
+                },
+                {
+                    new: true,
+                    runValidators: true,
+                    session: session
+                }
+            );
+
+            if (!updatedUserLog) {
+                const error = new Error('Failed to update User_log document');
+                error.statusCode = 500;
+                throw error;
+            }
         });
 
         // Build response data based on user type
@@ -2767,6 +2812,7 @@ export const Terminate_RO = async (req, res) => {
         await session.endSession();
     }
 };
+
 
 /**
  * Lists Recovery Officers (RO) or DRC Users associated with a specific DRC ID,
