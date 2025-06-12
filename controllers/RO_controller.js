@@ -2972,66 +2972,63 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
 };
 
 /**
- * Retrieves a paginated list of Recovery Officers (RO) or DRC Users for SLT,
- * based on user type and optional status filter. Useful for SLT-level overviews without filtering by DRC ID.
+ * Retrieves a paginated list of Recovery Officers (RO) for SLT with associated DRC company names.
+ * Uses MongoDB aggregation with lookup to fetch DRC details in a single database call.
  *
  * Request Body:
- * - drcUser_type: string (required) – Must be either "RO" or "drcUser".
  * - drcUser_status: string (optional) – Filter by status; one of "Active", "Inactive", or "Terminate".
- * - pages: number (optional) – Page number for pagination; defaults to 1.
+ * - pages: number (required) – Page number for pagination; defaults to 1.
  *
  * Function Logic:
- * 1. Validates presence and value of `drcUser_type`.
- * 2. Optionally validates and applies `drcUser_status` to the filter.
- * 3. Constructs MongoDB filter and projection objects based on user type.
- * 4. Implements pagination using skip/limit (10 records per page).
- * 5. Sorts results by `ro_id` and `drcUser_id` in descending order.
- * 6. For each RO:
- *    - Calculates `rtom_area_count` by counting RTOM entries with status "Active".
- * 7. For each drcUser:
- *    - Returns basic user info without RTOM count.
- * 8. Responds with formatted data including pagination and total record count.
+ * 1. Validates `drcUser_status` if provided (must be "Active", "Inactive", or "Terminate").
+ * 2. Constructs MongoDB filter object with hardcoded `drcUser_type: "RO"`.
+ * 3. Implements pagination using skip/limit (10 records per page).
+ * 4. Uses aggregation pipeline with the following stages:
+ *    - $match: Filters documents by RO type and optional status
+ *    - $project: Selects required fields including drc_id for lookup
+ *    - $sort: Orders results by ro_id in descending order
+ *    - $skip/$limit: Implements pagination
+ *    - $lookup: Joins with Debt_recovery_company collection using drc_id
+ *    - $unwind: Flattens the joined DRC data
+ *    - $addFields: Extracts drc_name from joined document
+ * 5. Calculates `rtom_area_count` by counting RTOM entries with status "Active".
+ * 6. Returns RO data with drc_name, rtom_area_count, and pagination details.
  *
  * Successful Response (HTTP 200):
  * {
  *   status: "success",
  *   message: "Data retrieved successfully",
- *   data: [...],
+ *   data: [
+ *     {
+ *       ro_id: <number>,
+ *       drcUser_status: <string>,
+ *       nic: <string>,
+ *       ro_name: <string>,
+ *       login_contact_no: <string>,
+ *       rtom_area_count: <number>,
+ *       drc_name: <string>
+ *     }
+ *   ],
  *   total_records: <number>,
  *   current_page: <number>,
  *   records_per_page: 10
  * }
  *
  * Error Responses:
- * - 400: If `drcUser_type` is missing or invalid.
- * - 404: If no records match the filter.
- * - 500: If an internal error occurs.
+ * - 400: If `drcUser_status` is provided but invalid.
+ * - 404: If no RO records match the filter.
+ * - 500: If an internal error occurs during aggregation or processing.
  */
+
 
 export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
     try {
         // Extract parameters from request body
-        const { drcUser_type, drcUser_status, pages } = req.body;
+        const { drcUser_status, pages } = req.body;
 
-        // Validate required fields
-        if (!drcUser_type) {
-            return res.status(400).json({
-                status: "error",
-                message: 'drcUser_type is required fields'
-            });
-        }
-
-        // Validate drcUser_type enum
-        if (!['RO', 'drcUser'].includes(drcUser_type)) {
-            return res.status(400).json({
-                status: "error",
-                message: 'drcUser_type must be either "RO" or "drcUser"'
-            });
-        }
-
-        // Build filter object
+        // Build filter object - always filter for RO type
         const filter = {
-            drcUser_type: drcUser_type
+            drcUser_type: 'RO'
         };
 
         // Add drcUser_status to filter if provided
@@ -3050,38 +3047,58 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
         let page = Number(pages);
         if (isNaN(page) || page < 1) page = 1;
 
-        const limit = page === 1 ? 10 : 10;
+        const limit = 10;
         const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
 
-        // Define projection fields based on drcUser_type
-        let projection = {};
-        if (drcUser_type === 'RO') {
-            projection = {
-                ro_id: 1,
-                drcUser_status: 1,
-                nic: 1,
-                ro_name: 1,
-                login_contact_no: 1,
-                rtom: 1 // Need rtom to calculate rtom_area_count
-            };
-        } else if (drcUser_type === 'drcUser') {
-            projection = {
-                drcUser_id: 1,
-                drcUser_status: 1,
-                nic: 1,
-                ro_name: 1,
-                login_contact_no: 1
-            };
-        }
+        // Define projection fields for RO only
+        const projection = {
+            ro_id: 1,
+            drcUser_status: 1,
+            nic: 1,
+            ro_name: 1,
+            login_contact_no: 1,
+            rtom: 1,
+            drc_id: 1
+        };
 
-        // Fetch the total count of documents that match the filter criteria (without pagination)
+        // Aggregation pipeline
+        const pipeline = [
+            { $match: filter },
+            { $project: projection },
+            { $sort: { ro_id: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+                $lookup: {
+                    from: 'Debt_recovery_company',
+                    localField: 'drc_id',
+                    foreignField: 'drc_id',
+                    as: 'drc_info'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$drc_info',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $addFields: {
+                    drc_name: '$drc_info.drc_name'
+                }
+            },
+            {
+                $project: {
+                    drc_info: 0 // Remove the drc_info field from final output
+                }
+            }
+        ];
+
+        // Get total count for pagination
         const totalCount = await Recovery_officer.countDocuments(filter);
 
-        // Find documents based on filter with pagination and projection
-        const documents = await Recovery_officer.find(filter, projection)
-            .skip(skip)
-            .limit(limit)
-            .sort({ ro_id: -1, drcUser_id: -1 }); // Sort by ro_id and drcUser_id in descending order
+        // Execute aggregation pipeline
+        const documents = await Recovery_officer.aggregate(pipeline);
 
         if (!documents || documents.length === 0) {
             return res.status(404).json({
@@ -3090,29 +3107,20 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
             });
         }
 
-        // Process documents based on drcUser_type
+        // Process documents for RO only
         const processedData = documents.map(doc => {
-            if (drcUser_type === 'RO') {
-                // Calculate rtom_area_count (count of rtom objects with status "Active")
-                const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+            // Calculate rtom_area_count (count of rtom objects with status "Active")
+            const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
 
-                return {
-                    ro_id: doc.ro_id,
-                    drcUser_status: doc.drcUser_status,
-                    nic: doc.nic,
-                    ro_name: doc.ro_name,
-                    login_contact_no: doc.login_contact_no,
-                    rtom_area_count: rtom_area_count
-                };
-            } else if (drcUser_type === 'drcUser') {
-                return {
-                    drcUser_id: doc.drcUser_id,
-                    drcUser_status: doc.drcUser_status,
-                    nic: doc.nic,
-                    ro_name: doc.ro_name,
-                    login_contact_no: doc.login_contact_no
-                };
-            }
+            return {
+                ro_id: doc.ro_id,
+                drcUser_status: doc.drcUser_status,
+                nic: doc.nic,
+                ro_name: doc.ro_name,
+                login_contact_no: doc.login_contact_no,
+                rtom_area_count: rtom_area_count,
+                drc_name: doc.drc_name
+            };
         });
 
         // Return successful response
@@ -3133,7 +3141,6 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
         });
     }
 };
-
 
 
 
