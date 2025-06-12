@@ -6,8 +6,6 @@ const contactNumberSchema = new Schema({
     type: Number,
     required: true,
   },
-  
-
 });
 
 // Sub-schema for remarks
@@ -23,6 +21,14 @@ const remarkSchema = new Schema({
   remark_by: {
     type: String,
     required: true
+  },
+});
+
+const roleSchema = new Schema({
+  user_role: {
+    type: String,
+    enum: ["GM", "DGM", "legal_officer", "manager", "slt_coordinator", "DRC_user", "recovery_staff", "rtom"],
+    required: true,
   },
 });
 
@@ -53,7 +59,7 @@ const userSchema = new Schema(
       type: String, 
       required: true 
     },
-    user_mail: { 
+    email: { 
       type: String, 
       required: true, 
       unique: true 
@@ -68,7 +74,7 @@ const userSchema = new Schema(
       enum: ["slt", "email", "mobile"]
     },
     user_roles: {
-      type: [], // Array of roles
+      type: [roleSchema], // Array of roles
       required: true,
     },
     drc_id: { 
@@ -77,11 +83,11 @@ const userSchema = new Schema(
     },
     ro_id: { 
       type: Number,
-      required: true
+      default: null 
     },
-    DRCuser_id: { 
-      type: String, 
-      required: true
+    drcUser_id: { 
+      type: Number, 
+      default: null 
     },
     user_status_type: { 
       type: String, 
@@ -91,7 +97,7 @@ const userSchema = new Schema(
     user_status: { 
       type: String, 
       required: true, 
-      enum: ["enabled", "disabled"] 
+      enum: ["true", "false"] 
     },
     user_status_dtm:{
       type: Date, 

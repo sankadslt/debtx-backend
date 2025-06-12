@@ -83,11 +83,11 @@ export const getUserDetailsByRole = async (req, res) => {
 export const List_All_User_Details = async (req, res) => {
   const { user_id, user_roles, user_type, user_status, page } = req.body;
 
-  try {
+  try {    
     const query = {};
 
     if (user_id) query.user_id = user_id;
-    if (user_roles) query.user_roles = { $in: [user_roles] };
+    if (user_roles) query["user_roles.user_role"] = { $in: [user_roles] };
     if (user_type) query.user_type = user_type;
     if (user_status) query.user_status = user_status;
 
