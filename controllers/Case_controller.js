@@ -8428,15 +8428,15 @@ export const List_All_Cases = async (req, res) => {
       pages
     } = req.body;
 
-    if (
-      !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
-    )
-    {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filter is required"
-      });
-    }
+    // if (
+    //   !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
+    // )
+    // {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filter is required"
+    //   });
+    // }
 
     const pipeline = [];
 
@@ -8514,6 +8514,7 @@ export const List_All_Cases = async (req, res) => {
       status: caseData.case_current_status,
       date: caseData.created_dtm || null,
       rtom: caseData.rtom || null,
+      area: caseData.area || null,
       service_type: caseData.service_type || null,
       current_arrears_amount: caseData.current_arrears_amount || null,
       account_no: caseData.account_no || null,
