@@ -112,7 +112,7 @@
 import { Schema, model } from "mongoose";
 
 const coordinatorSchema = new Schema({
-  service_no: {
+  service_id: {
     type: String,
     required: true,
     unique: true,
