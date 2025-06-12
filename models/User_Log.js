@@ -83,11 +83,11 @@ const userSchema = new Schema(
     },
     ro_id: { 
       type: Number,
-      required: true
+      default: null 
     },
-    DRCuser_id: { 
-      type: String, 
-      required: true
+    drcUser_id: { 
+      type: Number, 
+      default: null 
     },
     user_status_type: { 
       type: String, 
