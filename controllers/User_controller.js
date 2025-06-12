@@ -10,6 +10,7 @@
     Notes:  
 */
 
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import User_log from '../models/User_Log.js';
 
@@ -114,8 +115,6 @@ export const List_All_User_Details = async (req, res) => {
       { $skip: skip },
       { $limit: limit },
     ]);
-
-    // console.log("Users", users);
     
     if (!users || users.length === 0) {
       return res.status(404).json({
@@ -199,6 +198,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
           created_by: 1,
           approved_dtm: 1,
           approved_by: 1,
+          user_end_dtm: 1,
           remark: 1,
         },
       },
@@ -230,5 +230,116 @@ export const List_All_User_Details_By_ID = async (req, res) => {
     });
   }
 };
+
+
+export const End_User = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { user_id, end_by, end_dtm, remark } = req.body;
+
+    // Validate User ID
+    if (!user_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "user_id is required in the request body.",
+      });
+    }
+
+    // Validate other required fields
+    if (!end_by) {
+        return res.status(400).json({ 
+            status: "error",
+            message: 'end_by is required in the request body.' 
+        });
+    }
+    if (!remark) {
+        return res.status(400).json({ 
+            status: "error",
+            message: 'remark is required in the request body.' 
+        });
+    }
+
+    //Default to current date if end_dtm is not provided
+    const terminationDate = end_dtm ? new Date(end_dtm) : new Date();
+
+    let updatedUser;
+    const newRemark = {
+      remark,
+      remark_by: end_by,
+      remark_dtm: terminationDate,
+    };
+
+    await session.withTransaction(async () => {
+      // Find the user
+      const user = await User_log.findOne({ user_id }).session(session);
+      if (!user) {
+        const error = new Error("User not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Check if already terminated
+      if (user.user_end_dtm) {
+        const error = new Error("User is already terminated.");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update user document
+      updatedUser = await User_log.findOneAndUpdate(
+        { user_id },
+        {
+          $set: {
+            user_end_dtm: terminationDate,
+            user_end_by: end_by,
+            user_status: "false",
+            // user_status_type: "user_update",
+            // user_status_dtm: terminationDate,
+            // user_status_by: end_by,
+          },
+          $push: {
+            remark: newRemark,
+          },
+        },
+        {
+          new: true,
+          session,
+          runValidators: true,
+        }
+      );
+
+      if (!updatedUser) {
+        const error = new Error("Failed to terminate user.");
+        error.statusCode = 500;
+        throw error;
+      }
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "User terminated successfully.",
+      data: {
+        user_id: updatedUser.user_id,
+        user_status: updatedUser.user_status,
+        user_end_dtm: updatedUser.user_end_dtm,
+        user_end_by: updatedUser.user_end_by,
+        termination_remark: newRemark,
+      },
+    });
+  } catch (error) {
+    console.error("Error terminating user:", error);
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      ...(statusCode === 500 && { error: error.toString() }),
+    });
+  } finally {
+    await session.endSession();
+  }
+};
+
+
 
 
