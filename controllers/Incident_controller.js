@@ -107,7 +107,7 @@ export const Create_Incident = async (req, res) => {
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
       { _id: "incident_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -349,7 +349,7 @@ export const Upload_DRS_File = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     // Increment the counter for file_upload_seq
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
       { _id: "file_upload_seq" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
