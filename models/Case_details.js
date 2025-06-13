@@ -269,7 +269,7 @@ const document_type_schema = new Schema({
   document_type:{type: String, required:true},
   change_by:{type: String, required:true},
   changed_dtm: {type:Date, required:true},
-  changed_type_remark: {type:String, required:true},
+  changed_type_remark: {type:String, default:null},
 },{_id: false });
 
 const lod_submission_schema = new Schema({
@@ -298,13 +298,13 @@ const lod_final_reminder_Schema = new Schema({
     required: true,
   },
   lod_distribution_id : {type:Number, default:null},
-  lod_expire_on : {type: Date, required:true},
+  lod_expire_on : {type: Date,default:null},
   document_type : [document_type_schema],
   lod_submission : {type:lod_submission_schema, default:null},
   lod_response : [lod_response_schema],
   lod_notification : [{
-    notification_seq : {type:Number, required: true},
-    notification_on :{ type: Date, required: true }
+    notification_seq : {type:Number, default:null},
+    notification_on :{ type: Date, default:null }
   }],
 });
 
