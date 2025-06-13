@@ -17,6 +17,10 @@ import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
 import User_log from "../models/User_Log.js";
+import User_Approval from "../models/User_Approval.js";
+import {createUserInteractionFunction} from "../services/UserInteractionService.js"
+import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
+
 
 
 
@@ -1046,11 +1050,11 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 //       { returnDocument: "after", upsert: true }
 //     );
 
-//     console.log("Counter Result:", counterResult);
-//     const ro_id = counterResult.value?.seq || counterResult.seq;
-//     if (!ro_id) {
-//       throw new Error("Failed to generate ro_id.");
-//     }
+    // console.log("Counter Result:", counterResult);
+    // const ro_id = counterResult.value?.seq || counterResult.seq;
+    // if (!ro_id) {
+    //   throw new Error("Failed to generate ro_id.");
+    // }
 
 //     // Step 3: Fetch drc_name by drc_id
 //     const drc = await DebtRecoveryCompany.findOne({ drc_id });
@@ -3140,6 +3144,310 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
             message: error.message
         });
     }
+};
+
+
+/**
+ * Creates a new DRC User or Recovery Officer (RO) with approval workflow integration.
+ * Uses MongoDB transactions to ensure data consistency across multiple collections.
+ *
+ * Request Body:
+ * - drcUser_type: string (required) – User type; must be "RO" or "drcUser".
+ * - drc_id: number (required) – DRC company identifier.
+ * - ro_name: string (required) – Full name of the user.
+ * - nic: string (required) – National Identity Card number.
+ * - login_email: string (optional) – Email address for login; can be null.
+ * - login_contact_no: string (required) – Contact phone number.
+ * - create_by: string (required) – Username of the creator.
+ * - rtoms: array (optional) – Array of RTOM objects for RO type users.
+ *   Each RTOM object requires:
+ *   - rtom_id: number (required)
+ *   - rtom_name: string (required)
+ *   - billing_center_code: string (required)
+ *   - rtom_status: string (optional) – defaults to "Active"
+ *   - handling_type: string (optional) – defaults to null
+ *
+ * Function Logic:
+ * 1. Validates all required fields and user type constraints.
+ * 2. For RO type: validates rtoms array structure and required fields.
+ * 3. Initiates MongoDB transaction using Mongoose session.
+ * 4. Generates unique IDs based on user type:
+ *    - RO type: generates ro_id, sets drcUser_id to null
+ *    - drcUser type: generates drcUser_id, sets ro_id to null
+ * 5. Creates Recovery_officer record with user details and RTOM data.
+ * 6. Generates approval_id and creates User_Approval record for workflow.
+ * 7. Integrates with user interaction system for approval tracking.
+ * 8. Commits transaction on success or rolls back on error.
+ * 9. Returns comprehensive response with created records and interaction details.
+ *
+ * Database Operations:
+ * - Updates collection_sequence for ID generation (ro_id, drcUser_id, approval_id)
+ * - Inserts record into Recovery_officer collection
+ * - Inserts record into User_Approval collection
+ * - Creates user interaction log entries via createUserInteractionFunction
+ *
+ * Successful Response (HTTP 201):
+ * {
+ *   success: true,
+ *   message: "<drcUser_type> created successfully and sent for approval",
+ *   data: {
+ *     recoveryOfficer: {
+ *       _id: <ObjectId>,
+ *       doc_version: 1,
+ *       drc_id: <number>,
+ *       ro_id: <number|null>,
+ *       drcUser_id: <number|null>,
+ *       ro_name: <string>,
+ *       login_email: <string|null>,
+ *       login_contact_no: <string>,
+ *       nic: <string>,
+ *       drcUser_type: <string>,
+ *       drcUser_status: "Active",
+ *       create_dtm: <Date>,
+ *       create_by: <string>,
+ *       rtom: [<rtom_objects>],
+ *       remark: []
+ *     },
+ *     userApproval: {
+ *       _id: <ObjectId>,
+ *       approval_id: <number>,
+ *       user_type: <string>,
+ *       user_name: <string>,
+ *       user_role: <string>,
+ *       approve_status: null,
+ *       created_dtm: <Date>
+ *     },
+ *     interaction: {
+ *       status: "success",
+ *       message: "User interaction created successfully",
+ *       Interaction_Log_ID: <number>
+ *     }
+ *   }
+ * }
+ *
+ * Error Responses:
+ * - 400: Missing required fields or invalid drcUser_type.
+ * - 400: Invalid rtoms array structure or missing RTOM required fields.
+ * - 500: Database connection failure, ID generation failure, or transaction error.
+ * - 500: User interaction creation failure or general internal server error.
+ */
+
+
+export const Create_New_DRCUser_or_RO = async (req, res) => {
+  let session = null;
+  
+  try {
+    const {
+      drcUser_type,
+      drc_id,
+      ro_name,
+      nic,
+      login_email,
+      login_contact_no,
+      create_by,
+      rtoms
+    } = req.body;
+
+    // Validate required fields
+    if (!drcUser_type || !drc_id || !ro_name || !nic || !login_contact_no || !create_by) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields"
+      });
+    }
+
+    // Validate drcUser_type
+    if (!['RO', 'drcUser'].includes(drcUser_type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid drcUser_type. Must be 'RO' or 'drcUser'"
+      });
+    }
+
+    // Validate rtoms array for RO type
+    if (drcUser_type === 'RO' && rtoms && !Array.isArray(rtoms)) {
+      return res.status(400).json({
+        success: false,
+        message: "rtoms must be an array"
+      });
+    }
+
+    // Validate individual rtom objects
+    if (drcUser_type === 'RO' && rtoms && rtoms.length > 0) {
+      for (let i = 0; i < rtoms.length; i++) {
+        const rtom = rtoms[i];
+        if (!rtom.rtom_id || !rtom.rtom_name || !rtom.billing_center_code) {
+          return res.status(400).json({
+            success: false,
+            message: `Missing required fields in rtom at index ${i}. Required: rtom_id, rtom_name, billing_center_code`
+          });
+        }
+      }
+    }
+
+    // Start MongoDB session and transaction
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const currentDate = new Date();
+    let ro_id = null;
+    let drcUser_id = null;
+
+    // Get MongoDB connection
+    const mongoConnection = await db.connectMongoDB();
+
+    if (drcUser_type === 'RO') {
+      // Generate ro_id for RO type
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+        { _id: "ro_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+      console.log("Counter Result:", counterResult);
+      ro_id = counterResult.value?.seq || counterResult.seq;
+      if (!ro_id) {
+        throw new Error("Failed to generate ro_id.");
+      }
+    } else if (drcUser_type === 'drcUser') {
+      // Generate drcUser_id for DRCUser type
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+        { _id: "drcUser_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+      console.log("Counter Result:", counterResult);
+      drcUser_id = counterResult.value?.seq || counterResult.seq;
+      if (!drcUser_id) {
+        throw new Error("Failed to generate drcUser_id.");
+      }
+    }
+
+    // Prepare Recovery_officer record
+    const recoveryOfficerData = {
+      doc_version: 1,
+      drc_id: drc_id,
+      ro_id: ro_id,
+      drcUser_id: drcUser_id,
+      ro_name: ro_name,
+      login_email: login_email || null,
+      login_contact_no: login_contact_no,
+      nic: nic,
+      drcUser_type: drcUser_type,
+      drcUser_status: "Active",
+      create_dtm: currentDate,
+      create_by: create_by,
+      end_dtm: null,
+      end_by: null,
+      rtom: [],
+      remark: []
+    };
+
+    // Add multiple RTOM data if user type is RO and rtoms array is provided
+    if (drcUser_type === 'RO' && ro_id && rtoms && rtoms.length > 0) {
+      recoveryOfficerData.rtom = rtoms.map(rtom => ({
+        rtom_id: rtom.rtom_id,
+        rtom_name: rtom.rtom_name,
+        rtom_status: rtom.rtom_status || "Active",
+        billing_center_code: rtom.billing_center_code,
+        rtom_update_dtm: currentDate,
+        rtom_update_by: create_by,
+        rtom_end_dtm: null,
+        handling_type: rtom.handling_type || null
+      }));
+    }
+
+    // Generate approval_id for User_Approval
+    const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approval_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const approval_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
+    if (!approval_id) {
+      throw new Error("Failed to generate approval_id.");
+    }
+
+    // Prepare User_Approval record
+    const userApprovalData = {
+      doc_version: 1,
+      approval_id: approval_id,
+      user_type: drcUser_type,
+      drc_id: drc_id,
+      ro_id: ro_id,
+      drcUser_id: drcUser_id,
+      user_name: ro_name,
+      user_role: drcUser_type === 'RO' ? 'RO' : 'DRC_Coodinator',
+      login_email: login_email || null,
+      login_contact_no: login_contact_no,
+      created_by: create_by,
+      created_dtm: currentDate,
+      approve_status: null,
+      approve_by: null,
+      approve_dtm: null
+    };
+
+    // Create records in both collections
+    const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
+    const userApproval = new User_Approval(userApprovalData);
+
+    // Save both records with session
+    const savedRecoveryOfficer = await recoveryOfficer.save({ session });
+    const savedUserApproval = await userApproval.save({ session });
+
+    // Create User Interaction
+    const dynamicParams = {
+      user_type: drcUser_type,
+      ro_id: ro_id,
+      drcUser_id: drcUser_id,
+      user_name: ro_name,
+      approval_id: approval_id,
+      drc_id: drc_id
+    };
+
+    const interactionResult = await createUserInteractionFunction({
+      Interaction_ID: 19,
+      User_Interaction_Type: `Pending approval for ${drcUser_type} creation`,
+      delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
+      Created_By: create_by,
+      User_Interaction_Status: "Open",
+      User_Interaction_Status_DTM: currentDate,
+      ...dynamicParams,
+      session
+    });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    return res.status(201).json({
+      success: true,
+      message: `${drcUser_type} created successfully and sent for approval`,
+      data: {
+        recoveryOfficer: savedRecoveryOfficer,
+        userApproval: savedUserApproval,
+        interaction: interactionResult
+      }
+    });
+
+  } catch (error) {
+    // Abort transaction on error
+    if (session) {
+      await session.abortTransaction();
+    }
+    console.error("Error creating user:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  } finally {
+    // End session properly
+    if (session) {
+      await session.endSession();
+    }
+  }
 };
 
 
