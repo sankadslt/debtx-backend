@@ -172,7 +172,7 @@ const remarkSchema = new mongoose.Schema({
   remark_on: { type: Date, default: Date.now },
 }, { _id: false });
 
-const contactNumberSchema = new Schema({
+const contactNumberSchema = new mongoose.Schema({
   contact_number: {
     type: Number,
     required: true,
@@ -180,15 +180,16 @@ const contactNumberSchema = new Schema({
   },
 });
 
+
 const userSchema = new mongoose.Schema({
   User_Squnce: {type:Number, required: true, unique: true },
   user_id: { type: String, required: true, unique: true },
   user_type: { type: String, required: true, enum: ["Slt", "Drcuser", "ro"] },
   username: { type: String, required: true },
-  User_Mail: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
   contact_num: [contactNumberSchema],  // Array of contact numbers
   login_method: { type: String, required: true, enum: ["slt", "gmail", "mobile"] },
-  role: [{ type: String, required: true,  enum: ["GM", "DGM", "legal_officer", "manager", "slt_coordinator", "DRC_user", "recovery_staff", "rtom", "superadmin"] }], // Array of roles
+  role: { type: String, required: true,  enum: ["GM", "DGM", "legal_officer", "manager", "slt_coordinator", "DRC_user", "recovery_staff", "rtom", "superadmin"] }, // Array of roles
   drc_id: { type: Number, unique: true, default: null },
   ro_id: { type: Number, unique: true, default: null },
   DRCuser_ID: { type: String, unique:true, default: null },
@@ -203,6 +204,7 @@ const userSchema = new mongoose.Schema({
   Approved_By: { type: String },
   Approved_On: { type: Date },
   Remark: [remarkSchema],  // Array of remark objects
+  password: { type: String, required: true }, //need to be remove
 });
 
 const User = mongoose.model("User", userSchema);
