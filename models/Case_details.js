@@ -2,6 +2,7 @@ import mongoose, { model } from 'mongoose';
 const { Schema } = mongoose;
 
 const recoveryOfficerSchema = new Schema({
+  order_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   assigned_dtm: { type: Date, required: true },
   assigned_by: { type: String, required: true },
@@ -18,7 +19,7 @@ const remarkSchema = new Schema({
 
 // Define the schema for approval
 const approvalSchema = new Schema({
-  approved_process: { type: String, default: null },
+  Approval_Type: { type: String, default: null },
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
@@ -67,6 +68,7 @@ const editedcontactsSchema = new Schema({
 // Define the schema for DRC
 const drcSchema = new Schema({
   order_id: { type: Number, required: true },
+  drc_arrears_band: { type: String, required: true },
   drc_id: { type: Number, required: true },
   drc_name: { type: String, required: true },
   created_dtm: { type: Date, required: true },
@@ -87,6 +89,7 @@ const abnormalSchema = new Schema({
   done_on: {type:Date, required:true},
   action: {type:Number, required:true},
   Case_phase: {type:String, required:true},
+  approved_on: {type:Date, required:true},
 },{_id: false });
 
 const productDetailsSchema = new Schema({
