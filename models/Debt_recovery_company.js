@@ -144,6 +144,11 @@ const coordinatorSchema = new Schema({
 });
 
 const serviceSchema = new Schema({
+  service_id: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   service_type: {
     type: String,
     required: true,

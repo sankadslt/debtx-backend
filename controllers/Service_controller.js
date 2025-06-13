@@ -318,7 +318,7 @@ export const changeServiceStatus = async (req, res) => {
   //       // });
   //       throw new Error('MongoDB connection failed');
   //     }
-  //     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+  //     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
   //       { _id: "service_id" },
   //       { $inc: { seq: 1 } },
   //       { returnDocument: "after", upsert: true }
@@ -396,7 +396,7 @@ export const changeServiceStatus = async (req, res) => {
         throw new Error('MongoDB connection failed');
       }
   
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "service_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true }
