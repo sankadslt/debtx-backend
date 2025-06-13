@@ -124,11 +124,10 @@ const RoCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
-  drc: {type: String, required: true},
-  ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
-  field_reason: { type: String, default:null },
-  remark: { type: String },
+  field_reason: { type: String, default:true },
+  Feild_reason_ID: { type: Number, default:true },
+  negotiation_remark: { type: String, default:true },
 });
 
 const roRequestsSchema = new mongoose.Schema({
@@ -165,6 +164,7 @@ const settlementschema = new Schema({
   settlment_status: {type: String, required:true},
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  case_phase: {type: String, required:true},
 });
 
 const moneytransactionsschema = new Schema({
