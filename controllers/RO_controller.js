@@ -1042,13 +1042,13 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 //       });
 //     }
 
-    // // Step 2: Generate ro_id
-    // const mongoConnection = await db.connectMongoDB();
-    // const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-    //   { _id: "ro_id" },
-    //   { $inc: { seq: 1 } },
-    //   { returnDocument: "after", upsert: true }
-    // );
+//     // Step 2: Generate ro_id
+//     const mongoConnection = await db.connectMongoDB();
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//       { _id: "ro_id" },
+//       { $inc: { seq: 1 } },
+//       { returnDocument: "after", upsert: true }
+//     );
 
     // console.log("Counter Result:", counterResult);
     // const ro_id = counterResult.value?.seq || counterResult.seq;
@@ -1202,7 +1202,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
 //     // Step 2: Generate ro_id
 //     const mongoConnection = await db.connectMongoDB();
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "ro_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -1333,7 +1333,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
 //     // Step 3: Generate ro_id
 //     const mongoConnection = await db.connectMongoDB();
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "ro_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -1484,7 +1484,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
 //     // Step 3: Generate ro_id
 //     const mongoConnection = await db.connectMongoDB();
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "ro_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -1609,7 +1609,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
 //     // Step 3: Generate ro_id
 //     const mongoConnection = await db.connectMongoDB();
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "ro_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -1748,7 +1748,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
 //     // Step 3: Generate ro_id
 //     const mongoConnection = await db.connectMongoDB();
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "ro_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -1885,7 +1885,7 @@ export const RegisterRO = async (req, res) => {
     // Step 2: Generate ro_id
     const mongoConnection = await db.connectMongoDB();
     const counterResult = await mongoConnection
-      .collection("counters")
+      .collection("collection_sequence")
       .findOneAndUpdate(
         { _id: "ro_id" },
         { $inc: { seq: 1 } },
@@ -2500,7 +2500,7 @@ export const CreateRO = async (req, res) => {
 
     // Generate unique ro_id
     const counterResult = await mongoConnection
-      .collection("counters")
+      .collection("collection_sequence")
       .findOneAndUpdate(
         { _id: "ro_id" },
         { $inc: { seq: 1 } },
