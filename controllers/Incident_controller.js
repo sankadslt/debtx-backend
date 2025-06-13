@@ -358,7 +358,7 @@ export const Upload_DRS_File = async (req, res) => {
     const file_upload_seq = counterResult.seq;
 
     // File upload handling
-    const uploadDir = path.join(__dirname, "../uploads");
+    const uploadDir = path.join(__dirname, "/srv/uploads/inbox");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
