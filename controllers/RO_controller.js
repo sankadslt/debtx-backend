@@ -3147,6 +3147,92 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
 };
 
 
+/**
+ * Creates a new DRC User or Recovery Officer (RO) with approval workflow integration.
+ * Uses MongoDB transactions to ensure data consistency across multiple collections.
+ *
+ * Request Body:
+ * - drcUser_type: string (required) – User type; must be "RO" or "drcUser".
+ * - drc_id: number (required) – DRC company identifier.
+ * - ro_name: string (required) – Full name of the user.
+ * - nic: string (required) – National Identity Card number.
+ * - login_email: string (optional) – Email address for login; can be null.
+ * - login_contact_no: string (required) – Contact phone number.
+ * - create_by: string (required) – Username of the creator.
+ * - rtoms: array (optional) – Array of RTOM objects for RO type users.
+ *   Each RTOM object requires:
+ *   - rtom_id: number (required)
+ *   - rtom_name: string (required)
+ *   - billing_center_code: string (required)
+ *   - rtom_status: string (optional) – defaults to "Active"
+ *   - handling_type: string (optional) – defaults to null
+ *
+ * Function Logic:
+ * 1. Validates all required fields and user type constraints.
+ * 2. For RO type: validates rtoms array structure and required fields.
+ * 3. Initiates MongoDB transaction using Mongoose session.
+ * 4. Generates unique IDs based on user type:
+ *    - RO type: generates ro_id, sets drcUser_id to null
+ *    - drcUser type: generates drcUser_id, sets ro_id to null
+ * 5. Creates Recovery_officer record with user details and RTOM data.
+ * 6. Generates approval_id and creates User_Approval record for workflow.
+ * 7. Integrates with user interaction system for approval tracking.
+ * 8. Commits transaction on success or rolls back on error.
+ * 9. Returns comprehensive response with created records and interaction details.
+ *
+ * Database Operations:
+ * - Updates collection_sequence for ID generation (ro_id, drcUser_id, approval_id)
+ * - Inserts record into Recovery_officer collection
+ * - Inserts record into User_Approval collection
+ * - Creates user interaction log entries via createUserInteractionFunction
+ *
+ * Successful Response (HTTP 201):
+ * {
+ *   success: true,
+ *   message: "<drcUser_type> created successfully and sent for approval",
+ *   data: {
+ *     recoveryOfficer: {
+ *       _id: <ObjectId>,
+ *       doc_version: 1,
+ *       drc_id: <number>,
+ *       ro_id: <number|null>,
+ *       drcUser_id: <number|null>,
+ *       ro_name: <string>,
+ *       login_email: <string|null>,
+ *       login_contact_no: <string>,
+ *       nic: <string>,
+ *       drcUser_type: <string>,
+ *       drcUser_status: "Active",
+ *       create_dtm: <Date>,
+ *       create_by: <string>,
+ *       rtom: [<rtom_objects>],
+ *       remark: []
+ *     },
+ *     userApproval: {
+ *       _id: <ObjectId>,
+ *       approval_id: <number>,
+ *       user_type: <string>,
+ *       user_name: <string>,
+ *       user_role: <string>,
+ *       approve_status: null,
+ *       created_dtm: <Date>
+ *     },
+ *     interaction: {
+ *       status: "success",
+ *       message: "User interaction created successfully",
+ *       Interaction_Log_ID: <number>
+ *     }
+ *   }
+ * }
+ *
+ * Error Responses:
+ * - 400: Missing required fields or invalid drcUser_type.
+ * - 400: Invalid rtoms array structure or missing RTOM required fields.
+ * - 500: Database connection failure, ID generation failure, or transaction error.
+ * - 500: User interaction creation failure or general internal server error.
+ */
+
+
 export const Create_New_DRCUser_or_RO = async (req, res) => {
   let session = null;
   
@@ -3212,7 +3298,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
 
     if (drcUser_type === 'RO') {
       // Generate ro_id for RO type
-      const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "ro_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
@@ -3225,7 +3311,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       }
     } else if (drcUser_type === 'drcUser') {
       // Generate drcUser_id for DRCUser type
-      const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "drcUser_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
@@ -3273,7 +3359,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     }
 
     // Generate approval_id for User_Approval
-    const approvalCounterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
+    const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "approval_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
