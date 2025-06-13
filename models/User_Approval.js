@@ -16,10 +16,10 @@ const userApprovalSchema = new Schema(
     user_type: { 
       type: String, 
       required: true, 
-      enum: [ 'RO', 'DRCUser'] 
+      enum: [ 'RO', 'drcUser'] 
     },
     drc_id: { 
-      type: NUmber, 
+      type: Number, 
       required: true 
     },
     ro_id: { 

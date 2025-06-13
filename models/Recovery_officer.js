@@ -428,7 +428,7 @@ const roSchema = new Schema({
         },
         drcUser_type: {
             type: String,
-            enum: ['RO', 'DRCUser'],
+            enum: ['RO', 'drcUser'],
             required: true,
         },
         drcUser_status: {
