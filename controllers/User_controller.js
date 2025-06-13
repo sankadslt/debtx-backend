@@ -84,7 +84,10 @@ export const List_All_User_Details = async (req, res) => {
   const { user_role, user_type, user_status, page } = req.body;
 
   try {    
+    console.log(req.body);
+    
     const query = {};
+
 
     if (user_role) query.role = user_role;
     if (user_type) query.user_type = user_type;
@@ -189,6 +192,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
           username: 1,
           user_type: 1,
           email: 1,
+          contact_num: 1,
           login_method: 1,
           role: 1,
           user_status: 1,
@@ -336,6 +340,88 @@ export const End_User = async (req, res) => {
     await session.endSession();
   }
 };
+
+export const Update_User_Details = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { user_id, updated_by, role, email, contact_num, user_status, remark } = req.body;
+    
+    // Validate User ID
+    if (!user_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "user_id is required in the request body.",
+      });
+    }
+
+    if (!updated_by || !remark) {
+      return res.status(400).json({
+        status: "error",
+        message: "Updated_by, and remark are required.",
+      });
+    }
+
+    await session.withTransaction(async () => {
+      // Find the existing user
+      const user = await User_log.findOne({ user_id }).session(session);
+      if (!user) {
+        const error = new Error("User not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const updateFields = {};
+      const newRemark = {
+        remark,
+        remark_by: updated_by,
+        remark_dtm: new Date(),
+      };
+
+      if (role) updateFields.role = role;
+      if (email) updateFields.email = email;
+      if (contact_num) updateFields.contact_num = contact_num;
+
+      if (user_status && user_status !== user.user_status) {
+        updateFields.user_status = user_status;
+        updateFields.User_Status_Type = "user_update";
+        updateFields.User_Status_On = new Date();
+        updateFields.User_Status_By = updated_by;
+      }
+
+      const updatedUser = await User_log.findOneAndUpdate(
+        { user_id },
+        {
+          $set: updateFields,
+          $push: { Remark: newRemark }
+        },
+        { new: true, runValidators: true, session }
+      );
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user.");
+      }
+
+      res.status(200).json({
+        status: "success",
+        message: "User details updated successfully.",
+        data: updatedUser,
+      });
+    });
+
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error",
+      error: error.toString(),
+    });
+  } finally {
+    await session.endSession();
+  }
+};
+
+
 
 
 
