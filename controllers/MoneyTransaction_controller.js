@@ -33,12 +33,12 @@ export const getAllPaymentCases = async (req, res) => {
   try {
     const { case_id, account_num, settlement_phase, from_date, to_date, pages } = req.body;
 
-    if (!case_id && !settlement_phase && !from_date && !to_date && !account_num) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, settlement_phase, account_num, from_date or to_date is required."
-      });
-    }
+    // if (!case_id && !settlement_phase && !from_date && !to_date && !account_num) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, settlement_phase, account_num, from_date or to_date is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;

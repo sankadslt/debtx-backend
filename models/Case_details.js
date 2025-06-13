@@ -2,6 +2,7 @@ import mongoose, { model } from 'mongoose';
 const { Schema } = mongoose;
 
 const recoveryOfficerSchema = new Schema({
+  order_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
   assigned_dtm: { type: Date, required: true },
   assigned_by: { type: String, required: true },
@@ -18,7 +19,7 @@ const remarkSchema = new Schema({
 
 // Define the schema for approval
 const approvalSchema = new Schema({
-  approved_process: { type: String, default: null },
+  Approval_Type: { type: String, default: null },
   approved_by: { type: String, default: null },
   rejected_by: { type: String, default: null },
   approved_on: { type: Date, required: true },
@@ -67,6 +68,7 @@ const editedcontactsSchema = new Schema({
 // Define the schema for DRC
 const drcSchema = new Schema({
   order_id: { type: Number, required: true },
+  drc_arrears_band: { type: String, required: true },
   drc_id: { type: Number, required: true },
   drc_name: { type: String, required: true },
   created_dtm: { type: Date, required: true },
@@ -87,6 +89,7 @@ const abnormalSchema = new Schema({
   done_on: {type:Date, required:true},
   action: {type:Number, required:true},
   Case_phase: {type:String, required:true},
+  approved_on: {type:Date, required:true},
 },{_id: false });
 
 const productDetailsSchema = new Schema({
@@ -121,11 +124,10 @@ const RoCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
-  drc: {type: String, required: true},
-  ro_name:{type: String, required: true},
   created_dtm: { type: Date, required: true },
-  field_reason: { type: String, default:null },
-  remark: { type: String },
+  field_reason: { type: String, default:true },
+  Feild_reason_ID: { type: Number, default:true },
+  negotiation_remark: { type: String, default:true },
 });
 
 const roRequestsSchema = new mongoose.Schema({
@@ -162,6 +164,7 @@ const settlementschema = new Schema({
   settlment_status: {type: String, required:true},
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  case_phase: {type: String, required:true},
 });
 
 const moneytransactionsschema = new Schema({
@@ -269,7 +272,7 @@ const document_type_schema = new Schema({
   document_type:{type: String, required:true},
   change_by:{type: String, required:true},
   changed_dtm: {type:Date, required:true},
-  changed_type_remark: {type:String, required:true},
+  changed_type_remark: {type:String, default:null},
 },{_id: false });
 
 const lod_submission_schema = new Schema({
@@ -298,13 +301,13 @@ const lod_final_reminder_Schema = new Schema({
     required: true,
   },
   lod_distribution_id : {type:Number, default:null},
-  lod_expire_on : {type: Date, required:true},
+  lod_expire_on : {type: Date,default:null},
   document_type : [document_type_schema],
   lod_submission : {type:lod_submission_schema, default:null},
   lod_response : [lod_response_schema],
   lod_notification : [{
-    notification_seq : {type:Number, required: true},
-    notification_on :{ type: Date, required: true }
+    notification_seq : {type:Number, default:null},
+    notification_on :{ type: Date, default:null }
   }],
 });
 

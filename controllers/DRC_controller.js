@@ -49,7 +49,7 @@ import moment from "moment";
 //       throw new Error("MongoDB connection failed");
 //     }
 
-//     const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
 //       { _id: "drc_id" },
 //       { $inc: { seq: 1 } },
 //       { returnDocument: "after", upsert: true }
@@ -180,7 +180,7 @@ export const registerDRC = async (req, res) => {
     }
 
     // Generate unique DRC ID
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "drc_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
