@@ -608,7 +608,7 @@ export const total_F1_filtered_Incidents = async (req, res) => {
     const details = (await Incident.find({
      
       Incident_Status: { $in: ["Reject Pending"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -639,7 +639,7 @@ export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
       Incident_Status: { $in: ["Open No Agent"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -763,12 +763,13 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
     
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
-        Incident_Status: { $in: OpencpeStatuses },  
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        Incident_Status: { $in: OpencpeStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
@@ -816,11 +817,12 @@ export const List_incidents_Direct_LOD = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: directLODStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
@@ -918,7 +920,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })
       .sort({ Created_Dtm: -1 });
 
@@ -976,7 +978,7 @@ export const distribution_ready_incidents_group_by_arrears_band = async (req, re
   try {
     const details = (await Incident.find({
       Incident_Status:"Open No Agent",
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     }))
     
     const arrearsBandCounts = details.reduce((counts, detail) => {
@@ -1014,7 +1016,7 @@ export const total_incidents_CPE_Collect = async (req, res) => {
     const details = (
       await Incident.find({
         Incident_Status: { $in: ["Open CPE Collect"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
        
       })
     ).length;
@@ -1049,7 +1051,7 @@ export const total_incidents_Direct_LOD = async (req, res) => {
       await Incident.find({
       
         Incident_Status: { $in: ["Direct LOD"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
       })
     ).length;
 

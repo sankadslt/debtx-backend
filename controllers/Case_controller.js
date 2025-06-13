@@ -5985,12 +5985,12 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
           "MB Fail with Pending Non-Settlement"
       ];
 
-      if (!case_status && !RTOM && !DRC && !From_DAT && !TO_DAT) {
-        return res.status(400).json({
-          status: "error",
-          message: "At least one of case_status, From_DAT, TO_DAT, RTOM is required."
-        });
-      }
+      // if (!case_status && !RTOM && !DRC && !From_DAT && !TO_DAT) {
+      //   return res.status(400).json({
+      //     status: "error",
+      //     message: "At least one of case_status, From_DAT, TO_DAT, RTOM is required."
+      //   });
+      // }
 
       const pipeline = [];
 
