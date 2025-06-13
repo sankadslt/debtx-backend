@@ -186,7 +186,7 @@ export const drcExtendValidityPeriod = async (req, res) => {
       throw new Error("MongoDB connection failed");
     }
     const counterResult = await mongoConnection
-      .collection("counters")
+      .collection("collection_sequence")
       .findOneAndUpdate(
         { _id: "User_Interaction_Id" },
         { $inc: { seq: 1 } },
@@ -502,7 +502,7 @@ export const Case_Abandant = async (req, res) => {
     );
 
     const mongoConnection = await mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "transaction_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
@@ -1263,7 +1263,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         message: "Already has tasks with this commision rule and arrears band ",
       });
     }
-    const counter_result_of_case_distribution_batch_id = await mongo.collection("counters").findOneAndUpdate(
+    const counter_result_of_case_distribution_batch_id = await mongo.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_distribution_batch_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
@@ -4588,6 +4588,10 @@ export const Customer_Negotiations = async (req, res) => {
       created_dtm,
       field_reason,
       field_reason_remark,
+      credit_class_no,
+      credit_class_name,
+      account_manager_code,
+      customer_type_name,
       intraction_id,
       initial_amount,
       calender_month,
@@ -4628,21 +4632,35 @@ export const Customer_Negotiations = async (req, res) => {
 
     const validity_period = years * 12 + months;
 
-    if (request_id !=="") {
+    if (request_id) {
       if (!request_type || !intraction_id ||!request_comment) {
         await session.abortTransaction();
         return res.status(400).json({ 
           status: "error",
-          message: "Missing required fields: request_id, request_type, intraction_id" 
+          message: "Missing required fields: request_comment, request_type, intraction_id" 
         });
       }
-      if(request_type == "Forward to Mediation Board"){
-        const result = negotiation_condition_function(current_arrears_amount, validity_period, region, expire_dtm);
-        await session.abortTransaction();
-        return res.status(404).json({ 
-          status: "negotiation_condition_function output",
-          result
-        });
+      if(request_type == "Mediation board forward request letter"){
+        console.log("hhhhhh");
+        // const result = await negotiation_condition_function(
+        //   current_arrears_amount,
+        //   credit_class_no,
+        //   credit_class_name,
+        //   account_manager_code,
+        //   customer_type_name,
+        //   validity_period,
+        //   region,
+        //   expire_dtm,
+        //   case_id,
+        //   created_by
+        // );
+        // if (result.message !== "Request Mediation Board Forward Letter is a valid request") {
+        //   await session.abortTransaction();
+        //   return res.status(404).json({ 
+        //     status: "negotiation_condition_function output",
+        //     result
+        //   });
+        // } 
       } 
       const dynamicParams = {
         case_id,
@@ -4680,7 +4698,7 @@ export const Customer_Negotiations = async (req, res) => {
       };
       case_status_with_request = statusMap[request_type] || "MB Negotiaion";
       const updatedCase = await Case_details.findOneAndUpdate(
-        { case_id: case_id, 'drc.drc_id': drc_id }, 
+        { case_id}, 
         { 
             $push: { 
               ro_negotiation: negotiationData,
@@ -4758,7 +4776,6 @@ export const Customer_Negotiations = async (req, res) => {
         const response = await axios.post('http://124.43.177.52:6000/app3/api/v1/Create_Settlement_Plan',payload);
         console.log(response.data);
       } catch (error) {
-        console.error('Settelment API call failed:', error.message);
         await session.abortTransaction();
         return res.status(500).json({
           status: "error",
@@ -5482,6 +5499,7 @@ export const CaseDetailsforDRC = async (req, res) => {
           case_current_status: 1,
           ro_cpe_collect: 1,
           customer_ref: 1,
+          region: 1,
           account_no: 1,
           current_arrears_amount: 1,
           current_contact: 1,
@@ -7773,22 +7791,27 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
  * - Returns a success response with the updated case details including the new RO CPE collection data.
  */
 export const RO_CPE_Collection = async (req,res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark } = req.body;
+    const { case_id, drc_id, ro_id, order_id, product_label, service_type, cp_type, cpe_model, serial_no, remark, Created_By } = req.body;
       
     if (!case_id || !drc_id || !cp_type ||!cpe_model || !serial_no) {
-        return res.status(400).json({ message: "case_id, drc_id, cpe_model, serial_no and cp_type are required" });
+      await session.abortTransaction();
+      return res.status(400).json({ message: "case_id, drc_id, cpe_model, serial_no and cp_type are required" });
     };
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
+      await session.abortTransaction();
       return res.status(500).json({ message: "Failed to connect to MongoDB" });
     }
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "ro_cpe_collect_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
     if (!counterResult.seq) {
+      await session.abortTransaction();
       return res.status(500).json({ message: "Failed to generate ro_cpe_collect_id" });
     }
 
@@ -7813,22 +7836,49 @@ export const RO_CPE_Collection = async (req,res) => {
           }
         }
       },
-      { new: true }
+      { new: true,session  }
     );
+    if (!updatedCaseDetails) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: "Case not found" });
+    }
+    const parameters = {
+      case_id,
+      serial_no,
+      product_label,
+    }
+    const taskData = {
+      Template_Task_Id: 51,
+      task_type: "Monitor and Update RCMP Details",
+      ...parameters, 
+      task_status: "open",
+      Created_By,
+    };
+
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+
     return res.status(200).json({
       status: "success",
       message: "Case has been updated successfully",
       data: updatedCaseDetails,
     });
   } catch (error) {
-      return res.status(500).json({
-        status: "error",
-        message: "Internal Server Error",
-        errors: {
-          code: 500,
-          description: error.message,
-        },
-      });
+    await session.abortTransaction();
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  } finally {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    await session.endSession();
   }
 };
 
@@ -8175,20 +8225,58 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (req
   }
 }
 
-function negotiation_condition_function(arrears_amount, drc_validity_period, region, expair_date) {
+async function negotiation_condition_function(arrears_amount,credit_class_no,credit_class_name,account_manager_code, customer_type_name,drc_validity_period, region, expair_date,case_id,created_by) {
   let case_status = "";
   let message = "";
   let reason= "";
-
   const now = new Date();
+  let document_type = "";
   const isDRCExpired = expair_date < now;
-
+  if (arrears_amount < 3000 || [3, 7, 10, 43].includes(credit_class_no) || credit_class_name ===  "VIP" ||  ["CS1_GOV","CS1_VLB","CS2_CM1","CS2_CM2"].includes(account_manager_code) || ["Diplomats & Delegates","Government Organizations","Government Official Residential"].includes(customer_type_name)) {
+    document_type = "Final Reminder";
+  } else {
+    document_type =  "LOD";
+  }
   if (arrears_amount < 50000) {
     if (drc_validity_period > 3) {
       if(isDRCExpired){
-          case_status = "LIT Prescribed";
-          message = "Can not Request Mediation Board Forward Letter for this case";
-          reason  = "DRC validity period is expired"
+        try {
+          const updatedCase = await Case_details.findOneAndUpdate(
+              { case_id },
+              {
+                $set: {
+                  case_current_status: "LIT Prescribed",
+                  current_case_phase:"Letter of Demand",
+                  "lod_final_reminder.source_type": "DRC Fail",
+                  "lod_final_reminder.current_document_type": document_type,
+                },
+                $push: {   
+                  "lod_final_reminder.document_type": {
+                    document_seq: 1, //python
+                    document_type: document_type,
+                    change_by: created_by,
+                    changed_dtm: new Date(),
+                  },
+                  case_status:{
+                    case_status:"LIT Prescribed",
+                    created_dtm: new Date(),
+                    created_by,
+                    case_phase:"Letter of Demand"
+                  }
+                },
+              },
+              { new: true, runValidators: true }
+              );
+        } catch(error){
+          return {
+            message: "Database update failed",
+            reason: error.message,
+            error: true
+          };
+        }
+        case_status = "LIT Prescribed";
+        message = "Can not Request Mediation Board Forward Letter for this case";
+        reason  = "DRC validity period is expired";
       } else {
         message = "Request Mediation Board Forward Letter is not a valid request";
         reason  = "DRC validity period is not expired but more than three months"
@@ -8197,34 +8285,105 @@ function negotiation_condition_function(arrears_amount, drc_validity_period, reg
       message = "Request Mediation Board Forward Letter is not a valid request";
       reason  = "DRC validity period is less than three months"
     }
-  } else if (arrears_amount > 1000000) {
+    return {
+    case_status,
+    message,
+    reason
+    };
+  }
+  if (arrears_amount > 1000000) {
+    try {
+      const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $set: {
+          case_current_status: "Pending FTL LOD",
+          current_case_phase:"Letter of Demand",
+        },
+        $push: {
+          case_status:{
+            case_status:"Pending FTL LOD",
+            created_dtm: new Date(),
+            created_by,
+            case_phase:"Letter of Demand"
+          }
+        },
+      },
+      { new: true, runValidators: true }
+    );
+    } catch(error){
+      return {
+        message: "Database update failed",
+        reason: error.message,
+        error: true
+      };
+    }
     case_status = "Pending FTL LOD";
     message = "Request Mediation Board Forward Letter is not a valid request";
     reason  = "arrears amount is more than 1000000"
-  } else {
-    if (region === "metro") {
-      message = "Request Mediation Board Forward Letter is a valid request";
-      reason  = "region is metro"
-    } else if (region === "region") {
+
+    return {
+    case_status,
+    message,
+    reason
+    };
+  }
+  if (region === "metro") {
+    message = "Request Mediation Board Forward Letter is a valid request";
+    reason  = "region is metro"
+  } else if (region === "region") {
       if (arrears_amount > 100000) {
         message = "Request Mediation Board Forward Letter is a valid request";
         reason  = "region is region and amount more than 100000"
       } else {
         if (drc_validity_period > 3) {
           if(isDRCExpired){
+            try {
+              const updatedCase = await Case_details.findOneAndUpdate(
+                { case_id },
+                {
+                  $set: {
+                    case_current_status: "LIT Prescribed",
+                    current_case_phase:"Letter of Demand",
+                    "lod_final_reminder.source_type": "DRC Fail",
+                    "lod_final_reminder.current_document_type": document_type,
+                  },
+                  $push: {             
+                    "lod_final_reminder.document_type": {
+                      document_seq: 1,
+                      document_type: document_type,
+                      change_by: created_by,
+                      changed_dtm: new Date(),
+                    },
+                    case_status:{
+                      case_status:"LIT Prescribed",
+                      created_dtm: new Date(),
+                      created_by,
+                      case_phase:"Letter of Demand"
+                    }
+                  },
+                },
+                { new: true, runValidators: true }
+              );
+            } catch(error){
+              return {
+                message: "Database update failed",
+                reason: error.message,
+                error: true
+              };
+            }
             case_status = "LIT Prescribed";
             message = "Can not Request Mediation Board Forward Letter for this case";
-            reason  = "DRC validity period is expired"
+            reason  = "DRC validity period is expired";
           } else {
             message = "Request Mediation Board Forward Letter is not a valid request";
             reason  = "DRC validity period is not expired but more than three months"
           }
-        } else {
-            message = "Request Mediation Board Forward Letter is not a valid request";
-            reason  = "DRC validity period is less than three months"
+        }else {
+          message = "Request Mediation Board Forward Letter is not a valid request";
+          reason  = "DRC validity period is less than three months"
         }
       }
-    }
   }
   return {
     case_status,

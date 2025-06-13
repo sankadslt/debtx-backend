@@ -107,7 +107,7 @@ export const Create_Incident = async (req, res) => {
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "incident_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -349,7 +349,7 @@ export const Upload_DRS_File = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     // Increment the counter for file_upload_seq
-    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "file_upload_seq" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
@@ -1084,16 +1084,17 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
     const { Incident_Id, user } = req.body;
 
-    if (!Incident_Id) {
+    if (!Incident_Id || !user) {
       return res.status(400).json({
         status:"error",
         message:"Incident_Id is a required field.",
         errors: {
           code: 400,
-          description: "Incident_Id is a required field.",
+          description: "Incident_Id and user are required field.",
         },
       });
     }
+
 
     const incident = await Incident.findOne({ Incident_Id: Incident_Id});
 
@@ -1156,6 +1157,11 @@ export const Forward_F1_filtered_incident = async (req, res) => {
     throw error;
   }
 
+  if (!Incident_Forwarded_By) {
+    const error = new Error("Incident_Forwarded_By is required.");
+    error.statusCode = 400;
+    throw error;
+  }
   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
   if (!incidentData) {
@@ -1218,7 +1224,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
 
 const generateCaseId = async (session) => {
   const mongoConnection = mongoose.connection;
-  const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+  const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
     { _id: "case_id" },
     { $inc: { seq: 1 } },
     { returnDocument: "after", session, upsert: true }
@@ -1373,7 +1379,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -1498,7 +1504,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
