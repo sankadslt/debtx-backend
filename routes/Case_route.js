@@ -89,7 +89,10 @@ import {
   RO_CPE_Collection,
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
-  listdownCaseDetailsByCaseId
+  listdownCaseDetailsByCaseId,
+  
+  List_All_Cases,
+  CaseStatus,
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -10396,4 +10399,8 @@ router.post(
 
 router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settlement_Details_Owen_By_SettlementID_and_DRCID);
 router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
+
+router.post('/List_All_Cases',List_All_Cases);
+router.get('/CaseStatus',CaseStatus);
+
 export default router;

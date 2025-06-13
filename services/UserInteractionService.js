@@ -25,7 +25,7 @@ export const createUserInteractionFunction = async ({
     }
 
     // Generate a ID
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
       { _id: "interaction_log_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session, }
@@ -88,7 +88,7 @@ export const createUserInteraction = async (req, res) => {
     }
 
     // Generate a unique ID
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("Collection_Sequence").findOneAndUpdate(
       { _id: "interaction_log_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }

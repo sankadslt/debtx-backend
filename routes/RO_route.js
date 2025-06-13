@@ -27,7 +27,10 @@ import {
     CreateRO , 
     List_RO_Details_Owen_By_DRC_ID, 
     listROAllCases, 
-    listROInfoByROId   } from "../controllers/RO_controller.js";
+    listROInfoByROId, 
+    Terminate_RO,
+    List_All_RO_and_DRCuser_Details_to_DRC,
+    List_All_RO_and_DRCuser_Details_to_SLT  } from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -1584,11 +1587,663 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 router.post("/List_All_RO_Cases", listROAllCases );
 
-router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
-
 router.post("/Create_RO", CreateRO);
 
 //DRC LIST
 router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
+
+
+
+// After Revamp
+
+/**
+ * @swagger
+ * /api/recovery_officer/List_RO_Info_Own_By_RO_Id:
+ *   post:
+ *     summary: RO-1P03 Get Recovery Officer Info by ID
+ *     description: |
+ *       Retrieves Recovery Officer information based on either `ro_id` or `drcUser_id`.
+ * 
+ *       | Version | Date        | Description                                  | Changed By      |
+ *       |---------|-------------|----------------------------------------------|-----------------|
+ *       | 01      | 2025-Jun-09 | Retrieve Recovery Officer or DRC User info   | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Recovery Officer.
+ *       - in: query
+ *         name: drcUser_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the drcUser.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ro_id:
+ *                 type: integer
+ *                 description: ID of the Recovery Officer.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Data retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: 68432826b89343629cd32f90
+ *                     added_date:
+ *                       type: string
+ *                       example: 06-01-2025
+ *                     drcUser_name:
+ *                       type: string
+ *                       example: John Doe
+ *                     nic:
+ *                       type: string
+ *                       example: 123456789V
+ *                     contact_no:
+ *                       type: string
+ *                       example: +1234567890
+ *                     email:
+ *                       type: string
+ *                       example: john.doe@example.com
+ *                     drcUser_status:
+ *                       type: boolean
+ *                       example: false
+ *                     drc_id:
+ *                       type: integer
+ *                       example: 1
+ *                     drc_name:
+ *                       type: string
+ *                       example: D1
+ *                     rtom_areas:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: Hambantota
+ *                           status:
+ *                             type: boolean
+ *                             example: true
+ *                     log_history:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           edited_on:
+ *                             type: string
+ *                             example: 06-01-2025
+ *                           action:
+ *                             type: string
+ *                             example: Initial assignment completed successfully
+ *                           edited_by:
+ *                             type: string
+ *                             example: admin_user
+ *       400:
+ *         description: Validation error - missing or conflicting parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Either ro_id or drcUser_id is required in the request body
+ *       404:
+ *         description: Recovery Officer or DRC User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC User not found
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 error:
+ *                   type: string
+ *                   example: Error message here
+ */
+
+router.post('/List_RO_Info_Own_By_RO_Id', listROInfoByROId);
+
+/**
+ * @swagger
+ * /api/recovery_officer/Terminate_RO:
+ *   patch:
+ *     summary: RO-2A02 Terminate a Recovery Officer
+ *     description: |
+ *       Terminates a Recovery Officer or a DRC User in MongoDB. Use `ro_id` for terminate Recovery Officer and `drcUser_id` for terminate drcUser.
+ * 
+ *       | Version | Date        | Description                        | Changed By      |
+ *       |---------|-------------|------------------------------------|-----------------|
+ *       | 01      | 2025-Jun-09 | Terminate a Recovery Officer/User | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: ro_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Recovery Officer.
+ *       - in: query
+ *         name: drcUser_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the drcUser.
+ *       - in: query
+ *         name: end_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Jagath"
+ *         description: Name of the person who initiated the termination
+ *       - in: query
+ *         name: remark
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "Termination of RO due to policy violation"
+ *         description: Reason for termination
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             oneOf:
+ *               - required: [ro_id, end_by, remark]
+ *               - required: [drcUser_id, end_by, remark]
+ *             properties:
+ *               ro_id:
+ *                 type: integer
+ *                 example: 2
+ *                 description: ID of the Recovery Officer (optional if drcUser_id is provided)
+ *               end_by:
+ *                 type: string
+ *                 example: "Jagath"
+ *                 description: Name of the person who initiated the termination
+ *               remark:
+ *                 type: string
+ *                 example: "Termination of RO due to policy violation"
+ *                 description: Reason for termination
+ *     responses:
+ *       200:
+ *         description: Recovery Officer or DRC User terminated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: drcUser terminated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ro_id:
+ *                       type: integer
+ *                       example: 2
+ *                     drcUser_id:
+ *                       type: integer
+ *                       example: 1
+ *                     ro_name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     drcUser_status:
+ *                       type: string
+ *                       example: Terminate
+ *                     end_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-08T05:06:36.098Z"
+ *                     end_by:
+ *                       type: string
+ *                       example: "Jagath"
+ *                     termination_remark:
+ *                       type: object
+ *                       properties:
+ *                         remark:
+ *                           type: string
+ *                           example: "Termination the RO"
+ *                         remark_by:
+ *                           type: string
+ *                           example: "Jagath"
+ *                         remark_dtm:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-06-08T05:06:36.098Z"
+ *       400:
+ *         description: Validation error - missing or conflicting IDs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Please provide either ro_id or drcUser_id, not both
+ *       404:
+ *         description: Recovery Officer or DRC User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drcUser not found
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to terminate user
+ *                 error:
+ *                   type: string
+ *                   example: "Error terminating user: Error: Cannot read properties of undefined (reading 'x')"
+ */
+
+router.patch('/Terminate_RO', Terminate_RO);
+
+/**
+ * @swagger
+ * /api/recovery_officer/List_All_RO_and_DRCuser_Details_to_DRC:
+ *   post:
+ *     summary: RO-1P01 List all Recovery Officers and DRC Users under a DRC
+ *     description: |
+ *       Retrieves a paginated list of Recovery Officers (RO) or DRC Users associated with a specific Debt Recovery Company (DRC). Use `ro_id` for List Recovery Officers and `drcUser_id` for List drcUsers.
+ * 
+ *       | Version | Date        | Description                                        | Changed By      |
+ *       |---------|-------------|----------------------------------------------------|-----------------|
+ *       | 01      | 2025-June-09 | List ROs and DRC Users under a specific DRC       | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: ID of the Debt Recovery Company.
+ *       - in: query
+ *         name: drcUser_type
+ *         required: true
+ *         schema:
+ *           enum: [RO, drcUser]
+ *           example: RO
+ *         description: Type of user to list (RO or drcUser).
+ *       - in: query
+ *         name: drcUser_status
+ *         schema:
+ *           type: string
+ *           enum: [Active, Inactive, Terminate]
+ *           example: Active
+ *         description: Filter users by status (optional).
+ *       - in: query
+ *         name: pages
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Page number for pagination.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - drcUser_type
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 example: 1
+ *                 description: ID of the Debt Recovery Company.
+ *               drcUser_type:
+ *                 type: string
+ *                 enum: [RO, drcUser]
+ *                 example: RO
+ *                 description: Type of user to list (RO or drcUser).
+ *               drcUser_status:
+ *                 type: string
+ *                 enum: [Active, Inactive, Terminate]
+ *                 example: Active
+ *                 description: Filter users by status (optional).
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination.
+ *     responses:
+ *       200:
+ *         description: Data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Data retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     oneOf:
+ *                       - type: object
+ *                         properties:
+ *                           ro_id:
+ *                             type: integer
+ *                             example: 101
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "200122101858"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "Kaveesha"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+94771234567"
+ *                           rtom_area_count:
+ *                             type: integer
+ *                             example: 3
+ *                       - type: object
+ *                         properties:
+ *                           drcUser_id:
+ *                             type: integer
+ *                             example: 201
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "123456789V"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+1234567890"
+ *                 total_records:
+ *                   type: integer
+ *                   example: 2
+ *                 current_page:
+ *                   type: integer
+ *                   example: 1
+ *                 records_per_page:
+ *                   type: integer
+ *                   example: 10
+ *       400:
+ *         description: Validation error - required fields missing or invalid values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drc_id and drcUser_type are required fields
+ *       404:
+ *         description: No matching records found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching records found
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error message
+ */
+
+router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_Details_to_DRC);
+
+/**
+ * @swagger
+ * /api/recovery_officer/List_All_RO_and_DRCuser_Details_to_SLT:
+ *   post:
+ *     summary: List all Recovery Officers and DRC Users to SLT
+ *     description: |
+ *       Retrieves a paginated list of all Recovery Officers (RO) and DRC Users across all DRCs, accessible to SLT.
+ * 
+ *       | Version | Date        | Description                                     | Changed By      |
+ *       |---------|-------------|-------------------------------------------------|-----------------|
+ *       | 01      | 2025-Jun-09 | Initial version - List ROs and DRC Users to SLT | Dinusha Anupama |
+ * 
+ *     tags: [Recovery Officer]
+ *     parameters:
+ *       - in: query
+ *         name: drcUser_type
+ *         required: true
+ *         schema:
+ *           enum: [RO, drcUser]
+ *           example: RO
+ *         description: Type of user to list (RO or drcUser).
+ *       - in: query
+ *         name: drcUser_status
+ *         schema:
+ *           type: string
+ *           enum: [Active, Inactive, Terminate]
+ *           example: Active
+ *         description: Filter users by status (optional).
+ *       - in: query
+ *         name: pages
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Page number for pagination.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drcUser_type
+ *             properties:
+ *               drcUser_type:
+ *                 type: string
+ *                 enum: [RO, drcUser]
+ *                 example: RO
+ *                 description: Type of user to list (RO or drcUser).
+ *               drcUser_status:
+ *                 type: string
+ *                 enum: [Active, Inactive, Terminate]
+ *                 example: Active
+ *                 description: Filter users by status (optional).
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination.
+ *     responses:
+ *       200:
+ *         description: Data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Data retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     oneOf:
+ *                       - type: object
+ *                         properties:
+ *                           ro_id:
+ *                             type: integer
+ *                             example: 60
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "123456787V"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "Jane Smith"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+94716332791"
+ *                           rtom_area_count:
+ *                             type: integer
+ *                             example: 2
+ *                       - type: object
+ *                         properties:
+ *                           drcUser_id:
+ *                             type: integer
+ *                             example: 101
+ *                           drcUser_status:
+ *                             type: string
+ *                             example: Active
+ *                           nic:
+ *                             type: string
+ *                             example: "987654321V"
+ *                           ro_name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           login_contact_no:
+ *                             type: string
+ *                             example: "+94701234567"
+ *                 total_records:
+ *                   type: integer
+ *                   example: 200
+ *                 current_page:
+ *                   type: integer
+ *                   example: 1
+ *                 records_per_page:
+ *                   type: integer
+ *                   example: 10
+ *       400:
+ *         description: Validation error - required fields missing or invalid values.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drcUser_type is a required field
+ *       404:
+ *         description: No matching records found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching records found
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ */
+
+router.post('/List_All_RO_and_DRCuser_Details_to_SLT', List_All_RO_and_DRCuser_Details_to_SLT);
 
 export default router;
