@@ -1,6 +1,6 @@
 import mongoose, { Schema, model } from "mongoose";
 
-// Sub-schema for remarks
+// Sub-schema for Contact Numbers
 const contactNumberSchema = new Schema({
   contact_number: {
     type: Number,
@@ -24,14 +24,6 @@ const remarkSchema = new Schema({
   },
 });
 
-const roleSchema = new Schema({
-  user_role: {
-    type: String,
-    enum: ["GM", "DGM", "legal_officer", "manager", "slt_coordinator", "DRC_user", "recovery_staff", "rtom"],
-    required: true,
-  },
-});
-
 // Main schema for User
 const userSchema = new Schema(
   {
@@ -40,7 +32,7 @@ const userSchema = new Schema(
       required: true, 
       default: 1
     },
-    user_sequence: { 
+    User_Sequence: { 
       type: Number, 
       required: true, 
       unique: true 
@@ -53,28 +45,28 @@ const userSchema = new Schema(
     user_type: { 
       type: String, 
       required: true, 
-      enum: ["slt", "DRCuser", "ro"] 
+      enum: ["Slt", "Drcuser", "ro"] 
     },
-    user_name: { 
+    username: { 
       type: String, 
       required: true 
     },
-    user_mail: { 
+    email: { 
       type: String, 
       required: true, 
       unique: true 
     },
-    contact_number: { 
-      type: [contactNumberSchema], // Array of contact numbers
-      required: true,
+    contact_num: { 
+      type: [contactNumberSchema],
     },
     login_method: { 
       type: String, 
       required: true,
-      enum: ["slt", "email", "mobile"]
+      enum: ["slt", "gmail", "mobile"]
     },
-    user_roles: {
-      type: [roleSchema], // Array of roles
+    role: {
+      type: String,
+      enum: ["GM", "DGM", "legal_officer", "manager", "slt_coordinator", "DRC_user", "recovery_staff", "rtom"],
       required: true,
     },
     drc_id: { 
@@ -85,11 +77,11 @@ const userSchema = new Schema(
       type: Number,
       required: true
     },
-    DRCuser_id: { 
+    DRCuser_ID: { 
       type: String, 
       required: true
     },
-    user_status_type: { 
+    User_Status_Type: { 
       type: String, 
       required: true, 
       enum: ["user_update", "DRC_Update", "RO_update"] 
@@ -99,40 +91,40 @@ const userSchema = new Schema(
       required: true, 
       enum: ["true", "false"] 
     },
-    user_status_dtm:{
+    User_Status_On:{
       type: Date, 
       required: true
     },
-    user_status_by: {
+    User_Status_By: {
       type: String, 
       required: true
     },
-    user_end_dtm: { 
+    User_End_DTM: { 
       type: Date, 
       default: null 
     },
-    user_end_by: { 
+    User_End_By: { 
       type: String, 
       default: null 
     },
-    created_by: { 
+    Created_BY: { 
       type: String, 
       required: true 
     },
-    created_dtm: { 
+    Created_ON: { 
       type: Date, 
       default: null
     },
-    approved_by: { 
+    Approved_By: { 
       type: String, 
       default: null 
     },
-    approved_dtm: {
+    Approved_On: {
       type: Date, 
       default: null 
     },
-    remark: { 
-      type: [remarkSchema], // Array of remarks
+    Remark: { 
+      type: [remarkSchema],
       required: true,
     },
   },

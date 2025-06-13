@@ -64,14 +64,13 @@ export const getUserDetailsByRole = async (req, res) => {
  *
  * Description:
  * Retrieves a paginated list of user details from the database using optional filters.
- * Filters (user_id, user_roles, user_type, user_status) are passed through the request body.
+ * Filters (user_role, user_type, user_status) are passed through the request body.
  * Pagination is handled based on the page number:
  *   - Page 1 returns 10 records
  *   - Pages 2 and onward return 30 records per page
  *
  * Request Body Parameters:
- * @param {String} [user_id]        - Optional filter by specific user ID
- * @param {String} [user_roles]     - Optional filter by user role (e.g., "admin", "user")
+ * @param {String} [user_role]     - Optional filter by user role (e.g., "admin", "user")
  * @param {String} [user_type]      - Optional filter by user type ("slt", "DRCuser", "ro")
  * @param {String} [user_status]    - Optional filter by user status ("enabled", "disabled")
  * @param {Number} [page]           - Page number for pagination
@@ -82,13 +81,12 @@ export const getUserDetailsByRole = async (req, res) => {
  * - 500: Internal server/database error
  */
 export const List_All_User_Details = async (req, res) => {
-  const { user_id, user_roles, user_type, user_status, page } = req.body;
+  const { user_role, user_type, user_status, page } = req.body;
 
   try {    
     const query = {};
 
-    if (user_id) query.user_id = user_id;
-    if (user_roles) query["user_roles.user_role"] = { $in: [user_roles] };
+    if (user_role) query.role = user_role;
     if (user_type) query.user_type = user_type;
     if (user_status) query.user_status = user_status;
 
@@ -104,14 +102,14 @@ export const List_All_User_Details = async (req, res) => {
           _id: 0,
           user_id: 1,
           user_status: 1,
-          user_roles: 1,
+          role: 1,
           user_type: 1,
-          user_name: 1,
-          user_mail: 1,
-          created_dtm: 1,
+          username: 1,
+          email: 1,
+          Created_ON: 1,
         },
       },
-      { $sort: { created_dtm: -1 } },
+      { $sort: { Created_ON: -1 } },
       { $skip: skip },
       { $limit: limit },
     ]);
@@ -188,18 +186,18 @@ export const List_All_User_Details_By_ID = async (req, res) => {
       {
         $project: {
           _id: 0,
-          user_name: 1,
+          username: 1,
           user_type: 1,
-          user_mail: 1,
+          email: 1,
           login_method: 1,
-          user_roles: 1,
+          role: 1,
           user_status: 1,
-          created_dtm: 1,
-          created_by: 1,
-          approved_dtm: 1,
-          approved_by: 1,
-          user_end_dtm: 1,
-          remark: 1,
+          Created_ON: 1,
+          Created_BY: 1,
+          Approved_On: 1,
+          Approved_By: 1,
+          User_End_DTM: 1,
+          Remark: 1,
         },
       },
     ]);
@@ -230,7 +228,6 @@ export const List_All_User_Details_By_ID = async (req, res) => {
     });
   }
 };
-
 
 export const End_User = async (req, res) => {
   const session = await mongoose.startSession();
@@ -280,7 +277,7 @@ export const End_User = async (req, res) => {
       }
 
       // Check if already terminated
-      if (user.user_end_dtm) {
+      if (user.User_End_DTM) {
         const error = new Error("User is already terminated.");
         error.statusCode = 400;
         throw error;
@@ -291,12 +288,12 @@ export const End_User = async (req, res) => {
         { user_id },
         {
           $set: {
-            user_end_dtm: terminationDate,
-            user_end_by: end_by,
+            User_End_DTM: terminationDate,
+            User_End_By: end_by,
             user_status: "false",
-            // user_status_type: "user_update",
-            // user_status_dtm: terminationDate,
-            // user_status_by: end_by,
+            User_Status_Type: "user_update",
+            User_Status_On: terminationDate,
+            User_Status_By: end_by,
           },
           $push: {
             remark: newRemark,
@@ -322,8 +319,8 @@ export const End_User = async (req, res) => {
       data: {
         user_id: updatedUser.user_id,
         user_status: updatedUser.user_status,
-        user_end_dtm: updatedUser.user_end_dtm,
-        user_end_by: updatedUser.user_end_by,
+        user_end_dtm: updatedUser.User_End_DTM,
+        user_end_by: updatedUser.User_End_By,
         termination_remark: newRemark,
       },
     });
