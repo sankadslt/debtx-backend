@@ -367,7 +367,8 @@ const rtomforRoSchema = new Schema({
     },
     rtom_status: {
         type: String,
-        required: true,
+        enum: ['Active', 'Inactive'],
+        default: "Active",
     },
     billing_center_code: {
         type: String,
@@ -387,7 +388,7 @@ const rtomforRoSchema = new Schema({
     },
     handling_type: {
         type: String,
-        required: true,
+        default: null,
     },
 });
 
@@ -433,7 +434,7 @@ const roSchema = new Schema({
         drcUser_status: {
             type: String,
             enum: ['Active', 'Inactive', 'Terminate'],
-            required: true,
+            default: "Active",
         },
         create_dtm:{
             type: Date,
