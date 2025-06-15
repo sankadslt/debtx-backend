@@ -13,8 +13,8 @@ import Rtom from "../models/Rtom.js";
 import DRC from "../models/Debt_recovery_company.js";
 import RO from "../models/Recovery_officer.js";
 
-import moment from 'moment'; // Ensure moment is imported at the top
- 
+import moment from "moment"; // Ensure moment is imported at the top
+
 // getRTOMDetails from Database
 export const getRTOMDetails = async (req, res) => {
   try {
@@ -92,7 +92,8 @@ export const getRTOMDetailsById = async (req, res) => {
       message: "Failed to retrieve RTOM details.",
       errors: {
         code: 500,
-        description: "Internal server error occurred while fetching RTOM details.",
+        description:
+          "Internal server error occurred while fetching RTOM details.",
       },
     });
   }
@@ -100,11 +101,22 @@ export const getRTOMDetailsById = async (req, res) => {
 
 // Function to register a new RTOM
 export const registerRTOM = async (req, res) => {
-  const { area_name, rtom_abbreviation, rtom_contact_number, rtom_fax_number, created_dtm } = req.body; // Extract created_dtm from the request body
+  const {
+    area_name,
+    rtom_abbreviation,
+    rtom_contact_number,
+    rtom_fax_number,
+    created_dtm,
+  } = req.body; // Extract created_dtm from the request body
 
   try {
     // Validate required fields
-    if (!area_name || !rtom_abbreviation || !rtom_contact_number || !rtom_fax_number  ) {
+    if (
+      !area_name ||
+      !rtom_abbreviation ||
+      !rtom_contact_number ||
+      !rtom_fax_number
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
@@ -153,7 +165,7 @@ export const registerRTOM = async (req, res) => {
       rtom_status,
       updated_rtom: [],
       rtom_end_date: null,
-      created_by, 
+      created_by,
       created_dtm: formattedCreatedDate, // Use formatted date
     });
 
@@ -250,17 +262,25 @@ export const registerRTOM = async (req, res) => {
 
 // Function to update the details of a RTOM
 export const updateRTOMDetails = async (req, res) => {
-  const { rtom_id, rtom_status, rtom_contact_number, rtom_fax_number, reason } = req.body;
+  const { rtom_id, rtom_status, rtom_contact_number, rtom_fax_number, reason } =
+    req.body;
 
   try {
     // Validate input
-    if (!rtom_id || !rtom_status || !rtom_contact_number || !rtom_fax_number || !reason) {
+    if (
+      !rtom_id ||
+      !rtom_status ||
+      !rtom_contact_number ||
+      !rtom_fax_number ||
+      !reason
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to update RTOM details.",
         errors: {
           code: 400,
-          description: "RTOM ID, Status, Contact Number, Fax Number and updated_by with reason are required.",
+          description:
+            "RTOM ID, Status, Contact Number, Fax Number and updated_by with reason are required.",
         },
       });
     }
@@ -269,7 +289,9 @@ export const updateRTOMDetails = async (req, res) => {
 
     // Build the update object for the rtom_status field and the updated_rtom array
     const updateData = {
-      rtom_contact_number, rtom_fax_number, rtom_status,
+      rtom_contact_number,
+      rtom_fax_number,
+      rtom_status,
       $push: {
         updated_rtom: {
           action: reason,
@@ -304,7 +326,9 @@ export const updateRTOMDetails = async (req, res) => {
       message: "Failed to update RTOM Details.",
       errors: {
         code: 500,
-        description: error.message || "Internal server error occurred while updating RTOM details.",
+        description:
+          error.message ||
+          "Internal server error occurred while updating RTOM details.",
       },
     });
   }
@@ -326,7 +350,6 @@ export const updateRTOMDetails = async (req, res) => {
 //         },
 //       });
 //     }
-
 
 //     // Build the update object for the rtom_status field and the updated_rtom array
 //     const updateData = {
@@ -406,7 +429,7 @@ export const getAllActiveDRCs = async (req, res) => {
 
     // Step 2: Find Recovery Officers for the area
     const recoveryOfficers = await RO.find({
-      'rtoms_for_ro.name': area_name, // Match area_name in Recovery Officers
+      "rtoms_for_ro.name": area_name, // Match area_name in Recovery Officers
     });
 
     if (recoveryOfficers.length === 0) {
@@ -422,7 +445,7 @@ export const getAllActiveDRCs = async (req, res) => {
     // Step 4: Find DRC records with matching DRC names and select only drc_id and drc_name
     const drcs = await DRC.find({
       drc_name: { $in: drcNames }, // Match drc_name in DRC collection
-    }).select('drc_id drc_name'); // Select only drc_id and drc_name
+    }).select("drc_id drc_name"); // Select only drc_id and drc_name
 
     if (drcs.length === 0) {
       return res.status(404).json({
@@ -446,7 +469,9 @@ export const getAllActiveDRCs = async (req, res) => {
       message: "Failed to retrieve DRC details.",
       errors: {
         code: 500,
-        description: error.message || "Internal server error occurred while updating RTOM details.",
+        description:
+          error.message ||
+          "Internal server error occurred while updating RTOM details.",
       },
     });
   }
@@ -486,8 +511,8 @@ export const getAllROsByRTOMID = async (req, res) => {
 
     // Step 2: Find all Recovery Officers for the given area_name
     const recoveryOfficers = await RO.find({
-      'rtoms_for_ro.name': area_name, // Check if area_name matches in rtoms_for_ro
-    }).select('ro_id ro_name'); // Only select ro_id and ro_name fields
+      "rtoms_for_ro.name": area_name, // Check if area_name matches in rtoms_for_ro
+    }).select("ro_id ro_name"); // Only select ro_id and ro_name fields
 
     if (recoveryOfficers.length === 0) {
       return res.status(404).json({
@@ -508,9 +533,12 @@ export const getAllROsByRTOMID = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to retrieve RO details.",
-      error: error.message,errors: {
+      error: error.message,
+      errors: {
         code: 500,
-        description: error.message || "Internal server error occurred while updating RTOM details.",
+        description:
+          error.message ||
+          "Internal server error occurred while updating RTOM details.",
       },
     });
   }
@@ -521,69 +549,73 @@ export const getAllRTOMsByDRCID = async (req, res) => {
   const { drc_id } = req.body; // Extract drc_id from the request body
 
   try {
-      // Find drc_name for the given drc_id
-      const drc = await DRC.findOne({ drc_id });
-      if (!drc) {
-          return res.status(404).json({
-              status: "error",
-              message: "DRC not found.",
-              errors: {
-                  code: 404,
-                  description: "No DRC data matches the provided DRC ID.",
-              },
-          });
-      }
+    // Find drc_name for the given drc_id
+    const drc = await DRC.findOne({ drc_id });
+    if (!drc) {
+      return res.status(404).json({
+        status: "error",
+        message: "DRC not found.",
+        errors: {
+          code: 404,
+          description: "No DRC data matches the provided DRC ID.",
+        },
+      });
+    }
 
-      const drc_name = drc.drc_name;
+    const drc_name = drc.drc_name;
 
-      // Find all Recovery Officers with assigned the drc_name
-      const recoveryOfficers = await RO.find({ drc_name });
+    // Find all Recovery Officers with assigned the drc_name
+    const recoveryOfficers = await RO.find({ drc_name });
 
-      if (recoveryOfficers.length === 0) {
-          return res.status(404).json({
-              status: "error",
-              message: "No RTOMs found for this DRC name.",
-          });
-      }
+    if (recoveryOfficers.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No RTOMs found for this DRC name.",
+      });
+    }
 
-      // Step 1: Extract unique RTOM names and their IDs
-      const rtomDetails = await Promise.all(
-          recoveryOfficers.flatMap(async (ro) => {
-              const rtomNames = await Promise.all(
-                  ro.rtoms_for_ro.map(async (r) => {
-                      const rtom = await Rtom.findOne({ area_name: r.name });
-                      return rtom ? { rtom_id: rtom.rtom_id, area_name: r.name } : null;
-                  })
-              );
-              return rtomNames.filter(r => r !== null); // Filter out any null values
+    // Step 1: Extract unique RTOM names and their IDs
+    const rtomDetails = await Promise.all(
+      recoveryOfficers.flatMap(async (ro) => {
+        const rtomNames = await Promise.all(
+          ro.rtoms_for_ro.map(async (r) => {
+            const rtom = await Rtom.findOne({ area_name: r.name });
+            return rtom ? { rtom_id: rtom.rtom_id, area_name: r.name } : null;
           })
-      );
+        );
+        return rtomNames.filter((r) => r !== null); // Filter out any null values
+      })
+    );
 
-      // Flatten the array and ensure uniqueness
-      const uniqueRTOMs = [...new Set(rtomDetails.flat().map(r => JSON.stringify(r)))].map(e => JSON.parse(e));
+    // Flatten the array and ensure uniqueness
+    const uniqueRTOMs = [
+      ...new Set(rtomDetails.flat().map((r) => JSON.stringify(r))),
+    ].map((e) => JSON.parse(e));
 
-      if (uniqueRTOMs.length === 0) {
-          return res.status(404).json({
-              status: "error",
-              message: "No unique RTOMs found for the specified Recovery Officers.",
-          });
-      }
-
-      return res.status(200).json({
-          status: "success",
-          message: "RTOMs retrieved successfully.",
-          data: uniqueRTOMs,
+    if (uniqueRTOMs.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No unique RTOMs found for the specified Recovery Officers.",
       });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "RTOMs retrieved successfully.",
+      data: uniqueRTOMs,
+    });
   } catch (error) {
-      console.error("Error retrieving RTOM names:", error);
-      return res.status(500).json({
-          status: "error",
-          message: "Failed to retrieve RTOM details.",
-          errors: {
-            code: 500,
-            description: error.message || "Internal server error occurred while updating RTOM details.",
-          },
-      });
+    console.error("Error retrieving RTOM names:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve RTOM details.",
+      errors: {
+        code: 500,
+        description:
+          error.message ||
+          "Internal server error occurred while updating RTOM details.",
+      },
+    });
   }
 };
 
@@ -619,7 +651,6 @@ export const getActiveRTOMDetails = async (req, res) => {
   }
 };
 
-
 // Function to remove the specific RTOM (terminate) from the Active RTOM list
 // export const suspend_RTOM = async (req, res) =>{
 //   const { rtom_id, rtom_end_date, reason} = req.body;
@@ -651,7 +682,7 @@ export const getActiveRTOMDetails = async (req, res) => {
 //       },
 //     };
 //     const updatedResult = await Rtom.updateOne(filter, update);
-    
+
 //     if (updatedResult.matchedCount === 0) {
 //       console.log("RTOM not found in Database:", updatedResult);
 //       return res.status(400).json({
@@ -675,7 +706,7 @@ export const suspend_RTOM = async (req, res) => {
   const updated_by = "System"; // Set default updated_by to "System" if not provided
 
   if (!rtom_id || !reason || !rtom_end_date || !rtom_status) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       status: "error",
       message: "All fields are required",
     });
@@ -749,11 +780,11 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
     }
 
     const activeRTOMs = drc.rtom
-    .filter(rtom => rtom.rtom_status === "Active")
-    .map(({ rtom_id, rtom_name }) => ({
-      rtom_id,
-      rtom_name
-    }));
+      .filter((rtom) => rtom.rtom_status === "Active")
+      .map(({ rtom_id, rtom_name }) => ({
+        rtom_id,
+        rtom_name,
+      }));
 
     // Return the filtered RTOMs
     return res.status(200).json({
@@ -761,7 +792,6 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
       message: "Active RTOMs retrieved successfully.",
       data: activeRTOMs,
     });
-    
   } catch (error) {
     console.error("Error retrieving RTOM names:", error);
     return res.status(500).json({
@@ -769,56 +799,140 @@ export const getAllActiveRTOMsByDRCID = async (req, res) => {
       message: "Failed to retrieve RTOM details.",
       errors: {
         code: 500,
-        description: error.message || "Internal server error occurred while retrieving RTOM details.",
+        description:
+          error.message ||
+          "Internal server error occurred while retrieving RTOM details.",
       },
     });
   }
 };
 
+// export const ListAllRTOMDetails = async (req, res) => {
+//   try {
+//     const { rtom_status, pages } = req.body;
+//     let page = Number(pages);
+//     if (isNaN(page) || page < 1) page = 1;
+
+//     const limit = 10; // Always return 10 records per page
+//     const skip = (page - 1) * limit; // Simplified skip calculation
+
+//     // Create query based on rtom_status if provided
+//     const query = rtom_status ? { rtom_status: rtom_status } : {};
+
+//     // Fetch RTOM details with pagination and optional status filter
+//     const rtoms = await Rtom.find(query)
+//       .skip(skip)
+//       .limit(limit)
+//       .sort({ rtom_id: -1 }); // Sort by rtom_id in descending order
+
+//     if (rtoms.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No RTOM(s) found.",
+//       });
+//     }
+
+//     const mappedRtoms = rtoms.map(rtom => ({
+//       rtom_id: rtom.rtom_id,
+//       rtom_status: rtom.rtom_status,
+//       billing_center_code: rtom.billing_center_code,
+//       rtom_name: rtom.rtom_name,
+//       area_code: rtom.area_code,
+//       rtom_email: rtom.rtom_email,
+//       rtom_mobile_no: rtom.rtom_mobile_no[0]?.mobile_number || null,
+//       rtom_telephone_no: rtom.rtom_telephone_no[0]?.telephone_number || null,
+//       created_by: rtom.created_by,
+//       created_on: rtom.created_on,
+//       rtom_end_date: rtom.rtom_end_date,
+//       rtom_remarks: rtom.rtom_remarks
+//     }));
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "RTOM(s) details retrieved successfully.",
+//       data: mappedRtoms,
+//     });
+//   } catch (error) {
+//     console.error("Unexpected error:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error occurred while fetching RTOM details.",
+//       error: error.message,
+//     });
+//   }
+// };
+
 export const ListAllRTOMDetails = async (req, res) => {
   try {
     const { rtom_status, pages } = req.body;
+
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
 
-    const limit = 10; // Always return 10 records per page
-    const skip = (page - 1) * limit; // Simplified skip calculation
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    // Create query based on rtom_status if provided
-    const query = rtom_status ? { rtom_status: rtom_status } : {};
+    const pipeline = [];
 
-    // Fetch RTOM details with pagination and optional status filter
-    const rtoms = await Rtom.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ rtom_id: -1 }); // Sort by rtom_id in descending order
+    // Optional filter by rtom_status if provided
+    if (rtom_status) {
+      pipeline.push({
+        $match: { rtom_status: rtom_status },
+      });
+    }
 
-    if (rtoms.length === 0) {
+    // Sorting by rtom_id descending
+    pipeline.push({ $sort: { rtom_id: -1 } });
+
+    // Pagination stages
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Optionally, unwind arrays to get first element (like rtom_mobile_no[0], rtom_telephone_no[0])
+    // but safer to do $addFields or $project after
+
+    // Add fields for mobile_number and telephone_number from the first elements of arrays
+    pipeline.push({
+      $addFields: {
+        rtom_mobile_no: { $arrayElemAt: ["$rtom_mobile_no.mobile_number", 0] },
+        rtom_telephone_no: {
+          $arrayElemAt: ["$rtom_telephone_no.telephone_number", 0],
+        },
+      },
+    });
+
+    // Project only necessary fields
+    pipeline.push({
+      $project: {
+        _id: 0,
+        rtom_id: 1,
+        rtom_status: 1,
+        billing_center_code: 1,
+        rtom_name: 1,
+        area_code: 1,
+        rtom_email: 1,
+        rtom_mobile_no: 1,
+        rtom_telephone_no: 1,
+        created_by: 1,
+        created_on: 1,
+        rtom_end_date: 1,
+        rtom_remarks: 1,
+      },
+    });
+
+    const rtoms = await Rtom.aggregate(pipeline);
+
+    if (!rtoms || rtoms.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No RTOM(s) found.",
       });
     }
 
-    const mappedRtoms = rtoms.map(rtom => ({
-      rtom_id: rtom.rtom_id,
-      rtom_status: rtom.rtom_status,
-      billing_center_code: rtom.billing_center_code,
-      rtom_name: rtom.rtom_name,
-      area_code: rtom.area_code,
-      rtom_email: rtom.rtom_email,
-      rtom_mobile_no: rtom.rtom_mobile_no[0]?.mobile_number || null,
-      rtom_telephone_no: rtom.rtom_telephone_no[0]?.telephone_number || null,
-      created_by: rtom.created_by,
-      created_on: rtom.created_on,
-      rtom_end_date: rtom.rtom_end_date,
-      rtom_remarks: rtom.rtom_remarks
-    }));
-
     return res.status(200).json({
       status: "success",
       message: "RTOM(s) details retrieved successfully.",
-      data: mappedRtoms,
+      data: rtoms,
     });
   } catch (error) {
     console.error("Unexpected error:", error.message);
@@ -831,20 +945,25 @@ export const ListAllRTOMDetails = async (req, res) => {
 };
 
 export const CreateActiveRTOM = async (req, res) => {
-  const { 
+  const {
     billing_center_code,
     rtom_name,
     area_code,
     rtom_email,
     rtom_mobile_no,
     rtom_telephone_no,
-    created_by 
+    created_by,
   } = req.body;
 
   try {
-    
-    if (!billing_center_code || !rtom_name || !area_code || !rtom_email || 
-        !rtom_mobile_no || !rtom_telephone_no) {
+    if (
+      !billing_center_code ||
+      !rtom_name ||
+      !area_code ||
+      !rtom_email ||
+      !rtom_mobile_no ||
+      !rtom_telephone_no
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
@@ -870,7 +989,7 @@ export const CreateActiveRTOM = async (req, res) => {
     }
 
     const rtom_id = counterResult.seq;
-    const rtom_status = "Active"; 
+    const rtom_status = "Active";
     const created_on = new Date();
 
     const newRTOM = new Rtom({
@@ -886,8 +1005,8 @@ export const CreateActiveRTOM = async (req, res) => {
       created_on,
       rtom_status,
       rtom_end_date: null,
-      rtom_end_by:"N/A",
-      rtom_remarks: []
+      rtom_end_by: "N/A",
+      rtom_remarks: [],
     });
 
     await newRTOM.save();
@@ -905,7 +1024,7 @@ export const CreateActiveRTOM = async (req, res) => {
         rtom_telephone_no: rtom_telephone_no,
         created_by,
         created_on,
-        rtom_status
+        rtom_status,
       },
     });
   } catch (error) {
@@ -922,6 +1041,41 @@ export const CreateActiveRTOM = async (req, res) => {
   }
 };
 
+// export const ListRTOMDetailsByRTOMID = async (req, res) => {
+//   try {
+//     const { rtom_id } = req.body;
+
+//     if (!rtom_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "RTOM ID is required.",
+//       });
+//     }
+
+//     const rtomDetails = await Rtom.findOne({ rtom_id });
+
+//     if (!rtomDetails) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: `No RTOM found with ID: ${rtom_id}`,
+//       });
+//     }
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "RTOM details retrieved successfully.",
+//       data: rtomDetails,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching RTOM details by ID:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error occurred.",
+//       error: error.message,
+//     });
+//   }
+// };
+
 export const ListRTOMDetailsByRTOMID = async (req, res) => {
   try {
     const { rtom_id } = req.body;
@@ -933,9 +1087,52 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
       });
     }
 
-    const rtomDetails = await Rtom.findOne({ rtom_id });
+    const pipeline = [
+      {
+        $match: {
+          rtom_id: Number(rtom_id)
+        }
+      },
+      {
+        $addFields: {
+          rtom_mobile_no: {
+            $let: {
+              vars: {
+                firstMobile: { $arrayElemAt: ["$rtom_mobile_no", -1] }
+              },
+              in: "$$firstMobile.mobile_number"
+            }
+          },
+          rtom_telephone_no: {
+            $let: {
+              vars: {
+                firstTel: { $arrayElemAt: ["$rtom_telephone_no", -1] }
+              },
+              in: "$$firstTel.telephone_number"
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          rtom_id: 1,
+          rtom_status: 1,
+          billing_center_code: 1,
+          rtom_name: 1,
+          area_code: 1,
+          rtom_email: 1,
+          rtom_mobile_no: 1,
+          rtom_telephone_no: 1,
+          created_on: 1,
+          rtom_remarks: 1
+        }
+      }
+    ];
 
-    if (!rtomDetails) {
+    const result = await Rtom.aggregate(pipeline);
+
+    if (!result || result.length === 0) {
       return res.status(404).json({
         status: "error",
         message: `No RTOM found with ID: ${rtom_id}`,
@@ -945,7 +1142,7 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "RTOM details retrieved successfully.",
-      data: rtomDetails,
+      data: result[0],
     });
   } catch (error) {
     console.error("Error fetching RTOM details by ID:", error.message);
@@ -956,6 +1153,7 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
     });
   }
 };
+
 
 export const UpdateRTOMDetails = async (req, res) => {
   const {
@@ -968,12 +1166,19 @@ export const UpdateRTOMDetails = async (req, res) => {
     rtom_telephone_no,
     rtom_status,
     remark,
-    updated_by 
+    updated_by,
   } = req.body;
 
   try {
-    if (!rtom_id || !billing_center_code || !rtom_name || !area_code || 
-        !rtom_email || !rtom_mobile_no || !rtom_status) {
+    if (
+      !rtom_id ||
+      !billing_center_code ||
+      !rtom_name ||
+      !area_code ||
+      !rtom_email ||
+      !rtom_mobile_no ||
+      !rtom_status
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Failed to update RTOM due to missing required fields.",
@@ -999,11 +1204,13 @@ export const UpdateRTOMDetails = async (req, res) => {
       area_code,
       rtom_email,
       rtom_mobile_no: [{ mobile_number: rtom_mobile_no }],
-      rtom_telephone_no: rtom_telephone_no ? [{ telephone_number: rtom_telephone_no }] : existingRTOM.rtom_telephone_no,
+      rtom_telephone_no: rtom_telephone_no
+        ? [{ telephone_number: rtom_telephone_no }]
+        : existingRTOM.rtom_telephone_no,
       rtom_status,
       updated_by,
       updated_dtm: new Date(),
-      doc_version: existingRTOM.doc_version + 1
+      doc_version: existingRTOM.doc_version + 1,
     };
 
     const updateOperation = {
@@ -1012,24 +1219,22 @@ export const UpdateRTOMDetails = async (req, res) => {
         updated_rtom: {
           ...existingRTOM.toObject(),
           updated_dtm: new Date(),
-          updated_by
-        }
-      }
+          updated_by,
+        },
+      },
     };
 
-    if (remark && remark.trim() !== '') {
+    if (remark && remark.trim() !== "") {
       updateOperation.$push.rtom_remarks = {
         remark: remark.trim(),
-        remark_date: new Date(),  
-        remark_by: updated_by    
+        remark_date: new Date(),
+        remark_by: updated_by,
       };
     }
 
-    const result = await Rtom.findOneAndUpdate(
-      { rtom_id },
-      updateOperation,
-      { new: true }
-    );
+    const result = await Rtom.findOneAndUpdate({ rtom_id }, updateOperation, {
+      new: true,
+    });
 
     if (!result) {
       throw new Error("Failed to update RTOM");
@@ -1043,17 +1248,15 @@ export const UpdateRTOMDetails = async (req, res) => {
         billing_center_code: result.billing_center_code,
         rtom_name: result.rtom_name,
         rtom_status: result.rtom_status,
-        remarks: result.rtom_remarks 
-      }
+        remarks: result.rtom_remarks,
+      },
     });
-
   } catch (error) {
     console.error("Error updating RTOM:", error.message);
     return res.status(500).json({
       status: "error",
       message: "Failed to update RTOM",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
