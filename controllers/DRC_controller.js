@@ -140,7 +140,7 @@ import moment from "moment";
 //       },
 //     });
 //   }
-// };
+// }; 
 
 export const registerDRC = async (req, res) => {
   const { 
