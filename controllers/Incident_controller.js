@@ -777,6 +777,7 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -831,6 +832,7 @@ export const List_incidents_Direct_LOD = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -883,8 +885,10 @@ export const List_F1_filted_Incidents = async (req, res) => {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
+        to.setHours(23, 59, 59, 999);
+        
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
