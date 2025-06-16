@@ -14,7 +14,7 @@ const serviceSchema = new Schema({
     },
     service_status: {
         type: String, 
-        enum: ['Active', 'Inactive', 'Terminate'], 
+        enum: ['Active', 'Inactive'], 
         default: 'Active'
     },
     create_by: {
@@ -25,15 +25,7 @@ const serviceSchema = new Schema({
         type: Date, 
         required: true, 
         default: Date.now
-    },
-    service_end_dtm: {
-        type: Date, 
-        default: null
-    },
-    service_end_by: {
-        type: String, 
-        default: null
-    },
+    }
 }, {
     collection: 'Services', // Specify the collection name
     timestamps: true
