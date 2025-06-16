@@ -777,6 +777,7 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
