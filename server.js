@@ -41,6 +41,7 @@ import litigationRouter from "./routes/Litigation_route.js";
 import LodRoutes from "./routes/LOD_route.js";
 import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 import User from "./routes/User_route.js";
+import "./passport.js"
 
 
 // Load environment variables
@@ -81,7 +82,8 @@ app.use((req, res, next) => {
 
 // Middlewares
 app.use(json());
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173",credentials: true,}));
+// app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173",credentials: true,}));
+app.use(cors({ origin:[ process.env.CLIENT_URL || "http://124.43.177.52:8080","http://debtx.slt.lk:8080","https://debtx.slt.lk"],credentials: true,}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
