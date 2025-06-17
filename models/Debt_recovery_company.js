@@ -115,7 +115,6 @@ const coordinatorSchema = new Schema({
   service_no: {
     type: String,
     required: true,
-    unique: true,
   },
   slt_coordinator_name: {
     type: String,
@@ -179,8 +178,7 @@ const serviceSchema = new Schema({
 const rtomSchema = new Schema({
   rtom_id: {
     type: Number,
-    required: true,
-    unique: true
+    required: true
   },
   rtom_name: {
     type: String,
