@@ -124,54 +124,53 @@ export const changeServiceStatus = async (req, res) => {
 
   
   export const getAllServices = async (req, res) => {
-    // let mysqlData = null; 
-    let mongoData = null;
-  
-    /*
-    try {
-      // MySQL
-      mysqlData = await new Promise((resolve, reject) => {
-        const query = `SELECT * FROM service_type`;
-        db.mysqlConnection.query(query, (err, result) => {
-          if (err) {
-            return reject(new Error("Error retrieving service data from MySQL"));
-          }
-          resolve(result);
-        });
-      });
-    } catch (error) {
-      console.error("MySQL fetch error:", error.message);
-    }
-    */
-  
-    try {
-      // MongoDB
-      mongoData = await Service.find({});
-    } catch (error) {
-      console.error("MongoDB fetch error:", error.message);
-    }
-  
-    // Handle no data returned
-    if (!mongoData) { 
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to retrieve service details.",
-        errors: {
-          code: 500,
-          description: "Internal server error occurred while fetching service details.",
-        },
-      });
-    }
-  
+  let mongoData = null;
+
+  try {
+    // Extract query parameters from GET request
+    const { status, pages } = req.query;
+
+    // Default pagination values
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Build MongoDB query object
+    const query = status ? { service_status: status } : {};
+
+    // Fetch total count
+    const totalCount = await Service.countDocuments(query);
+
+    // Fetch filtered + paginated data
+    mongoData = await Service.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ service_id: -1 });
+
     return res.status(200).json({
       status: "success",
       message: "Service details retrieved successfully.",
       data: {
-        // mysql: mysqlData,
         mongo: mongoData,
+        total_services: totalCount,
+        current_page: page,
+        page_size: limit,
       },
     });
-  };
+  } catch (error) {
+    console.error("MongoDB fetch error:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve service details.",
+      errors: {
+        code: 500,
+        description: "Internal server error occurred while fetching service details.",
+      },
+    });
+  }
+};
   
   export const getServiceDetailsById = async (req, res) => {
     const { service_id } = req.body;
