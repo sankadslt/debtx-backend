@@ -1262,75 +1262,44 @@ export const UpdateRTOMDetails = async (req, res) => {
 };
 
 
+
+
 export const createRTOM = async (req, res) => {
   try {
     const {
-      billing_center_code,
-      rtom_name,
-      area_code,
-      rtom_email,
-      rtom_mobile_no,
-      rtom_telephone_no,
-      created_by,
-      created_on,
-      rtom_status,
-      rtom_end_date,
-      rtom_end_by,
-      rtom_remarks
+      billingCenterCode,
+      name,
+      areaCode,
+      email,
+      mobile,
+      telephone
     } = req.body;
 
-    if (
-      !billing_center_code || !rtom_name || !area_code || !rtom_email ||
-      !created_by || !created_on || !rtom_status || !rtom_remarks
-    ) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
+    // Ensure mobile and telephone are arrays
+    const mobileArray = Array.isArray(mobile) ? mobile : [];
+    const telephoneArray = Array.isArray(telephone) ? telephone : [];
 
-    // Get next rtom_id using aggregation
-    const result = await Rtom.aggregate([
-      { $group: { _id: null, maxId: { $max: "$rtom_id" } } }
-    ]);
-    const nextRtomId = (result[0]?.maxId || 0) + 1;
-
-    const formattedMobile = Array.isArray(rtom_mobile_no) ?
-      rtom_mobile_no.map(num => ({ mobile_number: num })) :
-      rtom_mobile_no ? [{ mobile_number: rtom_mobile_no }] : [];
-
-    const formattedTelephone = Array.isArray(rtom_telephone_no) ?
-      rtom_telephone_no.map(num => ({ telephone_number: num })) :
-      rtom_telephone_no ? [{ telephone_number: rtom_telephone_no }] : [];
-
-    const newRTOM = new Rtom({
-      doc_version: 1,
-      rtom_id: nextRtomId,
-      billing_center_code,
-      rtom_name,
-      area_code,
-      rtom_email,
-      rtom_mobile_no: formattedMobile,
-      rtom_telephone_no: formattedTelephone,
-      created_by,
-      created_on: new Date(created_on),
-      rtom_status,
-      rtom_end_date: rtom_end_date ? new Date(rtom_end_date) : null,
-      rtom_end_by: rtom_end_by || null,
-      rtom_remarks,
+    const newRtom = new Rtom({
+      rtom_id: Date.now(), // simple unique id
+      billing_center_code: billingCenterCode,
+      rtom_name: name,
+      area_code: areaCode,
+      rtom_email: email,
+      rtom_mobile_no: mobileArray.map(m => ({ mobile_number: m })),
+      rtom_telephone_no: telephoneArray.map(t => ({ telephone_number: t })),
+      
+      created_by: 'system',
+      created_on: new Date(),
+      rtom_status: 'Active',
+      rtom_remarks: [],
+      doc_version: 1
     });
 
-    await newRTOM.save();
+    await newRtom.save();
 
-    res.status(201).json({ message: 'RTOM created successfully', data: newRTOM });
-
-    console.log('Saved RTOM:', newRTOM);
-
-    // Right after save
-const check = await Rtom.findOne({ rtom_id: nextRtomId });
-console.log('Verified RTOM in DB:', check);
-
-
-
+    res.status(201).json({ message: 'RTOM created successfully', data: newRtom });
   } catch (error) {
-    console.error('Error creating RTOM:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create RTOM', error });
   }
 };
