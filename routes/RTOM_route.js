@@ -27,7 +27,7 @@ import {
     ListAllRTOMDetails,
     CreateActiveRTOM,
     ListRTOMDetailsByRTOMID,
-    UpdateRTOMDetails
+    UpdateRTOMDetails , createRTOM
 } from '../controllers/RTOM_controller.js';
  
 const router = Router();
@@ -1349,5 +1349,7 @@ router.post('/Create_Active_RTOM' , CreateActiveRTOM);
 router.post("/List_RTOM_Details_By_RTOM_ID", ListRTOMDetailsByRTOMID);
 
 router.post("/Update_RTOM_Details", UpdateRTOMDetails);
+
+router.post("/createRTOM", createRTOM);
 
 export default router;
