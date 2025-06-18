@@ -16,7 +16,7 @@ import Rtom  from '../models/Rtom.js';
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
-import User_log from "../models/User_Log.js";
+import User from "../models/User.js";
 import User_Approval from "../models/User_Approval.js";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
@@ -2642,7 +2642,7 @@ export const Terminate_RO = async (req, res) => {
     const session = await mongoose.startSession();
     
     try {
-        const { ro_id, drcUser_id, end_by, remark } = req.body;
+        const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
 
         // Validate that at least one ID is provided
         if (!ro_id && !drcUser_id) {
@@ -2671,6 +2671,12 @@ export const Terminate_RO = async (req, res) => {
             return res.status(400).json({ 
                 status: "error",
                 message: 'remark is required in the request body' 
+            });
+        }
+        if (!end_dtm) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'end_dtm is required in the request body' 
             });
         }
 
@@ -2710,7 +2716,7 @@ export const Terminate_RO = async (req, res) => {
             newRemark = {
                 remark: remark,
                 remark_by: end_by,
-                remark_dtm: new Date()
+                remark_dtm: end_dtm
             };
 
             // Update the user
@@ -2719,7 +2725,7 @@ export const Terminate_RO = async (req, res) => {
                 {
                     $set: {
                         drcUser_status: 'Terminate',
-                        end_dtm: new Date(),
+                        end_dtm: end_dtm,
                         end_by: end_by
                     },
                     $push: {
@@ -2740,26 +2746,26 @@ export const Terminate_RO = async (req, res) => {
             }
 
             // Update User_log document
-            const userLogQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
-            const userLogRemark = {
+            const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+            const userRemark = {
                 remark: remark,
                 remark_by: end_by,
-                remark_dtm: new Date()
+                remark_dtm: end_dtm
             };
 
-            const updatedUserLog = await User_log.findOneAndUpdate(
-                userLogQuery,
+            const updatedUser = await User.findOneAndUpdate(
+                userQuery,
                 {
                     $set: {
-                        user_status_type: 'RO_update',
+                        User_Status_Type: 'RO_update',
                         user_status: 'false',
-                        user_status_dtm: new Date(),
-                        user_status_by: end_by,
-                        user_end_dtm: new Date(),
-                        user_end_by: end_by
+                        User_Status_DTM: end_dtm,
+                        User_Status_By: end_by,
+                        User_End_DTM: end_dtm,
+                        User_End_By: end_by
                     },
                     $push: {
-                        remark: userLogRemark
+                        Remark: userRemark
                     }
                 },
                 {
@@ -2769,8 +2775,8 @@ export const Terminate_RO = async (req, res) => {
                 }
             );
 
-            if (!updatedUserLog) {
-                const error = new Error('Failed to update User_log document');
+            if (!updatedUser) {
+                const error = new Error('Failed to update User document');
                 error.statusCode = 500;
                 throw error;
             }
