@@ -211,15 +211,15 @@ const rtomSchema = new Schema({
 const remarkSchema = new Schema({
   remark: {
     type: String,
-    required: true
+    defult: null
   },
   remark_dtm: {
     type: Date, 
-    required: true
+    defult: null
   },
   remark_by: {
     type: String,
-    required: true
+    defult: null
   },
 });
 
@@ -287,6 +287,7 @@ const drcSchema = new Schema(
     },
     remark: {
       type: [remarkSchema],
+      default: []
     },
   },
   {
