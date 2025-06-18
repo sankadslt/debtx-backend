@@ -375,7 +375,7 @@ export const changeServiceStatus = async (req, res) => {
 
   export const Register_Service_Type = async (req, res) => {
     try {
-      const { service_type } = req.body;
+      const { service_type,create_by } = req.body;
   
       if (!service_type) {
         return res.status(400).json({
@@ -415,26 +415,10 @@ export const changeServiceStatus = async (req, res) => {
         service_type,
         service_status: default_service_type_status,
         service_id: seq_service_id,
+        create_by: create_by
       });
   
       await newService.save();
-  
-      // const insertServiceQuery = `
-      //   INSERT INTO service_type (service_id, service_type, service_status)
-      //   VALUES (?, ?, ?)
-      // `;
-      // const valuesForQuery = [seq_service_id, service_type, default_service_type_status];
-  
-      // await new Promise((resolve, reject) => {
-      //   db.mysqlConnection.query(insertServiceQuery, valuesForQuery, (err, result) => {
-      //     if (err) {
-      //       console.error("Error MYSQL inserting service data:", err);
-      //       reject(err);
-      //     } else {
-      //       resolve(result);
-      //     }
-      //   });
-      // });
   
       res.status(200).json({
         status: "success",
