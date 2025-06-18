@@ -1320,7 +1320,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       Created_By: created_by,
       ...dynamicParams,
     });
-
+    console.log(result);
     // Return success response from createTaskFunction
     return res.status(200).json(result);
   } catch (error) {
