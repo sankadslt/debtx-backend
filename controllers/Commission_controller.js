@@ -160,7 +160,11 @@ export const List_All_Commission_Cases = async (req, res) => {
 
     const dateFilter = {};
     if (From_DAT) dateFilter.$gte = new Date(From_DAT);
-    if (TO_DAT) dateFilter.$lte = new Date(TO_DAT);
+    if (TO_DAT) {
+      const endofDay = new Date(TO_DAT);
+      endofDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = new Date(endofDay);
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.created_on = dateFilter;
     }
