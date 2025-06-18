@@ -53,7 +53,11 @@ export const getAllPaymentCases = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endofDay = new Date(to_date);
+      endofDay.setHours(23, 59, 59, 999); //
+      dateFilter.$lte = endofDay;
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.money_transaction_date = dateFilter;
     }

@@ -50,28 +50,39 @@ config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(helmet()); // genaral secuirty headers
+// Security Headers
+app.use(helmet());
+app.use(helmet.frameguard({ action: "deny" }));         // Clickjacking
+app.use(helmet.noSniff());                              // MIME-sniffing
+app.use(helmet.xssFilter());                            // Basic XSS protection
 
-// Middleware to generate nonce and apply secure CSP header
+// Anti-caching and forced no-store headers
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff"); // Just to double-confirm
+  next();
+});
+
+// CSP Header (frontend protection)
 app.use((req, res, next) => {
   const nonce = crypto.randomBytes(16).toString("base64");
   res.locals.cspNonce = nonce;
 
-  // Only apply CSP to frontend-related paths, skip /api/*
   if (!req.path.startsWith("/api") && !req.path.startsWith("/api-docs")) {
-    res.setHeader("Content-Security-Policy", 
-      `default-src 'self'; 
-       script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; 
-       style-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; 
-       img-src 'self' data:; 
-       connect-src 'self' wss://oneidentitytest.slt.com.lk; 
-       font-src 'self'; 
-       frame-ancestors 'none'; 
+    res.setHeader("Content-Security-Policy",
+      `default-src 'self';
+       script-src 'self' 'nonce-${nonce}';
+       style-src 'self' 'nonce-${nonce}';
+       img-src 'self' data:;
+       connect-src 'self' wss://oneidentitytest.slt.com.lk;
+       font-src 'self';
+       frame-ancestors 'none';
        form-action 'self';`
     );
 
-    // Optional: X-Frame-Options and Strict Transport Security
-    res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
 

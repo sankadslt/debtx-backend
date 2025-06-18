@@ -1320,7 +1320,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       Created_By: created_by,
       ...dynamicParams,
     });
-
+    console.log(result);
     // Return success response from createTaskFunction
     return res.status(200).json(result);
   } catch (error) {
@@ -4641,26 +4641,26 @@ export const Customer_Negotiations = async (req, res) => {
         });
       }
       if(request_type == "Mediation board forward request letter"){
-        console.log("hhhhhh");
-        // const result = await negotiation_condition_function(
-        //   current_arrears_amount,
-        //   credit_class_no,
-        //   credit_class_name,
-        //   account_manager_code,
-        //   customer_type_name,
-        //   validity_period,
-        //   region,
-        //   expire_dtm,
-        //   case_id,
-        //   created_by
-        // );
-        // if (result.message !== "Request Mediation Board Forward Letter is a valid request") {
-        //   await session.abortTransaction();
-        //   return res.status(404).json({ 
-        //     status: "negotiation_condition_function output",
-        //     result
-        //   });
-        // } 
+
+        const result = await negotiation_condition_function(
+          current_arrears_amount,
+          credit_class_no,
+          credit_class_name,
+          account_manager_code,
+          customer_type_name,
+          validity_period,
+          region,
+          expire_dtm,
+          case_id,
+          created_by
+        );
+        if (result.message !== "Request Mediation Board Forward Letter is a valid request") {
+          await session.abortTransaction();
+          return res.status(404).json({ 
+            status: "negotiation_condition_function output",
+            result
+          });
+        } 
       } 
       const dynamicParams = {
         case_id,
@@ -6014,7 +6014,11 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
 
       const dateFilter = {};
       if (From_DAT) dateFilter.$gte = new Date(From_DAT);
-      if (TO_DAT) dateFilter.$lte = new Date(TO_DAT);
+      if (TO_DAT) {
+        const endofDate = new Date(TO_DAT);
+        endofDate.setHours(23, 59, 59, 999); // Set to the end of the day
+        dateFilter.$lte = new Date(endofDate);
+      }
 
       pipeline.push({
         $addFields: {
@@ -8229,6 +8233,7 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
   let case_status = "";
   let message = "";
   let reason= "";
+  let new_seq = 0;
   const now = new Date();
   let document_type = "";
   const isDRCExpired = expair_date < now;
@@ -8241,6 +8246,19 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
     if (drc_validity_period > 3) {
       if(isDRCExpired){
         try {
+          const currentCase = await Case_details.findOne(
+            { case_id },
+            { lod_final_reminder: 1 }
+          );
+          if (currentCase && 
+          currentCase.lod_final_reminder && 
+          currentCase.lod_final_reminder.document_type && 
+          currentCase.lod_final_reminder.document_type.length > 0){
+            new_seq = currentCase.lod_final_reminder.document_type[-1].document_seq + 1
+          }
+          else {
+            new_seq = 1
+          }
           const updatedCase = await Case_details.findOneAndUpdate(
               { case_id },
               {
@@ -8252,7 +8270,7 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
                 },
                 $push: {   
                   "lod_final_reminder.document_type": {
-                    document_seq: 1, //python
+                    document_seq: new_seq,
                     document_type: document_type,
                     change_by: created_by,
                     changed_dtm: new Date(),
@@ -8286,9 +8304,9 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
       reason  = "DRC validity period is less than three months"
     }
     return {
-    case_status,
-    message,
-    reason
+      case_status,
+      message,
+      reason
     };
   }
   if (arrears_amount > 1000000) {
@@ -8323,9 +8341,9 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
     reason  = "arrears amount is more than 1000000"
 
     return {
-    case_status,
-    message,
-    reason
+      case_status,
+      message,
+      reason
     };
   }
   if (region === "metro") {
@@ -8339,6 +8357,19 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
         if (drc_validity_period > 3) {
           if(isDRCExpired){
             try {
+              const currentCase = await Case_details.findOne(
+                { case_id },
+                { lod_final_reminder: 1 }
+              );
+              if (currentCase && 
+              currentCase.lod_final_reminder && 
+              currentCase.lod_final_reminder.document_type && 
+              currentCase.lod_final_reminder.document_type.length > 0){
+                new_seq = currentCase.lod_final_reminder.document_type[-1].document_seq + 1
+              }
+              else {
+                new_seq = 1
+              }
               const updatedCase = await Case_details.findOneAndUpdate(
                 { case_id },
                 {
@@ -8350,7 +8381,7 @@ async function negotiation_condition_function(arrears_amount,credit_class_no,cre
                   },
                   $push: {             
                     "lod_final_reminder.document_type": {
-                      document_seq: 1,
+                      document_seq: new_seq,
                       document_type: document_type,
                       change_by: created_by,
                       changed_dtm: new Date(),
@@ -8618,16 +8649,25 @@ export const List_All_Cases = async (req, res) => {
       pipeline.push({ $match: { service_type } });
     }
  
-    const dateFilter = {};
-    const fromDate = From_DAT ? new Date(From_DAT) : null;
-    const toDate = TO_DAT ? new Date(TO_DAT) : null;
+    // const dateFilter = {};
+    // const fromDate = From_DAT ? new Date(From_DAT) : null;
+    // const toDate = TO_DAT ? new Date(TO_DAT) : null;
+    // if (toDate) toDate.setHours(23, 59, 59, 999); // Set end of day for toDate
 
-    if (fromDate && toDate && fromDate > toDate) {
-      dateFilter.$gte = toDate;
-      dateFilter.$lte = fromDate;
-    } else {
-      if (fromDate) dateFilter.$gte = fromDate;
-      if (toDate) dateFilter.$lte = toDate;
+    // if (fromDate && toDate && fromDate > toDate) {
+    //   dateFilter.$gte = toDate;
+    //   dateFilter.$lte = fromDate;
+    // } else {
+    //   if (fromDate) dateFilter.$gte = fromDate;
+    //   if (toDate) dateFilter.$lte = toDate;
+    // }
+
+    const dateFilter = {};
+    if (From_DAT) dateFilter.$gte = new Date(From_DAT);
+    if (TO_DAT) {
+      const endofDay = new Date(TO_DAT);
+      endofDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = new Date(endofDay);
     }
 
     if (Object.keys(dateFilter).length > 0) {
