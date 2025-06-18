@@ -18,6 +18,8 @@ import swaggerUi from "swagger-ui-express";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import { swaggerSpec } from "./swaggerOptions.js";
+import helmet from "helmet";
+import crypto from "crypto";
 import DRC_serviceRouter from "./routes/DRC_Service_route.js";
 import rtomRouter from "./routes/RTOM_route.js";
 import drcRouter from "./routes/DRC_route.js";
@@ -40,11 +42,45 @@ import LodRoutes from "./routes/LOD_route.js";
 import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 import User from "./routes/User_route.js";
 
+
 // Load environment variables
 config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.use(helmet()); // genaral secuirty headers
+
+// Middleware to generate nonce and apply secure CSP header
+app.use((req, res, next) => {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  res.locals.cspNonce = nonce;
+
+  // Only apply CSP to frontend-related paths, skip /api/*
+  if (!req.path.startsWith("/api") && !req.path.startsWith("/api-docs")) {
+    res.setHeader("Content-Security-Policy", 
+      `default-src 'self'; 
+       script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; 
+       style-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net; 
+       img-src 'self' data:; 
+       connect-src 'self' wss://oneidentitytest.slt.com.lk; 
+       font-src 'self'; 
+       frame-ancestors 'none'; 
+       form-action 'self';`
+    );
+
+    // Optional: X-Frame-Options and Strict Transport Security
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
+
+   // Explicitly add X-Content-Type-Options header to all responses
+    res.setHeader("X-Content-Type-Options", "nosniff");
+
+  next();
+});
+
+
 
 // Middlewares
 app.use(json());

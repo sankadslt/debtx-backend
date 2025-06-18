@@ -5985,12 +5985,12 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
           "MB Fail with Pending Non-Settlement"
       ];
 
-      if (!case_status && !RTOM && !DRC && !From_DAT && !TO_DAT) {
-        return res.status(400).json({
-          status: "error",
-          message: "At least one of case_status, From_DAT, TO_DAT, RTOM is required."
-        });
-      }
+      // if (!case_status && !RTOM && !DRC && !From_DAT && !TO_DAT) {
+      //   return res.status(400).json({
+      //     status: "error",
+      //     message: "At least one of case_status, From_DAT, TO_DAT, RTOM is required."
+      //   });
+      // }
 
       const pipeline = [];
 
@@ -6014,7 +6014,11 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
 
       const dateFilter = {};
       if (From_DAT) dateFilter.$gte = new Date(From_DAT);
-      if (TO_DAT) dateFilter.$lte = new Date(TO_DAT);
+      if (TO_DAT) {
+        const endofDate = new Date(TO_DAT);
+        endofDate.setHours(23, 59, 59, 999); // Set to the end of the day
+        dateFilter.$lte = new Date(endofDate);
+      }
 
       pipeline.push({
         $addFields: {
@@ -8618,16 +8622,25 @@ export const List_All_Cases = async (req, res) => {
       pipeline.push({ $match: { service_type } });
     }
  
-    const dateFilter = {};
-    const fromDate = From_DAT ? new Date(From_DAT) : null;
-    const toDate = TO_DAT ? new Date(TO_DAT) : null;
+    // const dateFilter = {};
+    // const fromDate = From_DAT ? new Date(From_DAT) : null;
+    // const toDate = TO_DAT ? new Date(TO_DAT) : null;
+    // if (toDate) toDate.setHours(23, 59, 59, 999); // Set end of day for toDate
 
-    if (fromDate && toDate && fromDate > toDate) {
-      dateFilter.$gte = toDate;
-      dateFilter.$lte = fromDate;
-    } else {
-      if (fromDate) dateFilter.$gte = fromDate;
-      if (toDate) dateFilter.$lte = toDate;
+    // if (fromDate && toDate && fromDate > toDate) {
+    //   dateFilter.$gte = toDate;
+    //   dateFilter.$lte = fromDate;
+    // } else {
+    //   if (fromDate) dateFilter.$gte = fromDate;
+    //   if (toDate) dateFilter.$lte = toDate;
+    // }
+
+    const dateFilter = {};
+    if (From_DAT) dateFilter.$gte = new Date(From_DAT);
+    if (TO_DAT) {
+      const endofDay = new Date(TO_DAT);
+      endofDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = new Date(endofDay);
     }
 
     if (Object.keys(dateFilter).length > 0) {

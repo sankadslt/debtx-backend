@@ -77,7 +77,11 @@ export const ListAllSettlementCases = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.created_dtm = dateFilter;
     }

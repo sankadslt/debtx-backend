@@ -140,7 +140,7 @@ import moment from "moment";
 //       },
 //     });
 //   }
-// };
+// }; 
 
 export const registerDRC = async (req, res) => {
   const { 
@@ -1643,6 +1643,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_contact_no: 1,
           drc_email: 1,
           drc_address: 1,
+          drc_status: 1,
 
 
           // Latest SLT Coordinator

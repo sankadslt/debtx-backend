@@ -12,7 +12,7 @@
 
 // user_route.mjs
 import { Router } from "express";
-import { getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID } from "../controllers/User_controller.js";
+import { End_User, getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID, Update_User_Details } from "../controllers/User_controller.js";
  
 const router = Router();
 
@@ -300,5 +300,9 @@ router.post('/List_All_User_Details', List_All_User_Details);
  *                       example: Error stack trace or message
  */
 router.post('/List_All_User_Details_By_ID', List_All_User_Details_By_ID);
+
+router.patch('/Update_User_Details', Update_User_Details);
+
+router.patch('/End_User', End_User);
 
 export default router;
