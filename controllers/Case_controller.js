@@ -2337,6 +2337,17 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
         {
           $project: {
             case_id: 1,
+            customer_name : 1,
+            account_no : 1,
+            mediation_board_count:{ $size: "$mediation_board" },
+            next_calling_date: {
+              $let: {
+                vars: {
+                  lastEntry: { $arrayElemAt: ["$mediation_board", -1] }
+                },
+                in: "$$lastEntry.mediation_board_calling_dtm"
+              }
+            },
             status: "$case_current_status",
             created_dtm:"$last_drc.created_dtm",
             contact_no:"$last_contact.contact_no",
@@ -5094,9 +5105,9 @@ export const listDRCAllCases = async (req, res) => {
 //API ID: C-1P80
 export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (req, res) => {
   const { drc_id, ro_id, rtom, case_current_status, action_type, from_date, to_date } = req.body;
-
+  let fromDateObj = null;
+  let toDateObj = null;
   try {
-    // Validate input parameters
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -5107,8 +5118,22 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
         },
       });
     }
+    if(from_date && to_date){
+       fromDateObj = new Date(from_date);
+       toDateObj = new Date(to_date);
 
-    if (!rtom && !ro_id && !action_type && !case_current_status && !(from_date && to_date)) {
+      if (isNaN(fromDateObj) || isNaN(toDateObj)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid date format.",
+        errors: {
+          code: 400,
+          description: "from_date and to_date must be valid date strings.",
+        },
+      });
+    }
+    }
+    if (!rtom && !case_current_status && !ro_id && !action_type && !(toDateObj && fromDateObj)) {
       return res.status(400).json({
         status: "error",
         message: "At least one filtering parameter is required.",
@@ -5118,51 +5143,98 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
         },
       });
     }
-
-    // Build query dynamically
+    const allowedStatuses = [
+      "Forward to Mediation Board",
+      "MB Negotiation",
+      "MB Request Customer-Info",
+      "MB Handover Customer-Info",
+      "MB Settle Pending",
+      "MB Settle Open-Pending",
+      "MB Settle Active",
+      "MB Fail with Pending Non-Settlement",
+    ];
     let query = {
-      $and: [
-        { "drc.drc_id": drc_id },
+          "last_drc.drc_id": drc_id,
+          "last_drc.removed_dtm": null,
+    };
+    if (case_current_status) {
+      if (allowedStatuses.includes(case_current_status)) {
+        query.case_current_status = case_current_status;
+      }else {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid case status.",
+          errors: {
+            code: 400,
+            description: `Status "${status}" is not allowed. Allowed statuses are: ${allowedStatuses.join(", ")}`,
+          },
+        });
+      }
+    }else {
+      query.case_current_status = { $in: allowedStatuses };
+    }
+    if (rtom) query.area = rtom;
+    if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
+    if (action_type) query.action_type = action_type;
+    if (fromDateObj && toDateObj) {
+      query["last_drc.created_dtm"] = {
+        $gte: fromDateObj,
+        $lte: toDateObj,
+      };
+    }
+    const cases = await Case_details.aggregate([
         {
-          case_current_status: {
-            $in: [
-              "Forward to Mediation Board",
-              "MB Negotiation",
-              "MB Request Customer-Info",
-              "MB Handover Customer-Info",
-              "MB Settle Pending",
-              "MB Settle Open-Pending",
-              "MB Settle Active",
-              "MB Fail with Pending Non-Settlement",
-            ],
+          $addFields: {
+            last_drc: { $arrayElemAt: ["$drc", -1] },
+            last_contact: { $arrayElemAt: ["$current_contact", -1] },
+            last_recovery_officer: {
+              $let: {
+                vars: { lastDRC: { $arrayElemAt: ["$drc", -1] } },
+                in: "$$lastDRC.recovery_officers"
+              }
+            }
           },
         },
-      ],
-    };
-
-    // Add optional filters dynamically
-    if (rtom) query.$and.push({ area: rtom });
-    if (ro_id) {
-      query.$and.push({
-        $expr: {
-          $eq: [
-            ro_id,
-            { $arrayElemAt: [ { $arrayElemAt: ["$drc.recovery_officers.ro_id", -1] }, -1, ], },
-          ],
+        {
+          $lookup: {
+            from: "Recovery_officer",
+            localField: "last_recovery_officer.ro_id",
+            foreignField: "ro_id",
+            as: "ro_info",
+          },
         },
-      });
-    };    
-    if (action_type) query.$and.push({ action_type });
-    if (case_current_status) query.$and.push({ case_current_status });
-    if (from_date && to_date) {
-      query.$and.push({ "drc.created_dtm": { $gt: new Date(from_date) } });
-      query.$and.push({ "drc.created_dtm": { $lt: new Date(to_date) } });
-    }
-
-    // Fetch cases based on the query
-    const cases = await Case_details.find(query);
-
-    // Handle case where no matching cases are found
+        {
+          $match: query,
+        },
+        {
+          $sort: {
+            "last_drc.created_dtm": -1, 
+          },
+        },
+        {
+          $project: {
+            case_id: 1,
+            customer_name : 1,
+            account_no : 1,
+            mediation_board_count:{ $size: "$mediation_board" },
+            next_calling_date: {
+              $let: {
+                vars: {
+                  lastEntry: { $arrayElemAt: ["$mediation_board", -1] }
+                },
+                in: "$$lastEntry.mediation_board_calling_dtm"
+              }
+            },
+            status: "$case_current_status",
+            created_dtm:"$last_drc.created_dtm",
+            contact_no:"$last_contact.contact_no",
+            area:1,
+            action_type: 1,
+            ro_name:{ $arrayElemAt: ["$ro_info.ro_name", 0] },
+          },
+        },
+    ]);
+    
     if (!cases || cases.length === 0) {
       return res.status(404).json({
         status: "error",
@@ -5173,40 +5245,11 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (r
         },
       });
     }
-
-    // Format cases based on drc_id or ro_id
-    const formattedCases = await Promise.all(
-      cases.map(async (caseData) => {
-        const findDRC = Array.isArray(caseData.drc) ? caseData.drc.find((drc) => drc.drc_id === drc_id) : null;
-
-        const lastRO = findDRC?.recovery_officers?.[findDRC.recovery_officers.length - 1] || null;
-
-        const matchingRecoveryOfficer = await RecoveryOfficer.findOne({ ro_id: lastRO?.ro_id });
-
-        const mediationBoardCount = caseData.mediation_board?.length || 0;
-
-        return {
-          case_id: caseData.case_id,
-          customer_name: caseData.customer_name|| null,
-          status: caseData.case_current_status,
-          created_dtm: findDRC?.created_dtm || null,
-          ro_name: matchingRecoveryOfficer?.ro_name || null,
-          area: caseData.area,
-          mediation_board_count: mediationBoardCount,
-          next_calling_date: caseData.mediation_board?.[mediationBoardCount - 1]?.mediation_board_calling_dtm || null,
-          current_contact:caseData.current_contact || null,
-          account_no: caseData.account_no || null
-        };
-      })
-    );
-
-  // Return response
-  return res.status(200).json({
-    status: "success",
-    message: "Cases retrieved successfully.",
-    data: formattedCases.filter(Boolean), // Filter out null/undefined values
-  });
-
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: cases,
+    });
   } catch (error) {
     console.error("Error in function:", error); // Log the full error for debugging
     return res.status(500).json({
