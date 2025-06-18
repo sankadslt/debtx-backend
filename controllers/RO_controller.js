@@ -3456,5 +3456,9 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
   }
 };
 
+export const Update_RO_or_DRCuser_Details = async (req, res) => {
+
+};
+
 
 
