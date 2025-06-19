@@ -1260,3 +1260,40 @@ export const UpdateRTOMDetails = async (req, res) => {
     });
   }
 };
+
+
+
+export const TerminateRTOM = async (req, res) => {
+  try {
+    const { rtom_id, rtom_end_date, rtom_end_by, rtom_remarks } = req.body;
+
+    if (!rtom_id || !rtom_end_date || !rtom_end_by || !rtom_remarks) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    if (!Array.isArray(rtom_remarks) || rtom_remarks.length === 0) {
+      return res.status(400).json({ message: 'Remarks must be a non-empty array' });
+    }
+
+    const result = await Rtom.findOneAndUpdate(
+      { rtom_id: rtom_id },
+      {
+        rtom_status: 'Terminate',
+        rtom_end_date,
+        rtom_end_by,
+        rtom_remarks
+      },
+      { new: true }
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'RTOM not found' });
+    }
+
+    res.status(200).json({ message: 'RTOM terminated successfully', data: result });
+
+  } catch (error) {
+    console.error('Error terminating RTOM:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
