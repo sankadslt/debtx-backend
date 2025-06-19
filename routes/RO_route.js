@@ -31,7 +31,8 @@ import {
     Terminate_RO,
     List_All_RO_and_DRCuser_Details_to_DRC,
     List_All_RO_and_DRCuser_Details_to_SLT,
-    Create_New_DRCUser_or_RO  } from "../controllers/RO_controller.js";
+    Create_New_DRCUser_or_RO,
+    Update_RO_or_DRCuser_Details  } from "../controllers/RO_controller.js";
 
 const router = Router();
 
@@ -2248,5 +2249,7 @@ router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_D
 router.post('/List_All_RO_and_DRCuser_Details_to_SLT', List_All_RO_and_DRCuser_Details_to_SLT);
 
 router.post('/Create_New_DRCUser_or_RO', Create_New_DRCUser_or_RO);
+
+router.patch('/Update_RO_or_DRCuser_Details', Update_RO_or_DRCuser_Details);
 
 export default router;
