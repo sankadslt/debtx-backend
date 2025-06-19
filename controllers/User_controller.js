@@ -97,7 +97,7 @@ export const List_All_User_Details = async (req, res) => {
     const limit = currentPage === 1 ? 10 : 30;
     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
-    const users = await User_log.aggregate([
+    const users = await User.aggregate([
       { $match: query },
       {
         $project: {
@@ -124,7 +124,7 @@ export const List_All_User_Details = async (req, res) => {
       });
     }
 
-    const totalCount = await User_log.countDocuments(query);
+    const totalCount = await User.countDocuments(query);
 
     return res.status(200).json({
       status: "success",
@@ -183,7 +183,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   }
 
   try {
-    const user = await User_log.aggregate([
+    const user = await User.aggregate([
       { $match: { user_id: user_id } },
       {
         $project: {
@@ -272,7 +272,7 @@ export const End_User = async (req, res) => {
 
     await session.withTransaction(async () => {
       // Find the user
-      const user = await User_log.findOne({ user_id }).session(session);
+      const user = await User.findOne({ user_id }).session(session);
       if (!user) {
         const error = new Error("User not found.");
         error.statusCode = 404;
@@ -287,7 +287,7 @@ export const End_User = async (req, res) => {
       }
 
       // Update user document
-      updatedUser = await User_log.findOneAndUpdate(
+      updatedUser = await User.findOneAndUpdate(
         { user_id },
         {
           $set: {
@@ -363,7 +363,7 @@ export const Update_User_Details = async (req, res) => {
 
     await session.withTransaction(async () => {
       // Find the existing user
-      const user = await User_log.findOne({ user_id }).session(session);
+      const user = await User.findOne({ user_id }).session(session);
       if (!user) {
         const error = new Error("User not found.");
         error.statusCode = 404;
@@ -388,7 +388,7 @@ export const Update_User_Details = async (req, res) => {
         updateFields.User_Status_By = updated_by;
       }
 
-      const updatedUser = await User_log.findOneAndUpdate(
+      const updatedUser = await User.findOneAndUpdate(
         { user_id },
         {
           $set: updateFields,
