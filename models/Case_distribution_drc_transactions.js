@@ -33,7 +33,7 @@ const batchseqSchema = new Schema({
 const crdDistributionStatusSchema = new Schema({
   crd_distribution_status: { 
     type: String, 
-    enum: ['open', 'batch_forword_distribute', 'batch_amend', 'batch_forword_approval', 'batch_distributed', 'batch_rejected'], // Define allowed statuses
+    enum: ['open', 'batch_forword_distribute', 'batch_amend', 'batch_forword_approval', 'batch_distributed', 'batch_rejected', 'rejected_batch_distributed'], // Define allowed statuses
     required: true 
   },
   created_dtm: { type: Date, required: true },
