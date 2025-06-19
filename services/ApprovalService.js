@@ -7,13 +7,21 @@ export const getApprovalUserIdService = async ({ case_phase, approval_type, bill
         query.billing_center = billing_center;
     }
 
-    const record = await Tmp_SLT_Approval.findOne(query);
+    let record = await Tmp_SLT_Approval.findOne(query);
+    
     if (!record) {
-        throw new Error("No matching record found.");
+        
+        const query1 = { approval_type };
+        record = await Tmp_SLT_Approval.findOne(query1);
+
+        if (!record) {
+            throw new Error("No matching record found.");
+        }
     }
 
     return record.user_id;
 };
+
 
 export const getBatchApprovalUserIdService = async ({ case_phase, approval_type, billing_center }) => {
     const query = { case_phase, approval_type };

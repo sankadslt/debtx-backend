@@ -95,7 +95,7 @@ import {
   listdownCaseDetailsByCaseId,
   WithdrawCase,
   getUserProcesses,
-  getCaseLists,
+  List_All_Cases,
   CaseStatus,
  
 } from "../controllers/Case_controller.js";
@@ -10515,7 +10515,9 @@ router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
 router.post('/getUserProcesses',getUserProcesses);
 
 
-router.post('/getCaseLists',getCaseLists)
+router.post('/List_All_Cases',List_All_Cases)
+
+ 
 router.get('/CaseStatus',CaseStatus)
  
 export default router;

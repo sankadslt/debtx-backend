@@ -14,8 +14,10 @@
 import MoneyCommission from "../models/Money_commission.js";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
-
-
+import TmpForwardedApprover from "../models/Template_forwarded_approver.js";
+ 
+import { getApprovalUserId } from "./Tmp_SLT_Approval_Controller.js";
+import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 // export const List_All_Commission_Cases = async (req, res) => {
 //   try {
 //     const { case_id, From_DAT, TO_DAT, DRC_ID, Account_Num, Commission_Type, page = 1 } = req.body;
@@ -212,6 +214,99 @@ export const List_All_Commission_Cases = async (req, res) => {
     });
   }
 };
+
+
+export const forwardToApprovals = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { drcId, Created_By} = req.body;
+
+    if (!drcId || !Created_By ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields (drcId, Created_By)."
+      });
+    }
+    console.log("drcId:", drcId);
+    console.log("Created_By:", Created_By);
+//  case_phase: "Initial Review",
+//       approval_type: "Manager Approval"
+    const delegateResponse = await getApprovalUserId({
+      
+      approval_type: "Commission Approval"
+    });
+
+    const delegate_id = delegateResponse.user_id;
+
+    const newApprovalDoc = new TmpForwardedApprover({
+      approver_reference:drcId,
+      created_by: Created_By,
+      approver_type: "Commission Approval",
+      approve_status: [{
+        status: "Open",
+        status_date: new Date(),
+        status_edit_by: Created_By,
+      }],
+      parameters: {
+        drcId,
+      },
+      approved_deligated_by: delegate_id,
+    });
+
+    await newApprovalDoc.save({ session });
+
+
+    const taskData = {
+
+      Template_Task_Id: 52,  
+      task_type: "Pending Approvals for Commission", 
+      drcId,
+      approver_type: "Commission Approval",
+      Created_By: Created_By,
+      task_status: "open", 
+    };
+
+    await createTaskFunction(taskData, session);
+
+    // await createUserInteractionFunction({
+    //   Interaction_ID: 15,
+    //   User_Interaction_Type: "",
+    //   delegate_user_id: delegate_id,
+    //   Created_By: Created_By,
+    //   User_Interaction_Status_DTM: currentDate,
+    //   User_Interaction_Status: "",
+ 
+    //   approver_reference: approver_reference,
+    //   session
+    // });
+    
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Cases forwarded for approval successfully.",
+      data: newApprovalDoc,
+      task: taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error forwarding cases and creating task:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message|| "Internal server error",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
 
 export const commission_type_cases_count = async (req, res) => {
   try {

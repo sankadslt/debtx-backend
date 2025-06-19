@@ -9,8 +9,8 @@ export const getApprovalUserId = async ({
     billing_center
 }) => {
     try {
-      if (!case_phase || !approval_type) {
-        throw new Error("case_phase and approval_type are required.");
+      if (!case_phase && !approval_type) {
+        throw new Error("case_phase or approval_type are required.");
       }
   
       const user_id = await getApprovalUserIdService({
