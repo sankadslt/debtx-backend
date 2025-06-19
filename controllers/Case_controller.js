@@ -8925,12 +8925,12 @@ export const List_All_Cases = async (req, res) => {
       });
     }
 
-    const pipeline = [];
+    const pipeline = []; //create empty pipline array
 
     
      
-    if  (case_current_status) {
-      pipeline.push({ $match: {case_current_status} });
+    if  (case_current_status) {     // status value coming from front
+      pipeline.push({ $match: {case_current_status} });   // must equal databse value, keep matching documents only
     }
      
     if  (RTOM) {
@@ -8945,23 +8945,7 @@ export const List_All_Cases = async (req, res) => {
     if (service_type) {
       pipeline.push({ $match: { service_type } });
     }
- 
-    const dateFilter = {};
-    const fromDate = From_DAT ? new Date(From_DAT) : null;
-    const toDate = TO_DAT ? new Date(TO_DAT) : null;
 
-    if (fromDate && toDate && fromDate > toDate) {
-      dateFilter.$gte = toDate;
-      dateFilter.$lte = fromDate;
-    } else {
-      if (fromDate) dateFilter.$gte = fromDate;
-      if (toDate) dateFilter.$lte = toDate;
-    }
-
-    if (Object.keys(dateFilter).length > 0) {
-      pipeline.push({ $match: { created_dtm: dateFilter } });
-    }
- 
     pipeline.push({
       $addFields: {
         last_drc: { $arrayElemAt: ["$drc", -1] }
@@ -8982,6 +8966,24 @@ export const List_All_Cases = async (req, res) => {
         }
       });
     }
+ 
+    const dateFilter = {};  // create empty object
+    const fromDate = From_DAT ? new Date(From_DAT) : null;
+    const toDate = TO_DAT ? new Date(TO_DAT) : null;
+
+    if (fromDate && toDate && fromDate > toDate) {
+      dateFilter.$gte = toDate;
+      dateFilter.$lte = fromDate;
+    } else {
+      if (fromDate) dateFilter.$gte = fromDate;
+      if (toDate) dateFilter.$lte = toDate;
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({ $match: { created_dtm: dateFilter } });
+    }
+ 
+    
 
     // Pagination logic
     let page = Number(pages);
@@ -8989,13 +8991,13 @@ export const List_All_Cases = async (req, res) => {
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $sort: { case_id: -1 } }); //highest case_id will appear first
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
     const filtered_cases = await Case_details.aggregate(pipeline);
 
-    const responseData = filtered_cases.map((caseData) => {
+    const responseData = filtered_cases.map((caseData) => { //caseData= single document that came out of database after going through the pipeline.
       return{
       case_id: caseData.case_id,
       status: caseData.case_current_status,
