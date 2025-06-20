@@ -18,6 +18,7 @@ import {
   Approve_Case_abandant,
   Open_No_Agent_Cases_F1_Filter,
   Case_Current_Status,
+  List_DRC_Distribution_Rejected_Batches,
   Open_No_Agent_Cases_ALL,
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
@@ -10402,5 +10403,7 @@ router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
 
 router.post('/List_All_Cases',List_All_Cases);
 router.get('/CaseStatus',CaseStatus);
+
+router.get('/List_DRC_Distribution_Rejected_Batches',List_DRC_Distribution_Rejected_Batches);
 
 export default router;
