@@ -47,8 +47,6 @@ const caseDistributionSchema = new Schema({
     forword_case_distribution_batch_id: { type: Number, default: null },
     case_distribution_batch_id: { type: Number, required: true, unique: true },
     batch_seq_details: [batchseqSchema],
-    created_dtm: { type: Date, required: true },
-    created_by: { type: String, required: true},
     current_arrears_band: { type: String, required: true},
     rulebase_count: { type: Number, required: true},
     distribution_status: [crdDistributionStatusSchema],
