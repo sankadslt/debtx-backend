@@ -2790,17 +2790,14 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     });
   }
   try {
-    // Fetch the existing document to get the last batch_seq
     const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
-
     if(!existingCase){
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({
         status: "error",
         message: "case distribution batch id is not match with the existing batches.",
-      },
-    );
+      },);
     }
     const mongo = await db.connectMongoDB();
     const existingTask = await mongo.collection("System_tasks").findOne({
@@ -2916,8 +2913,8 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     };
     
     existingCase.batch_seq_details.push(newBatchSeqEntry);
-    existingCase.crd_distribution_status = "Open";
-    existingCase.crd_distribution_status_on = new Date();
+    existingCase.current_crd_distribution_status = "Open";
+    existingCase.current_crd_distribution_status_on = new Date();
 
     await existingCase.save({ session }); 
     
