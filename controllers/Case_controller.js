@@ -1438,8 +1438,22 @@ export const listHandlingCasesByDRC = async (req, res) => {
       }
 
       pipeline.push({
+        // $addFields: {
+        //   last_ro: { $arrayElemAt: ['$last_drc.recovery_officers', -1] }
+        // }
         $addFields: {
-          last_ro: { $arrayElemAt: ['$last_drc.recovery_officers', -1] }
+          last_ro: {
+            $cond: {
+              if: {
+                $and: [
+                  { $isArray: '$last_drc.recovery_officers' },
+                  { $gt: [{ $size: '$last_drc.recovery_officers' }, 0] }
+                ]
+              },
+              then: { $arrayElemAt: ['$last_drc.recovery_officers', -1] },
+              else: null
+            }
+          }
         }
       });
 

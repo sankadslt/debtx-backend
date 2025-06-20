@@ -394,12 +394,12 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
           message: "The current document type is required ",
         });
       }
-      if (!case_status && !date_type) {
-        return res.status(400).json({
-          status: "error",
-          message: "There should be at least one parameter case status or date type ",
-        });
-      }
+      // if (!case_status && !date_type) {
+      //   return res.status(400).json({
+      //     status: "error",
+      //     message: "There should be at least one parameter case status or date type ",
+      //   });
+      // }
       if (date_type && (!date_from && !date_to)) {
         return res.status(400).json({
           status: "error",
@@ -436,7 +436,11 @@ export const List_Final_Reminder_Lod_Cases = async (req, res) => {
         }
         const dateFilter = {};
         if (date_from) dateFilter.$gte = new Date(date_from);
-        if (date_to) dateFilter.$lte = new Date(date_to);
+        if (date_to) {
+          const endofDay = new Date(date_to);
+          endofDay.setHours(23, 59, 59, 999);
+          dateFilter.$lte = new Date(endofDay);
+        };
         if (!date_from && !date_to){
           return res.status(400).json({
             status: "error",
