@@ -33,17 +33,18 @@ const batchseqSchema = new Schema({
 const crdDistributionStatusSchema = new Schema({
   crd_distribution_status: { 
     type: String, 
-    enum: ['open', 'batch_forword_distribute', 'batch_amend', 'batch_forword_approval', 'batch_distributed', 'batch_rejected', 'rejected_batch_distributed'], // Define allowed statuses
+    enum: ['open', 'batch_forword_distribute', 'batch_amend', 'batch_approved', 'batch_forword_approval', 'batch_distributed', 'batch_rejected', 'rejected_batch_distributed'], // Define allowed statuses
     required: true 
   },
   created_dtm: { type: Date, required: true },
   created_by: { type: String, required: true},
   crd_distribution_reason: { type: String, default: null },
-});
+},{ _id: false });
+
 
 const caseDistributionSchema = new Schema({
     doc_version : {type:Number, required: true, default: 1},
-    forword_case_distribution_batch_id: { type: Number, required: true, unique: true },
+    forword_case_distribution_batch_id: { type: Number, default: null, unique: true },
     case_distribution_batch_id: { type: Number, required: true, unique: true },
     batch_seq_details: [batchseqSchema],
     created_dtm: { type: Date, required: true },
