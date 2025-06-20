@@ -9006,6 +9006,7 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
       },
     });
   }
+};
 
 export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req, res) => {
     try {
