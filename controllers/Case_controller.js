@@ -8950,6 +8950,63 @@ export const CaseStatus = async (req, res) => {
   }
 };
 
+export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
+  try {
+    const rejected_batches = await CaseDistribution.aggregate([
+      {
+        $match: {
+          distribution_status: { $exists: true, $ne: [] }
+        }
+      },
+      {
+        $addFields: {
+          last_distribution_status: { $last: "$distribution_status" }
+        }
+      },
+      {
+        $match: {
+          "last_distribution_status.crd_distribution_status": "batch_rejected"
+        }
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                _id: 0,
+                case_distribution_batch_id: 1,
+                rulebase_count: 1,
+                drc_commision_rule: 1
+              }
+            }
+          ],
+          count: [
+            { $count: "total" }
+          ]
+        }
+      }
+    ]);
+
+    const data = rejected_batches[0]?.data || [];
+    const count = rejected_batches[0]?.count[0]?.total || 0;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data retrieved successfully.",
+      count,   
+      data     
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error retrieving Case status.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+
 export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req, res) => {
     try {
         const { case_distribution_batch_id } = req.body;

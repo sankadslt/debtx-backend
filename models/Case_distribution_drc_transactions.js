@@ -44,7 +44,7 @@ const crdDistributionStatusSchema = new Schema({
 
 const caseDistributionSchema = new Schema({
     doc_version : {type:Number, required: true, default: 1},
-    forword_case_distribution_batch_id: { type: Number, default: null, unique: true },
+    forword_case_distribution_batch_id: { type: Number, default: null },
     case_distribution_batch_id: { type: Number, required: true, unique: true },
     batch_seq_details: [batchseqSchema],
     created_dtm: { type: Date, required: true },
