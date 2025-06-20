@@ -3954,6 +3954,7 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       ro_name,
       login_email,
       login_contact_no,
+      drcUser_status,
       create_by,
       rtoms,
       remark
@@ -4018,6 +4019,10 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     if (login_email !== undefined) {
       updateData.login_email = login_email;
       needsApproval = true;
+    }
+
+    if (drcUser_status !== undefined) {
+      updateData.drcUser_status = drcUser_status;
     }
 
     if (login_contact_no !== undefined) {
