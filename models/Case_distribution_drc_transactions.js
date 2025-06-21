@@ -23,7 +23,7 @@ const batchseqSchema = new Schema({
     created_dtm: { type: Date, required: true },
     created_by: { type: String, required: true},
     action_type: { type: String, required: true, enum: ['distribution', 'amend'],},
-    array_of_distributions: [arrayOfDistributionSchema] ,
+    distribution_details: [arrayOfDistributionSchema] ,
     batch_seq_rulebase_count: { type: Number, required: true},
     crd_distribution_status: { type: String, default:null},
     crd_distribution_status_on: { type: Date, default:null },
