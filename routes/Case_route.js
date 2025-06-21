@@ -18,6 +18,7 @@ import {
   Approve_Case_abandant,
   Open_No_Agent_Cases_F1_Filter,
   Case_Current_Status,
+  List_DRC_Distribution_Rejected_Batches,
   Open_No_Agent_Cases_ALL,
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
@@ -93,6 +94,7 @@ import {
   
   List_All_Cases,
   CaseStatus,
+  List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -10289,5 +10291,12 @@ router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
 
 router.post('/List_All_Cases',List_All_Cases);
 router.get('/CaseStatus',CaseStatus);
+
+router.get('/List_DRC_Distribution_Rejected_Batches',List_DRC_Distribution_Rejected_Batches);
+
+router.post(
+  "/List_Rejected_Batch_Summary_Case_Distribution_Batch_Id",
+  List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
+);
 
 export default router;
