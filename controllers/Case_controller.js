@@ -9007,3 +9007,51 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
     });
   }
 };
+
+export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req, res) => {
+    try {
+        const { case_distribution_batch_id } = req.body;
+
+        if (!case_distribution_batch_id) {
+            return res.status(400).json({
+                status: "error",
+                message: "case_distribution_batch_id is required."
+            });
+        }
+        const Rejected_Batch = await CaseDistribution.findOne(
+          {case_distribution_batch_id},
+          {
+            batch_seq_details: 1,
+            rulebase_count: 1,
+            drc_commision_rule: 1,
+            current_arrears_band: 1
+          }
+        );
+
+        if (!Rejected_Batch) {
+            return res.status(404).json({
+                status: "error",
+                message: "No rejected batch found for the provided case_distribution_batch_id."
+            });
+        }
+
+        const responseData = {
+          rejected_drc_summary: Rejected_Batch?.batch_seq_details?.[0]?.array_of_distributions,
+          rulebase_count: Rejected_Batch.rulebase_count,
+          drc_commision_rule: Rejected_Batch.drc_commision_rule,
+          current_arrears_band: Rejected_Batch.current_arrears_band
+        };
+
+        return res.status(200).json({
+            status: "success",
+            message: "Retrieved rejected batch summary successfully.",
+            data: responseData,
+        });
+
+    }catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message,
+        });
+    }
+};
