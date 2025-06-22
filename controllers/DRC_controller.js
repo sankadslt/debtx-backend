@@ -140,85 +140,241 @@ import moment from "moment";
 //       },
 //     });
 //   }
+// }; 
+
+// export const registerDRC = async (req, res) => {
+//   const { 
+//     drc_name, 
+//     drc_business_registration_number, 
+//     drc_address, 
+//     drc_contact_no, 
+//     drc_email, 
+//     create_by,
+//     slt_coordinator,
+//     services,
+//     rtom
+//   } = req.body;
+
+//   try {
+//     // Validate required fields
+//     if (!drc_name || !drc_business_registration_number || !drc_address || 
+//         !drc_contact_no || !drc_email || !create_by || 
+//         !slt_coordinator || !services || !rtom) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Failed to register DRC.",
+//         errors: {
+//           field_name: "All fields are required",
+//         },
+//       });
+//     }
+
+//     // Default values
+//     const drc_status = "Active"; // Default to Active status
+//     const create_on = new Date(); // Current date and time
+
+//     // Connect to MongoDB
+//     const mongoConnection = await db.connectMongoDB();
+//     if (!mongoConnection) {
+//       throw new Error("MongoDB connection failed");
+//     }
+
+//     // Generate unique DRC ID
+//     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//       { _id: "drc_id" },
+//       { $inc: { seq: 1 } },
+//       { returnDocument: "after", upsert: true }
+//     );
+
+//     console.log("Counter Result:", counterResult);
+
+//     // Fix: Check if counterResult has value property or seq directly
+//     const drc_id = counterResult.value ? counterResult.value.seq : counterResult.seq;
+    
+//     if (!drc_id) {
+//       throw new Error("Failed to generate drc_id");
+//     }
+
+//     // Validate sub-documents
+//     // Validate coordinator data
+//     if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
+//       throw new Error("At least one SLT coordinator is required");
+//     }
+
+//     // Validate services data
+//     if (!Array.isArray(services) || services.length === 0) {
+//       throw new Error("At least one service is required");
+//     }
+
+//     // Validate RTOM data
+//     if (!Array.isArray(rtom) || rtom.length === 0) {
+//       throw new Error("At least one RTOM is required");
+//     }
+
+//     // Validate rtom_billing_center_code
+//     for (const r of rtom) {
+//       if (!r.rtom_billing_center_code) {
+//         throw new Error("RTOM billing center code is required");
+//       }
+//     }
+
+//     // Save data to MongoDB
+//     const newDRC = new DRC({
+//       doc_version: 1,
+//       drc_id,
+//       drc_name,
+//       drc_business_registration_number,
+//       drc_address,
+//       drc_contact_no,
+//       drc_email,
+//       drc_status,
+//       create_by,
+//       create_on,
+//       drc_end_dtm: null,
+//       drc_end_by: null,
+//       slt_coordinator: slt_coordinator.map(coord => ({
+//         service_no: coord.service_no,
+//         slt_coordinator_name: coord.slt_coordinator_name,
+//         slt_coordinator_email: coord.slt_coordinator_email,
+//         coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
+//         coordinator_create_by: coord.coordinator_create_by || create_by,
+//         coordinator_end_by: coord.coordinator_end_by || null,
+//         coordinator_end_dtm: coord.coordinator_end_dtm || null
+//       })),
+//       services: services.map(service => ({
+//         service_type: service.service_type,
+//         service_status: service.service_status || "Active",
+//         create_by: service.create_by || create_by,
+//         create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
+//         status_update_dtm: service.status_update_dtm || new Date(),
+//         status_update_by: service.status_update_by || create_by
+//       })),
+//       rtom: rtom.map(r => ({
+//         rtom_id: r.rtom_id,
+//         rtom_name: r.rtom_name,
+//         rtom_status: r.rtom_status || "Active",
+//         rtom_billing_center_code: r.rtom_billing_center_code,
+//         create_by: r.create_by || create_by,
+//         create_dtm: r.create_dtm || new Date(),
+//         status_update_by: r.status_update_by || create_by,
+//         status_update_dtm: r.status_update_dtm || new Date()
+//       }))
+//     });
+
+//     await newDRC.save();
+
+//     // Return success response
+//     res.status(201).json({
+//       status: "success",
+//       message: "DRC registered successfully.",
+//       data: {
+//         drc_id,
+//         drc_name,
+//         drc_business_registration_number,
+//         drc_address,
+//         drc_contact_no,
+//         drc_email,
+//         drc_status,
+//         create_by,
+//         create_on,
+//         slt_coordinator: newDRC.slt_coordinator,
+//         services: newDRC.services,
+//         rtom: newDRC.rtom
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Unexpected error during DRC registration:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to register DRC.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
 // };
 
+// Helper: Format coordinator
+const formatCoordinator = (coord, createdBy) => ({
+  service_no: coord.service_no,
+  slt_coordinator_name: coord.slt_coordinator_name,
+  slt_coordinator_email: coord.slt_coordinator_email,
+  coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
+  coordinator_create_by: coord.coordinator_create_by || createdBy,
+  coordinator_end_by: coord.coordinator_end_by || null,
+  coordinator_end_dtm: coord.coordinator_end_dtm || null,
+});
+
+// Helper: Format service
+const formatService = (service, createdBy) => ({
+  service_: service.service_id,
+  service_type: service.service_type,
+  service_status: service.service_status || "Active",
+  create_by: service.create_by || createdBy,
+  create_on: service.create_on || new Date().toISOString(),
+  status_update_dtm: service.status_update_dtm || new Date(),
+  status_update_by: service.status_update_by || createdBy,
+});
+
+// Helper: Format RTOM
+const formatRTOM = (r, createdBy) => ({
+  rtom_id: r.rtom_id,
+  rtom_name: r.rtom_name,
+  rtom_status: r.rtom_status || "Active",
+  rtom_billing_center_code: r.rtom_billing_center_code,
+  handling_type: r.handling_type,
+  status_update_by: r.status_update_by || createdBy,
+  status_update_dtm: r.status_update_dtm || new Date(),
+});
+
 export const registerDRC = async (req, res) => {
-  const { 
-    drc_name, 
-    drc_business_registration_number, 
-    drc_address, 
-    drc_contact_no, 
-    drc_email, 
+  const {
+    drc_name,
+    drc_business_registration_number,
+    drc_address,
+    drc_contact_no,
+    drc_email,
     create_by,
     slt_coordinator,
     services,
-    rtom
+    rtom,
   } = req.body;
 
   try {
     // Validate required fields
-    if (!drc_name || !drc_business_registration_number || !drc_address || 
-        !drc_contact_no || !drc_email || !create_by || 
-        !slt_coordinator || !services || !rtom) {
+    if (!drc_name || !drc_business_registration_number || !drc_address ||
+        !drc_contact_no || !drc_email || !create_by ||
+        !Array.isArray(slt_coordinator) || slt_coordinator.length === 0 ||
+        !Array.isArray(services) || services.length === 0 ||
+        !Array.isArray(rtom) || rtom.length === 0) {
+
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
-        errors: {
-          field_name: "All fields are required",
-        },
+        errors: { field_name: "All fields are required" },
       });
     }
 
-    // Default values
-    const drc_status = "Active"; // Default to Active status
-    const create_on = new Date(); // Current date and time
-
-    // Connect to MongoDB
-    const mongoConnection = await db.connectMongoDB();
-    if (!mongoConnection) {
-      throw new Error("MongoDB connection failed");
+    // Check RTOM billing center codes
+    const missingBillingCode = rtom.find(r => !r.rtom_billing_center_code);
+    if (missingBillingCode) {
+      return res.status(400).json({
+        status: "error",
+        message: "RTOM billing center code is required.",
+      });
     }
 
     // Generate unique DRC ID
-    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+    const counterResult = await db.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "drc_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
 
-    console.log("Counter Result:", counterResult);
+    const drc_id = counterResult?.value?.seq;
+    if (!drc_id) throw new Error("Failed to generate DRC ID");
 
-    // Fix: Check if counterResult has value property or seq directly
-    const drc_id = counterResult.value ? counterResult.value.seq : counterResult.seq;
-    
-    if (!drc_id) {
-      throw new Error("Failed to generate drc_id");
-    }
-
-    // Validate sub-documents
-    // Validate coordinator data
-    if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
-      throw new Error("At least one SLT coordinator is required");
-    }
-
-    // Validate services data
-    if (!Array.isArray(services) || services.length === 0) {
-      throw new Error("At least one service is required");
-    }
-
-    // Validate RTOM data
-    if (!Array.isArray(rtom) || rtom.length === 0) {
-      throw new Error("At least one RTOM is required");
-    }
-
-    // Validate rtom_billing_center_code
-    for (const r of rtom) {
-      if (!r.rtom_billing_center_code) {
-        throw new Error("RTOM billing center code is required");
-      }
-    }
-
-    // Save data to MongoDB
+    // Build DRC Document
     const newDRC = new DRC({
       doc_version: 1,
       drc_id,
@@ -227,59 +383,27 @@ export const registerDRC = async (req, res) => {
       drc_address,
       drc_contact_no,
       drc_email,
-      drc_status,
+      drc_status: "Active",
       create_by,
-      create_on,
+      create_on: new Date(),
       drc_end_dtm: null,
       drc_end_by: null,
-      slt_coordinator: slt_coordinator.map(coord => ({
-        service_no: coord.service_no,
-        slt_coordinator_name: coord.slt_coordinator_name,
-        slt_coordinator_email: coord.slt_coordinator_email,
-        coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
-        coordinator_create_by: coord.coordinator_create_by || create_by,
-        coordinator_end_by: coord.coordinator_end_by || null,
-        coordinator_end_dtm: coord.coordinator_end_dtm || null
-      })),
-      services: services.map(service => ({
-        service_type: service.service_type,
-        service_status: service.service_status || "Active",
-        create_by: service.create_by || create_by,
-        create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
-        status_update_dtm: service.status_update_dtm || new Date(),
-        status_update_by: service.status_update_by || create_by
-      })),
-      rtom: rtom.map(r => ({
-        rtom_id: r.rtom_id,
-        rtom_name: r.rtom_name,
-        rtom_status: r.rtom_status || "Active",
-        rtom_billing_center_code: r.rtom_billing_center_code,
-        create_by: r.create_by || create_by,
-        create_dtm: r.create_dtm || new Date(),
-        status_update_by: r.status_update_by || create_by,
-        status_update_dtm: r.status_update_dtm || new Date()
-      }))
+      slt_coordinator: slt_coordinator.map(coord => formatCoordinator(coord, create_by)),
+      services: services.map(service => formatService(service, create_by)),
+      rtom: rtom.map(r => formatRTOM(r, create_by)),
     });
 
     await newDRC.save();
 
-    // Return success response
-    res.status(201).json({
+    return res.status(201).json({
       status: "success",
       message: "DRC registered successfully.",
       data: {
         drc_id,
         drc_name,
-        drc_business_registration_number,
-        drc_address,
-        drc_contact_no,
         drc_email,
-        drc_status,
-        create_by,
-        create_on,
-        slt_coordinator: newDRC.slt_coordinator,
-        services: newDRC.services,
-        rtom: newDRC.rtom
+        drc_status: "Active",
+        create_on: newDRC.create_on,
       },
     });
   } catch (error) {
@@ -287,9 +411,7 @@ export const registerDRC = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to register DRC.",
-      errors: {
-        exception: error.message,
-      },
+      errors: { exception: error.message },
     });
   }
 };
@@ -1643,6 +1765,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_contact_no: 1,
           drc_email: 1,
           drc_address: 1,
+          drc_status: 1,
 
 
           // Latest SLT Coordinator

@@ -1,18 +1,19 @@
 import express from "express";
 import ChartData from "../models/ChartData.js";
+import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
 
 const router = express.Router();
 
 // Endpoint to fetch chart data
 router.get("/chart-data", async (req, res) => {
   try {
-    const chartData = await ChartData.find();
+    const chartData = await caseDistributionDRCSummary.find();
 
-    const labels = chartData.map((item) => item.drc_location);
+    const labels = chartData.map((item) => item.rtom);
     const datasets = [
-      { label: "Month 01", data: chartData.map((item) => item.month_01) },
-      { label: "Month 02", data: chartData.map((item) => item.month_02) },
-      { label: "Month 03", data: chartData.map((item) => item.month_03) },
+      { label: "Month 01", data: chartData.map((item) => item.month_1_sc) },
+      { label: "Month 02", data: chartData.map((item) => item.month_2_sc) },
+      { label: "Month 03", data: chartData.map((item) => item.month_3_sc) },
     ];
 
     res.json({ labels, datasets });

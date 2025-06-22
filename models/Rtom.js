@@ -179,7 +179,6 @@ const rtomSchema = new Schema({
     rtom_end_by: {
         type: String,
         default: null
-       
     },
     rtom_remarks: {
         type: [remarkSchema], // Remarks array with subfields
