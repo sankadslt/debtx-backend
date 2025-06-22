@@ -14,6 +14,7 @@ import DRC from "../models/Debt_recovery_company.js";
 import RO from "../models/Recovery_officer.js";
 
 import moment from "moment"; // Ensure moment is imported at the top
+import mongoose from 'mongoose';
 
 // getRTOMDetails from Database
 export const getRTOMDetails = async (req, res) => {
@@ -1169,6 +1170,9 @@ export const UpdateRTOMDetails = async (req, res) => {
     updated_by,
   } = req.body;
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     if (
       !rtom_id ||
@@ -1179,6 +1183,8 @@ export const UpdateRTOMDetails = async (req, res) => {
       !rtom_mobile_no ||
       !rtom_status
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         status: "error",
         message: "Failed to update RTOM due to missing required fields.",
@@ -1187,11 +1193,15 @@ export const UpdateRTOMDetails = async (req, res) => {
 
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
+      await session.abortTransaction();
+      session.endSession();
       throw new Error("MongoDB connection failed");
     }
 
-    const existingRTOM = await Rtom.findOne({ rtom_id });
+    const existingRTOM = await Rtom.findOne({ rtom_id }).session(session);
     if (!existingRTOM) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({
         status: "error",
         message: `RTOM with ID ${rtom_id} not found`,
@@ -1234,11 +1244,17 @@ export const UpdateRTOMDetails = async (req, res) => {
 
     const result = await Rtom.findOneAndUpdate({ rtom_id }, updateOperation, {
       new: true,
+      session,
     });
 
     if (!result) {
+      await session.abortTransaction();
+      session.endSession();
       throw new Error("Failed to update RTOM");
     }
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       status: "success",
@@ -1252,6 +1268,8 @@ export const UpdateRTOMDetails = async (req, res) => {
       },
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Error updating RTOM:", error.message);
     return res.status(500).json({
       status: "error",
@@ -1262,16 +1280,22 @@ export const UpdateRTOMDetails = async (req, res) => {
 };
 
 
-
 export const TerminateRTOM = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { rtom_id, rtom_end_date, rtom_end_by, rtom_remarks } = req.body;
 
     if (!rtom_id || !rtom_end_date || !rtom_end_by || !rtom_remarks) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     if (!Array.isArray(rtom_remarks) || rtom_remarks.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Remarks must be a non-empty array' });
     }
 
@@ -1283,17 +1307,24 @@ export const TerminateRTOM = async (req, res) => {
         rtom_end_by,
         rtom_remarks
       },
-      { new: true }
+      { new: true, session }
     );
 
     if (!result) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'RTOM not found' });
     }
 
-    res.status(200).json({ message: 'RTOM terminated successfully', data: result });
+    await session.commitTransaction();
+    session.endSession();
 
+    res.status(200).json({ message: 'RTOM terminated successfully', data: result });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('Error terminating RTOM:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
