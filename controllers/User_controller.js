@@ -82,11 +82,8 @@ export const getUserDetailsByRole = async (req, res) => {
 export const List_All_User_Details = async (req, res) => {
   const { user_role, user_type, user_status, page } = req.body;
 
-  try {    
-    console.log(req.body);
-    
+  try {        
     const query = {};
-
 
     if (user_role) query.role = user_role;
     if (user_type) query.user_type = user_type;
@@ -108,7 +105,7 @@ export const List_All_User_Details = async (req, res) => {
           user_type: 1,
           username: 1,
           email: 1,
-          Created_ON: 1,
+          Created_DTM: 1,
         },
       },
       { $sort: { Created_ON: -1 } },
@@ -195,9 +192,9 @@ export const List_All_User_Details_By_ID = async (req, res) => {
           login_method: 1,
           role: 1,
           user_status: 1,
-          Created_ON: 1,
+          Created_DTM: 1,
           Created_BY: 1,
-          Approved_On: 1,
+          Approved_DTM: 1,
           Approved_By: 1,
           User_End_DTM: 1,
           Remark: 1,
@@ -232,6 +229,33 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   }
 };
 
+/**
+ * User_Controller: End_User
+ *
+ * Description:
+ * Terminates a user account by marking the end date, updating the status to inactive,
+ * recording the termination metadata, and appending a remark to the user's history.
+ * This is a transactional operation that ensures atomicity and consistency when 
+ * updating user status and logging remarks.
+ *
+ * Request Body Parameters:
+ * @param {String} user_id   - Required: Unique identifier of the user to be terminated.
+ * @param {String} end_by    - Required: Email or identifier of the person performing the termination.
+ * @param {String} end_dtm   - Optional: Custom termination date/time (ISO format). Defaults to current time if not provided.
+ * @param {String} remark    - Required: Explanation or note about the reason for termination.
+ *
+ * Database Actions:
+ * - Verifies user existence and checks if already terminated.
+ * - Updates the user's `user_status`, `User_End_DTM`, and metadata fields.
+ * - Appends a structured remark to the `Remark` array.
+ * - Runs inside a Mongoose session to ensure rollback on failure.
+ *
+ * Responses:
+ * - 200: User successfully terminated. Returns updated user status and termination metadata.
+ * - 400: Missing required fields (`user_id`, `end_by`, `remark`) or user already terminated.
+ * - 404: No user found with the provided ID.
+ * - 500: Internal server or database error during termination process.
+ */
 export const End_User = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -265,7 +289,7 @@ export const End_User = async (req, res) => {
 
     let updatedUser;
     const newRemark = {
-      remark,
+      remark: remark,
       remark_by: end_by,
       remark_dtm: terminationDate,
     };
@@ -295,11 +319,11 @@ export const End_User = async (req, res) => {
             User_End_By: end_by,
             user_status: "false",
             User_Status_Type: "user_update",
-            User_Status_On: terminationDate,
+            User_Status_DTM: terminationDate,
             User_Status_By: end_by,
           },
           $push: {
-            remark: newRemark,
+            Remark: newRemark,
           },
         },
         {
@@ -340,6 +364,36 @@ export const End_User = async (req, res) => {
   }
 };
 
+/**
+ * User_Controller: Update_User_Details
+ *
+ * Description:
+ * Updates user information such as role, email, contact number, or status. Also records a remark
+ * for audit purposes and logs status metadata when the user's status changes. This operation is
+ * performed inside a MongoDB session to ensure consistency.
+ *
+ * Request Body Parameters:
+ * @param {String} user_id       - Required: Unique identifier of the user to be updated.
+ * @param {String} updated_by    - Required: Identifier (typically email) of the admin/user making the update.
+ * @param {String} remark        - Required: Explanation or note for the update.
+ * @param {String} [role]        - Optional: New role to assign to the user.
+ * @param {String} [email]       - Optional: New email address to update.
+ * @param {String} [contact_num] - Optional: New contact number to update.
+ * @param {String} [user_status] - Optional: New status ("true"/"false") indicating if the user is active.
+ *
+ * Database Actions:
+ * - Finds and verifies the user exists.
+ * - Updates only the provided fields.
+ * - If status is changed, logs status update metadata (`User_Status_Type`, `User_Status_DTM`, `User_Status_By`).
+ * - Appends a new remark to the user's `Remark` array with the reason and timestamp.
+ * - Uses Mongoose transactions for data integrity.
+ *
+ * Responses:
+ * - 200: User details successfully updated. Returns updated user document.
+ * - 400: Missing required fields (`user_id`, `updated_by`, or `remark`).
+ * - 404: No user found with the specified ID.
+ * - 500: Internal server or database error during update operation.
+ */
 export const Update_User_Details = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -384,7 +438,7 @@ export const Update_User_Details = async (req, res) => {
       if (user_status && user_status !== user.user_status) {
         updateFields.user_status = user_status;
         updateFields.User_Status_Type = "user_update";
-        updateFields.User_Status_On = new Date();
+        updateFields.User_Status_DTM = new Date();
         updateFields.User_Status_By = updated_by;
       }
 
