@@ -1285,7 +1285,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       created_dtm: new Date(),
       created_by,
       action_type: "distribution",
-      array_of_distributions: drc_list.map(({ DRC, Count,DRC_Id }) => ({
+      distribution_details: drc_list.map(({ DRC, Count,DRC_Id }) => ({
         drc: DRC,
         drc_id: DRC_Id,
         rulebase_count: Count,
@@ -2647,7 +2647,7 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
       created_by:1,
       rulebase_count:1,
       rulebase_arrears_sum:1,
-      status:1,
+      distribution_status:1,
       drc_commision_rule:1,
       forward_for_approvals_on:1,
       approved_by:1,
@@ -2891,7 +2891,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       created_dtm: new Date(),
       created_by,
       action_type: "amend",
-      array_of_distributions: drc_list.map(({
+      distribution_details: drc_list.map(({
         plus_drc_id,
         plus_drc,
         plus_rulebase_count,
