@@ -1253,7 +1253,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 
     // Validation for existing tasks with task_status and specific parameters
     const existingTask = await mongo.collection("System_tasks").findOne({
-      task_status: { $ne: "Complete" },
+      // task_status: { $ne: "Complete" },
       "parameters.drc_commision_rule": drc_commision_rule,
       "parameters.current_arrears_band": current_arrears_band,
     });   
@@ -9036,7 +9036,7 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req
         }
 
         const responseData = {
-          rejected_drc_summary: Rejected_Batch?.batch_seq_details?.[0]?.array_of_distributions,
+          rejected_drc_summary: Rejected_Batch?.batch_seq_details?.[0]?.distribution_details,
           rulebase_count: Rejected_Batch.rulebase_count,
           drc_commision_rule: Rejected_Batch.drc_commision_rule,
           current_arrears_band: Rejected_Batch.current_arrears_band
