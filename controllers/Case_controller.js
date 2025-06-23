@@ -1257,6 +1257,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
       "parameters.drc_commision_rule": drc_commision_rule,
       "parameters.current_arrears_band": current_arrears_band,
     });   
+    
     if (existingTask) {
       const isOpen = existingTask.task_status === "open";
       if (isOpen) {
@@ -1270,11 +1271,11 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
           "current_arrears_band": current_arrears_band,
         }); 
 
-        if (!existingBatch) {
+        if (existingBatch) {
           if(existingBatch.current_batch_distribution_status !== "batch_rejected" && existingBatch.current_batch_distribution_status !== "batch_distributed"){
             return res.status(409).json({
               status: "error",
-              message: "Already has a processiong batch with this commision rule and arrears band.",
+              message: "Already has a processing batch with this commision rule and arrears band.",
             });
           }
         }
