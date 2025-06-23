@@ -82,6 +82,13 @@ const arrayOfDistributionSchema = new Schema(
   { _id: false }
 );
 
+const issueListSchema = new Schema({
+  Issue_Reason: { type: String, default: null },
+  case_count: { type: Number, default: null },
+  case_id_list: { type: [Number], default: [] },
+  case_arrease: { type: Number, default: null },  
+}, { _id: false });
+
 const batchseqSchema = new Schema({
     batch_seq: { type: Number, required: true},
     created_on: { type: Date, required: true },
@@ -93,6 +100,7 @@ const batchseqSchema = new Schema({
     proposed_user_distribution: { type: String, default: null },
     task_id: { type: Number, required: true },
     Action_Status: { type: String, required: true },
+    Issue_List: [issueListSchema]
 }, { _id: false });
 
 const crdDistributionStatusSchema = new Schema({
