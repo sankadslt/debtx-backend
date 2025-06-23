@@ -1259,11 +1259,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     });   
     if (existingTask) {
       const isOpen = existingTask.task_status === "open";
-      // const ex_case_distribution_batch_id = existingTask.parameters.case_distribution_batch_id;
-      // const batchdetails = await Case_distribution_drc_transactions.findOne(
-      //   { case_distribution_batch_id: ex_case_distribution_batch_id },
-      //   { distribution_status: 1, _id: 0 }
-      // );
       if (isOpen) {
         return res.status(409).json({
           status: "error",
@@ -1276,7 +1271,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         }); 
 
         if (!existingBatch) {
-          if(existingBatch.current_crd_distribution_status !== "batch_rejected" && existingBatch.current_crd_distribution_status !== "batch_distributed"){
+          if(existingBatch.current_batch_distribution_status !== "batch_rejected" && existingBatch.current_batch_distribution_status !== "batch_distributed"){
             return res.status(409).json({
               status: "error",
               message: "Already has a processiong batch with this commision rule and arrears band.",
@@ -1284,12 +1279,6 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
           }
         }
       }
-      // if(batchdetails.distribution_status[batchdetails.distribution_status.length - 1].crd_distribution_status !== "batch_rejected" && batchdetails.distribution_status[batchdetails.distribution_status.length - 1].crd_distribution_status !== "batch_distributed"){
-      //   return res.status(409).json({
-      //     status: "error",
-      //     message: "Already has tasks with this commision rule and arrears band ",
-      //   });
-      // }
     }
     // const counter_result_of_case_distribution_batch_id = await mongo.collection("collection_sequence").findOneAndUpdate(
     //   { _id: "case_distribution_batch_id" },
@@ -1355,13 +1344,44 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     //   await new_Case_distribution_drc_transaction.save();
     // };
 
-    const dynamicParams = {
-      drc_commision_rule,
-      current_arrears_band,
-    };
+    // const payload = {
+    //   Created_By: created_by,
+    // }
+
+    // const dynamicParams = {
+    //   drc_commision_rule,
+    //   current_arrears_band,
+    // };
+
+    const formattedString = validatedList
+      .map(item => `${item.DRC_Id}:${item.Count}`)
+      .join(",");
+
+    let dynamicParams = {}
+    let Template_Task_Id; // Default Template Task ID
+    let task_type;
+
+    if (batch_id) {
+      Template_Task_Id = 52;
+      task_type = "Re-Proceed Case Distribution Planning among DRC";
+      dynamicParams = {
+        drc_commision_rule: drc_commision_rule,
+        current_arrears_band: current_arrears_band,
+        drc_distribution: formattedString,
+        Rejected_distribution_batch_id: batch_id,
+      }
+    } else {
+      Template_Task_Id = 3;
+      task_type = "Case Distribution Planning among DRC";
+      dynamicParams = {
+        drc_commision_rule: drc_commision_rule,
+        current_arrears_band: current_arrears_band,
+        drc_distribution: formattedString,
+      }
+    }
     const result = await createTaskFunction({
-      Template_Task_Id: 3,
-      task_type: "Case Distribution Planning among DRC",
+      Template_Task_Id: Template_Task_Id,
+      task_type: task_type,
       Created_By: created_by,
       ...dynamicParams,
     });
@@ -8971,7 +8991,7 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
     const rejected_batches = await CaseDistribution.aggregate([
       {
         $match: {
-          current_crd_distribution_status: "batch_rejected"
+          current_batch_distribution_status: "batch_rejected"
         }
       },
       {
