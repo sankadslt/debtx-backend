@@ -2465,14 +2465,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      current_batch_distribution_status: { $in: ["batch_forword_distribute", "batch_amend"] }
+      current_batch_distribution_status: { $in: ["Open"] }
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({
-        message: "The batch does not have a 'Complete' status and cannot be proceeded.",
+        message: "The batch does not have a 'Open' status and cannot be proceeded.",
         batchId: case_distribution_batch_id,
       });
     }
@@ -2484,8 +2484,16 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       { case_distribution_batch_id },
       {
         $set: {
-          proceed_on: currentDate,
-          forward_for_approvals_on: currentDate, // New field update
+          Forward_For_Approvals_On: new Date(),
+          current_batch_distribution_status:"batch_forword_approval",
+          current_distribution_status_on: new Date(),
+        },
+        $push:{
+          batch_status : {
+            crd_distribution_status: "batch_forword_approval",
+            created_dtm: new Date(),
+            created_by: Proceed_by,
+          }
         },
       },
       { session }
@@ -2499,20 +2507,19 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     const parameters = {
       case_distribution_batch_id
     };
-    // Create Task for Proceed Action
-    const taskData = {
-      Template_Task_Id: 31,
-      task_type: "Create Task for Proceed Cases from Batch_ID",
-      ...parameters,
-      Created_By: Proceed_by,
-      task_status: "open",
-    };
+    // const taskData = {
+    //   Template_Task_Id: 31,
+    //   task_type: "Create Task for Proceed Cases from Batch_ID",
+    //   ...parameters,
+    //   Created_By: Proceed_by,
+    //   task_status: "open",
+    // };
 
-    await createTaskFunction(taskData, session);
+    // await createTaskFunction(taskData, session);
 
     // Create Entry in Template_forwarded_approver
     const approvalEntry = new TmpForwardedApprover({
-      approver_reference: case_distribution_batch_id, // Single batch ID
+      approver_reference: case_distribution_batch_id, 
       created_by: Proceed_by,
       approver_type: "DRC Assign Approval",
       parameters,
@@ -2521,7 +2528,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
         status_date: currentDate,
         status_edit_by: Proceed_by,
       }],
-      approved_deligated_by: delegate_id, // Dynamic delegate_id
+      approved_deligated_by: delegate_id, 
     });
 
     await approvalEntry.save({ session });
