@@ -2113,17 +2113,36 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     pipeline.push({
       $project: {
         case_distribution_id: "$case_distribution_batch_id",
-        case_status: "$current_batch_distribution_status",
+        current_batch_distribution_status: "$current_batch_distribution_status",
         action_type: {
-          $arrayElemAt: [
-            "$batch_details.action_type",
-            { $subtract: [ { $size: "$batch_details" }, 1 ] }
-          ]
+          $let: {
+            vars: {
+              lastBatch: {
+                $arrayElemAt: [
+                  "$batch_details",
+                  { $subtract: [ { $size: "$batch_details" }, 1 ] }
+                ]
+              }
+            },
+            in: "$$lastBatch.action_type"
+          }
         },
+        Forward_For_Approvals_On : "$Forward_For_Approvals_On",
         drc_commision_rule: "$drc_commision_rule",
         current_arrears_band : "$current_arrears_band",
         inspected_count: "$bulk_Details.inspected_count",
         captured_count:  "$bulk_Details.captured_count",
+        Approved_On: "$Approved_On",
+        create_dtm: {
+          $let: {
+            vars: {
+              firstBatch: {
+                $arrayElemAt: ["$batch_details", 0]
+              }
+            },
+            in: "$$firstBatch.created_on"
+          }
+        },
         _id: 0
       }
     });
@@ -2225,7 +2244,13 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
       });
     }
 
-    const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id });
+    const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id }, {
+      case_distribution_batch_id: 1,
+      current_arrears_band : 1,
+      drc_commision_rule: 1,
+      "bulk_Details.inspected_count" : 1,
+      batch_details:1
+    });
 
     if (transactions_data.length === 0) {
       return res.status(404).json({
@@ -2458,14 +2483,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      crd_distribution_status: "Complete"
+      current_batch_distribution_status: { $in: ["Open"] }
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({
-        message: "The batch does not have a 'Complete' status and cannot be proceeded.",
+        message: "The batch does not have a 'Open' status and cannot be proceeded.",
         batchId: case_distribution_batch_id,
       });
     }
@@ -2477,8 +2502,16 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       { case_distribution_batch_id },
       {
         $set: {
-          proceed_on: currentDate,
-          forward_for_approvals_on: currentDate, // New field update
+          Forward_For_Approvals_On: new Date(),
+          current_batch_distribution_status:"batch_forword_approval",
+          current_distribution_status_on: new Date(),
+        },
+        $push:{
+          batch_status : {
+            crd_distribution_status: "batch_forword_approval",
+            created_dtm: new Date(),
+            created_by: Proceed_by,
+          }
         },
       },
       { session }
@@ -2492,20 +2525,19 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     const parameters = {
       case_distribution_batch_id
     };
-    // Create Task for Proceed Action
-    const taskData = {
-      Template_Task_Id: 31,
-      task_type: "Create Task for Proceed Cases from Batch_ID",
-      ...parameters,
-      Created_By: Proceed_by,
-      task_status: "open",
-    };
+    // const taskData = {
+    //   Template_Task_Id: 31,
+    //   task_type: "Create Task for Proceed Cases from Batch_ID",
+    //   ...parameters,
+    //   Created_By: Proceed_by,
+    //   task_status: "open",
+    // };
 
-    await createTaskFunction(taskData, session);
+    // await createTaskFunction(taskData, session);
 
     // Create Entry in Template_forwarded_approver
     const approvalEntry = new TmpForwardedApprover({
-      approver_reference: case_distribution_batch_id, // Single batch ID
+      approver_reference: case_distribution_batch_id, 
       created_by: Proceed_by,
       approver_type: "DRC Assign Approval",
       parameters,
@@ -2514,7 +2546,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
         status_date: currentDate,
         status_edit_by: Proceed_by,
       }],
-      approved_deligated_by: delegate_id, // Dynamic delegate_id
+      approved_deligated_by: delegate_id, 
     });
 
     await approvalEntry.save({ session });
@@ -2626,41 +2658,29 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
 export const list_distribution_array_of_a_transaction = async (req, res) => {
   try {
     const { case_distribution_batch_id, batch_seq } = req.body;
-
     if (!case_distribution_batch_id || !batch_seq) {
       return res.status(400).json({
         status: "error",
         message: "case_distribution_batch_id and batch_seq are required parameters.",
       });
     }
-
     const transactions_data = await Case_distribution_drc_transactions.find({
       case_distribution_batch_id,
-      "batch_seq_details.batch_seq": batch_seq
-    },{
-      _id: 0,
+      "batch_details.batch_seq": batch_seq
+    },
+    {
       case_distribution_batch_id: 1,
-      created_dtm: 1,
-      created_by:1,
-      rulebase_count:1,
-      rulebase_arrears_sum:1,
-      distribution_status:1,
-      drc_commision_rule:1,
-      forward_for_approvals_on:1,
-      approved_by:1,
-      approved_on:1,
-      proceed_on:1,
-      tmp_record_remove_on:1,
-      current_arrears_band:1,
-      batch_seq_details: { $elemMatch: { batch_seq: batch_seq } }
-    });
-    
+      current_arrears_band : 1,
+      drc_commision_rule: 1,
+      "bulk_Details.inspected_count" : 1,
+       batch_details: { $elemMatch: { batch_seq: batch_seq } }
+    }); 
     return res.status(200).json({ 
       status: "success",
       message: `Successfully retrieved ${transactions_data.length} records`,
       data: transactions_data,
     });
-  } catch (error) {
+  }catch (error) {
     console.error("Error fetching batch data:", error);
     return res.status(500).json({
       status: "error",
