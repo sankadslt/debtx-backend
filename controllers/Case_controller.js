@@ -2232,7 +2232,13 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
       });
     }
 
-    const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id });
+    const transactions_data = await Case_distribution_drc_transactions.find({ case_distribution_batch_id }, {
+      case_distribution_batch_id: 1,
+      current_arrears_band : 1,
+      drc_commision_rule: 1,
+      "bulk_Details.inspected_count" : 1,
+      batch_details:1
+    });
 
     if (transactions_data.length === 0) {
       return res.status(404).json({
