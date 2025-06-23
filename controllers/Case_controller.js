@@ -2115,21 +2115,33 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         case_distribution_id: "$case_distribution_batch_id",
         current_batch_distribution_status: "$current_batch_distribution_status",
         action_type: {
-          $arrayElemAt: [
-            "$batch_details.action_type",
-            { $subtract: [ { $size: "$batch_details" }, 1 ] }
-          ]
+          $let: {
+            vars: {
+              lastBatch: {
+                $arrayElemAt: [
+                  "$batch_details",
+                  { $subtract: [ { $size: "$batch_details" }, 1 ] }
+                ]
+              }
+            },
+            in: "$$lastBatch.action_type"
+          }
         },
+        Forward_For_Approvals_On : "$Forward_For_Approvals_On",
         drc_commision_rule: "$drc_commision_rule",
         current_arrears_band : "$current_arrears_band",
         inspected_count: "$bulk_Details.inspected_count",
         captured_count:  "$bulk_Details.captured_count",
         Approved_On: "$Approved_On",
         create_dtm: {
-          $arrayElemAt: [
-            "$batch_details.created_on",
-            { $subtract: [ { $size: "$batch_details" }, 1 ] }
-          ]
+          $let: {
+            vars: {
+              firstBatch: {
+                $arrayElemAt: ["$batch_details", 0]
+              }
+            },
+            in: "$$firstBatch.created_on"
+          }
         },
         _id: 0
       }
