@@ -17,6 +17,7 @@
 // import db from "../config/db.js";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
+import mongoose from "mongoose";
 import RO from  "../models/Recovery_officer.js"; 
 import RTOM from "../models/Rtom.js"
 import moment from "moment";
@@ -2089,11 +2090,12 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
     }
 
     // Generate unique DRC ID
-    const counterResult = await db.connection.collection("collection_sequence").findOneAndUpdate(
+    const counterResult = await mongoose.connection.db.collection("collection_sequence").findOneAndUpdate(
       { _id: "drc_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
+
 
     const drc_id = counterResult?.value?.seq;
     if (!drc_id) throw new Error("Failed to generate DRC ID");
