@@ -2090,7 +2090,11 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
     const dateMatch = {};
     if (date_from) dateMatch.$gte = new Date(date_from);
-    if (date_to) dateMatch.$lte = new Date(date_to);
+    if (date_to) {
+      const new_date_to = new Date(date_to);
+      new_date_to.setHours(23, 59, 59, 999);
+      dateMatch.$lte = new Date(new_date_to);
+    };
     const pipeline = [
       { $match: baseMatch },
       {
@@ -2130,6 +2134,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
       data: caseDistributions,
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: "Server Error", error });
   }
 };
@@ -2160,12 +2165,11 @@ export const Create_Task_For_case_distribution = async (req, res) => {
         message: "Created_By is a required parameter.",
       });
     }
-
     // Flatten the parameters structure
     const parameters = {
       current_arrears_band,
-      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from).toISOString() : null,
-      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to).toISOString() : null,
+      date_from: date_from && !isNaN(new Date(date_from)) ? new Date(date_from) : null,
+      date_to: date_to && !isNaN(new Date(date_to)) ? new Date(date_to) : null,
       drc_commision_rule, 
     };
 
