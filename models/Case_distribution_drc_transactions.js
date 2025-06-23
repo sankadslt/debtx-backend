@@ -101,7 +101,6 @@ const batchseqSchema = new Schema({
     task_id: { type: Number, required: true },
     Action_Status: { type: String, required: true },
     Issue_List: [issueListSchema]
-    // batch_seq_rulebase_arrears_sum: { type: Number, required: true},
 }, { _id: false });
 
 const crdDistributionStatusSchema = new Schema({
@@ -125,7 +124,7 @@ const caseDistributionSchema = new Schema({
     case_distribution_batch_id: { type: Number, required: true, unique: true },
     current_arrears_band: { type: String, required: true},
     drc_commision_rule: { type: String, required: true },
-    current_crd_distribution_status: { type: String, required: true },
+    current_batch_distribution_status: { type: String, required: true },
     current_distribution_status_on: { type: Date, required: true },
     // distribution_status: { type: String, required: true },
     last_updatedAt: { type: Date, required: true },
