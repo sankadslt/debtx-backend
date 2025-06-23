@@ -93,7 +93,6 @@ const batchseqSchema = new Schema({
     proposed_user_distribution: { type: String, default: null },
     task_id: { type: Number, required: true },
     Action_Status: { type: String, required: true },
-    // batch_seq_rulebase_arrears_sum: { type: Number, required: true},
 }, { _id: false });
 
 const crdDistributionStatusSchema = new Schema({

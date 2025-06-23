@@ -2073,71 +2073,72 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
  */
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
   try {
-      const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
-      let filter = {};
+    const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
 
-      if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
-          return res.status(200).json({
-            status: "error",
-            message: "No filters provided",
-          });
-      }
-      // Filter based on date range
-      if (date_from && date_to) {
-          filter.created_dtm = { $gte: new Date(date_from), $lte: new Date(date_to) };
-      } else if (date_from) {
-          filter.created_dtm = { $gte: new Date(date_from) };
-      } else if (date_to) {
-          filter.created_dtm = { $lte: new Date(date_to) };
-      }
-
-      // Filter based on arrears_band
-      if (current_arrears_band) {
-          filter.current_arrears_band = current_arrears_band;
-      }
-
-      // Filter based on drc_commision_rule
-      if (drc_commision_rule) {
-          filter.drc_commision_rule = drc_commision_rule;
-      }
-
-      // Fetch case distributions based on filter
-      const caseDistributions = await CaseDistribution.find(filter);
-
-      // Process results to extract the last batch_seq details and last crd_distribution_status
-      const response = caseDistributions.map(doc => {
-          // Sort batch_seq_details by batch_seq in descending order and take the last one
-          const lastBatchSeq = doc.batch_seq_details?.length
-              ? doc.batch_seq_details.sort((a, b) => b.batch_seq - a.batch_seq)[0]
-              : null;
-
-          // Sort status by created_dtm in descending order and take the last one
-          const lastStatus = doc.status?.length
-              ? doc.status.sort((a, b) => new Date(b.created_dtm) - new Date(a.created_dtm))[0]
-              : null;
-
-          return {
-              _id: doc._id,
-              case_distribution_batch_id: doc.case_distribution_batch_id,
-              batch_seq_details: lastBatchSeq ? [lastBatchSeq] : [], // Only the last batch_seq
-              created_dtm: doc.created_dtm,
-              created_by: doc.created_by,
-              current_arrears_band: doc.current_arrears_band,
-              rulebase_count: doc.rulebase_count,
-              rulebase_arrears_sum: doc.rulebase_arrears_sum,
-              status: lastStatus ? [lastStatus] : [], // Only the last status
-              drc_commision_rule: doc.drc_commision_rule,
-              forward_for_approvals_on: doc.forward_for_approvals_on,
-              approved_by: doc.approved_by,
-              approved_on: doc.approved_on,
-              proceed_on: doc.proceed_on,
-              tmp_record_remove_on: doc.tmp_record_remove_on
-          };
+    if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
+      return res.status(200).json({
+        status: "error",
+        message: "No filters provided",
       });
+    }
+    const baseMatch = {};
+    if (current_arrears_band) {
+      baseMatch.current_arrears_band = current_arrears_band;
+    }
+    if (drc_commision_rule) {
+      baseMatch.drc_commision_rule = drc_commision_rule;
+    }
+    const dateMatch = {};
+    if (date_from) dateMatch.$gte = new Date(date_from);
+    if (date_to) dateMatch.$lte = new Date(date_to);
+    const pipeline = [
+      { $match: baseMatch },
+      {
+        $addFields: {
+          first_created_on: { $arrayElemAt: ["$batch_details.created_on", 0] }
+        }
+      }
+    ];
 
-      res.status(200).json(response);
+    if (date_from || date_to) {
+      pipeline.push({
+        $match: {
+          first_created_on: dateMatch
+        }
+      });
+    }
+
+    pipeline.push({
+      $project: {
+        case_distribution_id: "$case_distribution_batch_id",
+        case_status: "$current_crd_distribution_status",
+        action_type: {
+          $arrayElemAt: [
+            "$batch_details.action_type",
+            { $subtract: [ { $size: "$batch_details" }, 1 ] }
+          ]
+        },
+        drc_commision_rule: "$drc_commision_rule",
+        current_arrears_band : "$current_arrears_band",
+        case_count: {
+          $arrayElemAt: [
+            "$batch_details.action_type",
+            { $subtract: [ { $size: "$batch_details" }, 1 ] }
+          ]
+        },
+        _id: 0
+      }
+    });
+
+    const caseDistributions = await CaseDistribution.aggregate(pipeline);
+
+    return res.status(201).json({
+      status: "success",
+      message: "Batch details fetching success",
+      data: caseDistributions,
+    });
   } catch (error) {
-      res.status(500).json({ message: "Server Error", error });
+    res.status(500).json({ message: "Server Error", error });
   }
 };
 
