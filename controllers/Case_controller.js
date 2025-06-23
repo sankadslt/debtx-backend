@@ -2248,7 +2248,8 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
       case_distribution_batch_id: 1,
       current_arrears_band : 1,
       drc_commision_rule: 1,
-      "bulk_Details.inspected_count" : 1,
+      inspected_count:"$bulk_Details.inspected_count",
+      captured_count:"$bulk_Details.captured_count",
       batch_details:1
     });
 
