@@ -2673,8 +2673,9 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
       case_distribution_batch_id: 1,
       current_arrears_band : 1,
       drc_commision_rule: 1,
-      "bulk_Details.inspected_count" : 1,
-       batch_details: { $elemMatch: { batch_seq: batch_seq } }
+      inspected_count:"$bulk_Details.inspected_count",
+      captured_count:"$bulk_Details.captured_count",
+      batch_details: { $elemMatch: { batch_seq: batch_seq } }
     }); 
     return res.status(200).json({ 
       status: "success",
@@ -2799,28 +2800,38 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
 export const Exchange_DRC_RTOM_Cases = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  const { case_distribution_batch_id, drc_list, created_by } = req.body;
+  const { case_distribution_batch_id, drc_list, created_by, current_arrears_band, drc_commision_rule } = req.body;
 
-  if (!case_distribution_batch_id || !drc_list || !created_by) {
+  if (!case_distribution_batch_id || !drc_list || !created_by || !current_arrears_band || !drc_commision_rule ) {
     return res.status(400).json({
       status: "error",
-      message: "case distribution batch id, created by and DRC list fields are required.",
+      message: "case distribution batch id, created by, drc_commision_rule, current_arrears_band, DRC list fields are required.",
     });
-  }
-  try {
-    const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
-    if(!existingCase){
+  };
+  if (!Array.isArray(drc_list) || drc_list.length <= 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({
+      return res.status(400).json({
         status: "error",
-        message: "case distribution batch id is not match with the existing batches.",
-      },);
+        message: "DRC List should not be empty.",
+      });
     }
+  try {
+    // const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
+    // if(!existingCase){
+    //   await session.abortTransaction();
+    //   session.endSession();
+    //   return res.status(404).json({
+    //     status: "error",
+    //     message: "case distribution batch id is not match with the existing batches.",
+    //   },);
+    // }
     const mongo = await db.connectMongoDB();
     const existingTask = await mongo.collection("System_tasks").findOne({
-      task_status: { $ne: "Complete" },
+      Template_Task_Id: 36,
       "parameters.case_distribution_batch_id": case_distribution_batch_id,
+      "parameters.drc_commision_rule":drc_commision_rule,
+      "parameters.current_arrears_band":current_arrears_band,
       },
       { session }
     );
@@ -2829,51 +2840,44 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       session.endSession();
       return res.status(400).json({
         status: "error",
-        message: "Already has tasks with this case distribution batch id ",
+        message: "Already has tasks with this case distribution batch id, drc_commision_rule and current_arrears_band ",
       });
     }
-    if (!Array.isArray(drc_list) || drc_list.length <= 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        status: "error",
-        message: "DRC List should not be empty.",
-      });
-    }
+    // const validateDRCList = (drcList) => {
+    //   if (!Array.isArray(drcList)) {
+    //     throw new Error("DRC List must be an array.");
+    //   }
+    //   return drcList.map((item, index) => {
+    //     const isValid = 
+    //       typeof item.plus_drc === "string" &&
+    //       typeof item.plus_rulebase_count === "number" &&
+    //       typeof item.minus_drc === "string" &&
+    //       typeof item.minus_rulebase_count === "number" &&
+    //       typeof item.plus_drc_id === "number" &&
+    //       typeof item.minus_drc_id === "number";
 
-    const validateDRCList = (drcList) => {
-      if (!Array.isArray(drcList)) {
-        throw new Error("DRC List must be an array.");
-      }
-      return drcList.map((item, index) => {
-        const isValid = 
-          typeof item.plus_drc === "string" &&
-          typeof item.plus_rulebase_count === "number" &&
-          typeof item.minus_drc === "string" &&
-          typeof item.minus_rulebase_count === "number" &&
-          typeof item.plus_drc_id === "number" &&
-          typeof item.minus_drc_id === "number";
+    //     if (!isValid) {
+    //       throw new Error(`Invalid structure at index ${index} in DRC List.`);
+    //     }
 
-        if (!isValid) {
-          throw new Error(`Invalid structure at index ${index} in DRC List.`);
-        }
+    //     return {
+    //       plus_drc_id: item.plus_drc_id,
+    //       plus_drc: item.plus_drc,
+    //       plus_rulebase_count: item.plus_rulebase_count,
+    //       minus_drc_id: item.minus_drc_id,
+    //       minus_drc: item.minus_drc,
+    //       minus_rulebase_count: item.minus_rulebase_count,
+    //     };
+    //   });
+    // };
 
-        return {
-          plus_drc_id: item.plus_drc_id,
-          plus_drc: item.plus_drc,
-          plus_rulebase_count: item.plus_rulebase_count,
-          minus_drc_id: item.minus_drc_id,
-          minus_drc: item.minus_drc,
-          minus_rulebase_count: item.minus_rulebase_count,
-        };
-      });
-    };
-
-    const validatedDRCList = validateDRCList(drc_list);
+    // const validatedDRCList = validateDRCList(drc_list);
     
-    // Prepare dynamic parameters for the task
     const dynamicParams = {
       case_distribution_batch_id,
+      current_arrears_band,
+      drc_commision_rule,
+      drc_list
     };
 
     // Call createTaskFunction
@@ -2893,56 +2897,55 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         message: `An error occurred while creating the task: ${result}`,
       });
     }
-    let nextBatchSeq = 1;
+    // let nextBatchSeq = 1;
 
-    if (existingCase && existingCase.batch_seq_details.length > 0) {
-        const lastBatchSeq = existingCase.batch_seq_details[existingCase.batch_seq_details.length - 1].batch_seq;
-        nextBatchSeq = lastBatchSeq + 1;
-    }
-    const batch_seq_rulebase_count = drc_list.reduce(
-      (total, { plus_rulebase_count }) => total + plus_rulebase_count,
-      0
-    );
+    // if (existingCase && existingCase.batch_seq_details.length > 0) {
+    //     const lastBatchSeq = existingCase.batch_seq_details[existingCase.batch_seq_details.length - 1].batch_seq;
+    //     nextBatchSeq = lastBatchSeq + 1;
+    // }
+    // const batch_seq_rulebase_count = drc_list.reduce(
+    //   (total, { plus_rulebase_count }) => total + plus_rulebase_count,
+    //   0
+    // );
 
-    const newBatchSeqEntry = {
-      batch_seq: nextBatchSeq,
-      created_dtm: new Date(),
-      created_by,
-      action_type: "amend",
-      distribution_details: drc_list.map(({
-        plus_drc_id,
-        plus_drc,
-        plus_rulebase_count,
-        minus_drc_id,
-        minus_drc,
-        minus_rulebase_count,
-        rtom,
-      }) => ({
-        plus_drc_id,
-        plus_drc,
-        plus_rulebase_count,
-        minus_drc_id,
-        minus_drc,
-        minus_rulebase_count,
-        rtom,
-      })),
-      batch_seq_rulebase_count,
-      crd_distribution_status:"Open",
-    };
+    // const newBatchSeqEntry = {
+    //   batch_seq: nextBatchSeq,
+    //   created_dtm: new Date(),
+    //   created_by,
+    //   action_type: "amend",
+    //   distribution_details: drc_list.map(({
+    //     plus_drc_id,
+    //     plus_drc,
+    //     plus_rulebase_count,
+    //     minus_drc_id,
+    //     minus_drc,
+    //     minus_rulebase_count,
+    //     rtom,
+    //   }) => ({
+    //     plus_drc_id,
+    //     plus_drc,
+    //     plus_rulebase_count,
+    //     minus_drc_id,
+    //     minus_drc,
+    //     minus_rulebase_count,
+    //     rtom,
+    //   })),
+    //   batch_seq_rulebase_count,
+    //   crd_distribution_status:"Open",
+    // };
     
-    existingCase.batch_seq_details.push(newBatchSeqEntry);
-    existingCase.current_crd_distribution_status = "Open";
-    existingCase.current_crd_distribution_status_on = new Date();
+    // existingCase.batch_seq_details.push(newBatchSeqEntry);
+    // existingCase.current_crd_distribution_status = "Open";
+    // existingCase.current_crd_distribution_status_on = new Date();
 
-    await existingCase.save({ session }); 
-    
+    // await existingCase.save({ session }); 
+
     await session.commitTransaction();
     session.endSession();
     return res.status(200).json({
       status: "success",
-      message: `New batch sequence ${nextBatchSeq} added successfully.`,
+      message: `New batch sequence task added successfully.`,
     });
-
   } catch (error) {
     console.error(error);
     await session.abortTransaction();
