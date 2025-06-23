@@ -29,7 +29,7 @@ import {createUserInteractionFunction} from "../services/UserInteractionService.
 import { createTaskFunction } from "../services/TaskService.js";
 import Case_distribution_drc_transactions from "../models/Case_distribution_drc_transactions.js"
 import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
-import tempCaseDistribution from "../models/Template_case_distribution_drc_details.js";
+import tempCaseDistribution from "../models/Case_distribution_drc_details.js";
 import TmpForwardedApprover from '../models/Template_forwarded_approver.js';
 import caseDistributionDRCSummary from "../models/Case_distribution_drc_summary.js";
 import DRC from "../models/Debt_recovery_company.js";
