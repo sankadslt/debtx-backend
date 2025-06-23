@@ -76,7 +76,6 @@ export const getUserDetailsByRole = async (req, res) => {
  *
  * Responses:
  * - 200: Success with paginated user data
- * - 404: No matching users found
  * - 500: Internal server/database error
  */
 export const List_All_User_Details = async (req, res) => {
@@ -114,7 +113,7 @@ export const List_All_User_Details = async (req, res) => {
     ]);
     
     if (!users || users.length === 0) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: "error",
         message: "No matching user records found.",
         data: [],
