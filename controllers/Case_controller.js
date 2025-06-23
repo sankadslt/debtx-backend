@@ -2111,7 +2111,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     pipeline.push({
       $project: {
         case_distribution_id: "$case_distribution_batch_id",
-        case_status: "$current_crd_distribution_status",
+        case_status: "$current_batch_distribution_status",
         action_type: {
           $arrayElemAt: [
             "$batch_details.action_type",
@@ -2120,12 +2120,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         },
         drc_commision_rule: "$drc_commision_rule",
         current_arrears_band : "$current_arrears_band",
-        case_count: {
-          $arrayElemAt: [
-            "$batch_details.action_type",
-            { $subtract: [ { $size: "$batch_details" }, 1 ] }
-          ]
-        },
+        case_count: "$distribution_details.batch_case_count",
         _id: 0
       }
     });
