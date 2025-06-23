@@ -118,22 +118,6 @@ router.post('/Obtain_User_List_Owned_By_User_Roles', getUserDetailsByRole);
  *                     totalPages:
  *                       type: integer
  *                       example: 4
- *       404:
- *         description: No matching users found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: error
- *                 message:
- *                   type: string
- *                   example: No matching user records found.
- *                 data:
- *                   type: array
- *                   example: []
  *       500:
  *         description: Internal server error while fetching user details.
  *         content:
