@@ -2099,7 +2099,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         }
       }
     ];
-
     if (date_from || date_to) {
       pipeline.push({
         $match: {
@@ -2107,7 +2106,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         }
       });
     }
-
     pipeline.push({
       $project: {
         case_distribution_id: "$case_distribution_batch_id",
@@ -2120,13 +2118,12 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
         },
         drc_commision_rule: "$drc_commision_rule",
         current_arrears_band : "$current_arrears_band",
-        case_count: "$distribution_details.batch_case_count",
+        inspected_count: "$bulk_Details.inspected_count",
+        captured_count:  "$bulk_Details.captured_count",
         _id: 0
       }
     });
-
     const caseDistributions = await CaseDistribution.aggregate(pipeline);
-
     return res.status(201).json({
       status: "success",
       message: "Batch details fetching success",
