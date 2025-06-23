@@ -2458,7 +2458,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      crd_distribution_status: "Complete"
+      current_batch_distribution_status: { $in: ["batch_forword_distribute", "batch_amend"] }
     }).session(session);
 
     if (!batchToProcess) {
