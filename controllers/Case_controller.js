@@ -3427,11 +3427,13 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
 
     // Filter based on date range
     if (date_from && date_to) {
-      matchStage.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      const endofDate = new Date(date_to);
+      endofDate.setHours(23, 59, 59, 999);
+      matchStage.created_on = { $gte: new Date(date_from), $lte: endofDate };
     } else if (date_from) {
       matchStage.created_on = { $gte: new Date(date_from) };
     } else if (date_to) {
-      matchStage.created_on = { $lte: new Date(date_to) };
+      matchStage.created_on = { $lte: endofDate };
     }
 
     // Filter based on approved_deligated_by
@@ -3608,7 +3610,13 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       "Commission Approval": "Commissioned"
     };
 
-    const newStatus = statusMap[approvalDoc.approver_type] || "Pending";
+    const newStatus = statusMap[approvalDoc.approver_type];
+
+    if (!newStatus) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid approver_type" });
+    }
 
     // Update approve_status and approved_by
     const result = await TmpForwardedApprover.updateOne(
@@ -3683,6 +3691,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     let caseUpdateOperation = {
       $push: {
         approve: {
+          Approval_Type: approvalDoc.approver_type,
           approved_process: newStatus,
           approved_by: approved_by,
           approved_on: currentDate,
@@ -4040,14 +4049,14 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
       message: "Task for batch approval created successfully.",
-      taskData,
+      response,
     });
   } catch (error) {
     console.error("Error creating batch approval task:", error);
