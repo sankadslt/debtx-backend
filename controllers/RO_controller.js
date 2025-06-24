@@ -16,7 +16,7 @@ import Rtom  from '../models/Rtom.js';
 import moment from "moment";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
-import User_log from "../models/User_Log.js";
+import User from "../models/User.js";
 import User_Approval from "../models/User_Approval.js";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
@@ -2389,6 +2389,7 @@ export const listROInfoByROId = async (req, res) => {
                             input: "$rtom",
                             as: "rtom",
                             in: {
+                                rtom_id: "$$rtom.rtom_id",
                                 name: "$$rtom.rtom_name",
                                 status: { $eq: ["$$rtom.rtom_status", "Active"] }
                             }
@@ -2642,7 +2643,7 @@ export const Terminate_RO = async (req, res) => {
     const session = await mongoose.startSession();
     
     try {
-        const { ro_id, drcUser_id, end_by, remark } = req.body;
+        const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
 
         // Validate that at least one ID is provided
         if (!ro_id && !drcUser_id) {
@@ -2671,6 +2672,12 @@ export const Terminate_RO = async (req, res) => {
             return res.status(400).json({ 
                 status: "error",
                 message: 'remark is required in the request body' 
+            });
+        }
+        if (!end_dtm) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'end_dtm is required in the request body' 
             });
         }
 
@@ -2710,7 +2717,7 @@ export const Terminate_RO = async (req, res) => {
             newRemark = {
                 remark: remark,
                 remark_by: end_by,
-                remark_dtm: new Date()
+                remark_dtm: end_dtm
             };
 
             // Update the user
@@ -2719,7 +2726,7 @@ export const Terminate_RO = async (req, res) => {
                 {
                     $set: {
                         drcUser_status: 'Terminate',
-                        end_dtm: new Date(),
+                        end_dtm: end_dtm,
                         end_by: end_by
                     },
                     $push: {
@@ -2740,26 +2747,26 @@ export const Terminate_RO = async (req, res) => {
             }
 
             // Update User_log document
-            const userLogQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
-            const userLogRemark = {
+            const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+            const userRemark = {
                 remark: remark,
                 remark_by: end_by,
-                remark_dtm: new Date()
+                remark_dtm: end_dtm
             };
 
-            const updatedUserLog = await User_log.findOneAndUpdate(
-                userLogQuery,
+            const updatedUser = await User.findOneAndUpdate(
+                userQuery,
                 {
                     $set: {
-                        user_status_type: 'RO_update',
+                        User_Status_Type: 'RO_update',
                         user_status: 'false',
-                        user_status_dtm: new Date(),
-                        user_status_by: end_by,
-                        user_end_dtm: new Date(),
-                        user_end_by: end_by
+                        User_Status_DTM: end_dtm,
+                        User_Status_By: end_by,
+                        User_End_DTM: end_dtm,
+                        User_End_By: end_by
                     },
                     $push: {
-                        remark: userLogRemark
+                        Remark: userRemark
                     }
                 },
                 {
@@ -2769,8 +2776,8 @@ export const Terminate_RO = async (req, res) => {
                 }
             );
 
-            if (!updatedUserLog) {
-                const error = new Error('Failed to update User_log document');
+            if (!updatedUser) {
+                const error = new Error('Failed to update User document');
                 error.statusCode = 500;
                 throw error;
             }
@@ -3449,6 +3456,749 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     }
   }
 };
+
+
+// export const Update_RO_or_DRCuser_Details = async (req, res) => {
+//   let session = null;
+  
+//   try {
+//     const {
+//       ro_id,
+//       drcUser_id,
+//       drc_id,
+//       ro_name,
+//       login_email,
+//       login_contact_no,
+//       create_by,
+//       rtoms,
+//       remark
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!drc_id || !create_by) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required fields: drc_id, create_by"
+//       });
+//     }
+
+//     // Determine user type based on provided ID
+//     let drcUser_type;
+//     if (ro_id && !drcUser_id) {
+//       drcUser_type = 'RO';
+//     } else if (drcUser_id && !ro_id) {
+//       drcUser_type = 'DRCUser';
+//     } else if (ro_id && drcUser_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Please provide either ro_id or drcUser_id, not both"
+//       });
+//     } else {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Either ro_id or drcUser_id is required"
+//       });
+//     }
+
+//     // Start MongoDB session and transaction
+//     session = await mongoose.startSession();
+//     session.startTransaction();
+
+//     const currentDate = new Date();
+
+//     // Get MongoDB connection
+//     const mongoConnection = await db.connectMongoDB();
+
+//     // Find existing user record
+//     let findQuery = { drc_id: drc_id };
+//     if (drcUser_type === 'RO') {
+//       findQuery.ro_id = ro_id;
+//     } else {
+//       findQuery.drcUser_id = drcUser_id;
+//     }
+
+//     const existingUser = await Recovery_officer.findOne(findQuery).session(session);
+//     if (!existingUser) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `${drcUser_type} not found`
+//       });
+//     }
+
+//     // Prepare update object
+//     let updateData = {};
+//     let needsApproval = false;
+
+//     // Update contact details if provided
+//     if (login_email !== undefined) {
+//       updateData.login_email = login_email;
+//       needsApproval = true;
+//     }
+
+//     if (login_contact_no !== undefined) {
+//       updateData.login_contact_no = login_contact_no;
+//       needsApproval = true;
+//     }
+
+//     // Add remark if provided
+//     if (remark) {
+//       const newRemark = {
+//         remark: remark,
+//         remark_by: create_by,
+//         remark_dtm: currentDate
+//       };
+//       updateData.$push = { remark: newRemark };
+//     }
+
+//     // Handle RTOM updates for RO type only
+//     if (drcUser_type === 'RO' && rtoms && Array.isArray(rtoms)) {
+//       let updatedRtoms = [...existingUser.rtom];
+
+//       rtoms.forEach(newRtom => {
+//         const existingRtomIndex = updatedRtoms.findIndex(
+//           rtom => rtom.rtom_id === newRtom.rtom_id
+//         );
+
+//         if (existingRtomIndex !== -1) {
+//           // Update existing RTOM
+//           updatedRtoms[existingRtomIndex] = {
+//             ...updatedRtoms[existingRtomIndex],
+//             rtom_status: newRtom.rtom_status || updatedRtoms[existingRtomIndex].rtom_status,
+//             rtom_update_dtm: currentDate,
+//             rtom_update_by: create_by,
+//             ...(newRtom.rtom_name && { rtom_name: newRtom.rtom_name }),
+//             ...(newRtom.billing_center_code && { billing_center_code: newRtom.billing_center_code }),
+//             ...(newRtom.handling_type && { handling_type: newRtom.handling_type })
+//           };
+//         } else {
+//           // Add new RTOM
+//           if (!newRtom.rtom_id || !newRtom.rtom_name || !newRtom.billing_center_code) {
+//             throw new Error(`Missing required fields in new RTOM. Required: rtom_id, rtom_name, billing_center_code`);
+//           }
+
+//           updatedRtoms.push({
+//             rtom_id: newRtom.rtom_id,
+//             rtom_name: newRtom.rtom_name,
+//             rtom_status: newRtom.rtom_status || "Active",
+//             billing_center_code: newRtom.billing_center_code,
+//             rtom_update_dtm: currentDate,
+//             rtom_update_by: create_by,
+//             rtom_end_dtm: null,
+//             handling_type: newRtom.handling_type || null
+//           });
+//         }
+//       });
+
+//       updateData.rtom = updatedRtoms;
+//     }
+
+//     // Update Recovery_officer record
+//     const updatedUser = await Recovery_officer.findOneAndUpdate(
+//       findQuery,
+//       updateData,
+//       { new: true, session }
+//     );
+
+//     let userApprovalRecord = null;
+//     let interactionResult = null;
+
+//     // Create User_Approval record if contact details were updated
+//     if (needsApproval) {
+//       // Generate approval_id
+//       const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//         { _id: "approval_id" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true, session }
+//       );
+
+//       const approval_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
+//       if (!approval_id) {
+//         throw new Error("Failed to generate approval_id.");
+//       }
+
+//       // Prepare User_Approval record
+//       const userApprovalData = {
+//         doc_version: 1,
+//         approval_id: approval_id,
+//         user_type: drcUser_type,
+//         drc_id: drc_id,
+//         ro_id: drcUser_type === 'RO' ? ro_id : null,
+//         drcUser_id: drcUser_type === 'DRCUser' ? drcUser_id : null,
+//         user_name: ro_name || existingUser.ro_name,
+//         user_role: drcUser_type === 'RO' ? 'RO' : 'DRC_Coodinator',
+//         login_email: login_email || existingUser.login_email,
+//         login_contact_no: login_contact_no || existingUser.login_contact_no,
+//         created_by: create_by,
+//         created_dtm: currentDate,
+//         approve_status: null,
+//         approve_by: null,
+//         approve_dtm: null
+//       };
+
+//       const userApproval = new User_Approval(userApprovalData);
+//       userApprovalRecord = await userApproval.save({ session });
+
+//       // Create User Interaction
+//       const dynamicParams = {
+//         user_type: drcUser_type,
+//         ro_id: drcUser_type === 'RO' ? ro_id : null,
+//         drcUser_id: drcUser_type === 'DRCUser' ? drcUser_id : null,
+//         user_name: ro_name || existingUser.ro_name,
+//         approval_id: approval_id,
+//         drc_id: drc_id
+//       };
+
+//       interactionResult = await createUserInteractionFunction({
+//         Interaction_ID: 19,
+//         User_Interaction_Type: `Pending approval for ${drcUser_type} update`,
+//         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
+//         Created_By: create_by,
+//         User_Interaction_Status: "Open",
+//         User_Interaction_Status_DTM: currentDate,
+//         ...dynamicParams,
+//         session
+//       });
+//     }
+
+//     // Commit transaction
+//     await session.commitTransaction();
+
+//     const responseData = {
+//       updatedUser: updatedUser
+//     };
+
+//     if (userApprovalRecord) {
+//       responseData.userApproval = userApprovalRecord;
+//     }
+
+//     if (interactionResult) {
+//       responseData.interaction = interactionResult;
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
+//       data: responseData
+//     });
+
+//   } catch (error) {
+//     // Abort transaction on error
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     console.error("Error updating user:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   } finally {
+//     // End session properly
+//     if (session) {
+//       await session.endSession();
+//     }
+//   }
+// };
+
+
+// export const Update_RO_or_DRCuser_Details = async (req, res) => {
+//   let session = null;
+  
+//   try {
+//     const {
+//       ro_id,
+//       drcUser_id,
+//       drc_id,
+//       ro_name,
+//       login_email,
+//       login_contact_no,
+//       create_by,
+//       rtoms,
+//       remark
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!drc_id || !create_by) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required fields: drc_id, create_by"
+//       });
+//     }
+
+//     // Determine user type based on provided ID
+//     let drcUser_type;
+//     if (ro_id && !drcUser_id) {
+//       drcUser_type = 'RO';
+//     } else if (drcUser_id && !ro_id) {
+//       drcUser_type = 'DRCUser';
+//     } else if (ro_id && drcUser_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Please provide either ro_id or drcUser_id, not both"
+//       });
+//     } else {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Either ro_id or drcUser_id is required"
+//       });
+//     }
+
+//     // Start MongoDB session and transaction
+//     session = await mongoose.startSession();
+//     session.startTransaction();
+
+//     const currentDate = new Date();
+
+//     // Get MongoDB connection
+//     const mongoConnection = await db.connectMongoDB();
+
+//     // Find existing user record
+//     let findQuery = { drc_id: drc_id };
+//     if (drcUser_type === 'RO') {
+//       findQuery.ro_id = ro_id;
+//     } else {
+//       findQuery.drcUser_id = drcUser_id;
+//     }
+
+//     const existingUser = await Recovery_officer.findOne(findQuery).session(session);
+//     if (!existingUser) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `${drcUser_type} not found`
+//       });
+//     }
+
+//     // Prepare update object
+//     let updateData = {};
+//     let needsApproval = false;
+
+//     // Update contact details if provided
+//     if (login_email !== undefined) {
+//       updateData.login_email = login_email;
+//       needsApproval = true;
+//     }
+
+//     if (login_contact_no !== undefined) {
+//       updateData.login_contact_no = login_contact_no;
+//       needsApproval = true;
+//     }
+
+//     // Add remark if provided
+//     if (remark) {
+//       const newRemark = {
+//         remark: remark,
+//         remark_by: create_by,
+//         remark_dtm: currentDate
+//       };
+//       updateData.$push = { remark: newRemark };
+//     }
+
+//     // Handle RTOM updates for RO type only
+//     if (drcUser_type === 'RO' && rtoms && Array.isArray(rtoms)) {
+//       let updatedRtoms = [...existingUser.rtom];
+
+//       rtoms.forEach(newRtom => {
+//         const existingRtomIndex = updatedRtoms.findIndex(
+//           rtom => rtom.rtom_id === newRtom.rtom_id
+//         );
+
+//         if (existingRtomIndex !== -1) {
+//           // Update existing RTOM - FIXED LOGIC
+//           updatedRtoms[existingRtomIndex] = {
+//             ...updatedRtoms[existingRtomIndex],
+//             rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : updatedRtoms[existingRtomIndex].rtom_status,
+//             rtom_update_dtm: currentDate,
+//             rtom_update_by: create_by,
+//             ...(newRtom.rtom_name !== undefined && { rtom_name: newRtom.rtom_name }),
+//             ...(newRtom.billing_center_code !== undefined && { billing_center_code: newRtom.billing_center_code }),
+//             ...(newRtom.handling_type !== undefined && { handling_type: newRtom.handling_type })
+//           };
+//         } else {
+//           // Add new RTOM
+//           if (!newRtom.rtom_id || !newRtom.rtom_name || !newRtom.billing_center_code) {
+//             throw new Error(`Missing required fields in new RTOM. Required: rtom_id, rtom_name, billing_center_code`);
+//           }
+
+//           updatedRtoms.push({
+//             rtom_id: newRtom.rtom_id,
+//             rtom_name: newRtom.rtom_name,
+//             rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : "Active",
+//             billing_center_code: newRtom.billing_center_code,
+//             rtom_update_dtm: currentDate,
+//             rtom_update_by: create_by,
+//             rtom_end_dtm: null,
+//             handling_type: newRtom.handling_type || null
+//           });
+//         }
+//       });
+
+//       updateData.rtom = updatedRtoms;
+//     }
+
+//     // Update Recovery_officer record
+//     const updatedUser = await Recovery_officer.findOneAndUpdate(
+//       findQuery,
+//       updateData,
+//       { new: true, session }
+//     );
+
+//     let userApprovalRecord = null;
+//     let interactionResult = null;
+
+//     // Create User_Approval record if contact details were updated
+//     if (needsApproval) {
+//       // Generate approval_id
+//       const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//         { _id: "approval_id" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true, session }
+//       );
+
+//       const approval_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
+//       if (!approval_id) {
+//         throw new Error("Failed to generate approval_id.");
+//       }
+
+//       // Prepare User_Approval record
+//       const userApprovalData = {
+//         doc_version: 1,
+//         approval_id: approval_id,
+//         user_type: drcUser_type,
+//         drc_id: drc_id,
+//         ro_id: drcUser_type === 'RO' ? ro_id : null,
+//         drcUser_id: drcUser_type === 'DRCUser' ? drcUser_id : null,
+//         user_name: ro_name || existingUser.ro_name,
+//         user_role: drcUser_type === 'RO' ? 'RO' : 'DRC_Coodinator',
+//         login_email: login_email || existingUser.login_email,
+//         login_contact_no: login_contact_no || existingUser.login_contact_no,
+//         created_by: create_by,
+//         created_dtm: currentDate,
+//         approve_status: null,
+//         approve_by: null,
+//         approve_dtm: null
+//       };
+
+//       const userApproval = new User_Approval(userApprovalData);
+//       userApprovalRecord = await userApproval.save({ session });
+
+//       // Create User Interaction
+//       const dynamicParams = {
+//         user_type: drcUser_type,
+//         ro_id: drcUser_type === 'RO' ? ro_id : null,
+//         drcUser_id: drcUser_type === 'DRCUser' ? drcUser_id : null,
+//         user_name: ro_name || existingUser.ro_name,
+//         approval_id: approval_id,
+//         drc_id: drc_id
+//       };
+
+//       interactionResult = await createUserInteractionFunction({
+//         Interaction_ID: 19,
+//         User_Interaction_Type: `Pending approval for ${drcUser_type} update`,
+//         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
+//         Created_By: create_by,
+//         User_Interaction_Status: "Open",
+//         User_Interaction_Status_DTM: currentDate,
+//         ...dynamicParams,
+//         session
+//       });
+//     }
+
+//     // Commit transaction
+//     await session.commitTransaction();
+
+//     const responseData = {
+//       updatedUser: updatedUser
+//     };
+
+//     if (userApprovalRecord) {
+//       responseData.userApproval = userApprovalRecord;
+//     }
+
+//     if (interactionResult) {
+//       responseData.interaction = interactionResult;
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
+//       data: responseData
+//     });
+
+//   } catch (error) {
+//     // Abort transaction on error
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     console.error("Error updating user:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   } finally {
+//     // End session properly
+//     if (session) {
+//       await session.endSession();
+//     }
+//   }
+// };
+
+export const Update_RO_or_DRCuser_Details = async (req, res) => {
+  let session = null;
+  
+  try {
+    const {
+      ro_id,
+      drcUser_id,
+      drc_id,
+      ro_name,
+      login_email,
+      login_contact_no,
+      drcUser_status,
+      create_by,
+      rtoms,
+      remark
+    } = req.body;
+
+    // Validate required fields
+    if (!drc_id || !create_by) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: drc_id, create_by"
+      });
+    }
+
+    // Determine user type based on provided ID
+    let drcUser_type;
+    if (ro_id && !drcUser_id) {
+      drcUser_type = 'RO';
+    } else if (drcUser_id && !ro_id) {
+      drcUser_type = 'drcUser';
+    } else if (ro_id && drcUser_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide either ro_id or drcUser_id, not both"
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Either ro_id or drcUser_id is required"
+      });
+    }
+
+    // Start MongoDB session and transaction
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const currentDate = new Date();
+
+    // Get MongoDB connection
+    const mongoConnection = await db.connectMongoDB();
+
+    // Find existing user record
+    let findQuery = { drc_id: drc_id };
+    if (drcUser_type === 'RO') {
+      findQuery.ro_id = ro_id;
+    } else {
+      findQuery.drcUser_id = drcUser_id;
+    }
+
+    const existingUser = await Recovery_officer.findOne(findQuery).session(session);
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: `${drcUser_type} not found`
+      });
+    }
+
+    // Prepare update object
+    let updateData = {};
+    let needsApproval = false;
+
+    // Update contact details if provided
+    if (login_email !== undefined) {
+      updateData.login_email = login_email;
+      needsApproval = true;
+    }
+
+    if (drcUser_status !== undefined) {
+      updateData.drcUser_status = drcUser_status;
+    }
+
+    if (login_contact_no !== undefined) {
+      updateData.login_contact_no = login_contact_no;
+      needsApproval = true;
+    }
+
+    // Handle RTOM updates for RO type only
+    if (drcUser_type === 'RO' && rtoms && Array.isArray(rtoms)) {
+      let updatedRtoms = JSON.parse(JSON.stringify(existingUser.rtom)); // Deep clone
+
+      rtoms.forEach(newRtom => {
+        const existingRtomIndex = updatedRtoms.findIndex(
+          rtom => rtom.rtom_id === newRtom.rtom_id
+        );
+
+        if (existingRtomIndex !== -1) {
+          // Update existing RTOM
+          const existingRtom = updatedRtoms[existingRtomIndex];
+          updatedRtoms[existingRtomIndex] = {
+            ...existingRtom,
+            rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : existingRtom.rtom_status,
+            rtom_update_dtm: currentDate,
+            rtom_update_by: create_by,
+            rtom_name: newRtom.rtom_name !== undefined ? newRtom.rtom_name : existingRtom.rtom_name,
+            billing_center_code: newRtom.billing_center_code !== undefined ? newRtom.billing_center_code : existingRtom.billing_center_code,
+            handling_type: newRtom.handling_type !== undefined ? newRtom.handling_type : existingRtom.handling_type
+          };
+        } else {
+          // Add new RTOM
+          if (!newRtom.rtom_id || !newRtom.rtom_name || !newRtom.billing_center_code) {
+            throw new Error(`Missing required fields in new RTOM. Required: rtom_id, rtom_name, billing_center_code`);
+          }
+
+          updatedRtoms.push({
+            rtom_id: newRtom.rtom_id,
+            rtom_name: newRtom.rtom_name,
+            rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : "Active",
+            billing_center_code: newRtom.billing_center_code,
+            rtom_update_dtm: currentDate,
+            rtom_update_by: create_by,
+            rtom_end_dtm: null,
+            handling_type: newRtom.handling_type || null
+          });
+        }
+      });
+
+      updateData.rtom = updatedRtoms;
+    }
+
+    // Handle remark separately if both rtom and remark updates exist
+    if (remark) {
+      const newRemark = {
+        remark: remark,
+        remark_by: create_by,
+        remark_dtm: currentDate
+      };
+      
+      // If we're updating rtoms, add remark to the existing remarks array
+      if (updateData.rtom) {
+        updateData.remark = [...existingUser.remark, newRemark];
+      } else {
+        // If only adding remark, use $push
+        updateData.$push = { remark: newRemark };
+      }
+    }
+
+    // Update Recovery_officer record
+    const updatedUser = await Recovery_officer.findOneAndUpdate(
+      findQuery,
+      updateData,
+      { new: true, session }
+    );
+
+    let userApprovalRecord = null;
+    let interactionResult = null;
+
+    // Create User_Approval record if contact details were updated
+    if (needsApproval) {
+      // Generate approval_id
+      const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+        { _id: "approval_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+      const approval_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
+      if (!approval_id) {
+        throw new Error("Failed to generate approval_id.");
+      }
+
+      // Prepare User_Approval record
+      const userApprovalData = {
+        doc_version: 1,
+        approval_id: approval_id,
+        user_type: drcUser_type,
+        drc_id: drc_id,
+        ro_id: drcUser_type === 'RO' ? ro_id : null,
+        drcUser_id: drcUser_type === 'drcUser' ? drcUser_id : null,
+        user_name: ro_name || existingUser.ro_name,
+        user_role: drcUser_type === 'RO' ? 'RO' : 'DRC_Coodinator',
+        login_email: login_email || existingUser.login_email,
+        login_contact_no: login_contact_no || existingUser.login_contact_no,
+        created_by: create_by,
+        created_dtm: currentDate,
+        approve_status: null,
+        approve_by: null,
+        approve_dtm: null
+      };
+
+      const userApproval = new User_Approval(userApprovalData);
+      userApprovalRecord = await userApproval.save({ session });
+
+      // Create User Interaction
+      const dynamicParams = {
+        user_type: drcUser_type,
+        ro_id: drcUser_type === 'RO' ? ro_id : null,
+        drcUser_id: drcUser_type === 'drcUser' ? drcUser_id : null,
+        user_name: ro_name || existingUser.ro_name,
+        approval_id: approval_id,
+        drc_id: drc_id
+      };
+
+      interactionResult = await createUserInteractionFunction({
+        Interaction_ID: 19,
+        User_Interaction_Type: `Pending approval for ${drcUser_type} update`,
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
+        Created_By: create_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: currentDate,
+        ...dynamicParams,
+        session
+      });
+    }
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    const responseData = {
+      updatedUser: updatedUser
+    };
+
+    if (userApprovalRecord) {
+      responseData.userApproval = userApprovalRecord;
+    }
+
+    if (interactionResult) {
+      responseData.interaction = interactionResult;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
+      data: responseData
+    });
+
+  } catch (error) {
+    // Abort transaction on error
+    if (session) {
+      await session.abortTransaction();
+    }
+    console.error("Error updating user:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  } finally {
+    // End session properly
+    if (session) {
+      await session.endSession();
+    }
+  }
+};
+
+
 
 
 

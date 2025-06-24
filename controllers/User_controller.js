@@ -12,7 +12,6 @@
 
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import User_log from '../models/User_Log.js';
 
 // Function to Get user details by user roles
 export const getUserDetailsByRole = async (req, res) => {
