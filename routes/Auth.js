@@ -83,7 +83,7 @@ router.get(
   }),
   (req, res) => {
     const accessToken = req.user.accessToken;
-    res.redirect(`${process.env.CLIENT_URL}/drc/google-login?accessToken=${accessToken}`);
+    res.redirect(`${process.env.CLIENT_URL}/drc/dashboard/google-login?accessToken=${accessToken}`);
     // console.log("ACCT "+ accessToken)
   }
 );
