@@ -110,6 +110,8 @@ const crdDistributionStatusSchema = new Schema({
     required: true 
   },
   created_dtm: { type: Date, required: true },
+  batch_status_discription : { type: String, default: null},
+  created_by : {type:String, required:true}
 },{ _id: false });
 
 const bulkDetailsSchecma = new Schema({
