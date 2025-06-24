@@ -10588,6 +10588,107 @@ router.get('/CaseStatus',CaseStatus);
 
 router.get('/List_DRC_Distribution_Rejected_Batches',List_DRC_Distribution_Rejected_Batches);
 
+/**
+ * @swagger
+ * /api/case/List_Rejected_Batch_Summary_Case_Distribution_Batch_Id:
+ *   post:
+ *     summary: Retrieve rejected batch summary by case_distribution_batch_id
+ *     description: |
+ *       Fetches a summary of a rejected distribution batch using `case_distribution_batch_id`. 
+ *       Returns details like rejected DRC summary, rule base count, commission rules, arrears band, and captured count.
+ *
+ *       | Version | Date        | Description                         | Changed By |
+ *       |---------|-------------|-------------------------------------|------------|
+ *       | 01      | 2025-Jun-24 | Initial implementation              | T.G.J.K. Kumarasiri  |
+ *
+ *     tags: [Case Distribution]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - case_distribution_batch_id
+ *             properties:
+ *               case_distribution_batch_id:
+ *                 type: string
+ *                 example: "26"
+ *                 description: ID of the case distribution batch to fetch rejected summary for.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved rejected batch summary.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Retrieved rejected batch summary successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     rejected_drc_summary:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         description: List of rejected distribution details per DRC.
+ *                     rulebase_count:
+ *                       type: integer
+ *                       example: 15
+ *                     drc_commision_rule:
+ *                       type: object
+ *                       description: Commission rule applied to DRCs.
+ *                     current_arrears_band:
+ *                       type: number
+ *                       example: 2
+ *                     captured_count:
+ *                       type: integer
+ *                       example: 100
+ *       400:
+ *         description: Request validation failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "case_distribution_batch_id is required."
+ *       404:
+ *         description: No rejected batch found for the given batch ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "No rejected batch found for the provided case_distribution_batch_id."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ */
 router.post(
   "/List_Rejected_Batch_Summary_Case_Distribution_Batch_Id",
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id

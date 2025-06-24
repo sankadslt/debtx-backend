@@ -1253,21 +1253,32 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 
     // Validation for existing tasks with task_status and specific parameters
     const existingTask = await mongo.collection("System_tasks").findOne({
-      // task_status: { $ne: "Complete" },
+      // task_status: "Open",
       "parameters.drc_commision_rule": drc_commision_rule,
       "parameters.current_arrears_band": current_arrears_band,
     });   
+    
     if (existingTask) {
-      const ex_case_distribution_batch_id = existingTask.parameters.case_distribution_batch_id;
-      const batchdetails = await Case_distribution_drc_transactions.findOne(
-        { case_distribution_batch_id: ex_case_distribution_batch_id },
-        { distribution_status: 1, _id: 0 }
-      );
-      if(batchdetails.distribution_status[batchdetails.distribution_status.length - 1].crd_distribution_status !== "batch_rejected" && batchdetails.distribution_status[batchdetails.distribution_status.length - 1].crd_distribution_status !== "batch_distributed"){
+      const isOpen = existingTask.task_status === "open";
+      if (isOpen) {
         return res.status(409).json({
           status: "error",
-          message: "Already has tasks with this commision rule and arrears band ",
+          message: "Already has a open task with this commision rule and arrears band ",
         });
+      } else {
+        const existingBatch = await mongo.collection("Case_distribution_drc_transactions").findOne({
+          "drc_commision_rule": drc_commision_rule,
+          "current_arrears_band": current_arrears_band,
+        }); 
+
+        if (existingBatch) {
+          if(existingBatch.current_batch_distribution_status !== "batch_rejected" && existingBatch.current_batch_distribution_status !== "batch_distributed"){
+            return res.status(409).json({
+              status: "error",
+              message: "Already has a processing batch with this commision rule and arrears band.",
+            });
+          }
+        }
       }
     }
     // const counter_result_of_case_distribution_batch_id = await mongo.collection("collection_sequence").findOneAndUpdate(
@@ -1334,14 +1345,44 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
     //   await new_Case_distribution_drc_transaction.save();
     // };
 
-    const dynamicParams = {
-      drc_commision_rule,
-      current_arrears_band,
-      case_distribution_batch_id,
-    };
+    // const payload = {
+    //   Created_By: created_by,
+    // }
+
+    // const dynamicParams = {
+    //   drc_commision_rule,
+    //   current_arrears_band,
+    // };
+
+    const formattedString = validatedList
+      .map(item => `${item.DRC_Id}:${item.Count}`)
+      .join(",");
+
+    let dynamicParams = {}
+    let Template_Task_Id; // Default Template Task ID
+    let task_type;
+
+    if (batch_id) {
+      Template_Task_Id = 52;
+      task_type = "Re-Proceed Case Distribution Planning among DRC";
+      dynamicParams = {
+        drc_commision_rule: drc_commision_rule,
+        current_arrears_band: current_arrears_band,
+        drc_distribution: formattedString,
+        Rejected_distribution_batch_id: batch_id,
+      }
+    } else {
+      Template_Task_Id = 3;
+      task_type = "Case Distribution Planning among DRC";
+      dynamicParams = {
+        drc_commision_rule: drc_commision_rule,
+        current_arrears_band: current_arrears_band,
+        drc_distribution: formattedString,
+      }
+    }
     const result = await createTaskFunction({
-      Template_Task_Id: 3,
-      task_type: "Case Distribution Planning among DRC",
+      Template_Task_Id: Template_Task_Id,
+      task_type: task_type,
       Created_By: created_by,
       ...dynamicParams,
     });
@@ -3105,8 +3146,8 @@ export const List_All_Batch_Details = async (req, res) => {
               then: {
                 case_distribution_batch_id: "$case_distribution_details.case_distribution_batch_id",
                 drc_commision_rule: "$case_distribution_details.drc_commision_rule",
-                rulebase_count: "$case_distribution_details.rulebase_count",
-                rulebase_arrears_sum: "$case_distribution_details.rulebase_arrears_sum"
+                rulebase_count: "$case_distribution_details.bulk_Details.inspected_count",
+                rulebase_arrears_sum: "$case_distribution_details.bulk_Details.inspected_arrease"
               },
               else: null
             }
@@ -3139,7 +3180,7 @@ export const Approve_Batch = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { approver_reference, approved_by } = req.body;
+    const { approver_reference, approved_by, IsApproved } = req.body;
 
     if (!approver_reference) {
       await session.abortTransaction();
@@ -3153,7 +3194,27 @@ export const Approve_Batch = async (req, res) => {
       return res.status(400).json({ message: "approved_by is required" });
     }
 
+    if (!IsApproved) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "IsApproved is required" });
+    }
+
     const currentDate = new Date();
+
+    let statusTempForwardedApprover;
+    let statusCaseDistribution;
+    let discriptionDistribution;
+
+    if (IsApproved === "Approve") {
+      statusTempForwardedApprover = "Approve";
+      statusCaseDistribution = "batch_approved";
+      discriptionDistribution = "Batch is Approved";
+    } else {
+      statusTempForwardedApprover = "Reject";
+      statusCaseDistribution = "batch_rejected";
+      discriptionDistribution = "Batch is Rejected";
+    }
 
     // Fetch the created_by field for the matching approver_reference
     const approverDoc = await TmpForwardedApprover.findOne({
@@ -3179,7 +3240,7 @@ export const Approve_Batch = async (req, res) => {
       {
         $push: {
           approve_status: {
-            status: "Approve",
+            status: statusTempForwardedApprover,
             status_date: currentDate,
             status_edit_by: approved_by,
           },
@@ -3188,38 +3249,64 @@ export const Approve_Batch = async (req, res) => {
       { session }
     );
 
-    if (result.modifiedCount === 0) {
+    const resultCaseDistribution = await CaseDistribution.updateOne(
+      { 
+        case_distribution_batch_id: approver_reference
+      },
+      {
+        $push: {
+          batch_status: {
+            crd_distribution_status: statusCaseDistribution,
+            created_dtm: currentDate,
+            batch_status_discription: discriptionDistribution,
+            created_by: approved_by,
+          },
+        },
+        $set: {
+          current_batch_distribution_status: statusCaseDistribution,
+          Approved_By: approved_by,
+          Approved_On: currentDate,
+        }
+      },
+      { session }
+    );
+
+    if (result.modifiedCount === 0 || resultCaseDistribution.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({ message: "No matching approver reference found or already approved" });
     }
 
-    const dynamicParams = {
-      case_distribution_batch_id: approver_reference, // List of approver references
-    }; 
+    let taskCreatedResponse;
 
-    // Create Task for Approved Approver
-    const taskData = {
-      Template_Task_Id: 29,
-      task_type: "Create Task for Approve Cases from Approver_Reference",
-      ...dynamicParams,
-      Created_By: approved_by,
-      task_status: "open",
-    };
+    if (IsApproved === "Approve") {
+      const dynamicParams = {
+        case_distribution_batch_id: approver_reference, // List of approver references
+      }; 
 
-    await createTaskFunction(taskData, session);
+      // Create Task for Approved Approver
+      const taskData = {
+        Template_Task_Id: 29,
+        task_type: "Create Task for Approve Cases from Approver_Reference",
+        ...dynamicParams,
+        Created_By: approved_by,
+        task_status: "open",
+      };
 
-    await createUserInteractionFunction({
-      Interaction_ID: 15,
-      User_Interaction_Type: "Agent Distribution Batch Approved",
-      delegate_user_id: delegate_id,
-      Created_By: approved_by,
-      User_Interaction_Status_DTM: currentDate,
-      User_Interaction_Status: "Open",
-      ...dynamicParams,
-      approver_reference: approver_reference,
-      session
-    });
+      taskCreatedResponse = await createTaskFunction(taskData, session);
+
+      await createUserInteractionFunction({
+        Interaction_ID: 15,
+        User_Interaction_Type: "Agent Distribution Batch Approved",
+        delegate_user_id: delegate_id,
+        Created_By: approved_by,
+        User_Interaction_Status_DTM: currentDate,
+        User_Interaction_Status: "Open",
+        session,
+        ...dynamicParams,
+        approver_reference: approver_reference,
+      });
+    }
 
     await session.commitTransaction();
     session.endSession();
@@ -3227,7 +3314,7 @@ export const Approve_Batch = async (req, res) => {
     return res.status(200).json({
       message: "Approval added successfully, task created and interaction added.",
       updatedCount: result.modifiedCount,
-      taskData: taskData,
+      response: taskCreatedResponse,
     });
   } catch (error) {
     console.error("Error approving batch:", error);
@@ -3281,14 +3368,14 @@ export const Create_task_for_batch_approval = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
       message: "Task for batch approval created successfully.",
-      taskData,
+      response,
     });
   } catch (error) {
     console.error("Error creating batch approval task:", error);
@@ -3340,11 +3427,13 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
 
     // Filter based on date range
     if (date_from && date_to) {
-      matchStage.created_on = { $gte: new Date(date_from), $lte: new Date(date_to) };
+      const endofDate = new Date(date_to);
+      endofDate.setHours(23, 59, 59, 999);
+      matchStage.created_on = { $gte: new Date(date_from), $lte: endofDate };
     } else if (date_from) {
       matchStage.created_on = { $gte: new Date(date_from) };
     } else if (date_to) {
-      matchStage.created_on = { $lte: new Date(date_to) };
+      matchStage.created_on = { $lte: endofDate };
     }
 
     // Filter based on approved_deligated_by
@@ -3521,7 +3610,13 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       "Commission Approval": "Commissioned"
     };
 
-    const newStatus = statusMap[approvalDoc.approver_type] || "Pending";
+    const newStatus = statusMap[approvalDoc.approver_type];
+
+    if (!newStatus) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Invalid approver_type" });
+    }
 
     // Update approve_status and approved_by
     const result = await TmpForwardedApprover.updateOne(
@@ -3596,6 +3691,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     let caseUpdateOperation = {
       $push: {
         approve: {
+          Approval_Type: approvalDoc.approver_type,
           approved_process: newStatus,
           approved_by: approved_by,
           approved_on: currentDate,
@@ -3953,14 +4049,14 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
       message: "Task for batch approval created successfully.",
-      taskData,
+      response,
     });
   } catch (error) {
     console.error("Error creating batch approval task:", error);
@@ -8992,17 +9088,7 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
     const rejected_batches = await CaseDistribution.aggregate([
       {
         $match: {
-          batch_status: { $exists: true, $ne: [] }
-        }
-      },
-      {
-        $addFields: {
-          last_distribution_status: { $last: "$batch_status" }
-        }
-      },
-      {
-        $match: {
-          "last_distribution_status.crd_distribution_status": "batch_rejected"
+          current_batch_distribution_status: "batch_rejected"
         }
       },
       {
@@ -9045,6 +9131,13 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
   }
 };
 
+/**
+ * Purpose: To retrieve the summary of a rejected batch by case_distribution_batch_id.
+ * Inputs:
+ * - case_distribution_batch_id (required) 
+ * 
+ * Collection: Case_distribution_drc_transactions
+ */
 export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req, res) => {
     try {
         const { case_distribution_batch_id } = req.body;
@@ -9058,8 +9151,8 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req
         const Rejected_Batch = await CaseDistribution.findOne(
           {case_distribution_batch_id},
           {
-            batch_seq_details: 1,
-            rulebase_count: 1,
+            batch_details: 1,
+            bulk_Details: 1,
             drc_commision_rule: 1,
             current_arrears_band: 1
           }
@@ -9073,10 +9166,11 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req
         }
 
         const responseData = {
-          rejected_drc_summary: Rejected_Batch?.batch_seq_details?.[0]?.distribution_details,
-          rulebase_count: Rejected_Batch.rulebase_count,
+          rejected_drc_summary: Rejected_Batch?.batch_details?.[0]?.distribution_details,
+          rulebase_count: Rejected_Batch?.bulk_Details?.[0]?.inspected_count,
           drc_commision_rule: Rejected_Batch.drc_commision_rule,
-          current_arrears_band: Rejected_Batch.current_arrears_band
+          current_arrears_band: Rejected_Batch.current_arrears_band || 0,
+          captured_count: Rejected_Batch?.bulk_Details?.[0]?.captured_count || 0,
         };
 
         return res.status(200).json({
