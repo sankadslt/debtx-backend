@@ -1275,19 +1275,17 @@ export const createRTOM = async (req, res) => {
       telephone
     } = req.body;
 
-    // Ensure mobile and telephone are arrays
     const mobileArray = Array.isArray(mobile) ? mobile : [];
     const telephoneArray = Array.isArray(telephone) ? telephone : [];
 
     const newRtom = new Rtom({
-      rtom_id: Date.now(), // simple unique id
+      rtom_id: Date.now(),
       billing_center_code: billingCenterCode,
       rtom_name: name,
       area_code: areaCode,
       rtom_email: email,
       rtom_mobile_no: mobileArray.map(m => ({ mobile_number: m })),
       rtom_telephone_no: telephoneArray.map(t => ({ telephone_number: t })),
-      
       created_by: 'system',
       created_on: new Date(),
       rtom_status: 'Active',
@@ -1297,7 +1295,17 @@ export const createRTOM = async (req, res) => {
 
     await newRtom.save();
 
-    res.status(201).json({ message: 'RTOM created successfully', data: newRtom });
+    // 🔽 Aggregation after creation
+    const aggregationResult = await Rtom.aggregate([
+      { $match: { area_code: areaCode } },
+      { $group: { _id: '$area_code', totalRTOMs: { $sum: 1 } } }
+    ]);
+
+    res.status(201).json({
+      message: 'RTOM created successfully',
+      data: newRtom,
+      aggregation: aggregationResult
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to create RTOM', error });
