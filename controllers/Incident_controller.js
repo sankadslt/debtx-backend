@@ -24,9 +24,9 @@ const __dirname = dirname(__filename);
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParameters = (params) => {
-  const { Incident_Id, Account_Num } = params;
+  const { Incident_Log_Id, Account_Num } = params;
 
-  if (!Incident_Id || !Account_Num) {
+  if (!Incident_Log_Id || !Account_Num) {
     throw new Error(
       "Incident_Id and Account_Num are required parameters for Create_Task."
     );
@@ -116,7 +116,7 @@ export const Create_Incident = async (req, res) => {
     const Incident_Log_Id = counterResult.seq;
 
     const newIncidentData = {
-      Incident_Id: null,
+      // Incident_Id: null,
       Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
