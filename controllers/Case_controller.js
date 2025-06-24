@@ -4184,11 +4184,12 @@ export const List_Case_Distribution_Details = async (req, res) => {
               $group: {
                 _id: {
                   drc_id: "$drc_distribution.drc_id",
-                  drc_name: "$drc_distribution.drc_name"
+                  drc_name: "$drc_distribution.drc_name",
                 },
                 total_case_count: {
                   $sum: "$drc_distribution.rtom_details.case_count"
-                }
+                },
+                drc_tot_arrease: { $first: "$drc_distribution.drc_tot_arrease" } 
               }
             },
             {
@@ -4196,7 +4197,8 @@ export const List_Case_Distribution_Details = async (req, res) => {
                 _id: 0,
                 drc_id: "$_id.drc_id",
                 drc_name: "$_id.drc_name",
-                total_case_count: 1
+                total_case_count: 1,
+                drc_tot_arrease: 1
               }
             }
           ]
