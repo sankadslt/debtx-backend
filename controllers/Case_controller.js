@@ -4106,29 +4106,13 @@ export const Assign_DRC_To_Case = async (req, res) => {
 };
 
 /**
- * Retrieves case distribution summary details along with related transaction and DRC info.
- *
- * Request Body:
- * - case_distribution_batch_id: string (required) – ID of the case distribution batch to filter data.
- * - drc_id: string (optional) – If provided, filters records for the specific DRC.
- *
- * Logic:
- * 1. Validates the presence of `case_distribution_batch_id`. Returns 400 if missing.
- * 2. Builds a MongoDB aggregation pipeline on `caseDistributionDRCSummary`:
- *    - $match: Filters by `case_distribution_batch_id` and optionally `drc_id`.
- *    - $lookup: Joins `Case_distribution_drc_transactions` on `case_distribution_batch_id`.
- *    - $lookup: Joins `Debt_recovery_company` on `drc_id` to enrich with DRC details.
- *    - $unwind: Flattens `transaction_data` and `drc_details` arrays (preserving nulls).
- *    - $project: Selects only the required fields, including joined data with fallbacks.
- * 3. Returns 204 if no records found, 200 with results if found.
- *
- * Responses:
- * - 200: Aggregation completed successfully, results returned.
- * - 204: No matching records found for provided batch ID.
- * - 400: Required input `case_distribution_batch_id` missing.
- * - 500: Server error during aggregation.
+ * Inputs:
+ * - case_distribution_batch_id: Number (required)
+ * - drc_id: Number (optional)
+ * 
+ * Success Result:
+ * - Returns a success response with DRC-wise total case count and detailed RTOM-wise distribution grouped by batch.
  */
-
 export const List_Case_Distribution_Details = async (req, res) => {
   try {
     const { case_distribution_batch_id, drc_id } = req.body;
@@ -4137,86 +4121,116 @@ export const List_Case_Distribution_Details = async (req, res) => {
       return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
     }
 
-    // Build match stage based on input parameters
-    const matchStage = { case_distribution_batch_id };
-    if (drc_id) {
-      matchStage.drc_id = drc_id;
+    const pipeline = [
+      {
+        $match: {
+          case_distribution_batch_id: case_distribution_batch_id
+        }
+      },
+      { $unwind: "$drc_distribution" }
+    ];
+    if (drc_id !== undefined && drc_id !== null) {
+      pipeline.push({
+        $match: {
+          "drc_distribution.drc_id": drc_id
+        }
+      });
     }
 
-    // Use aggregation to get all data in one query
-    const results = await caseDistributionDRCSummary.aggregate([
-      // Stage 1: Match documents based on input criteria
+    pipeline.push(
+      { $unwind: "$drc_distribution.rtom_details" },
       {
-        $match: matchStage
-      },
-      
-      // Stage 2: Lookup transaction data from CaseDistribution collection
-      {
-        $lookup: {
-          from: "Case_distribution_drc_transactions", // Collection name
-          localField: "case_distribution_batch_id",
-          foreignField: "case_distribution_batch_id",
-          as: "transaction_data"
+        $facet: {
+          rtom_distribution: [
+            {
+              $project: {
+                case_distribution_batch_id: 1,
+                created_dtm: 1,
+                distributed_tot_arrease: 1,
+                drc_id: "$drc_distribution.drc_id",
+                drc_name: "$drc_distribution.drc_name",
+                rtom: "$drc_distribution.rtom_details.rtom",
+                case_count: "$drc_distribution.rtom_details.case_count",
+                rtom_tot_arrease: "$drc_distribution.rtom_details.rtom_tot_arrease",
+                month_1_sc: "$drc_distribution.rtom_details.month_1_sc",
+                month_2_sc: "$drc_distribution.rtom_details.month_2_sc",
+                month_3_sc: "$drc_distribution.rtom_details.month_3_sc"
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  case_distribution_batch_id: "$case_distribution_batch_id",
+                  created_dtm: "$created_dtm",
+                  distributed_tot_arrease: "$distributed_tot_arrease"
+                },
+                rtom_distribution: {
+                  $push: {
+                    drc_id: "$drc_id",
+                    drc_name: "$drc_name",
+                    rtom: "$rtom",
+                    case_count: "$case_count",
+                    rtom_tot_arrease: "$rtom_tot_arrease",
+                    month_1_sc: "$month_1_sc",
+                    month_2_sc: "$month_2_sc",
+                    month_3_sc: "$month_3_sc"
+                  }
+                }
+              }
+            }
+          ],
+          drc_distribution: [
+            {
+              $group: {
+                _id: {
+                  drc_id: "$drc_distribution.drc_id",
+                  drc_name: "$drc_distribution.drc_name"
+                },
+                total_case_count: {
+                  $sum: "$drc_distribution.rtom_details.case_count"
+                }
+              }
+            },
+            {
+              $project: {
+                _id: 0,
+                drc_id: "$_id.drc_id",
+                drc_name: "$_id.drc_name",
+                total_case_count: 1
+              }
+            }
+          ]
         }
       },
-      
-      // Stage 3: Lookup DRC details from DRC collection
-      {
-        $lookup: {
-          from: "Debt_recovery_company", // Collection name 
-          localField: "drc_id",
-          foreignField: "drc_id",
-          as: "drc_details"
-        }
-      },
-      
-      // Stage 4: Unwind the transaction_data array (converts array to object)
-      {
-        $unwind: {
-          path: "$transaction_data",
-          preserveNullAndEmptyArrays: true // Keep documents even if no matching transaction
-        }
-      },
-      
-      // Stage 5: Unwind the drc_details array
-      {
-        $unwind: {
-          path: "$drc_details",
-          preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
-        }
-      },
-      
-      // Stage 6: Project only the fields we need
       {
         $project: {
-          doc_version: 1,
-          _id: 1,
-          case_distribution_batch_id: 1,
-          created_dtm: "$created_dtm",
-          drc_id: 1,
-          rtom: 1,
-          case_count: 1,
-          tot_arrease: "$tot_arrease",
-          month_1_sc: 1,
-          month_2_sc: 1,
-          month_3_sc: 1,
-          proceed_on: { $ifNull: ["$transaction_data.proceed_on", null] },
-          drc_name: { $ifNull: ["$drc_details.drc_name", null] },
+          rtom_distribution: { $arrayElemAt: ["$rtom_distribution", 0] },
+          drc_distribution: 1
+        }
+      },
+      {
+        $project: {
+          case_distribution_batch_id: "$rtom_distribution._id.case_distribution_batch_id",
+          created_dtm: "$rtom_distribution._id.created_dtm",
+          distributed_tot_arrease: "$rtom_distribution._id.distributed_tot_arrease",
+          rtom_distribution: "$rtom_distribution.rtom_distribution",
+          drc_distribution: 1
         }
       }
-    ]);
+    );
 
-    if (results.length === 0) {
-      return res.status(204).json({ message: "No records found for the given batch ID" });
-    }
+    const result = await caseDistributionDRCSummary.aggregate(pipeline);
+    return res.status(200).json({ 
+      status: "success", 
+      message: "case distribution data fetch successfully",
+      data: result
+    });
 
-    res.status(200).json(results);
   } catch (error) {
     console.error("Error fetching case distribution details:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 
 export const Create_Task_For_case_distribution_drc_summery = async (req, res) => {
@@ -4298,71 +4312,71 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
  * - 500: Internal server error during aggregation.
  */
 
-export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
-  try {
-    const { case_distribution_batch_id, drc_id } = req.body;
+// export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
+//   try {
+//     const { case_distribution_batch_id, drc_id } = req.body;
 
-    if (!case_distribution_batch_id || !drc_id) {
-      return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
-    }
+//     if (!case_distribution_batch_id || !drc_id) {
+//       return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
+//     }
 
-    // Use aggregation to get all data in one query
-    const results = await caseDistributionDRCSummary.aggregate([
-      // Stage 1: Match documents based on input criteria
-      {
-        $match: {
-          case_distribution_batch_id,
-          drc_id
-        }
-      },
+//     // Use aggregation to get all data in one query
+//     const results = await caseDistributionDRCSummary.aggregate([
+//       // Stage 1: Match documents based on input criteria
+//       {
+//         $match: {
+//           case_distribution_batch_id,
+//           drc_id
+//         }
+//       },
       
-      // Stage 2: Lookup DRC details from DRC collection
-      {
-        $lookup: {
-          from: "Debt_recovery_company", // Collection name for DRC
-          localField: "drc_id",
-          foreignField: "drc_id",
-          as: "drc_details"
-        }
-      },
+//       // Stage 2: Lookup DRC details from DRC collection
+//       {
+//         $lookup: {
+//           from: "Debt_recovery_company", // Collection name for DRC
+//           localField: "drc_id",
+//           foreignField: "drc_id",
+//           as: "drc_details"
+//         }
+//       },
       
-      // Stage 3: Unwind the drc_details array
-      {
-        $unwind: {
-          path: "$drc_details",
-          preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
-        }
-      },
+//       // Stage 3: Unwind the drc_details array
+//       {
+//         $unwind: {
+//           path: "$drc_details",
+//           preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
+//         }
+//       },
       
-      // Stage 4: Project the fields we need
-      {
-        $project: {
-          _id: 1,
-          case_distribution_batch_id: 1,
-          drc_id: 1,
-          drc_name: "$drc_details.drc_name",
-          rtom: 1,
-          case_count: 1,
-          tot_arrease: 1,
-          month_1_sc: 1,
-          month_2_sc: 1,
-          month_3_sc: 1,
-          created_dtm: 1,
-          created_by: 1,
-        }
-      }
-    ]);
+//       // Stage 4: Project the fields we need
+//       {
+//         $project: {
+//           _id: 1,
+//           case_distribution_batch_id: 1,
+//           drc_id: 1,
+//           drc_name: "$drc_details.drc_name",
+//           rtom: 1,
+//           case_count: 1,
+//           tot_arrease: 1,
+//           month_1_sc: 1,
+//           month_2_sc: 1,
+//           month_3_sc: 1,
+//           created_dtm: 1,
+//           created_by: 1,
+//         }
+//       }
+//     ]);
 
-    if (results.length === 0) {
-      return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
-    }
+//     if (results.length === 0) {
+//       return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
+//     }
 
-    res.status(200).json(results);
-  } catch (error) {
-    console.error("Error fetching case distribution details with RTOMs:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
+//     res.status(200).json(results);
+//   } catch (error) {
+//     console.error("Error fetching case distribution details with RTOMs:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
 
 /**
  * Inputs:
