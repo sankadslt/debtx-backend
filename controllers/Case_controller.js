@@ -3146,8 +3146,8 @@ export const List_All_Batch_Details = async (req, res) => {
               then: {
                 case_distribution_batch_id: "$case_distribution_details.case_distribution_batch_id",
                 drc_commision_rule: "$case_distribution_details.drc_commision_rule",
-                rulebase_count: "$case_distribution_details.rulebase_count",
-                rulebase_arrears_sum: "$case_distribution_details.rulebase_arrears_sum"
+                rulebase_count: "$case_distribution_details.bulk_Details.inspected_count",
+                rulebase_arrears_sum: "$case_distribution_details.bulk_Details.inspected_arrease"
               },
               else: null
             }
@@ -3180,7 +3180,7 @@ export const Approve_Batch = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { approver_reference, approved_by } = req.body;
+    const { approver_reference, approved_by, IsApproved } = req.body;
 
     if (!approver_reference) {
       await session.abortTransaction();
@@ -3194,7 +3194,27 @@ export const Approve_Batch = async (req, res) => {
       return res.status(400).json({ message: "approved_by is required" });
     }
 
+    if (!IsApproved) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "IsApproved is required" });
+    }
+
     const currentDate = new Date();
+
+    let statusTempForwardedApprover;
+    let statusCaseDistribution;
+    let discriptionDistribution;
+
+    if (IsApproved === "Approve") {
+      statusTempForwardedApprover = "Approve";
+      statusCaseDistribution = "batch_approved";
+      discriptionDistribution = "Batch is Approved";
+    } else {
+      statusTempForwardedApprover = "Reject";
+      statusCaseDistribution = "batch_rejected";
+      discriptionDistribution = "Batch is Rejected";
+    }
 
     // Fetch the created_by field for the matching approver_reference
     const approverDoc = await TmpForwardedApprover.findOne({
@@ -3220,7 +3240,7 @@ export const Approve_Batch = async (req, res) => {
       {
         $push: {
           approve_status: {
-            status: "Approve",
+            status: statusTempForwardedApprover,
             status_date: currentDate,
             status_edit_by: approved_by,
           },
@@ -3229,38 +3249,64 @@ export const Approve_Batch = async (req, res) => {
       { session }
     );
 
-    if (result.modifiedCount === 0) {
+    const resultCaseDistribution = await CaseDistribution.updateOne(
+      { 
+        case_distribution_batch_id: approver_reference
+      },
+      {
+        $push: {
+          batch_status: {
+            crd_distribution_status: statusCaseDistribution,
+            created_dtm: currentDate,
+            batch_status_discription: discriptionDistribution,
+            created_by: approved_by,
+          },
+        },
+        $set: {
+          current_batch_distribution_status: statusCaseDistribution,
+          Approved_By: approved_by,
+          Approved_On: currentDate,
+        }
+      },
+      { session }
+    );
+
+    if (result.modifiedCount === 0 || resultCaseDistribution.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
       return res.status(204).json({ message: "No matching approver reference found or already approved" });
     }
 
-    const dynamicParams = {
-      case_distribution_batch_id: approver_reference, // List of approver references
-    }; 
+    let taskCreatedResponse;
 
-    // Create Task for Approved Approver
-    const taskData = {
-      Template_Task_Id: 29,
-      task_type: "Create Task for Approve Cases from Approver_Reference",
-      ...dynamicParams,
-      Created_By: approved_by,
-      task_status: "open",
-    };
+    if (IsApproved === "Approve") {
+      const dynamicParams = {
+        case_distribution_batch_id: approver_reference, // List of approver references
+      }; 
 
-    await createTaskFunction(taskData, session);
+      // Create Task for Approved Approver
+      const taskData = {
+        Template_Task_Id: 29,
+        task_type: "Create Task for Approve Cases from Approver_Reference",
+        ...dynamicParams,
+        Created_By: approved_by,
+        task_status: "open",
+      };
 
-    await createUserInteractionFunction({
-      Interaction_ID: 15,
-      User_Interaction_Type: "Agent Distribution Batch Approved",
-      delegate_user_id: delegate_id,
-      Created_By: approved_by,
-      User_Interaction_Status_DTM: currentDate,
-      User_Interaction_Status: "Open",
-      ...dynamicParams,
-      approver_reference: approver_reference,
-      session
-    });
+      taskCreatedResponse = await createTaskFunction(taskData, session);
+
+      await createUserInteractionFunction({
+        Interaction_ID: 15,
+        User_Interaction_Type: "Agent Distribution Batch Approved",
+        delegate_user_id: delegate_id,
+        Created_By: approved_by,
+        User_Interaction_Status_DTM: currentDate,
+        User_Interaction_Status: "Open",
+        session,
+        ...dynamicParams,
+        approver_reference: approver_reference,
+      });
+    }
 
     await session.commitTransaction();
     session.endSession();
@@ -3268,7 +3314,7 @@ export const Approve_Batch = async (req, res) => {
     return res.status(200).json({
       message: "Approval added successfully, task created and interaction added.",
       updatedCount: result.modifiedCount,
-      taskData: taskData,
+      response: taskCreatedResponse,
     });
   } catch (error) {
     console.error("Error approving batch:", error);
@@ -3322,14 +3368,14 @@ export const Create_task_for_batch_approval = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
       message: "Task for batch approval created successfully.",
-      taskData,
+      response,
     });
   } catch (error) {
     console.error("Error creating batch approval task:", error);
@@ -9060,6 +9106,13 @@ export const List_DRC_Distribution_Rejected_Batches = async (req, res) => {
   }
 };
 
+/**
+ * Purpose: To retrieve the summary of a rejected batch by case_distribution_batch_id.
+ * Inputs:
+ * - case_distribution_batch_id (required) 
+ * 
+ * Collection: Case_distribution_drc_transactions
+ */
 export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (req, res) => {
     try {
         const { case_distribution_batch_id } = req.body;
