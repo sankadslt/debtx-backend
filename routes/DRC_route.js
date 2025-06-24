@@ -33,7 +33,6 @@
 
 import { Router } from "express"; 
 import {
-  registerDRC,
   getDRCWithServices,
   changeDRCStatus,
   getDRCWithServicesByDRCId,
@@ -53,6 +52,7 @@ import {
 
   
   getUserIdOwnedByDRCId,
+  Create_DRC_With_Services_and_SLT_Coordinator,
   List_DRC_Details_By_DRC_ID,
   Terminate_Company_By_DRC_ID,
   Update_DRC_With_Services_and_SLT_Cordinator,
@@ -319,7 +319,7 @@ router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
  */
 router.patch("/End_DRC", endDRC);
 
-router.post("/Register_DRC", registerDRC);
+router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
 
 /**
  * @swagger
