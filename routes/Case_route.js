@@ -56,7 +56,7 @@ import {
   Assign_DRC_To_Case,
   List_Case_Distribution_Details,
   Create_Task_For_case_distribution_drc_summery,
-  List_Case_Distribution_Details_With_Rtoms,
+  // List_Case_Distribution_Details_With_Rtoms,
   List_CasesOwened_By_DRC,
   List_All_DRC_Negotiation_Cases_ext_1,
   listDRCAllCases,
@@ -5927,11 +5927,11 @@ router.post(
  *                   example: "Internal server error."
  */
 
-router.post(
-  "/List_Case_Distribution_Details_With_Rtoms",
-  List_Case_Distribution_Details_With_Rtoms
-);
-
+// router.post(
+//   "/List_Case_Distribution_Details_With_Rtoms",
+//   List_Case_Distribution_Details_With_Rtoms
+// );
+ 
  /**
  * @swagger
  * /api/case/List_CasesOwened_By_DRC:
