@@ -78,12 +78,12 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: (`${process.env.CLIENT_URL}/unauthorized`),
+    failureRedirect: (`${process.env.CLIENT_URL}/drc/unauthorized`),
     session: false,
   }),
   (req, res) => {
     const accessToken = req.user.accessToken;
-    res.redirect(`${process.env.CLIENT_URL}/google-login?accessToken=${accessToken}`);
+    res.redirect(`${process.env.CLIENT_URL}/drc/google-login?accessToken=${accessToken}`);
     // console.log("ACCT "+ accessToken)
   }
 );
