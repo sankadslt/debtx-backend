@@ -108,15 +108,16 @@ export const Create_Incident = async (req, res) => {
 
     const mongoConnection = mongoose.connection;
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "incident_id" },
+      { _id: "Incident_Log_Id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
     );
 
-    const Incident_Id = counterResult.seq;
+    const Incident_Log_Id = counterResult.seq;
 
     const newIncidentData = {
-      Incident_Id,
+      Incident_Id: null,
+      Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
       Actions: DRC_Action,
@@ -148,7 +149,7 @@ export const Create_Incident = async (req, res) => {
     //   });
     // }
     const dynamicParams = {
-      Incident_Id,
+      Incident_Log_Id,
       Account_Num,
     };
     try {
@@ -181,7 +182,7 @@ export const Create_Incident = async (req, res) => {
       status: "success",
       message: "Incident and task created successfully.",
       data: {
-        Incident_Id,
+        Incident_Log_Id,
         Account_Num,
         DRC_Action,
         Monitor_Months: monitorMonths,
