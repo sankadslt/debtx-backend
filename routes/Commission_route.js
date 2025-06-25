@@ -2,7 +2,8 @@ import { Router } from "express";
 import { List_All_Commission_Cases,
     commission_type_cases_count,
     Create_task_for_Download_Commision_Case_List,
-    Commission_Details_By_Commission_ID
+    Commission_Details_By_Commission_ID,
+    forwardToApprovals
  } from "../controllers/Commission_controller.js";
 
 const router = Router();
@@ -15,4 +16,5 @@ router.post("/Create_task_for_Download_Commision_Case_List", Create_task_for_Dow
 
 router.post("/Commission_Details_By_Commission_ID", Commission_Details_By_Commission_ID );
 
+router.post("/forward-to-approvals", forwardToApprovals);
 export default router;
