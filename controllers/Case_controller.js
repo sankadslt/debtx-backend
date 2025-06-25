@@ -2858,15 +2858,6 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
       });
     }
   try {
-    // const existingCase = await CaseDistribution.findOne({ case_distribution_batch_id }).session(session);
-    // if(!existingCase){
-    //   await session.abortTransaction();
-    //   session.endSession();
-    //   return res.status(404).json({
-    //     status: "error",
-    //     message: "case distribution batch id is not match with the existing batches.",
-    //   },);
-    // }
     const mongo = await db.connectMongoDB();
     const existingTask = await mongo.collection("System_tasks").findOne({
       Template_Task_Id: 36,
@@ -2884,44 +2875,19 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         message: "Already has tasks with this case distribution batch id, drc_commision_rule and current_arrears_band ",
       });
     }
-    // const validateDRCList = (drcList) => {
-    //   if (!Array.isArray(drcList)) {
-    //     throw new Error("DRC List must be an array.");
-    //   }
-    //   return drcList.map((item, index) => {
-    //     const isValid = 
-    //       typeof item.plus_drc === "string" &&
-    //       typeof item.plus_rulebase_count === "number" &&
-    //       typeof item.minus_drc === "string" &&
-    //       typeof item.minus_rulebase_count === "number" &&
-    //       typeof item.plus_drc_id === "number" &&
-    //       typeof item.minus_drc_id === "number";
-
-    //     if (!isValid) {
-    //       throw new Error(`Invalid structure at index ${index} in DRC List.`);
-    //     }
-
-    //     return {
-    //       plus_drc_id: item.plus_drc_id,
-    //       plus_drc: item.plus_drc,
-    //       plus_rulebase_count: item.plus_rulebase_count,
-    //       minus_drc_id: item.minus_drc_id,
-    //       minus_drc: item.minus_drc,
-    //       minus_rulebase_count: item.minus_rulebase_count,
-    //     };
-    //   });
-    // };
-
-    // const validatedDRCList = validateDRCList(drc_list);
     
+    const formattedString = drc_list
+      .map(item => `${item.plus_drc_id}:${item.rtom}:-+${item.plus_rulebase_count},${item.minus_drc_id}:${item.rtom}:--${item.minus_rulebase_count}`)
+      .join(",");
+
     const dynamicParams = {
       case_distribution_batch_id,
       current_arrears_band,
       drc_commision_rule,
-      drc_list
+      Amend:formattedString
     };
+    console.log(dynamicParams);
 
-    // Call createTaskFunction
     const result = await createTaskFunction({
       Template_Task_Id: 36,
       task_type: "Exchange Case Distribution Planning among DRC",
@@ -2938,49 +2904,6 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         message: `An error occurred while creating the task: ${result}`,
       });
     }
-    // let nextBatchSeq = 1;
-
-    // if (existingCase && existingCase.batch_seq_details.length > 0) {
-    //     const lastBatchSeq = existingCase.batch_seq_details[existingCase.batch_seq_details.length - 1].batch_seq;
-    //     nextBatchSeq = lastBatchSeq + 1;
-    // }
-    // const batch_seq_rulebase_count = drc_list.reduce(
-    //   (total, { plus_rulebase_count }) => total + plus_rulebase_count,
-    //   0
-    // );
-
-    // const newBatchSeqEntry = {
-    //   batch_seq: nextBatchSeq,
-    //   created_dtm: new Date(),
-    //   created_by,
-    //   action_type: "amend",
-    //   distribution_details: drc_list.map(({
-    //     plus_drc_id,
-    //     plus_drc,
-    //     plus_rulebase_count,
-    //     minus_drc_id,
-    //     minus_drc,
-    //     minus_rulebase_count,
-    //     rtom,
-    //   }) => ({
-    //     plus_drc_id,
-    //     plus_drc,
-    //     plus_rulebase_count,
-    //     minus_drc_id,
-    //     minus_drc,
-    //     minus_rulebase_count,
-    //     rtom,
-    //   })),
-    //   batch_seq_rulebase_count,
-    //   crd_distribution_status:"Open",
-    // };
-    
-    // existingCase.batch_seq_details.push(newBatchSeqEntry);
-    // existingCase.current_crd_distribution_status = "Open";
-    // existingCase.current_crd_distribution_status_on = new Date();
-
-    // await existingCase.save({ session }); 
-
     await session.commitTransaction();
     session.endSession();
     return res.status(200).json({
