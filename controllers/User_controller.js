@@ -58,40 +58,65 @@ export const getUserDetailsByRole = async (req, res) => {
   }
 };
 
-/**
- * User_Controller: List_All_User_Details
- *
- * Description:
- * Retrieves a paginated list of user details from the database using optional filters.
- * Filters (user_role, user_type, user_status) are passed through the request body.
- * Pagination is handled based on the page number:
- *   - Page 1 returns 10 records
- *   - Pages 2 and onward return 30 records per page
- *
- * Request Body Parameters:
- * @param {String} [user_role]     - Optional filter by user role (e.g., "admin", "user")
- * @param {String} [user_type]      - Optional filter by user type ("slt", "DRCuser", "ro")
- * @param {String} [user_status]    - Optional filter by user status ("enabled", "disabled")
- * @param {Number} [page]           - Page number for pagination
- *
- * Responses:
- * - 200: Success with paginated user data
- * - 500: Internal server/database error
- */
+/*
+    Function: 
+        - List_All_User_Details (USER - 1P04)
+
+    Description:
+        - This function retrieves a paginated list of users from the MongoDB database, filtered by user role, type, and/or status. It returns summarized user account data for display or administrative use.
+
+    Collections Used:
+        - User: Stores all registered user records, including account metadata, roles, and status flags.
+
+    Request Body Parameters:
+        - user_role: (Optional) Filter by specific role(s). If omitted, all roles are included.
+        - user_type: (Optional) Filter by user type (e.g., internal, external).
+        - user_status: (Optional) Filter by current user status (e.g., active, inactive).
+        - page: (Optional) Integer for page number. Page 1 returns 10 results; pages >1 return 30 results each.
+
+    Response:
+        - HTTP 200: Returns an array of user records that match the filters.
+        - HTTP 500: Internal server error or database failure.
+
+    Flow:
+        - Parse and validate optional filter parameters and page number from the request body.
+        - Setup pagination:
+            * Page 1 → 10 results
+            * Page 2 and onward → 30 results
+        - Construct a dynamic query object based on provided filters:
+            * If user_role is specified → filter by role
+            * If user_type is specified → filter by user type
+            * If user_status is specified → filter by status
+        - Use MongoDB aggregation pipeline to:
+            * Match users based on the constructed query
+            * Project relevant fields:
+                - user_id
+                - user_status
+                - role
+                - user_type
+                - username
+                - email
+                - Created_DTM
+            * Sort by descending Created_DTM
+            * Apply pagination using $skip and $limit
+        - Return the result set in the response.
+        - Handle errors:
+            * Return 500 for any exceptions encountered during query or processing.
+*/
 export const List_All_User_Details = async (req, res) => {
-  const { user_role, user_type, user_status, page } = req.body;
-
   try {        
-    const query = {};
-
-    if (user_role) query.role = user_role;
-    if (user_type) query.user_type = user_type;
-    if (user_status) query.user_status = user_status;
+    const { user_role, user_type, user_status, page } = req.body;
 
     let currentPage = Number(page);
     if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
     const limit = currentPage === 1 ? 10 : 30;
     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+    
+    const query = {};
+
+    if (user_role) query.role = user_role;
+    if (user_type) query.user_type = user_type;
+    if (user_status) query.user_status = user_status;
 
     const users = await User.aggregate([
       { $match: query },
@@ -107,35 +132,23 @@ export const List_All_User_Details = async (req, res) => {
           Created_DTM: 1,
         },
       },
-      { $sort: { Created_ON: -1 } },
+      { $sort: { Created_DTM: -1 } },
       { $skip: skip },
       { $limit: limit },
     ]);
     
-    if (!users || users.length === 0) {
-      return res.status(200).json({
-        status: "error",
-        message: "No matching user records found.",
-        data: [],
-      });
-    }
-
-    const totalCount = await User.countDocuments(query);
+    // if (!users || users.length === 0) {
+    //   return res.status(200).json({
+    //     status: "error",
+    //     message: "No matching user records found.",
+    //     data: [],
+    //   });
+    // }
 
     return res.status(200).json({
       status: "success",
       message: "User details fetched successfully",
       data: users,
-      pagination: {
-        total: totalCount,
-        page: currentPage,
-        perPage: limit,
-        totalPages: Math.ceil(
-          totalCount <= 10
-            ? totalCount / 10
-            : (totalCount - 10) / 30 + 1
-        ),
-      },
     });
 
   } catch (error) {
@@ -151,23 +164,48 @@ export const List_All_User_Details = async (req, res) => {
   }
 };
 
-/**
- * User_Controller: List_All_User_Details_By_ID
- *
- * Description:
- * Retrieves detailed user information by a specific user ID. This is typically used for
- * viewing or editing a single user's data. Returns core account metadata such as type,
- * email, login method, roles, approval status, and any recorded remarks.
- *
- * Request Body Parameters:
- * @param {String} user_id          - Required: the unique identifier of the user to fetch
- *
- * Responses:
- * - 200: Success with detailed user data
- * - 400: Missing user ID in the request
- * - 404: No user found with the provided ID
- * - 500: Internal server/database error
- */
+/*
+    Function: 
+        - List_All_User_Details_By_ID (USER - 1P05)
+
+    Description:
+        - This function retrieves full user details from the MongoDB database based on a given user ID. It returns a detailed profile including role, contact info, account status, login method, and creation/approval metadata.
+
+    Collections Used:
+        - User: Stores all user accounts, credentials, roles, and related metadata.
+
+    Request Body Parameters:
+        - user_id: (Required) The unique identifier for the user whose details need to be retrieved.
+
+    Response:
+        - HTTP 200: Success. Returns a detailed object containing the user's account information.
+        - HTTP 400: Missing required user ID in request body.
+        - HTTP 404: No user found with the provided user ID.
+        - HTTP 500: Internal server error or database failure.
+
+    Flow:
+        - Validate presence of user_id in the request body.
+        - Use MongoDB aggregation to:
+            * Match the provided user_id.
+            * Project relevant fields such as:
+                - username
+                - user_type
+                - email
+                - contact_num
+                - login_method
+                - role
+                - user_status
+                - Created_DTM, Created_BY
+                - Approved_DTM, Approved_By
+                - User_End_DTM
+                - Remark
+        - Return 404 if no user matches the provided ID.
+        - Return a success response with the extracted user details.
+        - Handle errors:
+            Return 400 if user_id is missing.
+            Return 404 if no matching user is found.
+            Return 500 for internal or database-related errors.
+*/
 export const List_All_User_Details_By_ID = async (req, res) => {
   const { user_id } = req.body;
 
@@ -228,33 +266,46 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   }
 };
 
-/**
- * User_Controller: End_User
- *
- * Description:
- * Terminates a user account by marking the end date, updating the status to inactive,
- * recording the termination metadata, and appending a remark to the user's history.
- * This is a transactional operation that ensures atomicity and consistency when 
- * updating user status and logging remarks.
- *
- * Request Body Parameters:
- * @param {String} user_id   - Required: Unique identifier of the user to be terminated.
- * @param {String} end_by    - Required: Email or identifier of the person performing the termination.
- * @param {String} end_dtm   - Optional: Custom termination date/time (ISO format). Defaults to current time if not provided.
- * @param {String} remark    - Required: Explanation or note about the reason for termination.
- *
- * Database Actions:
- * - Verifies user existence and checks if already terminated.
- * - Updates the user's `user_status`, `User_End_DTM`, and metadata fields.
- * - Appends a structured remark to the `Remark` array.
- * - Runs inside a Mongoose session to ensure rollback on failure.
- *
- * Responses:
- * - 200: User successfully terminated. Returns updated user status and termination metadata.
- * - 400: Missing required fields (`user_id`, `end_by`, `remark`) or user already terminated.
- * - 404: No user found with the provided ID.
- * - 500: Internal server or database error during termination process.
- */
+/*
+    Function: 
+        - End_User (USER - 1A02)
+
+    Description:
+        - This function marks a user account as terminated in the MongoDB database. It sets termination metadata such as who ended the account, when it was terminated, and logs a remark. The user status is also updated to inactive.
+
+    Collections Used:
+        - User: Stores all user-related information including lifecycle and status metadata.
+
+    Request Body Parameters:
+        - user_id: (Required) The unique ID of the user to terminate.
+        - end_by: (Required) The user ID of the administrator or system that is terminating the account.
+        - end_dtm: (Optional) The date and time of termination. If not provided, defaults to the current date and time.
+        - remark: (Required) A reason or comment explaining why the user was terminated.
+
+    Response:
+        - HTTP 200: Success. Returns a summary of the terminated user and termination metadata.
+        - HTTP 400: Missing required fields or user already terminated.
+        - HTTP 404: No user found matching the given user ID.
+        - HTTP 500: Internal server error or failed to update user status.
+
+    Flow:
+        - Validate required fields (`user_id`, `end_by`, `remark`) from the request body.
+        - Default to current date/time if `end_dtm` is not provided.
+        - Start a MongoDB session and transaction.
+        - Find the user document using `user_id`.
+            * If not found, return 404.
+            * If already terminated (`User_End_DTM` exists), return 400.
+        - Construct a new remark object containing:
+            - remark, remark_by, and remark_dtm
+        - Use `findOneAndUpdate` to:
+            * Set termination fields: 
+                - `User_End_DTM`, `User_End_By`, `user_status` ("false"), `User_Status_Type`, `User_Status_DTM`, `User_Status_By`
+            * Push the new remark to the `Remark` array
+        - Commit transaction and return a success response.
+        - Handle errors:
+            * Return appropriate HTTP status codes and messages for known issues.
+            * Return 500 with error details on unexpected failures.
+*/
 export const End_User = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -303,7 +354,7 @@ export const End_User = async (req, res) => {
       }
 
       // Check if already terminated
-      if (user.User_End_DTM) {
+      if (user.user_status === "terminate") {
         const error = new Error("User is already terminated.");
         error.statusCode = 400;
         throw error;
@@ -316,7 +367,7 @@ export const End_User = async (req, res) => {
           $set: {
             User_End_DTM: terminationDate,
             User_End_By: end_by,
-            user_status: "false",
+            user_status: "terminate",
             User_Status_Type: "user_update",
             User_Status_DTM: terminationDate,
             User_Status_By: end_by,
@@ -363,41 +414,50 @@ export const End_User = async (req, res) => {
   }
 };
 
-/**
- * User_Controller: Update_User_Details
- *
- * Description:
- * Updates user information such as role, email, contact number, or status. Also records a remark
- * for audit purposes and logs status metadata when the user's status changes. This operation is
- * performed inside a MongoDB session to ensure consistency.
- *
- * Request Body Parameters:
- * @param {String} user_id       - Required: Unique identifier of the user to be updated.
- * @param {String} updated_by    - Required: Identifier (typically email) of the admin/user making the update.
- * @param {String} remark        - Required: Explanation or note for the update.
- * @param {String} [role]        - Optional: New role to assign to the user.
- * @param {String} [email]       - Optional: New email address to update.
- * @param {String} [contact_num] - Optional: New contact number to update.
- * @param {String} [user_status] - Optional: New status ("true"/"false") indicating if the user is active.
- *
- * Database Actions:
- * - Finds and verifies the user exists.
- * - Updates only the provided fields.
- * - If status is changed, logs status update metadata (`User_Status_Type`, `User_Status_DTM`, `User_Status_By`).
- * - Appends a new remark to the user's `Remark` array with the reason and timestamp.
- * - Uses Mongoose transactions for data integrity.
- *
- * Responses:
- * - 200: User details successfully updated. Returns updated user document.
- * - 400: Missing required fields (`user_id`, `updated_by`, or `remark`).
- * - 404: No user found with the specified ID.
- * - 500: Internal server or database error during update operation.
- */
+/*
+    Function: 
+        - Update_User_Details (USER - 1A01)
+
+    Description:
+        - This function updates user account details in the MongoDB database. It allows changes to the user's role and/or status, and logs a remark with metadata about who performed the update and when.
+
+    Collections Used:
+        - User: Stores all user records, including roles, statuses, and remark history.
+
+    Request Body Parameters:
+        - user_id: (Required) The unique ID of the user to be updated.
+        - updated_by: (Required) The user ID of the administrator or system performing the update.
+        - role: (Optional) New role to assign to the user.
+        - user_status: (Optional) New status to set (e.g., "true" or "false"). If it differs from the current status, related status metadata is also updated.
+        - remark: (Required) A remark describing the reason or purpose for the update.
+
+    Response:
+        - HTTP 200: Success. Returns the updated user document.
+        - HTTP 400: Missing required fields.
+        - HTTP 404: No user found with the provided user_id.
+        - HTTP 500: Internal server error or update failure.
+
+    Flow:
+        - Validate required parameters: `user_id`, `updated_by`, and `remark`.
+        - Start a MongoDB session and transaction.
+        - Find the user by `user_id`. If not found, return 404.
+        - Construct an update object:
+            * If `role` is provided → update role.
+            * If `user_status` is provided and differs from the current → update status and set:
+                - `User_Status_Type` to "user_update"
+                - `User_Status_DTM` to current date/time
+                - `User_Status_By` to `updated_by`
+        - Append a new remark with `remark`, `remark_by`, and timestamp to the Remark array.
+        - Perform the update using `findOneAndUpdate`.
+        - Commit the transaction and return the updated document.
+        - Handle errors:
+            * Return appropriate error codes and messages based on the error type.
+*/
 export const Update_User_Details = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
-    const { user_id, updated_by, role, email, contact_num, user_status, remark } = req.body;
+    const { user_id, updated_by, role, user_status, remark } = req.body;
     
     // Validate User ID
     if (!user_id) {
@@ -431,8 +491,6 @@ export const Update_User_Details = async (req, res) => {
       };
 
       if (role) updateFields.role = role;
-      if (email) updateFields.email = email;
-      if (contact_num) updateFields.contact_num = contact_num;
 
       if (user_status && user_status !== user.user_status) {
         updateFields.user_status = user_status;
