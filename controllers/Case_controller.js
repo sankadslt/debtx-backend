@@ -3795,7 +3795,7 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
     if (!approvalDocFields) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({ message: "No matching approver reference found" });
+      return res.status(404).json({ message: "No matching approver reference found" });
     }
 
     // Get the last two case status entries (most recent at the end)
@@ -3807,7 +3807,7 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
     if (!caseStatusFields) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({ message: "No matching case found" });
+      return res.status(404).json({ message: "No matching case found" });
     }
 
     // Get the previous status (second-to-last element if exists, otherwise null)
