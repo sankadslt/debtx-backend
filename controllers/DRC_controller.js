@@ -2053,6 +2053,8 @@ const formatRTOM = (r, createdBy) => ({
 });
 
 export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => {
+  let session = null;
+
   const {
     drc_name,
     drc_business_registration_number,
@@ -2089,16 +2091,26 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       });
     }
 
-    // Generate unique DRC ID
-    const counterResult = await mongoose.connection.db.collection("collection_sequence").findOneAndUpdate(
+    // Start MongoDB session and transaction
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    // Get MongoDB connection
+    const mongoConnection = await db.connectMongoDB();
+
+    // Generatedrc_id 
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "drc_id" },
       { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
+      { returnDocument: "after", upsert: true, session }
     );
 
+    console.log("Counter Result:", counterResult);
+    drc_id = counterResult.value?.seq || counterResult.seq;
+    if (!drc_id) {
+      throw new Error("Failed to generate drc_id.");
+    }
 
-    const drc_id = counterResult?.value?.seq;
-    if (!drc_id) throw new Error("Failed to generate DRC ID");
 
     // Build DRC Document
     const newDRC = new DRC({
@@ -2121,6 +2133,9 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
 
     await newDRC.save();
 
+    // Commit transaction
+    await session.commitTransaction();
+
     return res.status(201).json({
       status: "success",
       message: "DRC registered successfully.",
@@ -2133,6 +2148,10 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       },
     });
   } catch (error) {
+    // Abort transaction on error
+    if (session) {
+      await session.abortTransaction();
+    }
     console.error("Unexpected error during DRC registration:", error);
     return res.status(500).json({
       status: "error",
