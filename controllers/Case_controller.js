@@ -2877,7 +2877,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
     }
     
     const formattedString = drc_list
-      .map(item => `${item.plus_drc_id}:${item.rtom}:-+${item.plus_rulebase_count},${item.minus_drc_id}:${item.rtom}:--${item.minus_rulebase_count}`)
+      .map(item => `${item.plus_drc_id}:${item.rtom}:+${item.plus_rulebase_count},${item.minus_drc_id}:${item.rtom}:-${item.minus_rulebase_count}`)
       .join(",");
 
     const dynamicParams = {
