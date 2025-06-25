@@ -2929,71 +2929,44 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
  * - Returns a success response with grouped case details by batch ID, DRC, and RTOM, including case count and DRC name.
  */
 export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res) => {
-  const { case_distribution_batch_id } = req.body;
-
   try {
+    const { case_distribution_batch_id } = req.body;
+
     if (!case_distribution_batch_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "Case_Distribution_Batch_ID is required",
-      });
+      return res.status(400).json({ message: "Missing required field: case_distribution_batch_id" });
     }
 
-    const result = await tempCaseDistribution.aggregate([
+    const data = await caseDistributionDRCSummary.aggregate([
       {
-        $match: { case_distribution_batch_id: case_distribution_batch_id },
+        $match: {
+          case_distribution_batch_id: case_distribution_batch_id
+        }
       },
+      { $unwind: '$drc_distribution' },
+      { $unwind: '$drc_distribution.rtom_details' },
       {
         $group: {
           _id: {
-            case_distribution_batch_id: "$case_distribution_batch_id",
-            drc_id: "$drc_id",
-            rtom: "$rtom",
+            drc_id: '$drc_distribution.drc_id',
+            drc_name: '$drc_distribution.drc_name',
           },
-          case_count: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: "Debt_recovery_company", 
-          localField: "_id.drc_id",
-          foreignField: "drc_id",
-          as: "drc_details",
-        },
-      },
-      {
-        $unwind: {
-          path: "$drc_details",
-          preserveNullAndEmptyArrays: true,
-        },
+          rtom_list: { $addToSet: '$drc_distribution.rtom_details.rtom' }
+        }
       },
       {
         $project: {
           _id: 0,
-          case_distribution_batch_id: "$_id.case_distribution_batch_id",
-          drc_id: "$_id.drc_id",
-          rtom: "$_id.rtom",
-          case_count: 1,
-          drc_name: "$drc_details.drc_name",
-        },
-      },
+          drc_id: '$_id.drc_id',
+          drc_name: '$_id.drc_name',
+          rtoms: '$rtom_list'
+        }
+      }
     ]);
 
-    return res.status(200).json({
-      status: "success",
-      message: "Case details retrieved successfully.",
-      data: result,
-    });
-
-  } catch (err) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to retrieve case details.",
-        errors: {
-          code: 500,
-          description: err.message || "Internal server error occurred while fetching case details.",
-        },
-      });
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error in getDRCWithRTOMList:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -4300,97 +4273,6 @@ export const Create_Task_For_case_distribution_drc_summery = async (req, res) =>
       });
   }
 };
-
-
-/**
- * Fetches detailed case distribution summary including RTOM and DRC information for a specific batch and DRC.
- *
- * Request Body:
- * - case_distribution_batch_id: string (required) – The batch ID used to filter the summary.
- * - drc_id: string (required) – The DRC ID used to filter the summary.
- *
- * Logic:
- * 1. Validates presence of both `case_distribution_batch_id` and `drc_id`. Returns 400 if missing.
- * 2. Performs an aggregation on `caseDistributionDRCSummary`:
- *    - $match: Filters records by batch ID and DRC ID.
- *    - $lookup: Joins with `Debt_recovery_company` to get DRC details using `drc_id`.
- *    - $unwind: Flattens `drc_details` array while preserving documents with no match.
- *    - $project: Returns selected fields, including DRC name and RTOM data.
- * 3. If no results found, responds with 204.
- * 4. Returns 200 with result data if found.
- *
- * Responses:
- * - 200: Matching case distribution details returned.
- * - 204: No records found for the given batch ID and DRC ID.
- * - 400: Missing required input parameters.
- * - 500: Internal server error during aggregation.
- */
-
-// export const List_Case_Distribution_Details_With_Rtoms = async (req, res) => {
-//   try {
-//     const { case_distribution_batch_id, drc_id } = req.body;
-
-//     if (!case_distribution_batch_id || !drc_id) {
-//       return res.status(400).json({ message: "Missing required fields: case_distribution_batch_id, drc_id" });
-//     }
-
-//     // Use aggregation to get all data in one query
-//     const results = await caseDistributionDRCSummary.aggregate([
-//       // Stage 1: Match documents based on input criteria
-//       {
-//         $match: {
-//           case_distribution_batch_id,
-//           drc_id
-//         }
-//       },
-      
-//       // Stage 2: Lookup DRC details from DRC collection
-//       {
-//         $lookup: {
-//           from: "Debt_recovery_company", // Collection name for DRC
-//           localField: "drc_id",
-//           foreignField: "drc_id",
-//           as: "drc_details"
-//         }
-//       },
-      
-//       // Stage 3: Unwind the drc_details array
-//       {
-//         $unwind: {
-//           path: "$drc_details",
-//           preserveNullAndEmptyArrays: true // Keep documents even if no matching DRC
-//         }
-//       },
-      
-//       // Stage 4: Project the fields we need
-//       {
-//         $project: {
-//           _id: 1,
-//           case_distribution_batch_id: 1,
-//           drc_id: 1,
-//           drc_name: "$drc_details.drc_name",
-//           rtom: 1,
-//           case_count: 1,
-//           tot_arrease: 1,
-//           month_1_sc: 1,
-//           month_2_sc: 1,
-//           month_3_sc: 1,
-//           created_dtm: 1,
-//           created_by: 1,
-//         }
-//       }
-//     ]);
-
-//     if (results.length === 0) {
-//       return res.status(204).json({ message: "No records found for the given batch ID and DRC ID" });
-//     }
-
-//     res.status(200).json(results);
-//   } catch (error) {
-//     console.error("Error fetching case distribution details with RTOMs:", error);
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// };
 
 /**
  * Inputs:
