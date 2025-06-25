@@ -374,65 +374,75 @@ export const changeServiceStatus = async (req, res) => {
   // };
 
   export const Register_Service_Type = async (req, res) => {
-    try {
-      const { service_type,create_by } = req.body;
-  
-      if (!service_type) {
-        return res.status(400).json({
-          status: "error",
-          message: "service_type is required.",
-        });
-      }
-      const existingServiceType = await Service.findOne({ service_type });
-      console.log(existingServiceType);
-      if (existingServiceType) {
-        return res.status(400).json({
-          status: "error",
-          message: `The service_type '${service_type}' already exists.`,
-        });
-      }
-      const mongoConnection = await db.connectMongoDB();
-      if (!mongoConnection) {
-        throw new Error('MongoDB connection failed');
-      }
-  
-      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "service_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-  
-      // Correctly extract the sequence ID from the top-level structure
-      if (!counterResult || !counterResult.seq) {
-        throw new Error("Failed to generate service_id");
-      }
-  
-      const seq_service_id = counterResult.seq;
-  
-      const default_service_type_status = "Active";
-  
-      const newService = new Service({
-        service_type,
-        service_status: default_service_type_status,
-        service_id: seq_service_id,
-        create_by: create_by
-      });
-  
-      await newService.save();
-  
-      res.status(200).json({
-        status: "success",
-        message: "Service data stored successfully",
-        service: newService,
-      });
-  
-    } catch (err) {
-      console.error("Error storing service data:", err);
-      res.status(500).json({
+  try {
+    let { service_type, create_by } = req.body;
+
+    if (!service_type) {
+      return res.status(400).json({
         status: "error",
-        message: "Error storing service data",
-        error: err.message,
+        message: "service_type is required.",
       });
     }
-  };
+
+    // Normalize input
+    service_type = service_type.trim();
+
+    if (!service_type) {
+      return res.status(400).json({
+        status: "error",
+        message: "service_type cannot be empty or only spaces.",
+      });
+    }
+
+    const existingServiceType = await Service.findOne({ service_type });
+    if (existingServiceType) {
+      return res.status(400).json({
+        status: "error",
+        message: `The service_type '${service_type}' already exists.`,
+      });
+    }
+
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error('MongoDB connection failed');
+    }
+
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "service_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    if (!counterResult || !counterResult.value || !counterResult.value.seq) {
+      throw new Error("Failed to generate service_id");
+    }
+
+    const seq_service_id = counterResult.value.seq;
+    const default_service_type_status = "Active";
+
+    const newService = new Service({
+      service_type,
+      service_status: default_service_type_status,
+      service_id: seq_service_id,
+      create_by,
+    });
+
+    await newService.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Service data stored successfully",
+      service: newService,
+    });
+
+  } catch (err) {
+    console.error("Error storing service data:", err);
+    res.status(500).json({
+      status: "error",
+      message: "Error storing service data",
+      error: err.message,
+    });
+  }
+};
+
   
