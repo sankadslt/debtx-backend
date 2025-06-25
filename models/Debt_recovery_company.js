@@ -115,7 +115,6 @@ const coordinatorSchema = new Schema({
   service_no: {
     type: String,
     required: true,
-    unique: true,
   },
   slt_coordinator_name: {
     type: String,
@@ -144,6 +143,10 @@ const coordinatorSchema = new Schema({
 });
 
 const serviceSchema = new Schema({
+  service_id: {
+    type: String,
+    required: true,
+  },
   service_type: {
     type: String,
     required: true,
@@ -158,7 +161,7 @@ const serviceSchema = new Schema({
     required: true,
   },
   create_on: {
-    type: String,
+    type: Date,
     required: true,
   },
   status_update_dtm: {
@@ -174,8 +177,7 @@ const serviceSchema = new Schema({
 const rtomSchema = new Schema({
   rtom_id: {
     type: Number,
-    required: true,
-    unique: true
+    required: true
   },
   rtom_name: {
     type: String,
@@ -190,13 +192,10 @@ const rtomSchema = new Schema({
     type: String,
     required: true
   },
-  create_by: {
+  handling_type: {
     type: String,
-    required: true
-  },
-  create_dtm: {
-    type: Date,
-    required: true
+    required: true,
+    enum: ["CPE", "Arrears", "All-Type"]
   },
   status_update_by: {
     type: String,
@@ -212,17 +211,18 @@ const rtomSchema = new Schema({
 const remarkSchema = new Schema({
   remark: {
     type: String,
-    required: true
+    defult: null
   },
   remark_dtm: {
     type: Date, 
-    required: true
+    defult: null
   },
   remark_by: {
     type: String,
-    required: true
+    defult: null
   },
 });
+
 const drcSchema = new Schema(
   {
     doc_version : {type:Number, required: true, default: 1},
@@ -234,7 +234,6 @@ const drcSchema = new Schema(
     drc_name: {
       type: String,
       required: true,
-      unique: true
     },
     drc_business_registration_number: {
         type: String, 
@@ -251,7 +250,8 @@ const drcSchema = new Schema(
     },
     drc_email: {
       type: String,
-      unique: true
+      unique: true,
+      required: true
     },
     drc_status: {
       type: String,
@@ -288,6 +288,7 @@ const drcSchema = new Schema(
     },
     remark: {
       type: [remarkSchema],
+      default: []
     },
   },
   {

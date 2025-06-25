@@ -153,11 +153,11 @@ const rtomSchema = new Schema({
     },
     rtom_mobile_no: {
         type: [mobileNumberSchema], // Mobile number with subfields
-        required: true
+        default: [], // Default empty array
     },
     rtom_telephone_no: {
         type: [telephoneNumberSchema], // Telephone number with subfields
-        required: true
+        default: [], // Default empty array
     },
     created_by: {
         type: String,
@@ -178,8 +178,7 @@ const rtomSchema = new Schema({
     },
     rtom_end_by: {
         type: String,
-         required: true // updated
-       
+        default: null
     },
     rtom_remarks: {
         type: [remarkSchema], // Remarks array with subfields

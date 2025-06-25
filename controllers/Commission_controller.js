@@ -139,12 +139,12 @@ export const List_All_Commission_Cases = async (req, res) => {
   try {
     const { case_id, From_DAT, TO_DAT, DRC_ID, Account_Num, Commission_Type, pages } = req.body;
 
-    if (!case_id && !DRC_ID && !Account_Num && !Commission_Type && !From_DAT && !TO_DAT) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, DRC_ID, Account_Num, Commission_Type, From_DAT, TO_DAT is required."
-      });
-    }
+    // if (!case_id && !DRC_ID && !Account_Num && !Commission_Type && !From_DAT && !TO_DAT) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, DRC_ID, Account_Num, Commission_Type, From_DAT, TO_DAT is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -160,7 +160,11 @@ export const List_All_Commission_Cases = async (req, res) => {
 
     const dateFilter = {};
     if (From_DAT) dateFilter.$gte = new Date(From_DAT);
-    if (TO_DAT) dateFilter.$lte = new Date(TO_DAT);
+    if (TO_DAT) {
+      const endofDay = new Date(TO_DAT);
+      endofDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = new Date(endofDay);
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.created_on = dateFilter;
     }

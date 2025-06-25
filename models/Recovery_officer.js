@@ -367,18 +367,27 @@ const rtomforRoSchema = new Schema({
     },
     rtom_status: {
         type: String,
+        enum: ['Active', 'Inactive'],
+        default: "Active",
+    },
+    billing_center_code: {
+        type: String,
         required: true,
     },
-    rtom_create_dtm: {
+    rtom_update_dtm: {
         type: Date,
         required: true,
     },
-    rtom_create_by: {
+    rtom_update_by: {
         type: String,
         required: true,
     },
     rtom_end_dtm: {
         type: Date,
+        default: null,
+    },
+    handling_type: {
+        type: String,
         default: null,
     },
 });
@@ -393,43 +402,53 @@ const roSchema = new Schema({
         },
         ro_id: {
             type: Number,
-            required: true,
             unique: true,
+            sparse: true,
+        },
+        drcUser_id: {
+            type: Number,
+            unique: true,
+            sparse: true,
         },
         ro_name:{
             type: String,
             required: true,
         },
-        ro_login_email: {
+        login_email: {
             type: String,
             default: null,
         },
-        ro_login_contact_no: {
+        login_contact_no: {
             type: String,
             required: true,
         },
-        ro_nic: {
+        nic: {
             type: String,
             required: true,
         },
-        ro_status: {
+        drcUser_type: {
+            type: String,
+            enum: ['RO', 'drcUser'],
+            required: true,
+        },
+        drcUser_status: {
             type: String,
             enum: ['Active', 'Inactive', 'Terminate'],
-            required: true,
+            default: "Active",
         },
-        ro_create_dtm:{
+        create_dtm:{
             type: Date,
             required: true,
         },
-        ro_create_by:{
+        create_by:{
             type: String,
             required: true,
         },
-        ro_end_dtm:{
+        end_dtm:{
             type: Date,
             default: null,
         },
-        ro_end_by:{
+        end_by:{
             type: String,
             default: null,
         },

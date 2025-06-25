@@ -24,9 +24,9 @@ const __dirname = dirname(__filename);
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParameters = (params) => {
-  const { Incident_Id, Account_Num } = params;
+  const { Incident_Log_Id, Account_Num } = params;
 
-  if (!Incident_Id || !Account_Num) {
+  if (!Incident_Log_Id || !Account_Num) {
     throw new Error(
       "Incident_Id and Account_Num are required parameters for Create_Task."
     );
@@ -53,7 +53,7 @@ const validateCreateTaskParameters = (params) => {
  */
 export const Create_Incident = async (req, res) => {
 
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number, file_name_dump } = req.body;
 
   // Validate required fields
   if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
@@ -107,16 +107,17 @@ export const Create_Incident = async (req, res) => {
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "incident_id" },
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "Incident_Log_Id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
     );
 
-    const Incident_Id = counterResult.seq;
+    const Incident_Log_Id = counterResult.seq;
 
     const newIncidentData = {
-      Incident_Id,
+      // Incident_Id: null,
+      Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
       Actions: DRC_Action,
@@ -124,6 +125,7 @@ export const Create_Incident = async (req, res) => {
       Created_By,
       Source_Type,
       Created_Dtm: moment().toDate(),
+      file_name_dump
     };
 
     if (DRC_Action === "collect CPE" && Contact_Number) {
@@ -147,7 +149,7 @@ export const Create_Incident = async (req, res) => {
     //   });
     // }
     const dynamicParams = {
-      Incident_Id,
+      Incident_Log_Id,
       Account_Num,
     };
     try {
@@ -180,7 +182,7 @@ export const Create_Incident = async (req, res) => {
       status: "success",
       message: "Incident and task created successfully.",
       data: {
-        Incident_Id,
+        Incident_Log_Id,
         Account_Num,
         DRC_Action,
         Monitor_Months: monitorMonths,
@@ -348,7 +350,7 @@ export const Upload_DRS_File = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     // Increment the counter for file_upload_seq
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "file_upload_seq" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
@@ -357,7 +359,8 @@ export const Upload_DRS_File = async (req, res) => {
     const file_upload_seq = counterResult.seq;
 
     // File upload handling
-    const uploadDir = path.join(__dirname, "../uploads");
+    // const uploadDir = path.join(__dirname, "/srv/uploads/inbox");
+    const uploadDir = path.join("/", "srv", "uploads", "inbox");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -607,7 +610,7 @@ export const total_F1_filtered_Incidents = async (req, res) => {
     const details = (await Incident.find({
      
       Incident_Status: { $in: ["Reject Pending"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -638,7 +641,7 @@ export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
       Incident_Status: { $in: ["Open No Agent"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -763,17 +766,19 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: OpencpeStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -815,11 +820,12 @@ export const List_incidents_Direct_LOD = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: directLODStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
@@ -827,6 +833,7 @@ export const List_incidents_Direct_LOD = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -879,8 +886,10 @@ export const List_F1_filted_Incidents = async (req, res) => {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
+        to.setHours(23, 59, 59, 999);
+        
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -917,7 +926,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })
       .sort({ Created_Dtm: -1 });
 
@@ -975,7 +984,7 @@ export const distribution_ready_incidents_group_by_arrears_band = async (req, re
   try {
     const details = (await Incident.find({
       Incident_Status:"Open No Agent",
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     }))
     
     const arrearsBandCounts = details.reduce((counts, detail) => {
@@ -1013,7 +1022,7 @@ export const total_incidents_CPE_Collect = async (req, res) => {
     const details = (
       await Incident.find({
         Incident_Status: { $in: ["Open CPE Collect"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
        
       })
     ).length;
@@ -1048,7 +1057,7 @@ export const total_incidents_Direct_LOD = async (req, res) => {
       await Incident.find({
       
         Incident_Status: { $in: ["Direct LOD"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
       })
     ).length;
 
@@ -1081,16 +1090,17 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
     const { Incident_Id, user } = req.body;
 
-    if (!Incident_Id) {
+    if (!Incident_Id || !user) {
       return res.status(400).json({
         status:"error",
         message:"Incident_Id is a required field.",
         errors: {
           code: 400,
-          description: "Incident_Id is a required field.",
+          description: "Incident_Id and user are required field.",
         },
       });
     }
+
 
     const incident = await Incident.findOne({ Incident_Id: Incident_Id});
 
@@ -1153,6 +1163,11 @@ export const Forward_F1_filtered_incident = async (req, res) => {
     throw error;
   }
 
+  if (!Incident_Forwarded_By) {
+    const error = new Error("Incident_Forwarded_By is required.");
+    error.statusCode = 400;
+    throw error;
+  }
   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
   if (!incidentData) {
@@ -1215,7 +1230,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
 
 const generateCaseId = async (session) => {
   const mongoConnection = mongoose.connection;
-  const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+  const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
     { _id: "case_id" },
     { $inc: { seq: 1 } },
     { returnDocument: "after", session, upsert: true }
@@ -1370,7 +1385,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -1495,7 +1510,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -1609,6 +1624,7 @@ export const List_Reject_Incident = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999); // Set to end of the day
         query.Created_Dtm = {
           $gte: from,
           $lte: to,

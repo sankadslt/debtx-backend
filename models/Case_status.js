@@ -1,7 +1,7 @@
 import { mongoose } from "mongoose";
 const { Schema } = mongoose;
 
-const Case_statusSchema = new Schema({
+const Case_PhasesSchema = new Schema({
     doc_version: { type: Number, required: true, default: 1 },
     case_status: { type: String, required: true },
     case_phase: { type: String, required: true },
@@ -9,6 +9,6 @@ const Case_statusSchema = new Schema({
      
 });
 
-const Case_status = mongoose.model('Case_status', Case_statusSchema);
+const Case_Phases = mongoose.model('Case_Phases', Case_PhasesSchema);
 
-export default Case_status;
+export default Case_Phases;

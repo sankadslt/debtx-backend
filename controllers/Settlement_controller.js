@@ -56,12 +56,12 @@ export const ListAllSettlementCases = async (req, res) => {
   try {
     const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
-      });
-    }
+    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -77,7 +77,11 @@ export const ListAllSettlementCases = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.created_dtm = dateFilter;
     }
