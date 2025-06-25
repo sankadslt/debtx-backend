@@ -2978,7 +2978,11 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
       }
     ]);
 
-    res.status(200).json(data);
+    return res.status(200).json({
+      status:"success",
+      message: "rtom of the drc's case count",
+      data,
+    });
   } catch (error) {
     console.error('Error in getDRCWithRTOMList:', error);
     res.status(500).json({ error: 'Internal server error' });
