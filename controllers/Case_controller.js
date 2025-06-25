@@ -2949,8 +2949,23 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
           _id: {
             drc_id: '$drc_distribution.drc_id',
             drc_name: '$drc_distribution.drc_name',
+            rtom: '$drc_distribution.rtom_details.rtom'
           },
-          rtom_list: { $addToSet: '$drc_distribution.rtom_details.rtom' }
+          case_count: { $sum: '$drc_distribution.rtom_details.case_count' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            drc_id: '$_id.drc_id',
+            drc_name: '$_id.drc_name'
+          },
+          rtoms: {
+            $push: {
+              rtom: '$_id.rtom',
+              case_count: '$case_count'
+            }
+          }
         }
       },
       {
@@ -2958,7 +2973,7 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
           _id: 0,
           drc_id: '$_id.drc_id',
           drc_name: '$_id.drc_name',
-          rtoms: '$rtom_list'
+          rtoms: 1
         }
       }
     ]);
