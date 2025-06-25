@@ -3454,10 +3454,8 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
 export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const { approver_reference, approved_by } = req.body;
-
     if (!approver_reference) {
       await session.abortTransaction();
       session.endSession();
@@ -3471,7 +3469,6 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     }
 
     const currentDate = new Date();
-
     // Fetch the document to get approver_type, created_on, and created_by
     const approvalDoc = await TmpForwardedApprover.findOne(
       { 
@@ -3482,14 +3479,11 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         created_on: 1, created_by: 1, approver_type: 1, parameters:1
       }
     ).session(session);
-
-
     if (!approvalDoc) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({ message: "No matching approver reference found" });
+      return res.status(404).json({ message: "No matching approver reference found" });
     }
-
     // Fetch case details to check drc array length and monitor_months
     const caseDetails = await Case_details.findOne(
       { 
@@ -3499,11 +3493,10 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         monitor_months: 1, drc: 1, case_current_status: 1
       }
     ).session(session);
-    
     if (!caseDetails) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({ message: "No matching case found" });
+      return res.status(404).json({ message: "No matching case found" });
     }
     
     // Validate drc array length and monitor_months
