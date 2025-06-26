@@ -664,10 +664,7 @@ export const List_All_LOD_Holdlist = async (req, res) => {
       data: responseData,
     });
   } catch (error) {
-    console.error(
-      "Error fetching DRC Assign Manager Approvals:",
-      error.message
-    );
+    console.error("Error fetching LD Hold list Data:", error.message);
     return res.status(500).json({
       status: "error",
       message: "There is an error ",
