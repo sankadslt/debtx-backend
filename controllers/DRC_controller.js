@@ -21,6 +21,7 @@ import mongoose from "mongoose";
 import RO from  "../models/Recovery_officer.js"; 
 import RTOM from "../models/Rtom.js"
 import moment from "moment";
+import User_Approval from "../models/User_Approval.js";
 
 // // Function to register a new Debt Recovery Company (DRC)
 // export const registerDRC = async (req, res) => {
@@ -1732,85 +1733,251 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   }
 };
 
+// export const Terminate_Company_By_DRC_ID = async (req, res) => {
+//   const session =await mongoose.startSession();
+
+//   try {
+//     const { drc_id, remark, remark_by, remark_dtm } = req.body;
+
+//     // Validate DRC ID
+//     if (!drc_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "DRC ID is required in the request body.",
+//       });
+//     }
+
+//     // Validate input
+//     if (!remark || !remark_dtm) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Remark and Remark_dtm are required.",
+//       });
+//     }
+
+//     //Default to current date if end_dtm is not provided
+//     const terminationDate = end_dtm ? new Date(end_dtm) : new Date();
+
+//     let updatedCompany;
+//     const newRemark = {
+//       remark: remark,
+//       remark_by: remark_by,
+//       remark_dtm: terminationDate,
+//     }
+
+//     await session.withTransaction(async () => {
+//       // Find the company first to verify it exists
+//       const company = await DRC.findOne({ drc_id }).session(session);
+
+//       if (!company) {
+//         return res.status(404).json({
+//           status: "error",
+//           message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+//         });
+//       }
+
+//       // Check if already terminated
+//       if (company.drc_status === "Terminate") {
+//         const error = new Error("DRC is already terminated.");
+//         error.statusCode = 400;
+//         throw error;
+//       }
+
+//       // Update the company with terminate status and add the new remark
+//       updatedCompany = await DRC.findOneAndUpdate(
+//         { drc_id },
+//         {
+//           $set: {
+//             drc_status: "Terminate",
+//             drc_end_dtm: remark_dtm,
+//             drc_end_by: remark_by,
+//           },
+//           $push: {
+//             remark: newRemark
+//           },
+//         },
+//         { 
+//           new: true,
+//           session,
+//           runValidators: true,
+//         }
+//       );
+
+//       if (!updatedCompany) {
+//         const error = new Error("Failed to terminate drc.");
+//         error.statusCode = 500;
+//         throw error;
+//       }
+//     });
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Company terminated successfully.",
+//       data: updatedCompany,
+//     });
+
+//   } catch (error) {
+//     console.error("Error terminating company:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to terminate company.",
+//       errors: { exception: error.message },
+//     });
+//   } finally {
+//     await session.endSession();
+//   }
+// };
+
 
 /*
   /Terminate_Company_By_DRC_ID
 
   Description:
-  This endpoint updates the status of a Debt Recovery Company (DRC) to "Terminate". It also logs a termination remark with the user who performed the termination and the timestamp.
+  This endpoint marks a specific Debt Recovery Company (DRC) as terminated by updating its status and termination metadata. The termination action also triggers the creation of a corresponding approval record in the `User_Approval` collection to allow further administrative validation. Remarks related to the termination action are also recorded.
 
   Collections Used:
-  - DRC: Updates the `drc_status`, `drc_end_dtm`, `drc_end_by`, and appends to the `remark` array.
+  - DRC: The main collection where the `drc_status`, `drc_end_dtm`, and `drc_end_by` fields are updated and remarks are appended.
+  - User_Approval: A new approval document is created for the terminated DRC entry.
 
   Request Body Parameters:
-  - drc_id:        [Required] Unique identifier of the DRC to terminate.
-  - remark:        [Required] A textual reason or note describing why the DRC is being terminated.
-  - remark_by:     [Required] Identifier (User Id) of the user performing the termination.
-  - remark_dtm:    [Required] ISO timestamp of when the termination is recorded.
+  - drc_id:      [Required] Unique identifier of the DRC to be terminated.
+  - remark:      [Required] A textual note providing the reason for termination.
+  - remark_by:   [Required] Identifier (username/email) of the person initiating the termination.
+  - remark_dtm:  [Required] Date and time of the termination action. If not provided, the current system time will be used.
 
   Response:
-  - HTTP 200: Success. Returns the updated DRC document with termination applied.
-  - HTTP 400: Validation error. Missing required fields like drc_id, remark, or remark_dtm.
-  - HTTP 404: No DRC found for the given drc_id.
-  - HTTP 500: Internal server error occurred while processing the request.
+  - HTTP 200: Success. Returns the updated DRC record and the associated approval document.
+  - HTTP 400: Missing required parameters or attempt to terminate an already terminated DRC.
+  - HTTP 404: No DRC found for the given `drc_id`.
+  - HTTP 500: Internal server or transaction error.
 
   Flow:
-  1. Validate required input parameters.
-  2. Find the DRC by `drc_id`. Return 404 if not found.
-  3. Update the DRC:
-     - Set `drc_status` to "Terminate".
-     - Optionally set `drc_end_dtm` and `drc_end_by`.
-     - Push the `remark` into the `remark` array with timestamp and author.
-  4. Return the updated DRC document in the response.
-  5. Handle and log any server or DB errors.
+  1. Validate the presence of `drc_id`, `remark`, and `remark_dtm` in the request.
+  2. Start a MongoDB session and fetch the DRC by `drc_id`.
+  3. If not found, respond with a 404 error.
+  4. If the DRC is already terminated (`drc_status === "Terminate"`), return a 400 error.
+  5. Update the DRC document:
+     - Set `drc_status` to `"Terminate"`.
+     - Set `drc_end_dtm` and `drc_end_by`.
+     - Append the termination remark.
+  6. Generate a new approval ID and create an entry in the `User_Approval` collection for approval.
+  7. Commit the transaction and return both updated records.
+  8. Handle and respond to any errors that occur during the process.
 */
 export const Terminate_Company_By_DRC_ID = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
     const { drc_id, remark, remark_by, remark_dtm } = req.body;
 
-    // Validate input
-    if (!drc_id || !remark || !remark_dtm) {
+    if (!drc_id) {
       return res.status(400).json({
         status: "error",
-        message: "DRC_ID, remark, and remark_dtm are required.",
+        message: "DRC ID is required in the request body.",
       });
     }
 
-    // Find the company first to verify it exists
-    const company = await DRC.findOne({ drc_id });
-
-    if (!company) {
-      return res.status(404).json({
+    if (!remark || !remark_dtm) {
+      return res.status(400).json({
         status: "error",
-        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+        message: "Remark and Remark_dtm are required.",
       });
     }
 
-    // Update the company with terminate status and add the new remark
-    const updatedCompany = await DRC.findOneAndUpdate(
-      { drc_id },
-      {
-        $set: {
-          drc_status: "Terminate",
-          drc_end_dtm: remark_dtm,
-          drc_end_by: remark_by,
-        },
-        $push: {
-          remark: {
-            remark: remark,
-            remark_dtm: remark_dtm,
-            remark_by: remark_by,
+    const terminationDate = remark_dtm ? new Date(remark_dtm) : new Date();
+
+    let updatedCompany;
+    let approvalRecord = null;
+
+    const newRemark = {
+      remark: remark,
+      remark_by: remark_by,
+      remark_dtm: terminationDate,
+    };
+
+    await session.withTransaction(async () => {
+      const company = await DRC.findOne({ drc_id }).session(session);
+
+      if (!company) {
+        const error = new Error(`No Debt Company found with DRC_ID: ${drc_id}.`);
+        error.statusCode = 404;
+        throw error;
+      }
+
+      if (company.drc_status === "Terminate") {
+        const error = new Error("DRC is already terminated.");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Apply termination update
+      updatedCompany = await DRC.findOneAndUpdate(
+        { drc_id },
+        {
+          $set: {
+            drc_status: "Terminate",
+            drc_end_dtm: terminationDate,
+            drc_end_by: remark_by,
+          },
+          $push: {
+            remark: newRemark,
           },
         },
-      },
-      { new: true }
-    );
+        {
+          new: true,
+          session,
+          runValidators: true,
+        }
+      );
+
+      if (!updatedCompany) {
+        const error = new Error("Failed to terminate DRC.");
+        error.statusCode = 500;
+        throw error;
+      }
+
+      const mongoConnection = await db.connectMongoDB();
+      const approvalCounter = await mongoConnection
+        .collection("collection_sequence")
+        .findOneAndUpdate(
+          { _id: "approval_id" },
+          { $inc: { seq: 1 } },
+          { returnDocument: "after", upsert: true, session }
+        );
+
+      const approval_id = approvalCounter.value?.seq || approvalCounter.seq;
+      if (!approval_id) throw new Error("Failed to generate approval ID.");
+
+      const userApproval = new User_Approval({
+        doc_version: 1,
+        approval_id,
+        user_type: "drcUser",
+        drc_id: drc_id,
+        ro_id: null,
+        drcUser_id: null,
+        user_name: company.drc_name || "",
+        user_role: "DRC_Coodinator",
+        login_email: company.drc_email,
+        login_contact_no: company.drc_contact_no,
+        created_by: remark_by,
+        created_dtm: terminationDate,
+        approve_status: null,
+        approve_by: null,
+        approve_dtm: null,
+      });
+
+      approvalRecord = await userApproval.save({ session });
+    });
 
     return res.status(200).json({
       status: "success",
-      message: "Company terminated successfully.",
-      data: updatedCompany,
+      message: "Company terminated successfully and sent for approval.",
+      data: {
+        updatedCompany,
+        approval: approvalRecord,
+      },
     });
+
   } catch (error) {
     console.error("Error terminating company:", error);
     return res.status(500).json({
@@ -1818,61 +1985,202 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       message: "Failed to terminate company.",
       errors: { exception: error.message },
     });
+  } finally {
+    await session.endSession();
   }
 };
+
+
+// export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
+//   try {
+//     const {
+//       drc_id,
+//       drc_contact_no,
+//       drc_email,
+//       coordinator,
+//       services,
+//       rtom,
+//       remark,
+//       updated_by,
+//     } = req.body;
+
+//     console.log("Request body:", req.body);
+
+//     // Validate required fields
+//     if (!drc_id || !updated_by) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "DRC ID and updated_by are required fields.",
+//       });
+//     }
+
+//     // Find company to verify it exists
+//     const company = await DRC.findOne({ drc_id });
+
+//     if (!company) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+//       });
+//     }
+
+//     // Create update object
+//     const updateObject = {};
+//     const currentDate = new Date();
+
+//     // Update contact information if provided
+//     if (drc_contact_no !== undefined) {
+//       updateObject.drc_contact_no = drc_contact_no;
+//     }
+
+//     if (drc_email !== undefined) {
+//       updateObject.drc_email = drc_email;
+//     }
+
+//     // Update services status if provided
+//     if (services && Array.isArray(services)) {
+//       // Pre-process services to update status_update fields
+//       const updatedServices = services.map((service) => ({
+//         ...service,
+//         status_update_dtm: currentDate,
+//         status_update_by: updated_by,
+//       }));
+
+//       updateObject.services = updatedServices;
+//     }
+
+//     // Update RTOM status if provided
+//     if (rtom && Array.isArray(rtom)) {
+//       // Pre-process RTOM entries to update status_update fields
+//       const updatedRtom = rtom.map((rtomEntry) => ({
+//         ...rtomEntry,
+//         status_update_dtm: currentDate,
+//         status_update_by: updated_by,
+//       }));
+
+//       updateObject.rtom = updatedRtom;
+//     }
+
+//     // Add a new coordinator entry if provided
+//     if (coordinator && coordinator.service_no) {
+//       const newCoordinator = {
+//         ...coordinator,
+//         coordinator_create_dtm: currentDate,
+//         coordinator_create_by: updated_by,
+//       };
+
+//       // Use $push to add the new coordinator to the array
+//       await DRC.findOneAndUpdate(
+//         { drc_id },
+//         { $push: { slt_coordinator: newCoordinator } },
+//         { new: true }
+//       );
+//     }
+
+//     // Add remark if provided
+//     if (remark) {
+//       await DRC.findOneAndUpdate(
+//         { drc_id },
+//         {
+//           $push: {
+//             remark: {
+//               remark: remark,
+//               remark_dtm: currentDate,
+//               remark_by: updated_by,
+//             },
+//           },
+//         },
+//         { new: true }
+//       );
+//     }
+
+//     // Apply the main updates if there are any fields to update
+//     const updatedCompany = await DRC.findOneAndUpdate(
+//       { drc_id },
+//       { $set: updateObject },
+//       { new: true }
+//     );
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "DRC information updated successfully.",
+//       data: updatedCompany,
+//     });
+//   } catch (error) {
+//     console.error("Error updating DRC information:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to update DRC information.",
+//       errors: { exception: error.message },
+//     });
+//   }
+// };
+
 
 /*
   /Update_DRC_With_Services_and_SLT_Cordinator
 
   Description:
-  This endpoint updates the contact details, services, RTOMs, SLT coordinators, and remarks associated with a specific Debt Recovery Company (DRC). It supports partial updates and tracks modification metadata such as update timestamps and updated_by info.
+  This endpoint updates various fields of a specific Debt Recovery Company (DRC), including contact number, email, DRC status, services, RTOMs, SLT coordinators, and remarks. If the DRC's status is changed, the system will automatically trigger a user approval workflow.
 
   Collections Used:
-  - DRC: Main collection updated with contact info, services, RTOMs, SLT coordinator entries, and remarks.
+  - DRC: Main collection updated with contact info, DRC status, SLT coordinator entries, service list, RTOM list, and remarks.
+  - User_Approval: Used to log status changes requiring approval.
 
   Request Body Parameters:
-  - drc_id:            [Required] Unique identifier of the DRC to update.
-  - updated_by:        [Required] User performing the update (email or username).
-  - drc_contact_no:    [Required] New contact number to update.
+  - drc_id:            [Required] Unique identifier of the DRC to be updated.
+  - updated_by:        [Required] Identifier (email or user ID) of the user making the update.
+  - drc_contact_no:    [Optional] New contact number to update.
   - drc_email:         [Optional] New email address to update.
-  - coordinator:       [Required] New SLT coordinator entry with fields:
-                          - service_no
-                          - slt_coordinator_name
-                          - slt_coordinator_email
-  - services:          [Required] Array of service entries to replace the current services list.
-                          Each entry should have:
-                          - service_type
-                          - service_status
-                          - (Auto-populated) status_update_dtm, status_update_by
-  - rtom:              [Required] Array of RTOM entries to replace the current RTOMs list.
-                          Each entry should have:
-                          - rtom_name
-                          - rtom_status
-                          - (Auto-populated) status_update_dtm, status_update_by
-  - remark:            [Optional] A textual note to be added as a remark with a timestamp and user reference.
+  - drc_status:        [Optional] New status for the DRC (e.g., Active, Terminated). If changed, approval is triggered.
+  - coordinator:       [Optional] New SLT coordinator entry. If present, it will be added to the coordinator list.
+                          Fields:
+                            - service_no
+                            - slt_coordinator_name
+                            - slt_coordinator_email
+  - services:          [Optional] Array of services to replace the current list.
+                          Each service object should include:
+                            - service_code
+                            - service_name
+                            - status
+                          Auto-attached:
+                            - status_update_dtm
+                            - status_update_by
+  - rtom:              [Optional] Array of RTOM entries to replace the current list.
+                          Each RTOM object should include:
+                            - rtom_division
+                            - rtom_officer
+                          Auto-attached:
+                            - status_update_dtm
+                            - status_update_by
+  - remark:            [Required] A remark text that will be recorded with timestamp and user info.
 
   Response:
-  - HTTP 200: Success. Returns the updated DRC document.
-  - HTTP 400: Missing required parameters like drc_id or updated_by.
-  - HTTP 404: No DRC found with the provided drc_id.
-  - HTTP 500: Internal server/database error occurred.
+  - HTTP 200: Success. Returns updated DRC document and approval record if applicable.
+  - HTTP 400: Missing required fields (`drc_id` or `updated_by`).
+  - HTTP 404: No DRC found with the specified `drc_id`.
+  - HTTP 500: Server or transaction failure.
 
   Flow:
-  1. Validate presence of `drc_id` and `updated_by`.
-  2. Fetch and validate that the DRC exists.
-  3. Construct an update object dynamically for contact, services, and RTOMs.
-  4. For services and RTOMs, auto-attach update metadata (`status_update_dtm`, `status_update_by`).
-  5. Push new SLT coordinator and remark entries if provided.
-  6. Apply `$set` update for contact, services, and RTOMs.
-  7. Return the updated DRC document.
-  8. Catch and handle any runtime errors.
+  1. Validate `drc_id` and `updated_by` from request.
+  2. Fetch the target DRC. Return 404 if not found.
+  3. Dynamically build the update object with changed contact info, services, and RTOMs.
+  4. Auto-attach update metadata (timestamp, user ID) for services and RTOM.
+  5. If a new SLT coordinator is provided, push it to the list with creation metadata.
+  6. Remark is appended with metadata.
+  7. If DRC status changes, create an approval record.
+  8. Commit the transaction and return updated records.
+  9. On error, abort the transaction and respond accordingly.
 */
 export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
+  let session = null;
+
   try {
     const {
       drc_id,
       drc_contact_no,
       drc_email,
+      drc_status,
       coordinator,
       services,
       rtom,
@@ -1880,19 +2188,14 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       updated_by,
     } = req.body;
 
-    console.log("Request body:", req.body);
-
-    // Validate required fields
-    if (!drc_id || !updated_by) {
+    if (!drc_id || !updated_by || !remark) {
       return res.status(400).json({
         status: "error",
-        message: "DRC ID and updated_by are required fields.",
+        message: "DRC ID, remark and updated_by are required fields.",
       });
     }
 
-    // Find company to verify it exists
     const company = await DRC.findOne({ drc_id });
-
     if (!company) {
       return res.status(404).json({
         status: "error",
@@ -1900,95 +2203,143 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       });
     }
 
-    // Create update object
+    // Begin session for transaction
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const updateObject = {};
     const currentDate = new Date();
 
-    // Update contact information if provided
-    if (drc_contact_no !== undefined) {
+    let needsApproval = false;
+
+    // Only trigger approval if status is changed
+    if (drc_status && drc_status !== company.drc_status) {
+      updateObject.drc_status = drc_status;
+      needsApproval = true;
+    }
+
+    // These updates don't require approval
+    if (drc_contact_no && drc_contact_no !== company.drc_contact_no) {
       updateObject.drc_contact_no = drc_contact_no;
     }
 
-    if (drc_email !== undefined) {
+    if (drc_email && drc_email !== company.drc_email) {
       updateObject.drc_email = drc_email;
     }
 
-    // Update services status if provided
     if (services && Array.isArray(services)) {
-      // Pre-process services to update status_update fields
       const updatedServices = services.map((service) => ({
         ...service,
         status_update_dtm: currentDate,
         status_update_by: updated_by,
       }));
-
       updateObject.services = updatedServices;
     }
 
-    // Update RTOM status if provided
     if (rtom && Array.isArray(rtom)) {
-      // Pre-process RTOM entries to update status_update fields
-      const updatedRtom = rtom.map((rtomEntry) => ({
-        ...rtomEntry,
+      const updatedRtom = rtom.map((entry) => ({
+        ...entry,
         status_update_dtm: currentDate,
         status_update_by: updated_by,
       }));
-
       updateObject.rtom = updatedRtom;
     }
 
-    // Add a new coordinator entry if provided
-    if (coordinator && coordinator.service_no) {
+    // Push new coordinator if any
+    if (coordinator?.service_no) {
       const newCoordinator = {
         ...coordinator,
         coordinator_create_dtm: currentDate,
         coordinator_create_by: updated_by,
       };
-
-      // Use $push to add the new coordinator to the array
       await DRC.findOneAndUpdate(
         { drc_id },
         { $push: { slt_coordinator: newCoordinator } },
-        { new: true }
+        { new: true, session }
       );
     }
 
-    // Add remark if provided
+    // Push remark if any
     if (remark) {
       await DRC.findOneAndUpdate(
         { drc_id },
         {
           $push: {
             remark: {
-              remark: remark,
+              remark,
               remark_dtm: currentDate,
               remark_by: updated_by,
             },
           },
         },
-        { new: true }
+        { new: true, session }
       );
     }
 
-    // Apply the main updates if there are any fields to update
+    // Apply primary updates if any
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       { $set: updateObject },
-      { new: true }
+      { new: true, session }
     );
+
+    let approvalRecord = null;
+
+    if (needsApproval) {
+      const mongoConnection = await db.connectMongoDB();
+      const approvalCounter = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+        { _id: "approval_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+      const approval_id = approvalCounter.value?.seq || approvalCounter.seq;
+      if (!approval_id) throw new Error("Failed to generate approval ID.");
+
+      // Create User_Approval entry as DRC_Coodinator
+      const userApproval = new User_Approval({
+        doc_version: 1,
+        approval_id,
+        user_type: "drcUser",
+        drc_id,
+        ro_id: null,
+        drcUser_id: null,
+        user_name: company.drc_name || "",
+        user_role: "DRC_Coodinator",
+        login_email: drc_email || company.drc_email,
+        login_contact_no: drc_contact_no || company.drc_contact_no,
+        created_by: updated_by,
+        created_dtm: currentDate,
+        approve_status: null,
+        approve_by: null,
+        approve_dtm: null,
+      });
+
+      approvalRecord = await userApproval.save({ session });
+
+    }
+
+    await session.commitTransaction();
 
     return res.status(200).json({
       status: "success",
-      message: "DRC information updated successfully.",
-      data: updatedCompany,
+      message: `DRC information updated successfully${needsApproval ? " and sent for approval" : ""}.`,
+      data: {
+        updatedCompany,
+        approval: approvalRecord || null,
+      },
     });
+
   } catch (error) {
+    if (session) await session.abortTransaction();
     console.error("Error updating DRC information:", error);
     return res.status(500).json({
       status: "error",
       message: "Failed to update DRC information.",
       errors: { exception: error.message },
     });
+  } finally {
+    if (session) await session.endSession();
   }
 };
 
@@ -2019,7 +2370,6 @@ export const getUserIdOwnedByDRCId = async (drc_id) => {
     throw error;
   }
 }
-
 
 export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => {
   const { 
