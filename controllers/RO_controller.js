@@ -4015,20 +4015,30 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     let updateData = {};
     let needsApproval = false;
 
-    // Update contact details if provided
-    if (login_email !== undefined) {
+    if (login_email !== undefined && login_email !== existingUser.login_email) {
       updateData.login_email = login_email;
       needsApproval = true;
     }
+
+    if (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no) {
+      updateData.login_contact_no = login_contact_no;
+      needsApproval = true;
+    }
+
+    // Update contact details if provided
+    // if (login_email !== undefined) {
+    //   updateData.login_email = login_email;
+    //   needsApproval = true;
+    // }
 
     if (drcUser_status !== undefined) {
       updateData.drcUser_status = drcUser_status;
     }
 
-    if (login_contact_no !== undefined) {
-      updateData.login_contact_no = login_contact_no;
-      needsApproval = true;
-    }
+    // if (login_contact_no !== undefined) {
+    //   updateData.login_contact_no = login_contact_no;
+    //   needsApproval = true;
+    // }
 
     // Handle RTOM updates for RO type only
     if (drcUser_type === 'RO' && rtoms && Array.isArray(rtoms)) {
