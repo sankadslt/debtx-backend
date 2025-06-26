@@ -1982,6 +1982,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       rtom,
       remark,
       updated_by,
+      drc_status,
     } = req.body;
 
     console.log("Request body:", req.body);
@@ -2007,6 +2008,10 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     // Create update object
     const updateObject = {};
     const currentDate = new Date();
+
+    if (drc_status !== undefined) {
+      updateObject.drc_status = drc_status;
+    }
 
     // Update contact information if provided
     if (drc_contact_no !== undefined) {
