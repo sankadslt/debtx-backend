@@ -2576,9 +2576,22 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // };
 
     // await createTaskFunction(taskData, session);
+    // Generate a unique approver_id
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const approver_id = counterResult.seq;
+
+    if (!approver_id) {
+      throw new Error("Failed to generate Task_Id.");
+    }
 
     // Create Entry in Template_forwarded_approver
     const approvalEntry = new TmpForwardedApprover({
+      approver_id,
       approver_reference: case_distribution_batch_id, 
       created_by: Proceed_by,
       approver_type: "DRC Assign Approval",
@@ -3135,7 +3148,7 @@ export const Approve_Batch = async (req, res) => {
     const approverDoc = await TmpForwardedApprover.findOne({
       approver_reference: approver_reference,
       approver_type: "DRC Assign Approval"
-    }).select("approver_reference created_by");
+    }).select("approver_reference created_by approver_id");
 
     if (!approverDoc) {
       await session.abortTransaction();
@@ -3179,6 +3192,7 @@ export const Approve_Batch = async (req, res) => {
         },
         $set: {
           current_batch_distribution_status: statusCaseDistribution,
+          approver_reference: approverDoc.approver_id,
           Approved_By: approved_by,
           Approved_On: currentDate,
         }
@@ -3202,7 +3216,7 @@ export const Approve_Batch = async (req, res) => {
       // Create Task for Approved Approver
       const taskData = {
         Template_Task_Id: 29,
-        task_type: "Create Task for Approve Cases from Approver_Reference",
+        task_type: "Approved Distribute Cases among DRCs",
         ...dynamicParams,
         Created_By: approved_by,
         task_status: "open",
@@ -3601,9 +3615,12 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         approve: {
           Approval_Type: approvalDoc.approver_type,
           approved_process: newStatus,
-          approved_by: approved_by,
-          approved_on: currentDate,
-          remark: " ",
+          decision: "Approve",
+          done_by: approved_by,
+          done_on: currentDate,
+          // approved_by: approved_by,
+          // approved_on: currentDate,
+          remark: "Approved",
           requested_on: approvalDoc.created_on,
           requested_by: approvalDoc.created_by
         },
@@ -3858,10 +3875,13 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         $push: {
           approve: {
             approved_process: previousStatus,
-            rejected_by: approved_by,
-            rejected_on: currentDate,
-            approved_on: null,
-            remark: "Approval Rejected ",
+            // rejected_by: approved_by,
+            // rejected_on: currentDate,
+            // approved_on: null,
+            decision: "Reject",
+            done_by: approved_by,
+            done_on: currentDate,
+            remark: "Approval Rejected",
             requested_on: approvalDocFields.created_on,
             requested_by: approvalDocFields.created_by
           },
@@ -4007,7 +4027,22 @@ export const Assign_DRC_To_Case = async (req, res) => {
         },
       });
     }
+
+    // Generate a unique approver_id using collection_sequence
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const approver_id = counterResult.seq;
+
+    if (!approver_id) {
+      throw new Error("Failed to generate Task_Id.");
+    }
+
     const drcAssignAproveRecode = {
+      approver_id,
       approver_reference: case_id,
       created_on: new Date(),
       created_by: assigned_by,
@@ -6035,8 +6070,22 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
           approval_type: "DRC Assign Approval"
       });
 
+      // Generate a new approver_id using the collection_sequence
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+        { _id: "approver_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+      const approver_id = counterResult.seq;
+
+      if (!approver_id) {
+        throw new Error("Failed to generate Task_Id.");
+      }
+
       // --- Proceed to insert document ---
       const newDocument = new TmpForwardedApprover({
+          approver_id,
           approver_reference,
           created_by,
           approver_type: "Case Withdrawal Approval",
@@ -7886,7 +7935,21 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
       approval_type: "Manager Approval"
     });
 
+    // Generate a new approver_id 
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const approver_id = counterResult.seq;
+
+    if (!approver_id) {
+      throw new Error("Failed to generate Task_Id.");
+    }
+
     const forwardedApprover = new TmpForwardedApprover({
+      approver_id,
       approver_reference: case_id,
       created_on: new Date(),
       created_by: create_by,
