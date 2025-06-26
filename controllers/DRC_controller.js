@@ -1735,7 +1735,6 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
 
     const result = await DRC.aggregate([
       { $match: { drc_id } },
-
       {
         $project: {
           _id: 0,
@@ -1747,7 +1746,6 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_email: 1,
           drc_address: 1,
           drc_status: 1,
-
 
           // Latest SLT Coordinator
           slt_coordinator: {
@@ -1781,14 +1779,39 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
               input: { $ifNull: ["$rtom", []] },
               as: "r",
               in: {
+                rtom_id: "$$r.rtom_id",
                 rtom_name: "$$r.rtom_name",
                 status_update_dtm: "$$r.status_update_dtm",
                 rtom_status: "$$r.rtom_status",
               },
             },
           },
+
+          //  remarks 
+          remark: {
+            $map: {
+              input: { $ifNull: ["$remark", []] },
+              as: "rmk",
+              in: {
+                remark: "$$rmk.remark",
+                remark_dtm: "$$rmk.remark_dtm",
+                remark_by: "$$rmk.remark_by"
+              }
+            }
+          }
         },
       },
+      // Sort remarks by date (newest first)
+      {
+        $addFields: {
+          remark: {
+            $sortArray: {
+              input: "$remark",
+              sortBy: { remark_dtm: -1 }
+            }
+          }
+        }
+      }
     ]);
 
     if (result.length === 0) {
