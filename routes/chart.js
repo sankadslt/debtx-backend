@@ -9,11 +9,11 @@ router.get("/chart-data", async (req, res) => {
   try {
     const chartData = await caseDistributionDRCSummary.find();
 
-    const labels = chartData.map((item) => item.rtom);
+    const labels = chartData.map((item) => item.drc_distribution?.rtom_details?.rtom);
     const datasets = [
-      { label: "Month 01", data: chartData.map((item) => item.month_1_sc) },
-      { label: "Month 02", data: chartData.map((item) => item.month_2_sc) },
-      { label: "Month 03", data: chartData.map((item) => item.month_3_sc) },
+      { label: "Month 01", data: chartData.map((item) => item.drc_distribution?.rtom_details?.month_1_sc) },
+      { label: "Month 02", data: chartData.map((item) => item.drc_distribution?.rtom_details?.month_2_sc) },
+      { label: "Month 03", data: chartData.map((item) => item.drc_distribution?.rtom_details?.month_3_sc) },
     ];
 
     res.json({ labels, datasets });
