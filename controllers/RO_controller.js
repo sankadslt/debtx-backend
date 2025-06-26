@@ -4033,6 +4033,7 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
 
     if (drcUser_status !== undefined) {
       updateData.drcUser_status = drcUser_status;
+      needsApproval = true;
     }
 
     // if (login_contact_no !== undefined) {
