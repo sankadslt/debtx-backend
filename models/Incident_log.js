@@ -5,7 +5,8 @@ const incidentLogSchema = new Schema({
     Incident_Id: { type: Number, default: null },
     Incident_Log_Id: { type: Number, required: true, unique: true },
     Account_Num: { type: String, required: true },
-    Incident_Status: { type: String, enum: ['Incident Open','Reject','Incident Done','incident Error','Incident In progress'], required: true },
+    Incident_Status: { type: String, enum: ['Incident Open','Reject','Complete','Incident Error','Incident InProgress'], required: true },
+    Status_Reason: { type: String, default: null },
     Actions: {
         type: String,
         required: true,
