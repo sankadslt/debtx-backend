@@ -347,32 +347,15 @@ export const registerDRC = async (req, res) => {
         !Array.isArray(slt_coordinator) || slt_coordinator.length === 0 ||
         !Array.isArray(services) || services.length === 0 ||
         !Array.isArray(rtom) || rtom.length === 0) {
-
       return res.status(400).json({
         status: "error",
-        message: "Failed to register DRC.",
-        errors: { field_name: "All fields are required" },
+        message: "All fields are required",
       });
     }
 
-    // Check RTOM billing center codes
-    const missingBillingCode = rtom.find(r => !r.rtom_billing_center_code);
-    if (missingBillingCode) {
-      return res.status(400).json({
-        status: "error",
-        message: "RTOM billing center code is required.",
-      });
-    }
-
-    // Generate unique DRC ID
-    const counterResult = await db.connection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "drc_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
-
-    const drc_id = counterResult?.value?.seq;
-    if (!drc_id) throw new Error("Failed to generate DRC ID");
+    // Generate unique DRC ID using mongoose sequence
+    const counter = await DRC.countDocuments();
+    const drc_id = counter + 1;
 
     // Build DRC Document
     const newDRC = new DRC({
@@ -386,18 +369,16 @@ export const registerDRC = async (req, res) => {
       drc_status: "Active",
       create_by,
       create_on: new Date(),
-      drc_end_dtm: null,
-      drc_end_by: null,
-      slt_coordinator: slt_coordinator.map(coord => formatCoordinator(coord, create_by)),
-      services: services.map(service => formatService(service, create_by)),
-      rtom: rtom.map(r => formatRTOM(r, create_by)),
+      slt_coordinator,
+      services,
+      rtom,
     });
 
     await newDRC.save();
 
     return res.status(201).json({
       status: "success",
-      message: "DRC registered successfully.",
+      message: "DRC registered successfully",
       data: {
         drc_id,
         drc_name,
@@ -407,11 +388,11 @@ export const registerDRC = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Unexpected error during DRC registration:", error);
+    console.error("Error during DRC registration:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to register DRC.",
-      errors: { exception: error.message },
+      message: "Failed to register DRC",
+      error: error.message,
     });
   }
 };
