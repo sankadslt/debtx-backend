@@ -250,7 +250,8 @@ const drcSchema = new Schema(
     },
     drc_email: {
       type: String,
-      unique: true
+      unique: true,
+      required: true
     },
     drc_status: {
       type: String,
