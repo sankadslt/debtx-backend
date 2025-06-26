@@ -883,7 +883,7 @@ export const ListAllRTOMDetails = async (req, res) => {
     }
 
     // Sorting by rtom_id descending
-    pipeline.push({ $sort: { rtom_id: -1 } });
+    pipeline.push({ $sort: { created_on: -1 } });
 
     // Pagination stages
     pipeline.push({ $skip: skip });
