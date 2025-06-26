@@ -15,7 +15,6 @@ import RO from "../models/Recovery_officer.js";
 import mongoose from "mongoose";
 
 import moment from "moment"; // Ensure moment is imported at the top
-import mongoose from 'mongoose';
 
 // getRTOMDetails from Database
 export const getRTOMDetails = async (req, res) => {
@@ -1318,7 +1317,7 @@ export const TerminateRTOM = async (req, res) => {
     }
     await session.commitTransaction();
     session.endSession();
-    
+
     res.status(200).json({ message: 'RTOM terminated successfully', data: result });
   } catch (error) {
     await session.abortTransaction();
