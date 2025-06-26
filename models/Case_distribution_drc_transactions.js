@@ -124,6 +124,7 @@ const bulkDetailsSchecma = new Schema({
 const caseDistributionSchema = new Schema({
     doc_version : {type:Number, required: true, default: 1},
     case_distribution_batch_id: { type: Number, required: true, unique: true },
+    approver_reference: { type: Number, default: null },
     current_arrears_band: { type: String, required: true},
     drc_commision_rule: { type: String, required: true },
     current_batch_distribution_status: { type: String, required: true },
@@ -131,8 +132,8 @@ const caseDistributionSchema = new Schema({
     // distribution_status: { type: String, required: true },
     last_updatedAt: { type: Date, required: true },
     Forward_For_Approvals_On: { type: Date, default: null },
-    Approved_By: { type: String, default: null },
-    Approved_On: { type: Date, default: null },
+    // Approved_By: { type: String, default: null },
+    // Approved_On: { type: Date, default: null },
     Proceed_On: { type: Date, default: null },
     tmp_record_remove_on: { type: Date, default: null },
     forward_case_distribution_batch_id: { type: Number, default: null },
