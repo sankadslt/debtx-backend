@@ -1425,7 +1425,7 @@ export const List_All_DRC_Details = async (req, res) => {
           created_on: 1,
         }
       },
-      { $sort: { created_on: -1 } },
+      { $sort: { drc_id: -1 } },
       { $skip: skip },
       { $limit: limit },
     ];
