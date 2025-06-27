@@ -33,43 +33,12 @@ router.post('/Obtain_User_List_Owned_By_User_Roles', getUserDetailsByRole);
  *       - `user_type`
  *       - `user_status`
  *       - `page` (for pagination)
- *       
- *       Filtering can be applied through either query parameters or request body (priority depends on backend logic).
  *
  *       | Version | Date       | Description              | Changed By         |
  *       |---------|------------|--------------------------|--------------------|
  *       | 1.0     | 2025-06-24 | Initial version          | Nimesh Perera      |
  *     tags:
  *       - User Management
- *     parameters:
- *       - in: query
- *         name: user_role
- *         required: false
- *         schema:
- *           type: string
- *         description: Filter users by their role.
- *         example: "Admin"
- *       - in: query
- *         name: user_type
- *         required: false
- *         schema:
- *           type: string
- *         description: Filter users by their type.
- *         example: "Internal"
- *       - in: query
- *         name: user_status
- *         required: false
- *         schema:
- *           type: string
- *         description: Filter users by their active status.
- *         example: "true"
- *       - in: query
- *         name: page
- *         required: false
- *         schema:
- *           type: integer
- *         description: Page number for pagination. Page 1 returns 10 users, subsequent pages return 30.
- *         example: 1
  *     requestBody:
  *       required: false
  *       content:
@@ -157,6 +126,7 @@ router.post('/Obtain_User_List_Owned_By_User_Roles', getUserDetailsByRole);
  *                       type: string
  *                       example: Error message from the server
  */
+
 router.post('/List_All_User_Details', List_All_User_Details);
 
 /**
@@ -165,27 +135,124 @@ router.post('/List_All_User_Details', List_All_User_Details);
  *   - name: User Management
  *     description: Endpoints for retrieving and managing user accounts.
  *
+ * /api/users/List_All_User_Details:
+ *   post:
+ *     summary: List filtered user records with pagination
+ *     description: |
+ *       Retrieves a paginated list of user accounts, filtered by optional parameters in the request body:
+ *       - `user_role`
+ *       - `user_type`
+ *       - `user_status`
+ *       - `page` (for pagination)
+ *
+ *       | Version | Date       | Description     | Changed By    |
+ *       |---------|------------|-----------------|---------------|
+ *       | 1.0     | 2025-06-24 | Initial version | Nimesh Perera |
+ *     tags:
+ *       - User Management
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_role:
+ *                 type: string
+ *                 description: Filter users by their role.
+ *                 example: "Admin"
+ *               user_type:
+ *                 type: string
+ *                 description: Filter users by type (e.g., Internal, External).
+ *                 example: "Internal"
+ *               user_status:
+ *                 type: string
+ *                 description: Filter users by status ("true", "false", "terminate").
+ *                 example: "true"
+ *               page:
+ *                 type: integer
+ *                 description: Page number for pagination.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Matching user records retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User details fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       user_id:
+ *                         type: string
+ *                         example: "user_001"
+ *                       user_status:
+ *                         type: string
+ *                         example: "true"
+ *                       role:
+ *                         type: string
+ *                         example: "Manager"
+ *                       user_type:
+ *                         type: string
+ *                         example: "External"
+ *                       username:
+ *                         type: string
+ *                         example: "John Doe"
+ *                       email:
+ *                         type: string
+ *                         example: "john.doe@example.com"
+ *                       Created_DTM:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-05-12T08:00:00.000Z"
+ *       500:
+ *         description: Server error during user retrieval.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Error message from the server
+ */
+
+/**
+ * @swagger
  * /api/users/List_All_User_Details_By_ID:
  *   post:
  *     summary: Retrieve full user details by user ID
  *     description: |
  *       Retrieves complete account details for a specific user by their user ID.
  *
- *       | Version | Date       | Description              | Changed By         |
- *       |---------|------------|--------------------------|--------------------|
- *       | 1.0     | 2025-06-24 | Initial version          | Nimesh Perera      |
+ *       | Version | Date       | Description     | Changed By    |
+ *       |---------|------------|-----------------|---------------|
+ *       | 1.0     | 2025-06-24 | Initial version | Nimesh Perera |
  *     tags:
  *       - User Management
- *     parameters:
- *       - in: query
- *         name: user_id
- *         required: false
- *         schema:
- *           type: string
- *         description: Unique identifier of the user to retrieve (alternative to requestBody).
- *         example: "user_001"
  *     requestBody:
- *       required: false
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -322,6 +389,7 @@ router.post('/List_All_User_Details', List_All_User_Details);
  *                       type: string
  *                       example: Error message from the server
  */
+
 router.post('/List_All_User_Details_By_ID', List_All_User_Details_By_ID);
 
 /**
@@ -342,42 +410,6 @@ router.post('/List_All_User_Details_By_ID', List_All_User_Details_By_ID);
  *       | 1.0     | 2025-06-24 | Initial version          | Nimesh Perera      |
  *     tags:
  *       - User Management
- *     parameters:
- *       - in: query
- *         name: user_id
- *         required: false
- *         schema:
- *           type: string
- *         description: Unique identifier of the user to update (alternative to requestBody).
- *         example: "user_001"
- *       - in: query
- *         name: updated_by
- *         required: false
- *         schema:
- *           type: string
- *         description: User performing the update.
- *         example: "admin_user"
- *       - in: query
- *         name: role
- *         required: false
- *         schema:
- *           type: string
- *         description: New role to assign to the user.
- *         example: "Manager"
- *       - in: query
- *         name: user_status
- *         required: false
- *         schema:
- *           type: string
- *         description: New user status ("true" or "false").
- *         example: "true"
- *       - in: query
- *         name: remark
- *         required: false
- *         schema:
- *           type: string
- *         description: Remark describing the update.
- *         example: "Promoted to Manager"
  *     requestBody:
  *       required: true
  *       content:
@@ -469,6 +501,7 @@ router.post('/List_All_User_Details_By_ID', List_All_User_Details_By_ID);
  *                   type: string
  *                   example: Error message from the server
  */
+
 router.patch('/Update_User_Details', Update_User_Details);
 
 /**
@@ -489,36 +522,6 @@ router.patch('/Update_User_Details', Update_User_Details);
  *       | 1.0     | 2025-06-24 | Initial version          | Nimesh Perera      |
  *     tags:
  *       - User Management
- *     parameters:
- *       - in: query
- *         name: user_id
- *         required: false
- *         schema:
- *           type: string
- *         description: Unique identifier of the user to terminate (alternative to requestBody).
- *         example: "user_001"
- *       - in: query
- *         name: end_by
- *         required: false
- *         schema:
- *           type: string
- *         description: User performing the termination.
- *         example: "admin_user"
- *       - in: query
- *         name: end_dtm
- *         required: false
- *         schema:
- *           type: string
- *           format: date-time
- *         description: Date and time of termination. Defaults to current date-time if omitted.
- *         example: "2025-06-24T15:30:00.000Z"
- *       - in: query
- *         name: remark
- *         required: false
- *         schema:
- *           type: string
- *         description: Remark describing the termination.
- *         example: "User terminated due to policy violation"
  *     requestBody:
  *       required: true
  *       content:
@@ -633,6 +636,7 @@ router.patch('/Update_User_Details', Update_User_Details);
  *                   type: string
  *                   example: Error message from the server
  */
+
 router.patch('/End_User', End_User);
 
 export default router;
