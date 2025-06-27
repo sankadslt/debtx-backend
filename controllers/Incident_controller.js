@@ -447,59 +447,81 @@ export const Upload_DRS_File = async (req, res) => {
  * Success Result:
  * - Returns a success response with the list of incidents matching the provided filters.
  */
+ 
+
+
+
+ 
+
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
+    const { 
+      Actions, 
+      Incident_Status, 
+      Source_Type, 
+      from_date, 
+      to_date,
+      pages = 1 
+    } = req.body;
+
+    // Pagination settings
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30; // First page gets 10, subsequent pages get 30
 
     let query = {};
-    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date) {
-      const incidents = await Incident_log.find(query)
-        .sort({ Incident_Id: -1 })
-        .limit(10);
-      return res.status(200).json({
-        status: "success",
-        message: "Incidents retrieved successfully.",
-        incidents,
-      });
+
+    // Date filtering
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
     }
-    if (From_Date && To_Date) {
-      const startDate = new Date(From_Date);
-      const endDate = new Date(To_Date);
-      query.Created_Dtm = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    } else if (From_Date || To_Date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Both From_Date and To_Date must be provided together.",
-      });
+    if (Object.keys(dateFilter).length > 0) {
+      query.created_dtm = dateFilter;
     }
 
-    if (Actions) {
-      query.Actions = Actions;
-    }
-    if (Incident_Status) {
-      query.Incident_Status = Incident_Status;
-    }
-    if (Source_Type) {
-      query.Source_Type = Source_Type;
-    }
+    // Other filters
+    if (Actions) query.Actions = Actions;
+    if (Incident_Status) query.Incident_Status = Incident_Status;
+    if (Source_Type) query.Source_Type = Source_Type;
 
-    const incidents = await Incident_log.find(query);
+    // Get total count for pagination info
+   // const totalCount = await Incident_log.countDocuments(query);
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // Find incidents with pagination
+    const incidents = await Incident_log.find(query)
+      .sort({ 
+        Incident_Log_Id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+  
+
+    // Transform data to match frontend expectations
+    const responseData = incidents.map((incident) => {
+      return { 
+      incidentID: incident.Incident_Log_Id,
+      status: incident.Incident_Status,
+      accountNo: incident.Account_Num,
+      action: incident.Actions,
+      sourceType: incident.Source_Type,
+      created_dtm: incident.Created_Dtm
+    };
+  })
 
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved successfully.",
-      incidents,
+      data: responseData,
+     
+      hasMore: incidents.length === limit
     });
+
   } catch (error) {
     console.error("Error in List_Incidents:", error);
     return res.status(500).json({
@@ -512,10 +534,12 @@ export const List_Incidents = async (req, res) => {
   }
 };
 
+
+
 const validateTaskParameters = (parameters) => {
   const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
 
-
+  
   if (!Incident_Status || typeof Incident_Status !== "string") {
     throw new Error("Incident_Status is required and must be a string.");
   }
