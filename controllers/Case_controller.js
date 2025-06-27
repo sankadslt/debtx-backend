@@ -8879,16 +8879,18 @@ export const List_All_Cases = async (req, res) => {
       }
     });
 
-    pipeline.push({
-      $match: {
-        'last_drc.drc_status': 'Active',
-        'last_drc.removed_dtm': null
-      }
-    });
+    // pipeline.push({
+    //   $match: {
+    //     'last_drc.drc_status': 'Active',
+    //     'last_drc.removed_dtm': null
+    //   }
+    // });
 
     if (DRC) {
       pipeline.push({
         $match: {
+          'last_drc.drc_status': 'Active',
+          'last_drc.removed_dtm': null,
           'last_drc.drc_id': Number(DRC)
         }
       });
