@@ -354,7 +354,7 @@ export const End_User = async (req, res) => {
       }
 
       // Check if already terminated
-      if (user.user_status === "terminate") {
+      if (user.user_status === "Terminate") {
         const error = new Error("User is already terminated.");
         error.statusCode = 400;
         throw error;
@@ -367,7 +367,7 @@ export const End_User = async (req, res) => {
           $set: {
             User_End_DTM: terminationDate,
             User_End_By: end_by,
-            user_status: "terminate",
+            user_status: "Terminate",
             User_Status_Type: "user_update",
             User_Status_DTM: terminationDate,
             User_Status_By: end_by,
