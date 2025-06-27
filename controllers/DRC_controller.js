@@ -2013,6 +2013,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       updateObject.drc_status = drc_status;
     }
 
+    
     // Update contact information if provided
     if (drc_contact_no !== undefined) {
       updateObject.drc_contact_no = drc_contact_no;
