@@ -1585,6 +1585,112 @@ router.patch("/Change_RO_profile", EditRO);
  */
 router.post("/List_All_DRC_Negotiation_Cases", listDRCAllCases);
 
+
+/**
+ * @swagger
+ * /api/RO/List_RO_Details_Owen_By_DRC_ID:
+ *   post:
+ *     summary: Retrieve Recovery Officer (RO) details assigned to a specific DRC.
+ *     description: |
+ *       This endpoint returns a list of Recovery Officers (ROs) assigned under a given DRC ID.  
+ *       The response includes RO ID, RO Name, Contact Number, User Status, and Created Date-Time.
+ *       
+ *       | Version | Date       | Description                        | Changed By         |
+ *       |---------|------------|------------------------------------|--------------------|
+ *       | 01      | 2025-Jun-27| List RO details for given DRC ID   | Sasindu Srinayaka  |
+ *     tags:
+ *       - RO
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 example: 1001
+ *             required:
+ *               - drc_id
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved RO list.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: RO list retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ro_id:
+ *                         type: integer
+ *                         example: 2001
+ *                       ro_name:
+ *                         type: string
+ *                         example: Chamika Perera
+ *                       ro_contact_no:
+ *                         type: string
+ *                         example: "0712345678"
+ *                       drcUser_status:
+ *                         type: string
+ *                         example: Active
+ *                       create_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-27T12:34:56.000Z"
+ *       400:
+ *         description: Bad Request – DRC ID is missing.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: drc_id is required
+ *       404:
+ *         description: No RO details found for the given DRC ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No RTOM details found for the given RO ID.
+ *       500:
+ *         description: Internal server error occurred.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred.
+ *                 error:
+ *                   type: string
+ *                   example: An unexpected error occurred
+ */
+
 router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
 
 router.post("/List_All_RO_Cases", listROAllCases );
@@ -2247,6 +2353,172 @@ router.post('/List_All_RO_and_DRCuser_Details_to_DRC', List_All_RO_and_DRCuser_D
  */
 
 router.post('/List_All_RO_and_DRCuser_Details_to_SLT', List_All_RO_and_DRCuser_Details_to_SLT);
+
+/**
+ * @Swagger
+ * /api/recovery_officer/Create_New_DRCUser_or_RO:
+ *  post:
+ *    summary: Create new DRC User or Recovery Officer (RO)
+ *    description: |
+ *      This API is used to create either a DRC User or a Recovery Officer (RO). Depending on the `drcUser_type`, different data structures and validations apply.
+ *
+ *      #### Version History
+ *      | Version | Date       | Author     | Description                    |
+ *      |---------|------------|------------|--------------------------------|
+ *      | 1.0     | 2025-06-27 | Developer  | Initial creation functionality |
+ *
+ *    tags:
+ *      - DRC User Management
+ *
+ *    parameters: []
+ *
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: object
+ *            required:
+ *              - drcUser_type
+ *              - drc_id
+ *              - ro_name
+ *              - nic
+ *              - login_contact_no
+ *              - create_by
+ *            properties:
+ *              drcUser_type:
+ *                type: string
+ *                enum: [RO, drcUser]
+ *                example: RO
+ *                description: Type of user to create ("RO" or "drcUser")
+ *              drc_id:
+ *                type: string
+ *                example: "DRC001"
+ *              ro_name:
+ *                type: string
+ *                example: "John Doe"
+ *              nic:
+ *                type: string
+ *                example: "198765432V"
+ *              login_email:
+ *                type: string
+ *                example: "john.doe@email.com"
+ *              login_contact_no:
+ *                type: string
+ *                example: "0771234567"
+ *              create_by:
+ *                type: string
+ *                example: "admin001"
+ *              rtoms:
+ *                type: array
+ *                description: Required only for RO type. List of RTOM assignments.
+ *                items:
+ *                  type: object
+ *                  required:
+ *                    - rtom_id
+ *                    - rtom_name
+ *                    - billing_center_code
+ *                  properties:
+ *                    rtom_id:
+ *                      type: string
+ *                      example: "RTOM001"
+ *                    rtom_name:
+ *                      type: string
+ *                      example: "RTOM Central"
+ *                    rtom_status:
+ *                      type: string
+ *                      example: "Active"
+ *                    billing_center_code:
+ *                      type: string
+ *                      example: "BCC123"
+ *                    handling_type:
+ *                      type: string
+ *                      example: "Primary"
+ *          example:
+ *            drcUser_type: "RO"
+ *            drc_id: "DRC001"
+ *            ro_name: "John Doe"
+ *            nic: "198765432V"
+ *            login_email: "john.doe@email.com"
+ *            login_contact_no: "0771234567"
+ *            create_by: "admin001"
+ *            rtoms:
+ *              - rtom_id: "RTOM001"
+ *                rtom_name: "RTOM Central"
+ *                billing_center_code: "BCC123"
+ *                rtom_status: "Active"
+ *                handling_type: "Primary"
+ *
+ *    responses:
+ *      '201':
+ *        description: Successfully created new DRC User or RO
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                success:
+ *                  type: boolean
+ *                  example: true
+ *                message:
+ *                  type: string
+ *                  example: "RO created successfully and sent for approval"
+ *                data:
+ *                  type: object
+ *                  properties:
+ *                    recoveryOfficer:
+ *                      type: object
+ *                      description: Created Recovery Officer document
+ *                    userApproval:
+ *                      type: object
+ *                      description: Created User Approval document
+ *                    interaction:
+ *                      type: object
+ *                      description: Created User Interaction details
+ *      '400':
+ *        description: Missing or invalid fields in the request
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                success:
+ *                  type: boolean
+ *                  example: false
+ *                message:
+ *                  type: string
+ *                  example: "Missing required fields"
+ *      '404':
+ *        description: Not found or referenced document missing (rare case)
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                success:
+ *                  type: boolean
+ *                  example: false
+ *                message:
+ *                  type: string
+ *                  example: "No data found"
+ *      '500':
+ *        description: Internal server error
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                success:
+ *                  type: boolean
+ *                  example: false
+ *                message:
+ *                  type: string
+ *                  example: "Internal server error"
+ *                error:
+ *                  type: string
+ *                  example: "Failed to generate ro_id"
+ */
+
 
 router.post('/Create_New_DRCUser_or_RO', Create_New_DRCUser_or_RO);
 

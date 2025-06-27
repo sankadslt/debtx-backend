@@ -1529,12 +1529,12 @@ router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Ser
  *       Returns a summary of Debt Recovery Companies (DRCs), including counts of services, RTOMs, and Recovery Officers.
  *       
  *       | Version | Date       | Description                          |
- *       |---------|------------|--------------------------------------|
- *       | 01      | 2025-06-08 | Initial paginated DRC summary fetch  |
+ *       |---------|------------|------------------------------------|
+ *       | 01      | 2025-06-08 | Initial paginated DRC summary fetch|
  *       
  *       Pagination logic:
  *       - Page 1 returns 10 items.
- *       - Page 2 and onward return 30 items per page.
+ *       - Page 2 and onward return 30 items per page starting after the first 10 items.
  *     tags:
  *       - DRC
  *     requestBody:
@@ -1626,7 +1626,7 @@ router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Ser
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: success
  *                 message:
  *                   type: string
  *                   example: No matching DRC records found.
@@ -1656,11 +1656,475 @@ router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Ser
  *                       type: string
  *                       example: Error stack or message
  */
+
 router.post("/List_All_DRC_Details", List_All_DRC_Details);
+
+/**
+ * @swagger
+ * /api/DRC/List_RTOM_Details_Owen_By_DRC_ID:
+ *   post:
+ *     summary: List RTOM Details Owned by a Specific DRC
+ *     description: |
+ *       Retrieves RTOM details associated with a given DRC ID, including name, mobile number, handling type, billing center code, end date, and the RO count (based on DRC services).
+ *       
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jun-27| Initial implementation |
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique DRC identifier.
+ *                 example: 101
+ *             required:
+ *               - drc_id
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved RTOM details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   rtom_name:
+ *                     type: string
+ *                     example: "RTOM One"
+ *                   rtom_mobile_no:
+ *                     type: string
+ *                     example: "0777123456"
+ *                   handling_type:
+ *                     type: string
+ *                     example: "Full"
+ *                   billing_center_Code:
+ *                     type: string
+ *                     example: "BC001"
+ *                   rtom_end_date:
+ *                     type: string
+ *                     format: date
+ *                     example: "2025-06-30"
+ *                   ro_count:
+ *                     type: integer
+ *                     example: 5
+ *       404:
+ *         description: DRC not found with provided ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: DRC not found
+ *       500:
+ *         description: Server error during RTOM retrieval.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Server error
+ *                 error:
+ *                   type: object
+ */
+
 
 router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_ID);
 
+/**
+ * @swagger
+ * /api/DRC/List_Service_Details_Owen_By_DRC_ID:
+ *   post:
+ *     summary: List Service Details Owned by a Specific DRC
+ *     description: |
+ *       Retrieves a list of services owned by the given DRC ID, including service ID, type, enable date, and status.
+ *       
+ *       | Version | Date       | Description |
+ *       |---------|------------|-------------|
+ *       | 01      | 2025-Jun-27| Initial implementation |
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique DRC identifier.
+ *                 example: 101
+ *             required:
+ *               - drc_id
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved service details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   service_id:
+ *                     type: integer
+ *                     example: 2001
+ *                   service_type:
+ *                     type: string
+ *                     example: "Vehicle Registration"
+ *                   enable_date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-06-15T10:30:00Z"
+ *                   status:
+ *                     type: string
+ *                     example: "Active"
+ *       404:
+ *         description: DRC not found with the given ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: DRC not found
+ *       500:
+ *         description: Server error occurred while fetching service details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Server error
+ *                 error:
+ *                   type: object
+ */
+
 router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
+
+/**
+ * @swagger
+ * /api/DRC/Create_DRC_With_Services_and_SLT_Coordinator:
+ *   post:
+ *     summary: Register a new Debt Recovery Company (DRC) with services and SLT coordinators
+ *     description: |
+ *       Creates a new DRC entry along with its associated services, SLT coordinators, and RTOM data.
+ *       
+ *       All fields are required. The DRC status is set to 'Active' by default.
+ *       
+ *       Sub-documents validations:
+ *       - At least one SLT coordinator must be provided.
+ *       - At least one service must be provided.
+ *       - At least one RTOM must be provided, and each RTOM requires a billing center code.
+ *       
+ *       | Version | Date       | Description                       |
+ *       |---------|------------|---------------------------------|
+ *       | 01      | 2025-06-27 | Initial DRC creation with details|
+ *       
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_name
+ *               - drc_business_registration_number
+ *               - drc_address
+ *               - drc_contact_no
+ *               - drc_email
+ *               - create_by
+ *               - slt_coordinator
+ *               - services
+ *               - rtom
+ *             properties:
+ *               drc_name:
+ *                 type: string
+ *                 example: "Ravindu Recovery Services"
+ *                 description: Name of the DRC.
+ *               drc_business_registration_number:
+ *                 type: string
+ *                 example: "BRN-452348"
+ *                 description: Business registration number.
+ *               drc_address:
+ *                 type: string
+ *                 example: "123 Recovery St, Colombo"
+ *                 description: Address of the DRC.
+ *               drc_contact_no:
+ *                 type: string
+ *                 example: "0711234567"
+ *                 description: Contact number.
+ *               drc_email:
+ *                 type: string
+ *                 format: email
+ *                 example: "ravindu@example.com"
+ *                 description: Email address.
+ *               create_by:
+ *                 type: string
+ *                 example: "admin_user"
+ *                 description: User who creates the DRC record.
+ *               slt_coordinator:
+ *                 type: array
+ *                 description: List of SLT coordinators.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - service_no
+ *                     - slt_coordinator_name
+ *                     - slt_coordinator_email
+ *                   properties:
+ *                     service_no:
+ *                       type: integer
+ *                       example: 1
+ *                     slt_coordinator_name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     slt_coordinator_email:
+ *                       type: string
+ *                       format: email
+ *                       example: "john.doe@example.com"
+ *                     coordinator_create_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-27T09:00:00Z"
+ *                     coordinator_create_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *               services:
+ *                 type: array
+ *                 description: List of services provided by the DRC.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - service_id
+ *                     - service_type
+ *                   properties:
+ *                     service_id:
+ *                       type: integer
+ *                       example: 1001
+ *                     service_type:
+ *                       type: string
+ *                       example: "Debt Collection"
+ *                     service_status:
+ *                       type: string
+ *                       example: "Active"
+ *                     create_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     create_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-27T09:00:00Z"
+ *                     status_update_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                     status_update_by:
+ *                       type: string
+ *               rtom:
+ *                 type: array
+ *                 description: List of RTOM entities linked to the DRC.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - rtom_id
+ *                     - rtom_name
+ *                     - rtom_billing_center_code
+ *                   properties:
+ *                     rtom_id:
+ *                       type: integer
+ *                       example: 5001
+ *                     rtom_name:
+ *                       type: string
+ *                       example: "RTOM Example"
+ *                     rtom_status:
+ *                       type: string
+ *                       example: "Active"
+ *                     rtom_billing_center_code:
+ *                       type: string
+ *                       example: "BCC-12345"
+ *                     create_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     create_dtm:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-27T09:00:00Z"
+ *                     handling_type:
+ *                       type: string
+ *                       example: "Standard"
+ *                     status_update_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     status_update_dtm:
+ *                       type: string
+ *                       format: date-time
+ *     responses:
+ *       201:
+ *         description: DRC registered successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC registered successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     drc_id:
+ *                       type: integer
+ *                       example: 102
+ *                     drc_name:
+ *                       type: string
+ *                       example: "Ravindu Recovery Services"
+ *                     drc_business_registration_number:
+ *                       type: string
+ *                       example: "BRN-452348"
+ *                     drc_address:
+ *                       type: string
+ *                       example: "123 Recovery St, Colombo"
+ *                     drc_contact_no:
+ *                       type: string
+ *                       example: "0711234567"
+ *                     drc_email:
+ *                       type: string
+ *                       example: "ravindu@example.com"
+ *                     drc_status:
+ *                       type: string
+ *                       example: Active
+ *                     create_by:
+ *                       type: string
+ *                       example: "admin_user"
+ *                     create_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-06-27T09:00:00Z"
+ *                     slt_coordinator:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           service_no:
+ *                             type: integer
+ *                             example: 1
+ *                           slt_coordinator_name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           slt_coordinator_email:
+ *                             type: string
+ *                             example: "john.doe@example.com"
+ *                           coordinator_create_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-06-27T09:00:00Z"
+ *                           coordinator_create_by:
+ *                             type: string
+ *                             example: "admin_user"
+ *                     services:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           service_id:
+ *                             type: integer
+ *                             example: 1001
+ *                           service_type:
+ *                             type: string
+ *                             example: "Debt Collection"
+ *                           service_status:
+ *                             type: string
+ *                             example: "Active"
+ *                           create_by:
+ *                             type: string
+ *                             example: "admin_user"
+ *                           create_on:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-06-27T09:00:00Z"
+ *                     rtom:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           rtom_id:
+ *                             type: integer
+ *                             example: 5001
+ *                           rtom_name:
+ *                             type: string
+ *                             example: "RTOM Example"
+ *                           rtom_status:
+ *                             type: string
+ *                             example: "Active"
+ *                           rtom_billing_center_code:
+ *                             type: string
+ *                             example: "BCC-12345"
+ *                           create_by:
+ *                             type: string
+ *                             example: "admin_user"
+ *                           create_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-06-27T09:00:00Z"
+ *       400:
+ *         description: Missing required fields or validation failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to register DRC.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     field_name:
+ *                       type: string
+ *                       example: All fields are required
+ *       500:
+ *         description: Internal server error occurred during registration.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to register DRC.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Error stack or message
+ */
+
 
 router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
 
