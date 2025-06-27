@@ -20,10 +20,13 @@ const remarkSchema = new Schema({
 // Define the schema for approval
 const approvalSchema = new Schema({
   Approval_Type: { type: String, default: null },
-  approved_by: { type: String, default: null },
-  rejected_by: { type: String, default: null },
-  approved_on: { type: Date, required: true },
-  rejected_on: { type: Date, required: true },
+  decision: { type: String, required: true, enum: ['Approve', 'Reject'] },
+  done_by: { type: String, required: true },
+  done_on: { type: Date, required: true },
+  // approved_by: { type: String, default: null },
+  // rejected_by: { type: String, default: null },
+  // approved_on: { type: Date, required: true },
+  // rejected_on: { type: Date, required: true },
   remark: {type:String, required:true},
   requested_by: {type: String, required: true},
   requested_on :{ type: Date, required: true },
