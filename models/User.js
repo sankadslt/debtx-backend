@@ -89,7 +89,7 @@ const userSchema = new mongoose.Schema(
     user_status: { 
       type: String, 
       required: true, 
-      enum: ["true", "false", "terminate"] 
+      enum: ["true", "false", "Terminate"] 
     },
     User_Status_DTM:{
       type: Date, 
