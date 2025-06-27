@@ -56,6 +56,7 @@ import {
   List_DRC_Details_By_DRC_ID,
   Terminate_Company_By_DRC_ID,
   Update_DRC_With_Services_and_SLT_Cordinator,
+  Create_DRC_With_Services_and_SLT_Coordinator
 
 } from "../controllers/DRC_controller.js";
 
@@ -1662,5 +1663,6 @@ router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_I
 
 router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
 
+router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
 
 export default router;
