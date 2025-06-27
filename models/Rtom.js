@@ -114,7 +114,7 @@ const remarkSchema = new Schema({
 // Sub-schema for Telephone numbers
 const telephoneNumberSchema = new Schema({
     telephone_number: {
-        type: Number,
+        type: String,
         required: true,
     }
 });
@@ -122,7 +122,7 @@ const telephoneNumberSchema = new Schema({
 // Sub-schema for mobile numbers
 const mobileNumberSchema = new Schema({
     mobile_number: {
-        type: Number,
+        type: String,
         required: true,
     }
 });
