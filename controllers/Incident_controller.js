@@ -527,7 +527,7 @@ export const List_Incidents = async (req, res) => {
       message: "Incidents retrieved successfully.",
       data: responseData,
      
-      hasMore: incidents.length === limit
+   
     });
 
   } catch (error) {
