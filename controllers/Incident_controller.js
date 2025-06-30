@@ -489,7 +489,7 @@ export const List_Incidents = async (req, res) => {
       dateFilter.$lte = endOfDay;
     }
     if (Object.keys(dateFilter).length > 0) {
-      query.created_dtm = dateFilter;
+      query.Created_Dtm = dateFilter;
     }
 
     // Other filters
