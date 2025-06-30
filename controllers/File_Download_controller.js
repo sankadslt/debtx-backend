@@ -13,58 +13,92 @@
 import db from "../config/db.js";
 import FileDownloadLog from "../models/file_Download_log.js";
 
-/**
- * Inputs:
- * - Deligate_By: String (required)
+ /**
+ * Controller: List_Download_Files_from_Download_Log
  * 
- * Success Result:
- * - Returns a success response with the list of file download logs filtered by Deligate_By.
+ * Description:
+ * Fetches file download log entries based on the provided user (Deligate_By) and optional date range.
+ * Supports pagination and future-expiry filtering by default if no date range is specified.
+ *
+ * Inputs:
+ * - Deligate_By: String (required) - The ID of the user who delegated the download task.
+ * - from_date: String (optional, ISO format) - Start of the date range for File_Remove_On.
+ * - to_date: String (optional, ISO format) - End of the date range for File_Remove_On.
+ * - pages: Number (optional) - Pagination page number. Defaults to 1.
+ *
+ * Success Response:
+ * - status: "success"
+ * - message: "File download logs retrieved successfully."
+ * - data: Array of file log objects (transformed for frontend)
+ * - hasMore: Boolean - Indicates if more data is available for pagination.
  */
+ 
 export const List_Download_Files_from_Download_Log = async (req, res) => {
-    const { Deligate_By,
-            pages
-    } = req.body;
-  
+  try {
+    const { Deligate_By, from_date, to_date, pages } = req.body;
+
+    // Input validation
     if (!Deligate_By) {
-        return res.status(400).json({
-          status: "error",
-          message: "Field Deligate_By is required.",
-        });
+      return res.status(400).json({
+        status: "error",
+        message: "Field Deligate_By is required."
+      });
     }
 
-    let page =Number(pages);
-    if(isNaN(page) || page < 1) page=1;
-    const limit =page===1?10:30;
-    const skip =page ===1?0:10+(page -2)*30;
-
-        const today = new Date();
-
-    try {
-
-      const query={
-        Deligate_By: Deligate_By,
-        File_Remove_On: { $gt: today },
-      };
-
-        const logs = await FileDownloadLog.find(query)
-         
-          .sort({ Created_On: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(); 
-      
     
-        return res.status(200).json({
-          status: "success",
-          message: "File download logs retrieved successfully.",
-          data: logs,
-          hasMore: logs.length === limit
-        });
-      } catch (error) {
-        console.error("Error fetching File download logs:", error);
-        return res.status(500).json({
-          status: "error",
-          message: error.message || "An unexpected error occurred.",
-        });
-      }
-}
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+   
+    let query = {
+      Deligate_By: Deligate_By
+    };
+
+     
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999);
+      dateFilter.$lte = endOfDay;
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      query.File_Remove_On = dateFilter;
+    } else {
+      query.File_Remove_On = { $gt: new Date() };  
+    }
+
+     
+    const logs = await FileDownloadLog.find(query)
+      .sort({ Created_On: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const responseData = logs.map((log) => {
+      return {
+        file_download_seq: log.file_download_seq,
+        Deligate_By: log.Deligate_By,
+        Created_On: log.Created_On,
+        File_Remove_On: log.File_Remove_On,
+        File_Location: log.File_Location
+      };
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "File download logs retrieved successfully.",
+      data: responseData,
+      hasMore: logs.length === limit
+    });
+  } catch (error) {
+    console.error("Error fetching File download logs:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "An unexpected error occurred."
+    });
+  }
+};

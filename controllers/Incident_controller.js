@@ -1777,7 +1777,7 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
       status: "success",
       message: "File upload logs retrieved successfully",
       data: responseData,
-      hasMore: logs.length === limit
+     
     });
   } catch (error) {
     console.error("Error retrieving file upload logs:", error);
