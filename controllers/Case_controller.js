@@ -8931,7 +8931,7 @@ export const List_All_Cases = async (req, res) => {
       date: caseData.created_dtm || null,
       rtom: caseData.rtom || null,
       area: caseData.area || null,
-      service_type: caseData.service_type || null,
+      service_type: caseData.drc_commision_rule || null,
       current_arrears_amount: caseData.current_arrears_amount || null,
       account_no: caseData.account_no || null,
       drc_name: caseData.last_drc ? caseData.last_drc.drc_name : null,
