@@ -21,24 +21,44 @@ import FileDownloadLog from "../models/file_Download_log.js";
  * - Returns a success response with the list of file download logs filtered by Deligate_By.
  */
 export const List_Download_Files_from_Download_Log = async (req, res) => {
-    const { Deligate_By } = req.body;
+    const { Deligate_By,
+            pages
+    } = req.body;
+  
     if (!Deligate_By) {
         return res.status(400).json({
           status: "error",
           message: "Field Deligate_By is required.",
         });
     }
-    const today = new Date();
+
+    let page =Number(pages);
+    if(isNaN(page) || page < 1) page=1;
+    const limit =page===1?10:30;
+    const skip =page ===1?0:10+(page -2)*30;
+
+        const today = new Date();
+
     try {
-        const logs = await FileDownloadLog.find({
-          Deligate_By: Deligate_By,
-          File_Remove_On: { $gt: today } // Only include files that will be removed in the future
-        });
+
+      const query={
+        Deligate_By: Deligate_By,
+        File_Remove_On: { $gt: today },
+      };
+
+        const logs = await FileDownloadLog.find(query)
+         
+          .sort({ Created_On: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(); 
+      
     
         return res.status(200).json({
           status: "success",
           message: "File download logs retrieved successfully.",
           data: logs,
+          hasMore: logs.length === limit
         });
       } catch (error) {
         console.error("Error fetching File download logs:", error);
