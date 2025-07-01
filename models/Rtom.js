@@ -101,6 +101,12 @@ const remarkSchema = new Schema({
         type: String,
         maxlength: 255,
         required: true,
+        validate: {
+            validator: function(v) {
+                return v.length <= 255; // Limit remark length to 500 characters
+            },
+            message: props => `Remark is too long! Maximum 255 characters allowed.`
+        }
     },
     remark_date: {
         type: Date, // Save date in day/month/year format
@@ -110,6 +116,12 @@ const remarkSchema = new Schema({
         type: String,
         maxlength: 30,
         required: true,
+        validate: {
+            validator: function(v) {
+                return v.length <= 30; // Limit remark by length to 30 characters
+            },
+            message: props => `Remark by is too long! Maximum 30 characters allowed.`
+        }
     },
 });
 
@@ -117,8 +129,7 @@ const remarkSchema = new Schema({
 const telephoneNumberSchema = new Schema({
     telephone_number: {
         type: String,
-        maxlength: 30,
-        required: true,
+        defult: null, // Default to null if not provided
     }
 });
 
@@ -126,8 +137,7 @@ const telephoneNumberSchema = new Schema({
 const mobileNumberSchema = new Schema({
     mobile_number: {
         type: String,
-        maxlength: 30,
-        required: true,
+        defult: null, // Default to null if not provided
     }
 });
 
@@ -146,18 +156,34 @@ const rtomSchema = new Schema({
     },
     rtom_name: {
         type: String, 
-        maxlength: 30,
-        required: true
+        required: true,
+        validate: {
+            validator: function(v) {
+                return v.length <= 30; // Limit name length to 100 characters
+            },
+            message: props => `RTOM name is too long! Maximum 30 characters allowed.`
+        }
     },
     area_code: {
         type: String, 
-        maxlength: 30,
-        required: true
+        required: true,
+        validate: {
+            validator: function(v) {
+                return v.length <= 10; // Limit area code length to 10 characters
+            },
+            message: props => `Area code is too long! Maximum 10 characters allowed.`
+        }
+
     },
     rtom_email: {
         type: String, 
-        maxlength: 30,
-        required: true
+        default: null, // Default to null if not provided
+        validate: {
+            validator: function(v) {
+                return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
+            },
+            message: props => `${props.value} is not a valid email!`
+        }
     },
     rtom_mobile_no: {
         type: [mobileNumberSchema], // Mobile number with subfields
@@ -169,8 +195,13 @@ const rtomSchema = new Schema({
     },
     created_by: {
         type: String,
-        maxlength: 30,
-        required: true
+        required: true,
+        validate: {
+            validator: function(v) {
+                return v.length <= 30; // Limit creator name length to 50 characters
+            },
+            message: props => `Creator name is too long! Maximum 30 characters allowed.`
+        }
     },
     created_on: {
         type: Date,
