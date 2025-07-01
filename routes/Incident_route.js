@@ -36,7 +36,7 @@ List_Transaction_Logs_Upload_Files,
 
 getOpenTaskCountforCPECollect,
 List_Reject_Incident,
-// Task_for_Download_Incidents
+Task_for_Download_Incidents
 
 } from "../controllers/Incident_controller.js";
 const router = Router();
@@ -1941,5 +1941,5 @@ router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
  *                   type: string
  *                   example: Failed to create task
  */
-// router.post('/Task_for_Download_Incidents', Task_for_Download_Incidents);
+router.post('/Task_for_Download_Incidents', Task_for_Download_Incidents);
 export default router;
