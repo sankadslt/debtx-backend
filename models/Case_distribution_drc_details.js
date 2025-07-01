@@ -3,7 +3,7 @@ import { Schema, model } from 'mongoose';
 const cases_details_schema = new Schema({
   case_id: {type:Number, required: true,},
   drc_id : {type:Number, required: true,},
-  rtom: {type:String, required: true,},
+  rtom: {type:String, maxlength: 30, required: true,},
   arrease: {type:Number, required: true},
   new_drc_id : {type:Number, default: null},
   proceed_on: {type:Date, default:null},

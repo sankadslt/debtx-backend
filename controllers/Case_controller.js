@@ -18,7 +18,7 @@ import SystemTransaction from "../models/System_transaction.js";
 import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
-import CasePayments from "../models/Case_payments.js";
+// import CasePayments from "../models/Case_payments.js";
 import Money_transactions from "../models/Money_transactions.js";
 import Template_RO_Request from "../models/Template_RO_Request .js";
 import Template_Mediation_Board from "../models/Template_mediation_board.js";
@@ -8880,9 +8880,27 @@ export const List_All_Cases = async (req, res) => {
     });
 
     pipeline.push({
+      $addFields: {
+        last_drc: {
+          $cond: {
+            if: { $gt: [{ $size: { $ifNull: ["$drc", []] } }, 0] },
+            then: { $arrayElemAt: ["$drc", -1] },
+            else: null
+          }
+        }
+      }
+    });
+
+    pipeline.push({
       $match: {
-        'last_drc.drc_status': 'Active',
-        'last_drc.removed_dtm': null
+        $or: [
+          { last_drc: { $exists: false } },
+          { last_drc: null },
+          {
+            'last_drc.drc_status': 'Active',
+            'last_drc.removed_dtm': null
+          }
+        ]
       }
     });
 

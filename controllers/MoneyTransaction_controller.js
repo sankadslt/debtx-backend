@@ -14,7 +14,7 @@ import db from "../config/db.js";
 import moment from "moment";
 import MoneyTransaction from "../models/Money_transactions.js";
 import Case_details from "../models/Case_details.js";
-import CasePayment from "../models/Case_payments.js";
+// import CasePayment from "../models/Case_payments.js";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
 

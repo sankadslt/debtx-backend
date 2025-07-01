@@ -94,10 +94,12 @@ const caseUserInteractionSchema = new Schema({
   },
   Created_By: {
     type: String,
+    maxlength: 30,
     required: true
   },
   Execute_By: {
     type: String,
+    maxlength: 30,
     default: null
   },
   Sys_Alert_ID: {
@@ -126,6 +128,7 @@ const caseUserInteractionSchema = new Schema({
   },
   User_Interaction_status: {
     type: String,
+    maxlength: 30,
     enum: ['pending', 'open', 'reject', 'close'], 
     default: 'pending',
   },
@@ -135,6 +138,7 @@ const caseUserInteractionSchema = new Schema({
   },
   status_description: {
     type: String,
+    maxlength: 255,
     default: '', 
   },
 },{
