@@ -11,7 +11,7 @@
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
-
+import RecoveryOfficer from "../models/Debt_recovery_company.js"
 import moment from "moment"; // Import moment.js for date formatting
 
 // Get all DRC details created on a specific date
@@ -890,6 +890,78 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: error.message || "An unexpected error occurred.",
+    });
+  }
+};
+
+export const Ro_detais_of_the_DRC = async (req, res) => {
+  const { drc_id } = req.body;
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+    const ro_details = await RecoveryOfficer.find({ drc_id });
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: ro_details,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+export const Rtom_detais_of_the_DRC = async (req, res) => {
+  const { drc_id } = req.body;
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+    const rtom_details = await DRC.find({ drc_id }, { rtom: 1, _id: 0 });
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: rtom_details,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+export const Service_detais_of_the_DRC = async (req, res) => {
+  const { drc_id } = req.body;
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+    const rtom_details = await DRC.find({ drc_id }, { services: 1, _id: 0 });
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: rtom_details,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
     });
   }
 };
