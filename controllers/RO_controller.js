@@ -2577,26 +2577,72 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
         const { drc_id } = req.body;
 
         if (!drc_id) {
-            return res.status(400).json({ message: 'drc_id is required' });
+            return res.status(400).json({ 
+              status: 'error',
+              message: 'drc_id is required' 
+            }
+          );
         }
 
-        const roList = await Recovery_officer.find({ drc_id })
-            .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
+        // const roList = await Recovery_officer.find({ drc_id })
+        //     .select('ro_name ro_status ro_end_dtm ro_login_contact_no');
 
-        const formattedList = roList.map(ro => {
-            //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
-            return {
-                ro_name: ro.ro_name,
-                status: ro.ro_status,
-                ro_end_dtm: ro.ro_end_dtm,
-                ro_contact_no: ro.ro_login_contact_no, 
-            };
-        });
+        // const formattedList = roList.map(ro => {
+        //     //const latestStatus = ro.ro_status?.[ro.ro_status.length - 1]?.status || 'No Status';
+        //     return {
+        //         ro_name: ro.ro_name,
+        //         status: ro.ro_status,
+        //         ro_end_dtm: ro.ro_end_dtm,
+        //         ro_contact_no: ro.ro_login_contact_no, 
+        //     };
+        // });
 
-        res.status(200).json(formattedList);
+        const pipeline = [
+          { 
+            $match: { 
+              drc_id: Number(drc_id) 
+            } 
+          },
+          {
+            $lookup: {
+                from: 'rtom',
+                localField: 'ro_id',
+                foreignField: 'ro_id',
+                as: 'rtom_details'
+            }
+          },
+          {
+            $project: {
+              ro_id: 1,
+              ro_name: 1,
+              ro_contact_no: 1,
+              drcUser_status: 1,
+              create_dtm: 1,
+            }  
+          }
+        ];
+
+        const rtomData = await Rtom.aggregate(pipeline);
+
+        if (!rtomData || rtomData.length === 0) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'No RTOM details found for the given RO ID.'
+          });
+        }
+
+        res.status(200).json({
+          status: 'success',
+          message: 'RO list retrieved successfully',
+          data: formattedList
+      });
     } catch (error) {
         console.error('Error fetching RO list:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ 
+          status: 'error',
+          message: 'Internal server error occurred.',
+          error: error.message || 'An unexpected error occurred'
+        });
     }
 };
 
@@ -2746,7 +2792,7 @@ export const Terminate_RO = async (req, res) => {
                 throw error;
             }
 
-            // Update User_log document
+            // Update User document
             const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
             const userRemark = {
                 remark: remark,
@@ -2759,7 +2805,7 @@ export const Terminate_RO = async (req, res) => {
                 {
                     $set: {
                         User_Status_Type: 'RO_update',
-                        user_status: 'false',
+                        user_status: 'Terminate',
                         User_Status_DTM: end_dtm,
                         User_Status_By: end_by,
                         User_End_DTM: end_dtm,
@@ -4015,20 +4061,31 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     let updateData = {};
     let needsApproval = false;
 
-    // Update contact details if provided
-    if (login_email !== undefined) {
+    if (login_email !== undefined && login_email !== existingUser.login_email) {
       updateData.login_email = login_email;
       needsApproval = true;
     }
 
-    if (drcUser_status !== undefined) {
-      updateData.drcUser_status = drcUser_status;
-    }
-
-    if (login_contact_no !== undefined) {
+    if (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no) {
       updateData.login_contact_no = login_contact_no;
       needsApproval = true;
     }
+
+    // Update contact details if provided
+    // if (login_email !== undefined) {
+    //   updateData.login_email = login_email;
+    //   needsApproval = true;
+    // }
+
+    if (drcUser_status !== undefined) {
+      updateData.drcUser_status = drcUser_status;
+      needsApproval = true;
+    }
+
+    // if (login_contact_no !== undefined) {
+    //   updateData.login_contact_no = login_contact_no;
+    //   needsApproval = true;
+    // }
 
     // Handle RTOM updates for RO type only
     if (drcUser_type === 'RO' && rtoms && Array.isArray(rtoms)) {

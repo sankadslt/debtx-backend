@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 
 const rtom_details_schema = new Schema({
-  rtom : {type:String, required: true,},
+  rtom : {type:String, maxlength: 30, required: true,},
   case_count: { type: Number, required: true },
   rtom_tot_arrease: { type: Number, required: true },
   month_1_sc : { type: Number, default:null},
@@ -11,7 +11,7 @@ const rtom_details_schema = new Schema({
 
 const drc_distribution_schema = new Schema({
   drc_id : {type:Number, required: true,},
-  drc_name: { type: String, required: true },
+  drc_name: { type: String, maxlength: 30, required: true },
   batch_seq: { type: Number, required: true },
   drc_tot_arrease : { type: Number, required: true },
   rtom_details : [rtom_details_schema],

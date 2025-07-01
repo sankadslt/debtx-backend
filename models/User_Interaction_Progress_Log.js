@@ -19,6 +19,7 @@ const interactionSchema = new mongoose.Schema(
     },
     User_Interaction_Type: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     CreateDTM: {
@@ -27,10 +28,12 @@ const interactionSchema = new mongoose.Schema(
     },
     delegate_user_id: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     Created_By: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     User_Interaction_Status: [StatusSchema],
@@ -39,8 +42,8 @@ const interactionSchema = new mongoose.Schema(
         of: mongoose.Schema.Types.Mixed, 
         default: {},
     },
-    Rejected_Reason: { type: String, default: null },
-    Rejected_By: { type: String, default: null },
+    Rejected_Reason: { type: String, maxlength: 255, default: null },
+    Rejected_By: { type: String, maxlength: 30, default: null },
     // Interaction_Mode: {
     //   type: String,
     //   enum: ["Negotiation", "Mediation Board"],
