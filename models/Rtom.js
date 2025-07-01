@@ -99,6 +99,7 @@ import { Schema, model } from 'mongoose';
 const remarkSchema = new Schema({
     remark: {
         type: String,
+        maxlength: 255,
         required: true,
     },
     remark_date: {
@@ -107,6 +108,7 @@ const remarkSchema = new Schema({
     },
     remark_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
 });
@@ -115,6 +117,7 @@ const remarkSchema = new Schema({
 const telephoneNumberSchema = new Schema({
     telephone_number: {
         type: String,
+        maxlength: 30,
         required: true,
     }
 });
@@ -123,6 +126,7 @@ const telephoneNumberSchema = new Schema({
 const mobileNumberSchema = new Schema({
     mobile_number: {
         type: String,
+        maxlength: 30,
         required: true,
     }
 });
@@ -137,18 +141,22 @@ const rtomSchema = new Schema({
     },
     billing_center_code: {
         type: String, 
+        maxlength: 30,
         required: true 
     },
     rtom_name: {
         type: String, 
+        maxlength: 30,
         required: true
     },
     area_code: {
         type: String, 
+        maxlength: 30,
         required: true
     },
     rtom_email: {
         type: String, 
+        maxlength: 30,
         required: true
     },
     rtom_mobile_no: {
@@ -161,6 +169,7 @@ const rtomSchema = new Schema({
     },
     created_by: {
         type: String,
+        maxlength: 30,
         required: true
     },
     created_on: {
@@ -169,6 +178,7 @@ const rtomSchema = new Schema({
     },
     rtom_status: {
         type: String,
+        maxlength: 30,
         enum: ['Active', 'Inactive', 'Terminate'],
         required: true
     },
@@ -178,6 +188,7 @@ const rtomSchema = new Schema({
     },
     rtom_end_by: {
         type: String,
+        maxlength: 30,
         default: null
     },
     rtom_remarks: {

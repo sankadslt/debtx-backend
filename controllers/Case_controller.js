@@ -18,7 +18,7 @@ import SystemTransaction from "../models/System_transaction.js";
 import RecoveryOfficer from "../models/Recovery_officer.js"
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
-import CasePayments from "../models/Case_payments.js";
+// import CasePayments from "../models/Case_payments.js";
 import Money_transactions from "../models/Money_transactions.js";
 import Template_RO_Request from "../models/Template_RO_Request .js";
 import Template_Mediation_Board from "../models/Template_mediation_board.js";
