@@ -104,7 +104,7 @@ const remarkSchema = new Schema({
             validator: function(v) {
                 return v.length <= 255; // Limit remark length to 500 characters
             },
-            message: props => `Remark is too long! Maximum 500 characters allowed.`
+            message: props => `Remark is too long! Maximum 255 characters allowed.`
         }
     },
     remark_date: {
@@ -158,7 +158,7 @@ const rtomSchema = new Schema({
             validator: function(v) {
                 return v.length <= 30; // Limit name length to 100 characters
             },
-            message: props => `RTOM name is too long! Maximum 100 characters allowed.`
+            message: props => `RTOM name is too long! Maximum 30 characters allowed.`
         }
     },
     area_code: {
@@ -197,7 +197,7 @@ const rtomSchema = new Schema({
             validator: function(v) {
                 return v.length <= 30; // Limit creator name length to 50 characters
             },
-            message: props => `Creator name is too long! Maximum 50 characters allowed.`
+            message: props => `Creator name is too long! Maximum 30 characters allowed.`
         }
     },
     created_on: {
