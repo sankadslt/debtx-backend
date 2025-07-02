@@ -4,9 +4,9 @@ const { Schema } = mongoose;
 const requestSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
   Interaction_Log_ID: { type: Number, required: true, unique: true },
-  Request_Description: { type: String, required: true },
+  Request_Description: { type: String, maxlength: 255, required: true },
   created_dtm: { type: Date, required: true },
-  created_by: { type: String, required: true },
+  created_by: { type: String, maxlength: 30, required: true },
   case_id: { type: Number, required: true },
   Intraction_ID: { type: Number, required: true },
   parameters: {

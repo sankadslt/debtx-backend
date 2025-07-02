@@ -12,10 +12,12 @@ const TemplateMediationBoardSchema = new mongoose.Schema(
     mediation_description: 
     { 
         type: String, 
+        maxlength: 255,
         required: true 
     },
     mediation_type: {
       type: String,
+      maxlength: 30,
       enum: ["Field", "Fail"], // Allowed values: Field, Fail
       required: true,
     },
@@ -26,6 +28,7 @@ const TemplateMediationBoardSchema = new mongoose.Schema(
      }, // Commission percentage or amount
     abbreviation: { 
         type: String, 
+        maxlength: 30,
         required: true 
     }, // Short form or abbreviation
     end_dtm: { 
