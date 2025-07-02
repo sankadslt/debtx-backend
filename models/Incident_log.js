@@ -22,6 +22,9 @@ const incidentLogSchema = new Schema({
         required: true,
         enum: ["Pilot Suspended", "Product Terminate", "Special"], // Enum validation
     },
+    Incident_Required_Reason:{
+        type:String
+    },
     Rejected_Reason: { type: String, maxlength: 255, required: null },
     Rejected_By: { type: String, maxlength: 30, required: null },
     Rejected_Dtm: { type: Date, required: null },
