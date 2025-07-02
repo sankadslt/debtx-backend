@@ -11,7 +11,7 @@
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
-import RecoveryOfficer from "../models/Debt_recovery_company.js"
+import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
 
 // Get all DRC details created on a specific date
