@@ -12,10 +12,12 @@ const fileUploadLogSchema = new mongoose.Schema(
     },
     File_Name: {
       type: String,
+      maxlength: 30,
       required: true, // Name of the uploaded file
     },
     File_Type: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: [
         "Incident Creation",
@@ -28,6 +30,7 @@ const fileUploadLogSchema = new mongoose.Schema(
     },
     Uploaded_By: {
       type: String,
+      maxlength: 30,
       required: true, // User who uploaded the file
     },
     Uploaded_Dtm: {
@@ -36,14 +39,17 @@ const fileUploadLogSchema = new mongoose.Schema(
     },
     File_Path: {
       type: String,
+      maxlength: 255,
       required: true, // Location of the file on the server
     },
     Forwarded_File_Path: {
       type: String,
+      maxlength: 255,
       default: null, // Path to the forwarded file (optional)
     },
     File_Status: {
       type: String, 
+      maxlength: 30,
       required: true,
       enum: ["Upload Complete", "Upload InProgress", "Upload Open","Upload Failed"], // Restrict File_Status to these values
       default: "Upload Open", // Default status is 'Open'
