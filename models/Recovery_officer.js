@@ -344,10 +344,12 @@ import { Schema, model } from 'mongoose';
 const remarkSchema = new Schema({
     remark: {
         type: String,
+        maxlength: 255,
         required: true,
     },
     remark_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     remark_dtm: {
@@ -363,14 +365,18 @@ const rtomforRoSchema = new Schema({
     },
     rtom_name: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     rtom_status: {
         type: String,
-        required: true,
+        maxlength: 30,
+        enum: ['Active', 'Inactive'],
+        default: "Active",
     },
     billing_center_code: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     rtom_update_dtm: {
@@ -379,6 +385,7 @@ const rtomforRoSchema = new Schema({
     },
     rtom_update_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     rtom_end_dtm: {
@@ -387,7 +394,8 @@ const rtomforRoSchema = new Schema({
     },
     handling_type: {
         type: String,
-        required: true,
+        maxlength: 30,
+        default: null,
     },
 });
 
@@ -411,29 +419,35 @@ const roSchema = new Schema({
         },
         ro_name:{
             type: String,
+            maxlength: 30,
             required: true,
         },
         login_email: {
             type: String,
+            maxlength: 30,
             default: null,
         },
         login_contact_no: {
             type: String,
+            maxlength: 30,
             required: true,
         },
         nic: {
             type: String,
+            maxlength: 30,
             required: true,
         },
         drcUser_type: {
             type: String,
-            enum: ['RO', 'DRCUser'],
+            maxlength: 30,
+            enum: ['RO', 'drcUser'],
             required: true,
         },
         drcUser_status: {
             type: String,
+            maxlength: 30,
             enum: ['Active', 'Inactive', 'Terminate'],
-            required: true,
+            default: "Active",
         },
         create_dtm:{
             type: Date,
@@ -441,6 +455,7 @@ const roSchema = new Schema({
         },
         create_by:{
             type: String,
+            maxlength: 30,
             required: true,
         },
         end_dtm:{
@@ -449,6 +464,7 @@ const roSchema = new Schema({
         },
         end_by:{
             type: String,
+            maxlength: 30,
             default: null,
         },
         rtom: {

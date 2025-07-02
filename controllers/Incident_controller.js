@@ -24,9 +24,9 @@ const __dirname = dirname(__filename);
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParameters = (params) => {
-  const { Incident_Id, Account_Num } = params;
+  const { Incident_Log_Id, Account_Num } = params;
 
-  if (!Incident_Id || !Account_Num) {
+  if (!Incident_Log_Id || !Account_Num) {
     throw new Error(
       "Incident_Id and Account_Num are required parameters for Create_Task."
     );
@@ -107,16 +107,17 @@ export const Create_Incident = async (req, res) => {
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "incident_id" },
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "Incident_Log_Id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
     );
 
-    const Incident_Id = counterResult.seq;
+    const Incident_Log_Id = counterResult.seq;
 
     const newIncidentData = {
-      Incident_Id,
+      // Incident_Id: null,
+      Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
       Actions: DRC_Action,
@@ -148,7 +149,7 @@ export const Create_Incident = async (req, res) => {
     //   });
     // }
     const dynamicParams = {
-      Incident_Id,
+      Incident_Log_Id,
       Account_Num,
     };
     try {
@@ -181,7 +182,7 @@ export const Create_Incident = async (req, res) => {
       status: "success",
       message: "Incident and task created successfully.",
       data: {
-        Incident_Id,
+        Incident_Log_Id,
         Account_Num,
         DRC_Action,
         Monitor_Months: monitorMonths,
@@ -349,7 +350,7 @@ export const Upload_DRS_File = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     // Increment the counter for file_upload_seq
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "file_upload_seq" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
@@ -358,7 +359,8 @@ export const Upload_DRS_File = async (req, res) => {
     const file_upload_seq = counterResult.seq;
 
     // File upload handling
-    const uploadDir = path.join(__dirname, "../uploads");
+    // const uploadDir = path.join(__dirname, "/srv/uploads/inbox");
+    const uploadDir = path.join("/", "srv", "uploads", "inbox");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -434,70 +436,100 @@ export const Upload_DRS_File = async (req, res) => {
   }
 };
 
-/**
+ /**
  * Inputs:
- * - Actions: String (optional)
- * - Incident_Status: String (optional)
- * - Source_Type: String (optional)
- * - From_Date: String (optional, ISO Date format)
- * - To_Date: String (optional, ISO Date format)
+ * - Actions: String (optional) - Filter by the type of action taken on the incident.
+ * - Incident_Status: String (optional) - Filter by the current status of the incident.
+ * - Source_Type: String (optional) - Filter by the source type of the incident (e.g., Internal, External).
+ * - from_date: String (optional, ISO Date format) - Filter incidents starting from this date.
+ * - to_date: String (optional, ISO Date format) - Filter incidents up to this date (inclusive).
+ * - pages: Number (optional) - Page number for pagination. Defaults to 1. Page 1 returns 10 records, others return 30.
  * 
  * Success Result:
- * - Returns a success response with the list of incidents matching the provided filters.
+ * - Returns a success response with:
+ *   - data: Array of incidents matching the provided filters. Each object includes:
+ *     - incidentID: Number
+ *     - status: String
+ *     - accountNo: String
+ *     - action: String
+ *     - sourceType: String
+ *     - created_dtm: Date
+ *   - hasMore: Boolean indicating if more data is available for pagination.
+ * 
+ * Error Result:
+ * - Returns an error response with status and message in case of failure.
  */
+
+
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
+    const { 
+      Actions, 
+      Incident_Status, 
+      Source_Type, 
+      from_date, 
+      to_date,
+      pages 
+    } = req.body;
+ 
+    // Pagination settings
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30; 
 
     let query = {};
-    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date) {
-      const incidents = await Incident_log.find(query)
-        .sort({ Incident_Id: -1 })
-        .limit(10);
-      return res.status(200).json({
-        status: "success",
-        message: "Incidents retrieved successfully.",
-        incidents,
-      });
+
+    // Date filtering
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
     }
-    if (From_Date && To_Date) {
-      const startDate = new Date(From_Date);
-      const endDate = new Date(To_Date);
-      query.Created_Dtm = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    } else if (From_Date || To_Date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Both From_Date and To_Date must be provided together.",
-      });
+    if (Object.keys(dateFilter).length > 0) {
+      query.Created_Dtm = dateFilter;
     }
 
-    if (Actions) {
-      query.Actions = Actions;
-    }
-    if (Incident_Status) {
-      query.Incident_Status = Incident_Status;
-    }
-    if (Source_Type) {
-      query.Source_Type = Source_Type;
-    }
+    // Other filters
+    if (Actions) query.Actions = Actions;
+    if (Incident_Status) query.Incident_Status = Incident_Status;
+    if (Source_Type) query.Source_Type = Source_Type;
 
-    const incidents = await Incident_log.find(query);
+    // Get total count for pagination info
+   // const totalCount = await Incident_log.countDocuments(query);
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // Find incidents with pagination
+    const incidents = await Incident_log.find(query)
+      .sort({ 
+        Incident_Log_Id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+  
+
+    // Transform data to match frontend expectations
+    const responseData = incidents.map((incident) => {
+      return { 
+      incidentID: incident.Incident_Log_Id,
+      status: incident.Incident_Status,
+      accountNo: incident.Account_Num,
+      action: incident.Actions,
+      sourceType: incident.Source_Type,
+      created_dtm: incident.Created_Dtm
+    };
+  })
 
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved successfully.",
-      incidents,
+      data: responseData,
+     
+   
     });
+
   } catch (error) {
     console.error("Error in List_Incidents:", error);
     return res.status(500).json({
@@ -510,10 +542,12 @@ export const List_Incidents = async (req, res) => {
   }
 };
 
+
+
 const validateTaskParameters = (parameters) => {
   const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
 
-
+  
   if (!Incident_Status || typeof Incident_Status !== "string") {
     throw new Error("Incident_Status is required and must be a string.");
   }
@@ -608,7 +642,7 @@ export const total_F1_filtered_Incidents = async (req, res) => {
     const details = (await Incident.find({
      
       Incident_Status: { $in: ["Reject Pending"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -639,7 +673,7 @@ export const total_distribution_ready_incidents = async (req, res) => {
   try {
     const details = (await Incident.find({
       Incident_Status: { $in: ["Open No Agent"] },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })).length
   
     return res.status(200).json({
@@ -764,17 +798,19 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: OpencpeStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -816,11 +852,12 @@ export const List_incidents_Direct_LOD = async (req, res) => {
     if(!Source_Type && !FromDate && !ToDate){
       incidents = await Incident.find({
         Incident_Status: { $in: directLODStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+        Proceed_Dtm: { $exists: true }
       }).sort({ Created_Dtm: -1 }) 
       .limit(10); 
     }else{
-      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }], Proceed_Dtm: { $exists: true } };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
@@ -828,6 +865,7 @@ export const List_incidents_Direct_LOD = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -880,8 +918,10 @@ export const List_F1_filted_Incidents = async (req, res) => {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
+        to.setHours(23, 59, 59, 999);
+        
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -918,7 +958,7 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     })
       .sort({ Created_Dtm: -1 });
 
@@ -976,7 +1016,7 @@ export const distribution_ready_incidents_group_by_arrears_band = async (req, re
   try {
     const details = (await Incident.find({
       Incident_Status:"Open No Agent",
-      Proceed_Dtm: { $eq: null }, 
+      Proceed_Dtm: { $eq: null, $exists: true }, 
     }))
     
     const arrearsBandCounts = details.reduce((counts, detail) => {
@@ -1014,7 +1054,7 @@ export const total_incidents_CPE_Collect = async (req, res) => {
     const details = (
       await Incident.find({
         Incident_Status: { $in: ["Open CPE Collect"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
        
       })
     ).length;
@@ -1049,7 +1089,7 @@ export const total_incidents_Direct_LOD = async (req, res) => {
       await Incident.find({
       
         Incident_Status: { $in: ["Direct LOD"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null, $exists: true }, 
       })
     ).length;
 
@@ -1082,16 +1122,17 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
   try{
     const { Incident_Id, user } = req.body;
 
-    if (!Incident_Id) {
+    if (!Incident_Id || !user) {
       return res.status(400).json({
         status:"error",
         message:"Incident_Id is a required field.",
         errors: {
           code: 400,
-          description: "Incident_Id is a required field.",
+          description: "Incident_Id and user are required field.",
         },
       });
     }
+
 
     const incident = await Incident.findOne({ Incident_Id: Incident_Id});
 
@@ -1154,6 +1195,11 @@ export const Forward_F1_filtered_incident = async (req, res) => {
     throw error;
   }
 
+  if (!Incident_Forwarded_By) {
+    const error = new Error("Incident_Forwarded_By is required.");
+    error.statusCode = 400;
+    throw error;
+  }
   const incidentData = await Incident.findOne({ Incident_Id }).session(session);
 
   if (!incidentData) {
@@ -1216,7 +1262,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
 
 const generateCaseId = async (session) => {
   const mongoConnection = mongoose.connection;
-  const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+  const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
     { _id: "case_id" },
     { $inc: { seq: 1 } },
     { returnDocument: "after", session, upsert: true }
@@ -1371,7 +1417,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -1496,7 +1542,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoose.connection.collection("collection_sequence").findOneAndUpdate(
       { _id: "case_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
@@ -1610,6 +1656,7 @@ export const List_Reject_Incident = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
+        to.setHours(23, 59, 59, 999); // Set to end of the day
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -1745,46 +1792,46 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
   }
 };
 
-// export const Task_for_Download_Incidents = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
-//     if (!From_Date || !To_Date || !Created_By ) {
-//       return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
-//     }
-//     const taskData = {
-//       Template_Task_Id: 20, // Placeholder, adjust if needed
-//       task_type: "Create Incident list for download",
-//       parameters: {
-//           DRC_Action,
-//           Incident_Status,
-//           Source_Type,
-//           From_Date,
-//           To_Date,
-//       },
-//       Created_By,
-//       Execute_By: "SYS",
-//       task_status: "open",
-//       created_dtm: new Date(),
-//     };
-//     const ResponseData = await createTaskFunction(taskData, session);
-//     console.log("Task created successfully:", ResponseData);
-//     await session.commitTransaction();
-//     session.endSession();
-//     return res.status(201).json({
-//       message: "Task created successfully",
-//        ResponseData,
-//     });
-//   } catch (error) {
-//     console.error("Error creating the task:", error);
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({
-//       message: "Error creating the task",
-//       error: error.message || "Internal server error.",
-//     });
-//   }finally {
-//     session.endSession();
-//   }
-// };
+export const Task_for_Download_Incidents = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+    if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    }
+    const taskData = {
+      Template_Task_Id: 20,  
+      task_type: "Create Incident list for download",
+      parameters: {
+          Actions,
+          Incident_Status,
+          Source_Type,
+          From_Date,
+          To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+       ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  }finally {
+    session.endSession();
+  }
+};

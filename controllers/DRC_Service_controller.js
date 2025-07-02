@@ -167,7 +167,7 @@ export const registerDRCWithServices = async (req, res) => {
     // Generate `drc_id` from MongoDB counter
     const mongoConnection = await db.connectMongoDB();
     const counterResult = await mongoConnection
-      .collection("counters")
+      .collection("collection_sequence")
       .findOneAndUpdate(
         { _id: "drc_id" },
         { $inc: { seq: 1 } },
