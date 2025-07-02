@@ -7,7 +7,7 @@ const caseTransactionSchema = new Schema(
     case_id: { type: Number, required: true },
     drc_id: { type: Number, required: true },
     transaction_type_id: { type: Number, required: true },
-    created_by: { type: String, required: true },
+    created_by: { type: String, maxlength: 30, required: true },
     parameters: { 
       type: Map, 
       of: Number, 
