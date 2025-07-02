@@ -80,7 +80,7 @@ const task_inprogress_Schema = new mongoose.Schema({
   },
   task_type: {
     type: String,
-    maxlength: 30,
+    maxlength: 255,
     required: true,
   },
   parameters: {
