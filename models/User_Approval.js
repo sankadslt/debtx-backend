@@ -74,6 +74,12 @@ const userApprovalSchema = new Schema(
     approve_dtm: {
       type: Date, 
       default: null 
+    },
+    parameters: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
+      default: {},
+      default: {},
     }
   },
   {
