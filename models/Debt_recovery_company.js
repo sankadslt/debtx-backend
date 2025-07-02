@@ -124,6 +124,7 @@ const coordinatorSchema = new Schema({
   },
   slt_coordinator_email: {
     type: String,
+    maxlength: 30,
     required: true,
     validate: {
       validator: function(v) {
@@ -231,13 +232,8 @@ const rtomSchema = new Schema({
 const remarkSchema = new Schema({
   remark: {
     type: String,
+    maxlength: 255,
     defult: null,
-    validate: {
-      validator: function(v) {
-        return v.length <= 255; // Limit remark length to 255 characters
-      },
-      message: props => `Remark is too long! Maximum 255 characters allowed.`
-    }
   },
   remark_dtm: {
     type: Date,
@@ -254,6 +250,7 @@ const remarkSchema = new Schema({
 const companyStatusSchema = new Schema({
   drc_status: {
     type: String,
+    maxlength: 30,
     enum: ["Active", "Inactive", "Terminate"],
     required: true,
   },
@@ -263,6 +260,7 @@ const companyStatusSchema = new Schema({
   },
   drc_status_by: {
     type: String,
+    maxlength: 30,
     required: true,
   },
 });
@@ -279,13 +277,8 @@ const agreementDetailsSchema = new Schema({
   },
   agreement_remark: {
     type: String,
+    maxlength: 255,
     required: true,
-    validate: {
-      validator: function(v) {
-        return v.length <= 255; // Limit remark length to 500 characters
-      },
-      message: props => `Remark is too long! Maximum 255 characters allowed.`
-    }
   },
   agreement_update_by: {
     type: String,
@@ -305,12 +298,6 @@ const drcSchema = new Schema(
       type: String,
       maxlength: 30,
       required: true,
-      validate: {
-        validator: function(v) {
-            return v.length <= 30; // Limit area code length to 10 characters
-        },
-        message: props => `Area code is too long! Maximum 30 characters allowed.`
-      }
     },
     drc_business_registration_number: {
         type: String, 
@@ -320,13 +307,8 @@ const drcSchema = new Schema(
     },
     drc_address: {
       type: String,
+      maxlength: 255,
       required: true,
-      validate: {
-        validator: function(v) {
-            return v.length <= 30; // Limit area code length to 10 characters
-        },
-        message: props => `Area code is too long! Maximum 30 characters allowed.`
-      }
     },
     drc_contact_no: {
       type: String,
