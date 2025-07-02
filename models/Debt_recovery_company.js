@@ -124,8 +124,13 @@ const coordinatorSchema = new Schema({
   },
   slt_coordinator_email: {
     type: String,
-    maxlength: 30,
-    required: true
+    required: true,
+    validate: {
+      validator: function(v) {
+          return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
+      },
+      message: props => `${props.value} is not a valid email!`
+  }
   },
   coordinator_create_dtm: {
     type: Date,
@@ -169,7 +174,7 @@ const serviceSchema = new Schema({
     maxlength: 30,
     required: true,
   },
-  create_on: {
+  create_dtm: {
     type: Date,
     required: true,
   },
@@ -226,18 +231,66 @@ const rtomSchema = new Schema({
 const remarkSchema = new Schema({
   remark: {
     type: String,
-    maxlength: 255,
-    defult: null
+    defult: null,
+    validate: {
+      validator: function(v) {
+        return v.length <= 255; // Limit remark length to 255 characters
+      },
+      message: props => `Remark is too long! Maximum 255 characters allowed.`
+    }
   },
   remark_dtm: {
-    type: Date, 
-    defult: null
+    type: Date,
+    default: null
   },
   remark_by: {
     type: String,
     maxlength: 30,
     defult: null
   },
+});
+
+// Schema for company status
+const companyStatusSchema = new Schema({
+  drc_status: {
+    type: String,
+    enum: ["Active", "Inactive", "Terminate"],
+    required: true,
+  },
+  drc_status_dtm: {
+    type: Date,
+    required: true,
+  },
+  drc_status_by: {
+    type: String,
+    required: true,
+  },
+});
+
+// Schema for agreement details
+const agreementDetailsSchema = new Schema({
+  agreement_start_dtm: {
+    type: Date,
+    required: true,
+  },
+  agreement_end_dtm: {
+    type: Date,
+    required: true,
+  },
+  agreement_remark: {
+    type: String,
+    required: true,
+    validate: {
+      validator: function(v) {
+        return v.length <= 255; // Limit remark length to 500 characters
+      },
+      message: props => `Remark is too long! Maximum 255 characters allowed.`
+    }
+  },
+  agreement_update_by: {
+    type: String,
+    required: true,
+  }  
 });
 
 const drcSchema = new Schema(
@@ -252,6 +305,12 @@ const drcSchema = new Schema(
       type: String,
       maxlength: 30,
       required: true,
+      validate: {
+        validator: function(v) {
+            return v.length <= 30; // Limit area code length to 10 characters
+        },
+        message: props => `Area code is too long! Maximum 30 characters allowed.`
+      }
     },
     drc_business_registration_number: {
         type: String, 
@@ -261,8 +320,13 @@ const drcSchema = new Schema(
     },
     drc_address: {
       type: String,
-      maxlength: 255,
-      required: true
+      required: true,
+      validate: {
+        validator: function(v) {
+            return v.length <= 30; // Limit area code length to 10 characters
+        },
+        message: props => `Area code is too long! Maximum 30 characters allowed.`
+      }
     },
     drc_contact_no: {
       type: String,
@@ -273,23 +337,31 @@ const drcSchema = new Schema(
       type: String,
       maxlength: 30,
       unique: true,
-      required: true
+      required: true,
+      validate: {
+        validator: function(v) {
+            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
+        },
+        message: props => `${props.value} is not a valid email!`
+      }
     },
+    // drc_status: {
+    //   type: String,
+    //   enum: ["Active", "Inactive", "Terminate"],
+    //   default: "Active"
+    // },
     drc_status: {
-      type: String,
-      maxlength: 30,
-      enum: ["Active", "Inactive", "Terminate"],
-      default: "Active"
+      type: [companyStatusSchema],
+      required: true,
     },
-    create_by: {
-      type: String,
-      maxlength: 30,
-      required: true
-    },
-    create_on: {
-      type: Date,
-      required: true
-    },
+    // create_by: {
+    //   type: String,
+    //   required: true,
+    // },
+    // create_on: {
+    //   type: Date,
+    //   required: true
+    // },
     drc_end_dtm: {
       type: Date,
       default: null
@@ -298,6 +370,10 @@ const drcSchema = new Schema(
       type: String,
       maxlength: 30,
       default: null
+    },
+    drc_agreement_details: {
+      type: [agreementDetailsSchema],
+      required: true,
     },
     slt_coordinator: {
       type: [coordinatorSchema],

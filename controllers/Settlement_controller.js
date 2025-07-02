@@ -13,6 +13,7 @@ import CaseSettlement from "../models/Case_settlement.js";
 import Case_details from "../models/Case_details.js";
 // import CasePayment from "../models/Case_payments.js";
 import { createTaskFunction } from "../services/TaskService.js";
+import Money_transactions from "../models/Money_transactions.js"
 import mongoose from "mongoose";
 
 /*  
@@ -173,7 +174,7 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
     const moneyTransactions = caseDetails.money_transactions || [];
     const transactionIds = moneyTransactions.map(txn => txn.money_transaction_id);
 
-    const payments = await CasePayment.find({ money_transaction_id: { $in: transactionIds } });
+    const payments = await Money_transactions.find({ money_transaction_id: { $in: transactionIds } });
 
     const paymentDetails = moneyTransactions.map(txn => {
       const paymentDoc = payments.find(p => p.money_transaction_id === txn.money_transaction_id);
@@ -181,10 +182,10 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
         money_transaction_id: txn.money_transaction_id,
         payment: txn.payment,
         payment_Dtm: txn.payment_Dtm,
-        cummilative_settled_balance: paymentDoc?.cummilative_settled_balance || null,
+        cummilative_settled_balance: paymentDoc?.cummulative_settled_balance || null,
         installment_seq: paymentDoc?.installment_seq || null,
-        money_transaction_type: paymentDoc?.money_transaction_type || null,
-        money_transaction_amount: paymentDoc?.money_transaction_amount || null,
+        money_transaction_type: paymentDoc?.transaction_type || null,
+        money_transaction_amount: paymentDoc?.settle_Effected_Amount || null,
         money_transaction_date: paymentDoc?.money_transaction_date || null
       };
     });
