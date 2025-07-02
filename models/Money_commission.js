@@ -16,20 +16,23 @@ const moneyCommissionSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
   commission_id: { type: Number, required: true, unique: true },
   case_id: { type: Number, required: true },
-  account_num: { type: String, required: true },
+  account_num: { type: String, maxlength: 30, required: true },
   created_on: { type: Date, default: Date.now },
   commission_action: {
     type: String,
+    maxlength: 30,
     enum: ["Payment", "CPE"]
   },
   caterlog_id: { type: Number, required: true },
   commission_pay_rate_id: { type: Number, required: true },
   commission_ref: {
     type: String,
+    maxlength: 30,
     enum: ["DRC Commission Rule", "CPE_Model"]
   },
   transaction_ref: {
     type: String,
+    maxlength: 30,
     enum: ["money_transaction_id", "rcmp_transaction_id"]
   },
   drc_id: { type: Number },
@@ -37,17 +40,19 @@ const moneyCommissionSchema = new Schema({
   commission_amount: { type: Number, required: true },
   commission_type: {
     type: String,
+    maxlength: 30,
     enum: ["Commissioned", "Unresolved Commission", "Pending Commission"]
   },
   commission_status: {
     type: String,
+    maxlength: 30,
     required: true,
   },
   commission_status_on: { type: Date, default: Date.now },
   commission_status_reason: { type: String },
-  check_by: { type: String },
+  check_by: { type: String, maxlength: 30 },
   check_on: { type: Date, default: Date.now },
-  approved_by: { type: String },
+  approved_by: { type: String, maxlength: 30 },
   approved_on: { type: Date, default: Date.now },
 },{
     collection: 'Money_commission',

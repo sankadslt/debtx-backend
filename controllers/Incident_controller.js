@@ -436,70 +436,100 @@ export const Upload_DRS_File = async (req, res) => {
   }
 };
 
-/**
+ /**
  * Inputs:
- * - Actions: String (optional)
- * - Incident_Status: String (optional)
- * - Source_Type: String (optional)
- * - From_Date: String (optional, ISO Date format)
- * - To_Date: String (optional, ISO Date format)
+ * - Actions: String (optional) - Filter by the type of action taken on the incident.
+ * - Incident_Status: String (optional) - Filter by the current status of the incident.
+ * - Source_Type: String (optional) - Filter by the source type of the incident (e.g., Internal, External).
+ * - from_date: String (optional, ISO Date format) - Filter incidents starting from this date.
+ * - to_date: String (optional, ISO Date format) - Filter incidents up to this date (inclusive).
+ * - pages: Number (optional) - Page number for pagination. Defaults to 1. Page 1 returns 10 records, others return 30.
  * 
  * Success Result:
- * - Returns a success response with the list of incidents matching the provided filters.
+ * - Returns a success response with:
+ *   - data: Array of incidents matching the provided filters. Each object includes:
+ *     - incidentID: Number
+ *     - status: String
+ *     - accountNo: String
+ *     - action: String
+ *     - sourceType: String
+ *     - created_dtm: Date
+ *   - hasMore: Boolean indicating if more data is available for pagination.
+ * 
+ * Error Result:
+ * - Returns an error response with status and message in case of failure.
  */
+
+
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
+    const { 
+      Actions, 
+      Incident_Status, 
+      Source_Type, 
+      from_date, 
+      to_date,
+      pages 
+    } = req.body;
+ 
+    // Pagination settings
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30; 
 
     let query = {};
-    if (!Actions && !Incident_Status && !Source_Type && !From_Date && !To_Date) {
-      const incidents = await Incident_log.find(query)
-        .sort({ Incident_Id: -1 })
-        .limit(10);
-      return res.status(200).json({
-        status: "success",
-        message: "Incidents retrieved successfully.",
-        incidents,
-      });
+
+    // Date filtering
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
     }
-    if (From_Date && To_Date) {
-      const startDate = new Date(From_Date);
-      const endDate = new Date(To_Date);
-      query.Created_Dtm = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    } else if (From_Date || To_Date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Both From_Date and To_Date must be provided together.",
-      });
+    if (Object.keys(dateFilter).length > 0) {
+      query.Created_Dtm = dateFilter;
     }
 
-    if (Actions) {
-      query.Actions = Actions;
-    }
-    if (Incident_Status) {
-      query.Incident_Status = Incident_Status;
-    }
-    if (Source_Type) {
-      query.Source_Type = Source_Type;
-    }
+    // Other filters
+    if (Actions) query.Actions = Actions;
+    if (Incident_Status) query.Incident_Status = Incident_Status;
+    if (Source_Type) query.Source_Type = Source_Type;
 
-    const incidents = await Incident_log.find(query);
+    // Get total count for pagination info
+   // const totalCount = await Incident_log.countDocuments(query);
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // Find incidents with pagination
+    const incidents = await Incident_log.find(query)
+      .sort({ 
+        Incident_Log_Id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+  
+
+    // Transform data to match frontend expectations
+    const responseData = incidents.map((incident) => {
+      return { 
+      incidentID: incident.Incident_Log_Id,
+      status: incident.Incident_Status,
+      accountNo: incident.Account_Num,
+      action: incident.Actions,
+      sourceType: incident.Source_Type,
+      created_dtm: incident.Created_Dtm
+    };
+  })
 
     return res.status(200).json({
       status: "success",
       message: "Incidents retrieved successfully.",
-      incidents,
+      data: responseData,
+     
+   
     });
+
   } catch (error) {
     console.error("Error in List_Incidents:", error);
     return res.status(500).json({
@@ -512,10 +542,12 @@ export const List_Incidents = async (req, res) => {
   }
 };
 
+
+
 const validateTaskParameters = (parameters) => {
   const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
 
-
+  
   if (!Incident_Status || typeof Incident_Status !== "string") {
     throw new Error("Incident_Status is required and must be a string.");
   }
@@ -1760,46 +1792,46 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
   }
 };
 
-// export const Task_for_Download_Incidents = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
-//     if (!From_Date || !To_Date || !Created_By ) {
-//       return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
-//     }
-//     const taskData = {
-//       Template_Task_Id: 20, // Placeholder, adjust if needed
-//       task_type: "Create Incident list for download",
-//       parameters: {
-//           DRC_Action,
-//           Incident_Status,
-//           Source_Type,
-//           From_Date,
-//           To_Date,
-//       },
-//       Created_By,
-//       Execute_By: "SYS",
-//       task_status: "open",
-//       created_dtm: new Date(),
-//     };
-//     const ResponseData = await createTaskFunction(taskData, session);
-//     console.log("Task created successfully:", ResponseData);
-//     await session.commitTransaction();
-//     session.endSession();
-//     return res.status(201).json({
-//       message: "Task created successfully",
-//        ResponseData,
-//     });
-//   } catch (error) {
-//     console.error("Error creating the task:", error);
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({
-//       message: "Error creating the task",
-//       error: error.message || "Internal server error.",
-//     });
-//   }finally {
-//     session.endSession();
-//   }
-// };
+export const Task_for_Download_Incidents = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+    if (!From_Date || !To_Date || !Created_By ) {
+      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    }
+    const taskData = {
+      Template_Task_Id: 20,  
+      task_type: "Create Incident list for download",
+      parameters: {
+          Actions,
+          Incident_Status,
+          Source_Type,
+          From_Date,
+          To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+       ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  }finally {
+    session.endSession();
+  }
+};

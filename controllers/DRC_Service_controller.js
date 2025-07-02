@@ -11,7 +11,7 @@
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
-
+import RecoveryOfficer from "../models/Debt_recovery_company.js"
 import moment from "moment"; // Import moment.js for date formatting
 
 // Get all DRC details created on a specific date
@@ -893,3 +893,144 @@ export const Change_DRC_Details_with_Services = async (req, res) => {
     });
   }
 };
+
+export const Ro_detais_of_the_DRC = async (req, res) => {
+  const { drc_id, drcUser_status, pages = 1 } = req.body;
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    };
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const query = { drc_id };
+    if (drcUser_status) {
+      query.drcUser_status = drcUser_status;
+    };
+
+    const ro_details = await RecoveryOfficer.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ ro_id: -1 });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: ro_details,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+export const Rtom_detais_of_the_DRC = async (req, res) => {
+  const { drc_id, pages, handling_type } = req.body;
+
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const pipeline = [
+      { $match: { drc_id } },
+      { $unwind: "$rtom" },
+    ];
+
+    // Conditionally add handling_type filter
+    if (handling_type) {
+      pipeline.push({ $match: { "rtom.handling_type": handling_type } });
+    }
+
+    pipeline.push(
+      { $sort: { "rtom._id": -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { _id: 0, rtom: 1 } }
+    );
+
+    const rtom_details = await DRC.aggregate(pipeline);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: rtom_details.map(item => item.rtom),
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+
+export const Service_detais_of_the_DRC = async (req, res) => {
+  const { drc_id, pages, service_status } = req.body;
+
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const pipeline = [
+      { $match: { drc_id } },
+      { $unwind: "$services" },
+    ];
+
+    // Only apply service_status filter if it's provided
+    if (service_status) {
+      pipeline.push({ $match: { "services.service_status": service_status } });
+    }
+
+    pipeline.push(
+      { $sort: { "services.created_at": -1 } }, // optional sort
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { _id: 0, service: "$services" } }
+    );
+
+    const services = await DRC.aggregate(pipeline);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: services,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
