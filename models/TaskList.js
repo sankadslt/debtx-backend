@@ -5,6 +5,7 @@ const taskListSchema = new mongoose.Schema(
     doc_version : {type:Number, required: true, default: 1},
     task: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     completed: {
@@ -13,14 +14,17 @@ const taskListSchema = new mongoose.Schema(
     },
     url: {
       type: String,
+      maxlength: 255,
       required: true,
     },
     user_id: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     created_by: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     

@@ -2792,7 +2792,7 @@ export const Terminate_RO = async (req, res) => {
                 throw error;
             }
 
-            // Update User_log document
+            // Update User document
             const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
             const userRemark = {
                 remark: remark,
@@ -2805,7 +2805,7 @@ export const Terminate_RO = async (req, res) => {
                 {
                     $set: {
                         User_Status_Type: 'RO_update',
-                        user_status: 'false',
+                        user_status: 'Terminate',
                         User_Status_DTM: end_dtm,
                         User_Status_By: end_by,
                         User_End_DTM: end_dtm,

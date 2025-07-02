@@ -114,15 +114,24 @@ import { Schema, model } from "mongoose";
 const coordinatorSchema = new Schema({
   service_no: {
     type: String,
+    maxlength: 30,
     required: true,
   },
   slt_coordinator_name: {
     type: String,
+    maxlength: 30,
     required: true
   },
   slt_coordinator_email: {
     type: String,
-    required: true
+    maxlength: 30,
+    required: true,
+    validate: {
+      validator: function(v) {
+          return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
+      },
+      message: props => `${props.value} is not a valid email!`
+  }
   },
   coordinator_create_dtm: {
     type: Date,
@@ -130,10 +139,12 @@ const coordinatorSchema = new Schema({
   },
   coordinator_create_by: {
     type: String,
+    maxlength: 30,
     required: true
   },
   coordinator_end_by: {
     type: String,
+    maxlength: 30,
     default:null
   },
   coordinator_end_dtm: {
@@ -145,22 +156,26 @@ const coordinatorSchema = new Schema({
 const serviceSchema = new Schema({
   service_id: {
     type: String,
+    maxlength: 30,
     required: true,
   },
   service_type: {
     type: String,
+    maxlength: 30,
     required: true,
   },
   service_status: {
     type: String,
+    maxlength: 30,
     enum: ["Active", "Inactive"],
     default: "Active",
   },
   create_by: {
     type: String,
+    maxlength: 30,
     required: true,
   },
-  create_on: {
+  create_dtm: {
     type: Date,
     required: true,
   },
@@ -170,6 +185,7 @@ const serviceSchema = new Schema({
   },
   status_update_by: {
     type: String,
+    maxlength: 30,
     required: true,
   },
 });
@@ -181,24 +197,29 @@ const rtomSchema = new Schema({
   },
   rtom_name: {
     type: String,
+    maxlength: 30,
     required: true
   },
   rtom_status: {
     type: String,
+    maxlength: 30,
     enum: ["Active", "Inactive"],
     default: "Active",
   },
   rtom_billing_center_code: {
     type: String,
+    maxlength: 30,
     required: true
   },
   handling_type: {
     type: String,
+    maxlength: 30,
     required: true,
     enum: ["CPE", "Arrears", "All-Type"]
   },
   status_update_by: {
     type: String,
+    maxlength: 30,
     required: true
   },
   status_update_dtm: {
@@ -211,16 +232,58 @@ const rtomSchema = new Schema({
 const remarkSchema = new Schema({
   remark: {
     type: String,
-    defult: null
+    maxlength: 255,
+    defult: null,
   },
   remark_dtm: {
-    type: Date, 
-    defult: null
+    type: Date,
+    default: null
   },
   remark_by: {
     type: String,
+    maxlength: 30,
     defult: null
   },
+});
+
+// Schema for company status
+const companyStatusSchema = new Schema({
+  drc_status: {
+    type: String,
+    maxlength: 30,
+    enum: ["Active", "Inactive", "Terminate"],
+    required: true,
+  },
+  drc_status_dtm: {
+    type: Date,
+    required: true,
+  },
+  drc_status_by: {
+    type: String,
+    maxlength: 30,
+    required: true,
+  },
+});
+
+// Schema for agreement details
+const agreementDetailsSchema = new Schema({
+  agreement_start_dtm: {
+    type: Date,
+    required: true,
+  },
+  agreement_end_dtm: {
+    type: Date,
+    required: true,
+  },
+  agreement_remark: {
+    type: String,
+    maxlength: 255,
+    required: true,
+  },
+  agreement_update_by: {
+    type: String,
+    required: true,
+  }  
 });
 
 const drcSchema = new Schema(
@@ -233,46 +296,66 @@ const drcSchema = new Schema(
     },
     drc_name: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     drc_business_registration_number: {
         type: String, 
+        maxlength: 30,
         required: true, 
         unique: true
     },
     drc_address: {
       type: String,
-      required: true
+      maxlength: 255,
+      required: true,
     },
     drc_contact_no: {
       type: String,
+      maxlength: 30,
       required: true
     },
     drc_email: {
       type: String,
+      maxlength: 30,
       unique: true,
-      required: true
+      required: true,
+      validate: {
+        validator: function(v) {
+            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
+        },
+        message: props => `${props.value} is not a valid email!`
+      }
     },
+    // drc_status: {
+    //   type: String,
+    //   enum: ["Active", "Inactive", "Terminate"],
+    //   default: "Active"
+    // },
     drc_status: {
-      type: String,
-      enum: ["Active", "Inactive", "Terminate"],
-      default: "Active"
+      type: [companyStatusSchema],
+      required: true,
     },
-    create_by: {
-      type: String,
-      required: true
-    },
-    create_on: {
-      type: Date,
-      required: true
-    },
+    // create_by: {
+    //   type: String,
+    //   required: true,
+    // },
+    // create_on: {
+    //   type: Date,
+    //   required: true
+    // },
     drc_end_dtm: {
       type: Date,
       default: null
     },
     drc_end_by: {
       type: String,
+      maxlength: 30,
       default: null
+    },
+    drc_agreement_details: {
+      type: [agreementDetailsSchema],
+      required: true,
     },
     slt_coordinator: {
       type: [coordinatorSchema],

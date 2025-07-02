@@ -80,6 +80,7 @@ const task_inprogress_Schema = new mongoose.Schema({
   },
   task_type: {
     type: String,
+    maxlength: 255,
     required: true,
   },
   parameters: {
@@ -90,10 +91,12 @@ const task_inprogress_Schema = new mongoose.Schema({
     },
   Created_By: {
     type: String,
+    maxlength: 30,
     required: true,
   },
   Execute_By: {
     type: String,
+    maxlength: 30,
     default: null,
   },
   Sys_Alert_ID: {
@@ -122,6 +125,7 @@ const task_inprogress_Schema = new mongoose.Schema({
   },
   task_status: {
     type: String,
+    maxlength: 30,
     enum: ['open', 'inprogress', 'complete', 'close'], // Enum for task statuses
     default: 'open',
   },
@@ -131,6 +135,7 @@ const task_inprogress_Schema = new mongoose.Schema({
   },
   status_description: {
     type: String,
+    maxlength: 255,
     default: '', // Optional field for additional status details
   },
 }, {

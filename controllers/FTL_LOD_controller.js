@@ -14,7 +14,8 @@ import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Incident from '../models/Incident.js';
 import CaseSettlement from "../models/Case_settlement.js";
-import CasePayment from "../models/Case_payments.js";
+// import CasePayment from "../models/Case_payments.js";
+import CasePayment from "../models/Money_transactions.js";
 import mongoose from "mongoose";
 
 
@@ -583,10 +584,10 @@ export const List_FTL_LOD_Cases = async (req, res) => {
           money_transaction_id: txn.money_transaction_id,
           payment: txn.payment,
           payment_Dtm: txn.payment_Dtm,
-          cummilative_settled_balance: paymentDoc?.cummilative_settled_balance || null,
+          cummilative_settled_balance: paymentDoc?.cummulative_settled_balance || null,
           installment_seq: paymentDoc?.installment_seq || null,
-          money_transaction_type: paymentDoc?.money_transaction_type || null,
-          money_transaction_amount: paymentDoc?.money_transaction_amount || null,
+          money_transaction_type: paymentDoc?.transaction_type || null,
+          money_transaction_amount: paymentDoc?.settle_Effected_Amount || null,
           money_transaction_date: paymentDoc?.money_transaction_date || null
         };
       });
