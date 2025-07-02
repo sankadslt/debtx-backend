@@ -92,7 +92,7 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
       status: "success",
       message: "File download logs retrieved successfully.",
       data: responseData,
-      hasMore: logs.length === limit
+     
     });
   } catch (error) {
     console.error("Error fetching File download logs:", error);
