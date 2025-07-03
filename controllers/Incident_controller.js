@@ -53,8 +53,8 @@ const validateCreateTaskParameters = (params) => {
  */
 export const Create_Incident = async (req, res) => {
 
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number, file_name_dump } = req.body;
-
+  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Incident_Required_Reason, Contact_Number, file_name_dump } = req.body;
+ 
   // Validate required fields
   if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
     return res.status(400).json({
@@ -124,6 +124,7 @@ export const Create_Incident = async (req, res) => {
       Monitor_Months: monitorMonths,
       Created_By,
       Source_Type,
+      Incident_Required_Reason,
       Created_Dtm: moment().toDate(),
       file_name_dump
     };
@@ -188,6 +189,7 @@ export const Create_Incident = async (req, res) => {
         Monitor_Months: monitorMonths,
         Created_By,
         Source_Type,
+        Incident_Required_Reason,
         Created_Dtm: newIncident.Created_Dtm,
         ...(DRC_Action === "collect CPE" && { Contact_Number }),
       },
@@ -1777,7 +1779,7 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
       status: "success",
       message: "File upload logs retrieved successfully",
       data: responseData,
-      hasMore: logs.length === limit
+     
     });
   } catch (error) {
     console.error("Error retrieving file upload logs:", error);
