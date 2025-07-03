@@ -915,6 +915,7 @@ export const Ro_detais_of_the_DRC = async (req, res) => {
     };
 
     const ro_details = await RecoveryOfficer.find(query)
+      .select('create_by login_contact_no drcUser_status ro_name')
       .skip(skip)
       .limit(limit)
       .sort({ ro_id: -1 });
