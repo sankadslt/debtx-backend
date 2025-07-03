@@ -253,6 +253,7 @@ const companyStatusSchema = new Schema({
     maxlength: 30,
     enum: ["Active", "Inactive", "Terminate"],
     required: true,
+    default: "Inactive",
   },
   drc_status_dtm: {
     type: Date,
@@ -320,12 +321,6 @@ const drcSchema = new Schema(
       maxlength: 30,
       unique: true,
       required: true,
-      validate: {
-        validator: function(v) {
-            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
-        },
-        message: props => `${props.value} is not a valid email!`
-      }
     },
     // drc_status: {
     //   type: String,
