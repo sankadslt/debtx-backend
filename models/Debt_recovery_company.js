@@ -126,12 +126,7 @@ const coordinatorSchema = new Schema({
     type: String,
     maxlength: 30,
     required: true,
-    validate: {
-      validator: function(v) {
-          return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
-      },
-      message: props => `${props.value} is not a valid email!`
-  }
+    maxlength: 30,
   },
   coordinator_create_dtm: {
     type: Date,

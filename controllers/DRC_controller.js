@@ -2055,7 +2055,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
     }
 
     // Default values
-    const drc_status = "Active"; // Default to Active status
+    const drc_status = "Inactive"; // Default to Inactive status
     const create_on = new Date(); // Current date and time
 
     // Connect to MongoDB
@@ -2080,7 +2080,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       throw new Error("Failed to generate drc_id");
     }
 
-    // Validate sub-documents
     // Validate coordinator data
     if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
       throw new Error("At least one SLT coordinator is required");
