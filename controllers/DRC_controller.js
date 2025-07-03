@@ -1389,16 +1389,8 @@ export const List_All_DRC_Details = async (req, res) => {
   try {
     const { status, page } = req.body;
 
-    const query = {};
-    if (status) query.drc_status = status;
-
-    let currentPage = Number(page);
-    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
-    const limit = currentPage === 1 ? 10 : 30;
-    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
-
+    // Build the base pipeline
     const pipeline = [
-      { $match: query },
       {
         $lookup: {
           from: "Recovery_officer",
@@ -1409,17 +1401,41 @@ export const List_All_DRC_Details = async (req, res) => {
       },
       {
         $addFields: {
-          ro_count: { $size: "$ros" }
+          ro_count: { $size: "$ros" },
+          current_status: { $arrayElemAt: ["$drc_status.drc_status", -1] }
         }
-      },
+      }
+    ];
+
+    // Add status filter if provided
+    if (status) {
+      pipeline.unshift({
+        $match: {
+          "drc_status": {
+            $elemMatch: {
+              "drc_status": status
+            }
+          }
+        }
+      });
+    }
+
+    // Pagination setup
+    let currentPage = Number(page) || 1;
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    const limit = currentPage === 1 ? 10 : 30;
+    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+
+    // Add remaining pipeline stages
+    pipeline.push(
       {
         $project: {
           _id: 0,
           drc_id: 1,
           drc_name: 1,
           drc_email: 1,
-          drc_status: 1,
-          drc_contact_no: "$drc_contact_no",
+          drc_status: "$current_status",
+          drc_contact_no: 1,
           drc_business_registration_number: 1,
           service_count: { $size: { $ifNull: ["$services", []] } },
           ro_count: 1,
@@ -1429,11 +1445,24 @@ export const List_All_DRC_Details = async (req, res) => {
       },
       { $sort: { drc_id: -1 } },
       { $skip: skip },
-      { $limit: limit },
-    ];
+      { $limit: limit }
+    );
 
+    // Execute aggregation
     const drcData = await DRC.aggregate(pipeline);
 
+    // Count total documents 
+    const countQuery = status ? { 
+      "drc_status": {
+        $elemMatch: {
+          "drc_status": status
+        }
+      }
+    } : {};
+    
+    const totalCount = await DRC.countDocuments(countQuery);
+
+    // Handle empty results
     if (!drcData || drcData.length === 0) {
       return res.status(404).json({
         status: "success",
@@ -1441,8 +1470,6 @@ export const List_All_DRC_Details = async (req, res) => {
         data: [],
       });
     }
-
-    const totalCount = await DRC.countDocuments(query);
 
     return res.status(200).json({
       status: "success",
@@ -1460,13 +1487,14 @@ export const List_All_DRC_Details = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching All DRC details", error);
+    console.error("Error fetching All DRC details:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
       errors: {
         code: 500,
         description: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
     });
   }
@@ -1650,6 +1678,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_address: 1,
           drc_status: 1,
           drc_end_dtm:1,
+          createdAt: 1,
 
           slt_coordinator: {
             $cond: {
@@ -1799,10 +1828,10 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     const { drc_id, remark, remark_by, remark_dtm } = req.body;
 
     // Validate input
-    if (!drc_id || !remark || !remark_dtm) {
+    if (!drc_id || !remark || !remark_dtm || !remark_by) {
       return res.status(400).json({
         status: "error",
-        message: "DRC_ID, remark, and remark_dtm are required.",
+        message: "DRC_ID, remark, remark_by, and remark_dtm are required.",
       });
     }
 
@@ -1816,19 +1845,26 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       });
     }
 
-    // Update the company with terminate status and add the new remark
+    // Create new status entry
+    const newStatus = {
+      drc_status: "Terminate",
+      drc_status_dtm: new Date(remark_dtm),
+      drc_status_by: remark_by
+    };
+
+    // Update the company with terminate status 
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       {
         $set: {
-          drc_status: "Terminate",
-          drc_end_dtm: remark_dtm,
+          drc_end_dtm: new Date(remark_dtm),
           drc_end_by: remark_by,
         },
         $push: {
+          drc_status: newStatus,
           remark: {
             remark: remark,
-            remark_dtm: remark_dtm,
+            remark_dtm: new Date(remark_dtm),
             remark_by: remark_by,
           },
         },
@@ -1846,11 +1882,10 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to terminate company.",
-      errors: { exception: error.message },
+      error: error.message,
     });
   }
 };
-
 /*
   /Update_DRC_With_Services_and_SLT_Cordinator
 
@@ -2082,10 +2117,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       });
     }
 
-    // Default values
-    const drc_status = "Inactive"; // Default to Inactive status
-    const create_on = new Date(); // Current date and time
-
     // Connect to MongoDB
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
@@ -2101,7 +2132,8 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
 
     console.log("Counter Result:", counterResult);
 
-    // Fix: Check if counterResult has value property or seq directly
+        // Fix: Check if counterResult has value property or seq directly
+
     const drc_id = counterResult.value ? counterResult.value.seq : counterResult.seq;
     
     if (!drc_id) {
@@ -2130,6 +2162,24 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       }
     }
 
+    // Create current timestamp
+    const currentDate = new Date();
+
+    // Prepare drc_status as required by the model (array of embedded documents)
+    const drcStatus = [{
+      drc_status: "Inactive",
+      drc_status_dtm: currentDate,
+      drc_status_by: create_by
+    }];
+
+    // Prepare agreement details as required by the model
+    const agreementDetails = [{
+      agreement_start_dtm: currentDate,
+      agreement_end_dtm: new Date(currentDate.getTime() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      agreement_remark: "Initial agreement",
+      agreement_update_by: create_by
+    }];
+
     // Save data to MongoDB
     const newDRC = new DRC({
       doc_version: 1,
@@ -2139,16 +2189,17 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       drc_address,
       drc_contact_no,
       drc_email,
-      drc_status,
+      drc_status: drcStatus, // Now properly formatted as array of embedded docs
       create_by,
-      create_on,
+      create_on: currentDate,
       drc_end_dtm: null,
       drc_end_by: null,
+      drc_agreement_details: agreementDetails, // Added required agreement details
       slt_coordinator: slt_coordinator.map(coord => ({
         service_no: coord.service_no,
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
-        coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
+        coordinator_create_dtm: coord.coordinator_create_dtm || currentDate,
         coordinator_create_by: coord.coordinator_create_by || create_by,
         coordinator_end_by: coord.coordinator_end_by || null,
         coordinator_end_dtm: coord.coordinator_end_dtm || null
@@ -2158,8 +2209,9 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         service_type: service.service_type,
         service_status: service.service_status || "Active",
         create_by: service.create_by || create_by,
-        create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
-        status_update_dtm: service.status_update_dtm || new Date(),
+        create_on: service.create_on || currentDate, // Changed from moment() to currentDate
+        create_dtm: service.create_dtm || currentDate, // Added missing create_dtm field
+        status_update_dtm: service.status_update_dtm || currentDate,
         status_update_by: service.status_update_by || create_by
       })),
       rtom: rtom.map(r => ({
@@ -2168,10 +2220,10 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         rtom_status: r.rtom_status || "Active",
         rtom_billing_center_code: r.rtom_billing_center_code,
         create_by: r.create_by || create_by,
-        create_dtm: r.create_dtm || new Date(),
-        handling_type: r.handling_type,
+        create_dtm: r.create_dtm || currentDate,
+        handling_type: r.handling_type, // Fixed typo from 'handling_type' to match your model
         status_update_by: r.status_update_by || create_by,
-        status_update_dtm: r.status_update_dtm || new Date()
+        status_update_dtm: r.status_update_dtm || currentDate
       }))
     });
 
@@ -2188,9 +2240,8 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         drc_address,
         drc_contact_no,
         drc_email,
-        drc_status,
         create_by,
-        create_on,
+        create_on: currentDate,
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom
