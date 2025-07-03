@@ -1823,6 +1823,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   4. Return the updated DRC document in the response.
   5. Handle and log any server or DB errors.
 */
+
 export const Terminate_Company_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id, remark, remark_by, remark_dtm } = req.body;
@@ -1845,23 +1846,18 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       });
     }
 
-    // Create new status entry
-    const newStatus = {
-      drc_status: "Terminate",
-      drc_status_dtm: new Date(remark_dtm),
-      drc_status_by: remark_by
-    };
-
-    // Update the company with terminate status 
+    // Update the company with terminate status
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       {
         $set: {
+          "drc_status.$[].drc_status": "Terminate", // Update all status entries to Terminate
+          "drc_status.$[].drc_status_dtm": new Date(remark_dtm),
+          "drc_status.$[].drc_status_by": remark_by,
           drc_end_dtm: new Date(remark_dtm),
           drc_end_by: remark_by,
         },
         $push: {
-          drc_status: newStatus,
           remark: {
             remark: remark,
             remark_dtm: new Date(remark_dtm),
