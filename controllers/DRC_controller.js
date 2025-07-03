@@ -741,11 +741,13 @@ export const getActiveDRCDetails= async(req, res) => {
 
   
   try {
-    mongoData = await DRC.find({drc_status:'Active'}).select('-services_of_drc');
+    mongoData = await DRC.find({
+      drc_status:{ $elemMatch: { drc_status: 'Active' } }
+    }).select('-services_of_drc');
   } catch (error) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve DRC details.",
+      message: error.message,
       errors: {
         code: 500,
         description: "Internal server error occurred while fetching DRC details.",
@@ -1909,6 +1911,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       updateObject.drc_status = drc_status;
     }
 
+    
     // Update contact information if provided
     if (drc_contact_no !== undefined) {
       updateObject.drc_contact_no = drc_contact_no;
@@ -2052,7 +2055,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
     }
 
     // Default values
-    const drc_status = "Active"; // Default to Active status
+    const drc_status = "Inactive"; // Default to Inactive status
     const create_on = new Date(); // Current date and time
 
     // Connect to MongoDB
@@ -2077,7 +2080,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       throw new Error("Failed to generate drc_id");
     }
 
-    // Validate sub-documents
     // Validate coordinator data
     if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
       throw new Error("At least one SLT coordinator is required");

@@ -10,10 +10,12 @@ const fileDownloadLogSchema = new mongoose.Schema(
     },
     File_Name: {
       type: String,
+      maxlength: 30,
       required: true, 
     },
     File_Type: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: [
         "Incident Creation",
@@ -30,14 +32,17 @@ const fileDownloadLogSchema = new mongoose.Schema(
     },
     File_Location: {
       type: String,
+      maxlength: 255,
       required: true, 
     },
     Deligate_By: {
         type: String,
+        maxlength: 30,
         required: true, 
     },
     Download_By: {
         type: String,
+        maxlength: 30,
         required: true, 
     },
     Download_On: {
