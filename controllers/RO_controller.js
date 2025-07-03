@@ -3277,10 +3277,131 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
  */
 
 
+// export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
+//     try {
+//         // Extract parameters from request body
+//         const { drcUser_status, pages } = req.body;
+
+//         // Build filter object - always filter for RO type
+//         const filter = {
+//             drcUser_type: 'RO'
+//         };
+
+//         // Add drcUser_status to filter if provided
+//         if (drcUser_status) {
+//             // Validate drcUser_status enum if provided
+//             if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
+//                 return res.status(400).json({
+//                     status: "error",
+//                     message: 'drcUser_status must be one of: Active, Inactive, Terminate'
+//                 });
+//             }
+//             filter.drcUser_status = drcUser_status;
+//         }
+
+//         // Pagination logic
+//         let page = Number(pages);
+//         if (isNaN(page) || page < 1) page = 1;
+
+//         const limit = 10;
+//         const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+
+//         // Define projection fields for RO only
+//         const projection = {
+//             ro_id: 1,
+//             drcUser_status: 1,
+//             nic: 1,
+//             ro_name: 1,
+//             login_contact_no: 1,
+//             rtom: 1,
+//             drc_id: 1
+//         };
+
+//         // Aggregation pipeline
+//         const pipeline = [
+//             { $match: filter },
+//             { $project: projection },
+//             { $sort: { ro_id: -1 } },
+//             { $skip: skip },
+//             { $limit: limit },
+//             {
+//                 $lookup: {
+//                     from: 'Debt_recovery_company',
+//                     localField: 'drc_id',
+//                     foreignField: 'drc_id',
+//                     as: 'drc_info'
+//                 }
+//             },
+//             {
+//                 $unwind: {
+//                     path: '$drc_info',
+//                     preserveNullAndEmptyArrays: true
+//                 }
+//             },
+//             {
+//                 $addFields: {
+//                     drc_name: '$drc_info.drc_name'
+//                 }
+//             },
+//             {
+//                 $project: {
+//                     drc_info: 0 // Remove the drc_info field from final output
+//                 }
+//             }
+//         ];
+
+//         // Get total count for pagination
+//         const totalCount = await Recovery_officer.countDocuments(filter);
+
+//         // Execute aggregation pipeline
+//         const documents = await Recovery_officer.aggregate(pipeline);
+
+//         if (!documents || documents.length === 0) {
+//             return res.status(404).json({
+//                 status: "error",
+//                 message: 'No matching records found'
+//             });
+//         }
+
+//         // Process documents for RO only
+//         const processedData = documents.map(doc => {
+//             // Calculate rtom_area_count (count of rtom objects with status "Active")
+//             const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+
+//             return {
+//                 ro_id: doc.ro_id,
+//                 drcUser_status: doc.drcUser_status,
+//                 nic: doc.nic,
+//                 ro_name: doc.ro_name,
+//                 login_contact_no: doc.login_contact_no,
+//                 rtom_area_count: rtom_area_count,
+//                 drc_name: doc.drc_name
+//             };
+//         });
+
+//         // Return successful response
+//         return res.status(200).json({
+//             status: "success",
+//             message: 'Data retrieved successfully',
+//             data: processedData,
+//             total_records: totalCount,
+//             current_page: page,
+//             records_per_page: limit
+//         });
+
+//     } catch (error) {
+//         console.error('Error in List_All_RO_and_DRCuser_Details_to_SLT:', error);
+//         return res.status(500).json({
+//             status: "error",
+//             message: error.message
+//         });
+//     }
+// };
+
 export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
     try {
         // Extract parameters from request body
-        const { drcUser_status, pages } = req.body;
+        const { drcUser_status, drc_id, pages } = req.body;
 
         // Build filter object - always filter for RO type
         const filter = {
@@ -3299,12 +3420,17 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
             filter.drcUser_status = drcUser_status;
         }
 
+        // Add drc_id to filter if provided
+        if (drc_id !== undefined && drc_id !== null && drc_id !== '') {
+            filter.drc_id = typeof drc_id === 'number' ? drc_id : Number(drc_id);
+        }
+
         // Pagination logic
         let page = Number(pages);
         if (isNaN(page) || page < 1) page = 1;
 
         const limit = 10;
-        const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+        const skip = (page - 1) * limit;
 
         // Define projection fields for RO only
         const projection = {
@@ -3397,6 +3523,7 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
         });
     }
 };
+
 
 
 /**
