@@ -747,7 +747,7 @@ export const getActiveDRCDetails= async(req, res) => {
   } catch (error) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve DRC details.",
+      message: error.message,
       errors: {
         code: 500,
         description: "Internal server error occurred while fetching DRC details.",
