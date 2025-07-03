@@ -984,7 +984,6 @@ export const Rtom_detais_of_the_DRC = async (req, res) => {
   }
 };
 
-
 export const Service_detais_of_the_DRC = async (req, res) => {
   const { drc_id, pages, service_status } = req.body;
 
@@ -1024,6 +1023,35 @@ export const Service_detais_of_the_DRC = async (req, res) => {
       status: "success",
       message: "Data fetched successfully",
       data: services,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+export const DRC_Agreement_details_list = async (req, res) => {
+  const { drc_id } = req.body;
+
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+
+    const agreement_details = await DRC.find({ drc_id })
+      .select('drc_agreement_details');
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: agreement_details,
     });
 
   } catch (error) {
