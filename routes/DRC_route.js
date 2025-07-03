@@ -1662,5 +1662,6 @@ router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_I
 
 router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
 
+router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
 
 export default router;
