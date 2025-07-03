@@ -741,7 +741,9 @@ export const getActiveDRCDetails= async(req, res) => {
 
   
   try {
-    mongoData = await DRC.find({drc_status:'Active'}).select('-services_of_drc');
+    mongoData = await DRC.find({
+      drc_status:{ $elemMatch: { drc_status: 'Active' } }
+    }).select('-services_of_drc');
   } catch (error) {
     return res.status(500).json({
       status: "error",
