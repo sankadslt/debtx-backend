@@ -42,16 +42,22 @@ const userApprovalSchema = new Schema(
       required: true, 
       enum: [ "DRC_Coodinator", "RO"] 
     },
-    login_email: {
-      type: String,
-      maxlength: 30,
-      default: null,
-    },
-    login_contact_no: {
-      type: String,
-      maxlength: 30,
-      required: true,
-    },
+    // login_email: {
+    //   type: String,
+    //   maxlength: 30,
+    //   default: null,
+    // },
+    // login_contact_no: {
+    //   type: String,
+    //   maxlength: 30,
+    //   required: true,
+    // },
+    // drcUser_status: {
+    //   type: String,
+    //   maxlength: 30,
+    //   enum: ['Active', 'Inactive', 'Terminate'],
+    //   default: "Active",
+    // },
     created_by: { 
       type: String, 
       maxlength: 30,
