@@ -19,7 +19,7 @@ const interactionSchema = new mongoose.Schema(
     },
     User_Interaction_Type: {
       type: String,
-      maxlength: 30,
+      maxlength: 64,
       required: true,
     },
     CreateDTM: {
