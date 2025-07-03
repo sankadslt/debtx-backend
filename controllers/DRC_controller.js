@@ -1650,6 +1650,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_email: 1,
           drc_address: 1,
           drc_status: 1,
+          drc_end_dtm:1,
 
 
           slt_coordinator: {
