@@ -227,7 +227,7 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases =
       };
 
       // Call createTaskFunction
-      await createTaskFunction(taskData, session);
+      const response = await createTaskFunction(taskData, session);
 
       await session.commitTransaction();
       session.endSession();
@@ -235,7 +235,7 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases =
       return res.status(200).json({
         status: "success",
         message: "Task created successfully.",
-        data: taskData,
+        data: response,
       });
     } catch (error) {
       await session.abortTransaction();
@@ -366,7 +366,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     await session.endSession();
@@ -374,7 +374,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     if (session.inTransaction()) {

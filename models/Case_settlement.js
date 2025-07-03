@@ -18,22 +18,25 @@ const planReceivedSchema = new Schema({
 const casesettlementSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
   settlement_id: { type: Number, required: true, unique: true },
-  account_no: { type: String, required: true },
+  account_no: { type: String, maxlength: 30, required: true },
   case_id: { type: Number, required: true },
-  created_by: { type: String, required: true },
+  created_by: { type: String, maxlength: 30, required: true },
   created_dtm: { type: Date, default: Date.now },
   settlement_phase: {
     type: String,
+    maxlength: 30,
     enum: ["Negotiation", "Mediation Board", "LOD", "Litigation", "WRIT", "Dispute"]
   },
   settlement_status: {
     type: String,
+    maxlength: 30,
     enum: ["Open", "Open_Pending", "Active", "WithDraw", "Completed"]
   },
   status_dtm: { type: Date, default: Date.now },
-  status_reason: { type: String },
+  status_reason: { type: String, maxlength: 255 },
   settlement_type: {
     type: String,
+    maxlength: 30,
     enum: ["type A", "type B"]
   },
   settlement_amount: { type: Number, required: true },
@@ -44,7 +47,7 @@ const casesettlementSchema = new Schema({
   settlement_plan: [settlementPlanSchema],
   settlement_occured: { type: Date },
   expire_date: { type: Date },
-  remark: { type: String },
+  remark: { type: String, maxlength: 255 },
 },{
     collection: 'Case_settlements',
   }
