@@ -1352,20 +1352,24 @@ router.patch("/Suspend_RTOM", suspend_RTOM);
 // Route to retrieve all active RTOMs by DRC ID
 router.post('/List_ALL_Active_RTOM_Ownned_By_DRC',getAllActiveRTOMsByDRCID);
 
-router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
-
 /**
  * @swagger
- * /api/RTOM/CreateActiveRTOM:
+ * tags:
+ *   - name: RTOM
+ *     description: RTOM-related endpoints, allowing management and registration of RTOMs.
+ * 
+ * /api/RTOM/ListAllRTOMDetails:
  *   post:
- *     summary: Create and register a new RTOM with Active status.
+ *     summary: RTOM-2P05 Retrieve RTOMs with optional status filter and pagination.
  *     description: |
- *       This endpoint registers a new RTOM (Regional Transport Officer Manager) as active.
- *       Generates a new `rtom_id` and stores the entry in the RTOM collection.
+ *       This endpoint retrieves RTOM details from the database. 
+ *       Supports optional filtering by `rtom_status` and paginated results.
+ *       - Page 1 returns 10 records.
+ *       - Page 2 and beyond return 30 records per page.
  *       
- *       | Version | Date       | Description                     | Changed By         |
- *       |---------|------------|---------------------------------|--------------------|
- *       | 01      | 2025-Jun-23| Register active RTOM            | Nimesha Kavindhi  |
+ *       | Version | Date       | Description                               | Changed By         |
+ *       |---------|------------|-------------------------------------------|--------------------|
+ *       | 01      | 2025-Jul-03| Initial version - List RTOMs with filters | Sasindu Srinayaka  |
  *     tags:
  *       - RTOM
  *     requestBody:
@@ -1375,27 +1379,125 @@ router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
  *           schema:
  *             type: object
  *             properties:
- *               billing_center_code:
+ *               rtom_status:
  *                 type: string
- *                 example: BCC001
- *               rtom_name:
- *                 type: string
- *                 example: Colombo North Office
- *               area_code:
- *                 type: string
- *                 example: AC1001
- *               rtom_email:
- *                 type: string
- *                 example: rtom@colombo.gov.lk
- *               rtom_mobile_no:
- *                 type: string
- *                 example: "0712345678"
- *               rtom_telephone_no:
- *                 type: string
- *                 example: "0112345678"
- *               created_by:
- *                 type: string
- *                 example: admin_user
+ *                 description: Optional filter by RTOM status.
+ *                 example: Active
+ *               pages:
+ *                 type: integer
+ *                 description: Page number for pagination.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: RTOM details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: RTOM(s) details retrieved successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rtom_id:
+ *                         type: integer
+ *                         example: 101
+ *                       rtom_status:
+ *                         type: string
+ *                         example: Active
+ *                       billing_center_code:
+ *                         type: string
+ *                         example: BCC123
+ *                       rtom_name:
+ *                         type: string
+ *                         example: Colombo South RTOM
+ *                       area_code:
+ *                         type: string
+ *                         example: AC045
+ *                       rtom_email:
+ *                         type: string
+ *                         example: colombo.south@rtom.lk
+ *                       rtom_mobile_no:
+ *                         type: string
+ *                         example: 0771234567
+ *                       rtom_telephone_no:
+ *                         type: string
+ *                         example: 0112345678
+ *                       created_by:
+ *                         type: string
+ *                         example: admin
+ *                       created_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-06-30T12:00:00Z
+ *                       rtom_end_date:
+ *                         type: string
+ *                         format: date
+ *                         example: 2025-12-31
+ *                       rtom_remarks:
+ *                         type: string
+ *                         example: Operating under full capacity.
+ *       404:
+ *         description: No RTOMs found for the specified criteria.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No RTOM(s) found.
+ *       500:
+ *         description: Internal server error occurred while fetching RTOM details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error occurred while fetching RTOM details.
+ *                 error:
+ *                   type: string
+ *                   example: Error message goes here.
+ */
+
+
+router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
+
+/**
+ * @swagger
+ * /api/RTOM/Create_Active_RTOM:
+ *   post:
+ *     summary: RTOM-1P01 Register a new active RTOM
+ *     description: |
+ *       This endpoint registers a new active RTOM (Regional Territory Operations Manager) with the required details.
+ *       It ensures all mandatory fields are provided, generates a unique RTOM ID, and stores the new RTOM with status "Active".
+ * 
+ *       | Version | Date       | Description                | Changed By         |
+ *       |---------|------------|----------------------------|--------------------|
+ *       | 01      | 2025-Jul-03| Create a new active RTOM   | Sasindu Srinayaka  |
+ *     tags:
+ *       - RTOM
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
  *             required:
  *               - billing_center_code
  *               - rtom_name
@@ -1404,9 +1506,31 @@ router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
  *               - rtom_mobile_no
  *               - rtom_telephone_no
  *               - created_by
+ *             properties:
+ *               billing_center_code:
+ *                 type: string
+ *                 example: "BILL001"
+ *               rtom_name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               area_code:
+ *                 type: string
+ *                 example: "AREA001"
+ *               rtom_email:
+ *                 type: string
+ *                 example: "john.doe@gmail.com"
+ *               rtom_mobile_no:
+ *                 type: string
+ *                 example: "0771234567"
+ *               rtom_telephone_no:
+ *                 type: string
+ *                 example: "0112345678"
+ *               created_by:
+ *                 type: string
+ *                 example: "admin_user"
  *     responses:
  *       201:
- *         description: RTOM successfully created.
+ *         description: RTOM registered successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -1423,37 +1547,37 @@ router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
  *                   properties:
  *                     rtom_id:
  *                       type: integer
- *                       example: 101
+ *                       example: 1
  *                     billing_center_code:
  *                       type: string
- *                       example: BCC001
+ *                       example: "BILL001"
  *                     rtom_name:
  *                       type: string
- *                       example: Colombo North Office
+ *                       example: "John Doe"
  *                     area_code:
  *                       type: string
- *                       example: AC1001
+ *                       example: "AREA001"
  *                     rtom_email:
  *                       type: string
- *                       example: rtom@colombo.gov.lk
+ *                       example: "john.doe@gmail.com"
  *                     rtom_mobile_no:
  *                       type: string
- *                       example: "0712345678"
+ *                       example: "0771234567"
  *                     rtom_telephone_no:
  *                       type: string
  *                       example: "0112345678"
  *                     created_by:
  *                       type: string
- *                       example: admin_user
+ *                       example: "admin_user"
  *                     created_on:
  *                       type: string
  *                       format: date-time
- *                       example: "2025-06-27T12:00:00.000Z"
+ *                       example: "2025-07-03T10:00:00.000Z"
  *                     rtom_status:
  *                       type: string
- *                       example: Active
+ *                       example: "Active"
  *       400:
- *         description: Missing required fields.
+ *         description: Missing required fields for RTOM registration.
  *         content:
  *           application/json:
  *             schema:
@@ -1472,7 +1596,7 @@ router.post('/List_All_RTOM_Details' , ListAllRTOMDetails);
  *                       type: string
  *                       example: All fields are required
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error occurred while registering RTOM.
  *         content:
  *           application/json:
  *             schema:
@@ -1887,6 +2011,155 @@ router.post("/Update_RTOM_Details", UpdateRTOMDetails);
 
 
 router.patch("/Terminate_RTOM", TerminateRTOM);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: RTOM
+ *     description: RTOM-related endpoints, allowing management and registration of RTOMs.
+ * 
+ * /api/RTOM/create:
+ *   post:
+ *     summary: Create a new RTOM record.
+ *     description: |
+ *       This endpoint creates a new RTOM entry in the database with provided details including billing center code, name, area code, contacts, and creator info.
+ *       It performs validation on required fields and checks for duplicate billing center codes. 
+ *       The RTOM ID is auto-generated using a sequence counter.
+ *       Upon successful creation, it returns the newly created RTOM details and aggregation of total RTOMs in the area code.
+ *       
+ *       | Version | Date       | Description                     | Changed By         |
+ *       |---------|------------|---------------------------------|--------------------|
+ *       | 01      | 2025-Jul-03| Create RTOM endpoint added       | Your Name          |
+ *     tags:
+ *       - RTOM
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - billingCenterCode
+ *               - name
+ *               - areaCode
+ *               - email
+ *               - created_by
+ *             properties:
+ *               billingCenterCode:
+ *                 type: string
+ *                 description: Unique billing center code of the RTOM.
+ *                 example: "BC123"
+ *               name:
+ *                 type: string
+ *                 description: Name of the RTOM.
+ *                 example: "John Doe"
+ *               areaCode:
+ *                 type: string
+ *                 description: Area code associated with the RTOM.
+ *                 example: "AREA51"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address of the RTOM.
+ *                 example: "john.doe@example.com"
+ *               mobile:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of mobile phone numbers.
+ *                 example: ["0712345678", "0779876543"]
+ *               telephone:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of telephone numbers.
+ *                 example: ["0112233445"]
+ *               created_by:
+ *                 type: string
+ *                 description: Identifier or name of the user creating the RTOM.
+ *                 example: "admin_user"
+ *     responses:
+ *       201:
+ *         description: RTOM created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: RTOM created successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     rtom_id:
+ *                       type: integer
+ *                       description: Unique identifier of the RTOM.
+ *                       example: 101
+ *                     billing_center_code:
+ *                       type: string
+ *                       example: "BC123"
+ *                     rtom_status:
+ *                       type: string
+ *                       example: Active
+ *                     created_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-07-03T14:22:00Z"
+ *                 aggregation:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Area code
+ *                         example: "AREA51"
+ *                       totalRTOMs:
+ *                         type: integer
+ *                         description: Total RTOMs in the area code
+ *                         example: 12
+ *       400:
+ *         description: Bad request, missing required fields or duplicate billing center code.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: All required fields must be provided.
+ *                 errors:
+ *                   type: object
+ *                   description: Error details
+ *                   example: { field: "Missing required fields" }
+ *       500:
+ *         description: Internal server error while creating RTOM.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to create RTOM.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: "Error message here"
+ */
+
 
 router.post("/createRTOM", createRTOM);
 
