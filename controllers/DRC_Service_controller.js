@@ -1063,3 +1063,122 @@ export const DRC_Agreement_details_list = async (req, res) => {
   }
 };
 
+export const Assign_DRC_To_Agreement = async (req, res) => {
+  
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const {drc_id, remark, assigned_by, start_date, end_date } = req.body;
+    
+    if (!start_date || !drc_id || !end_date || !assigned_by) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "assigned_by, end_date, start_date and drc_id is required.",
+        errors: {
+          code: 400,
+          description: "assigned_by, end_date, start_date and drc_id is required.",
+        },
+      });
+    }
+
+    // Generate a unique approver_id using collection_sequence
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const approver_id = counterResult.seq;
+
+    if (!approver_id) {
+      throw new Error("Failed to generate Task_Id.");
+    }
+
+    const drcAgreementAproveRecode = {
+      approver_id,
+      created_on: new Date(),
+      created_by: assigned_by,
+      approve_status:{
+        status:"Open",
+        status_date:new Date(),
+        status_edit_by:assigned_by,
+      },
+      approver_type:"DRC Re-Assign Approval",
+      parameters:{
+        drc_id,
+      },
+      remark:{
+        remark,
+        remark_date: new Date(),
+        remark_edit_by:assigned_by,
+      },
+    }
+    const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAgreementAproveRecode);
+    await TmpForwardedApproverRespons.save({ session });
+    
+    const drc_agreement = await DRC.findOneAndUpdate({drc_id},
+      {
+        $push:{
+          drc_agreement_details:{
+            agreement_start_dtm:start_date,
+            agreement_update_by:assigned_by,
+            agreement_remark:remark,
+            agreement_end_dtm:end_dtm
+          }
+        },
+      },
+      { new: true, session },
+    );
+    const dynamicParams = {
+      start_date,
+      end_date,
+      drc_id
+    };
+
+    const delegate_id = await getApprovalUserIdService({
+        approval_type: "python"
+    });
+    const result = await createUserInteractionFunction({
+      Interaction_ID:22, 
+      User_Interaction_Type:"python", 
+      delegate_user_id:delegate_id,   
+      Created_By:assigned_by,
+      User_Interaction_Status: "Open",
+      ...dynamicParams,
+      session 
+    });
+
+    if(!result || result.status === "error"){
+      await session.abortTransaction();
+      return res.status(404).json({
+        status: "error",
+        message: "python.",
+      }); 
+    }
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      status: "success",
+      message: "DRC Reassining send to the Aprover.",
+      data: TmpForwardedApproverRespons,
+    }); 
+  }
+  catch (error) {
+    console.error("Error in Reassining send to the Aprover : ", error);
+    await session.abortTransaction();
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while assigning the DRC.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+  finally {
+    session.endSession();
+  }
+};
+

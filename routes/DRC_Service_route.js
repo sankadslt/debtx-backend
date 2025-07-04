@@ -12,7 +12,7 @@ import { Router } from "express";
 import {
 
     getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
-   ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,DRC_Agreement_details_list
+   ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,DRC_Agreement_details_list,Assign_DRC_To_Agreement
 
 } from "../controllers/DRC_Service_controller.js";
 
@@ -1077,5 +1077,8 @@ router.post("/Service_detais_of_the_DRC", Service_detais_of_the_DRC);
  *                   example: Error stack or message here
  */
 router.post("/DRC_Agreement_details_list", DRC_Agreement_details_list);
+
+router.post("/Assign_DRC_To_Agreement", Assign_DRC_To_Agreement);
+
 export default router;
 
