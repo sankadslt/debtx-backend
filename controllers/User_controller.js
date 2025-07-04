@@ -129,6 +129,7 @@ export const List_All_User_Details = async (req, res) => {
           user_type: 1,
           username: 1,
           email: 1,
+          contact_num: 1,
           Created_DTM: 1,
         },
       },
