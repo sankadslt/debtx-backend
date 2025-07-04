@@ -2842,7 +2842,6 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
  * - System_tasks
  */
 export const Validate_Existing_Batch_Task = async (req, res) => {
-  const { case_distribution_batch_id } = req.body;
   console.log("case_distribution_batch_id", req.body);
   if (!case_distribution_batch_id ) {
     return res.status(400).json({
