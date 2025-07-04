@@ -13,7 +13,7 @@ import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
 import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
-
+import user_approve_model from "../models/User_Approval.js"
 // Get all DRC details created on a specific date
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
@@ -1083,40 +1083,56 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       });
     }
 
-    // Generate a unique approver_id using collection_sequence
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "approver_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
     );
 
-    const approver_id = counterResult.seq;
+    const user_approver_id = counterResult.seq;
 
-    if (!approver_id) {
+    if (!user_approver_id) {
       throw new Error("Failed to generate Task_Id.");
     }
+    const approved_Deligated_by = await getApprovalUserIdService({
+        approval_type: "DRC_Agreement"
+    });
+    if(!approved_Deligated_by){
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "There is no valid approved_Deligated_by id",
+      });
+    }
+    const userData = await DRC.findOne({ drc_id }).session(session);
 
-    const drcAgreementAproveRecode = {
-      approver_id,
+    if (!userData) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        status: "error",
+        message: "DRC record not found",
+      });
+    }
+
+    const user_approve_record = new user_approve_model({
+      user_approver_id,
+      User_Type:"DRC",
+      User_id, //python
+      DRC_id:drc_id,
       created_on: new Date(),
       created_by: assigned_by,
-      approve_status:{
-        status:"Open",
-        status_date:new Date(),
-        status_edit_by:assigned_by,
-      },
-      approver_type:"DRC Re-Assign Approval",
-      parameters:{
+      approve_status:"Open",
+      approve_status_on:new Date(),
+      approver_type:"DRC_Agreement",
+      approved_Deligated_by,
+      Parameters:{
         drc_id,
+        start_date,
+        end_date,
       },
-      remark:{
-        remark,
-        remark_date: new Date(),
-        remark_edit_by:assigned_by,
-      },
-    }
-    const TmpForwardedApproverRespons = new TmpForwardedApprover(drcAgreementAproveRecode);
-    await TmpForwardedApproverRespons.save({ session });
+      remark
+    });
+    await user_approve_record.save({ session });
     
     const drc_agreement = await DRC.findOneAndUpdate({drc_id},
       {
@@ -1137,20 +1153,17 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       drc_id
     };
 
-    const delegate_id = await getApprovalUserIdService({
-        approval_type: "python"
-    });
-    const result = await createUserInteractionFunction({
-      Interaction_ID:22, 
+    const interactionResult = await createUserInteractionFunction({
+      Interaction_ID:22, //python
       User_Interaction_Type:"python", 
-      delegate_user_id:delegate_id,   
+      delegate_user_id:approved_Deligated_by,   
       Created_By:assigned_by,
       User_Interaction_Status: "Open",
       ...dynamicParams,
       session 
     });
 
-    if(!result || result.status === "error"){
+    if(!interactionResult || interactionResult.status === "error"){
       await session.abortTransaction();
       return res.status(404).json({
         status: "error",
@@ -1162,7 +1175,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
-      data: TmpForwardedApproverRespons,
+      data: user_approve_record,
     }); 
   }
   catch (error) {
