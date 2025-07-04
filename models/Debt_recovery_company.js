@@ -57,20 +57,20 @@ const serviceSchema = new Schema({
   create_by: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
   create_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   status_update_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   status_update_by: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
 });
 
@@ -151,20 +151,20 @@ const companyStatusSchema = new Schema({
 const agreementDetailsSchema = new Schema({
   agreement_start_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   agreement_end_dtm: {
     type: Date,
-    required: true,
+    defult: null,
   },
   agreement_remark: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
   agreement_update_by: {
     type: String,
-    required: true,
+    default: null,
   }  
 });
 
@@ -218,7 +218,7 @@ const drcSchema = new Schema(
     },
     drc_agreement_details: {
       type: [agreementDetailsSchema],
-      required: true,
+      default: []
     },
     slt_coordinator: {
       type: [coordinatorSchema],
