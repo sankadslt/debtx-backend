@@ -2038,6 +2038,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
     drc_contact_no, 
     drc_email, 
     create_by,
+    drc_status,
     slt_coordinator,
     services,
     rtom
@@ -2045,7 +2046,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
 
   try {
     // Validate required fields
-    if (!drc_name || !drc_business_registration_number || !drc_address || !drc_contact_no || !drc_email || !create_by || !slt_coordinator || !services || !rtom) {
+    if (!drc_name || !drc_business_registration_number || !drc_address || !drc_contact_no || !drc_email || !drc_status || !create_by || !slt_coordinator || !services || !rtom) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
@@ -2055,8 +2056,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       });
     }
 
-    // Default values
-    const drc_status = "Inactive"; // Default to Inactive status
     const create_on = new Date(); // Current date and time
 
     // Connect to MongoDB
@@ -2112,7 +2111,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       drc_address,
       drc_contact_no,
       drc_email,
-      drc_status,
       create_by,
       create_on,
       drc_end_dtm: null,
@@ -2132,6 +2130,11 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         service_status: service.service_status || "Active",
         create_by: service.create_by || create_by,
         create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
+        status_update_dtm: service.status_update_dtm || new Date(),
+        status_update_by: service.status_update_by || create_by
+      })),
+      drc_status: status.map(service => ({
+        drc_status: "Inactive",
         status_update_dtm: service.status_update_dtm || new Date(),
         status_update_by: service.status_update_by || create_by
       })),
