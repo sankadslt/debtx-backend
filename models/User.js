@@ -12,6 +12,7 @@ const contactNumberSchema = new mongoose.Schema({
 const remarkSchema = new mongoose.Schema({
   remark: {
     type: String,
+    maxlength: 255,
     required: true,
   },
   remark_dtm: {
@@ -20,6 +21,7 @@ const remarkSchema = new mongoose.Schema({
   },
   remark_by: {
     type: String,
+    maxlength: 30,
     required: true,
   },
 });
@@ -39,33 +41,40 @@ const userSchema = new mongoose.Schema(
     },
     user_id: {
       type: String,
+      maxlength: 30,
       required: true,
       unique: true,
     },
     user_type: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: ["Slt", "Drcuser", "ro"],
     },
     username: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     email: {
       type: String,
+      maxlength: 30,
       required: true,
       unique: true,
     },
     contact_num: {
       type: [contactNumberSchema],
+      required: true,
     },
     login_method: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: ["slt", "gmail", "mobile"],
     },
     role: {
       type: String,
+      maxlength: 30,
       enum: [
         "GM",
         "DGM",
@@ -93,11 +102,13 @@ const userSchema = new mongoose.Schema(
     },
     User_Status_Type: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: ["user_update", "DRC_Update", "RO_update"],
     },
     user_status: {
       type: String,
+      maxlength: 30,
       required: true,
       enum: ["Active", "Inactive", "Terminate"],
     },
@@ -107,6 +118,7 @@ const userSchema = new mongoose.Schema(
     },
     User_Status_By: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     User_End_DTM: {
@@ -115,10 +127,12 @@ const userSchema = new mongoose.Schema(
     },
     User_End_By: {
       type: String,
+      maxlength: 30,
       default: null,
     },
     Created_BY: {
       type: String,
+      maxlength: 30,
       required: true,
     },
     Created_DTM: {
@@ -127,6 +141,7 @@ const userSchema = new mongoose.Schema(
     },
     Approved_By: {
       type: String,
+      maxlength: 30,
       default: null,
     },
     Approved_DTM: {
@@ -139,6 +154,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
+      maxlength: 30,
       required: true,
     }, //need to be remove
   },

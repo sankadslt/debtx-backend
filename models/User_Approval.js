@@ -15,6 +15,7 @@ const userApprovalSchema = new Schema(
     },
     user_type: { 
       type: String, 
+      maxlength: 30,
       required: true, 
       enum: [ 'RO', 'drcUser'] 
     },
@@ -32,23 +33,34 @@ const userApprovalSchema = new Schema(
     },
     user_name: { 
       type: String, 
+      maxlength: 30,
       required: true
     },
     user_role: {
       type: String, 
+      maxlength: 30,
       required: true, 
       enum: [ "DRC_Coodinator", "RO"] 
     },
-    login_email: {
-      type: String,
-      default: null,
-    },
-    login_contact_no: {
-      type: String,
-      required: true,
-    },
+    // login_email: {
+    //   type: String,
+    //   maxlength: 30,
+    //   default: null,
+    // },
+    // login_contact_no: {
+    //   type: String,
+    //   maxlength: 30,
+    //   required: true,
+    // },
+    // drcUser_status: {
+    //   type: String,
+    //   maxlength: 30,
+    //   enum: ['Active', 'Inactive', 'Terminate'],
+    //   default: "Active",
+    // },
     created_by: { 
       type: String, 
+      maxlength: 30,
       required: true 
     },
     created_dtm: { 
@@ -57,15 +69,23 @@ const userApprovalSchema = new Schema(
     },
     approve_status: { 
       type: String, 
+      maxlength: 30,
       default: null 
     },
     approve_by: { 
-      type: String, 
+      type: String,
+      maxlength: 30, 
       default: null 
     },
     approve_dtm: {
       type: Date, 
       default: null 
+    },
+    parameters: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
+      default: {},
+      default: {},
     }
   },
   {
