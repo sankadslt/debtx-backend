@@ -64,6 +64,7 @@ const userSchema = new mongoose.Schema(
     },
     contact_num: {
       type: [contactNumberSchema],
+      required: true,
     },
     login_method: {
       type: String,
