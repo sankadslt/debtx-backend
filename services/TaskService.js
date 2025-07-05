@@ -85,7 +85,7 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
     //     error: error.message,
     //   };
 
-    throw new Error(error.message || "Internal Server Error");
+    throw new Error("Failed to create task.");
     }
   };
 
