@@ -1299,13 +1299,18 @@ export const TerminateRTOM = async (req, res) => {
       return res.status(400).json({ message: 'Remarks must be a non-empty array' });
     }
 
+    // Perform the update with $push to append remarks
     const result = await Rtom.findOneAndUpdate(
       { rtom_id: rtom_id },
       {
-        rtom_status: 'Terminate',
-        rtom_end_date,
-        rtom_end_by,
-        rtom_remarks
+        $set: {
+          rtom_status: 'Terminate',
+          rtom_end_date,
+          rtom_end_by
+        },
+        $push: {
+          rtom_remarks: { $each: rtom_remarks }
+        }
       },
       { new: true, session }
     );
