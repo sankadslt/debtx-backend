@@ -148,7 +148,7 @@ export const createTask = async (req, res) => {
         Task_Id, 
         Template_Task_Id,
         task_type,
-        dynamicParams, // Accept dynamic parameters
+        dynamicParams, 
         Created_By 
       });
     } catch (error) {
