@@ -662,16 +662,17 @@ export const Update_User_Details = async (req, res) => {
 //   }
 // };
 
-
 export const List_User_Approval_Details = async (req, res) => {
   try {
-    const { user_type, from_date, to_date, pages } = req.body;
+    const { user_type, from_date, to_date, page } = req.body;
 
+    console.log("Payload:" ,req.body);
+    
     // Pagination logic
-    let page = Number(pages);
-    if (isNaN(page) || page < 1) page = 1;
-    const limit = page === 1 ? 10 : 30;
-    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+    let currentPage = Number(page);
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    const limit = currentPage === 1 ? 10 : 30;
+    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
     const query = {};
 

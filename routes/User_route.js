@@ -637,6 +637,6 @@ router.patch('/End_User', End_User);
 
 // router.post('/Create_User', Create_User);
 
-router.get('/List_User_Approval_Details', List_User_Approval_Details);
+router.post('/List_User_Approval_Details', List_User_Approval_Details);
 
 export default router;
