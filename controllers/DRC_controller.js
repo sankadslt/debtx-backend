@@ -1493,8 +1493,7 @@ export const List_All_DRC_Details = async (req, res) => {
       });
     }
 
-    const countResult = await DRC.aggregate(pipeline);
-    const totalCount = countResult[0]?.total || 0;
+    const totalCount = drcData.length;
 
     return res.status(200).json({
       status: "success",
