@@ -57,20 +57,20 @@ const serviceSchema = new Schema({
   create_by: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
   create_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   status_update_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   status_update_by: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
 });
 
@@ -134,9 +134,7 @@ const remarkSchema = new Schema({
 const companyStatusSchema = new Schema({
   drc_status: {
     type: String,
-    maxlength: 255,
     enum: ["Active", "Inactive", "Terminate"],
-    required: true,
     default: "Inactive",
   },
   drc_status_dtm: {
@@ -145,7 +143,6 @@ const companyStatusSchema = new Schema({
   },
   drc_status_by: {
     type: String,
-    maxlength: 255,
     required: true,
   },
 });
@@ -154,20 +151,20 @@ const companyStatusSchema = new Schema({
 const agreementDetailsSchema = new Schema({
   agreement_start_dtm: {
     type: Date,
-    required: true,
+    default: null,
   },
   agreement_end_dtm: {
     type: Date,
-    required: true,
+    defult: null,
   },
   agreement_remark: {
     type: String,
     maxlength: 255,
-    required: true,
+    default: null,
   },
   agreement_update_by: {
     type: String,
-    required: true,
+    default: null,
   }  
 });
 
@@ -206,10 +203,6 @@ const drcSchema = new Schema(
       unique: true,
       required: true,
     },
-    drc_status: {
-      type: [companyStatusSchema],
-      required: true,
-    },
     drc_end_dtm: {
       type: Date,
       default: null
@@ -219,9 +212,13 @@ const drcSchema = new Schema(
       maxlength: 255,
       default: null
     },
+    status: {
+      type: [companyStatusSchema],
+      required: true,
+    },
     drc_agreement_details: {
       type: [agreementDetailsSchema],
-      required: true,
+      default: []
     },
     slt_coordinator: {
       type: [coordinatorSchema],

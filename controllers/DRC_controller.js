@@ -719,31 +719,62 @@ export const getDRCDetailsById = async(req, res) => {
 //  * - Returns a success response with the list of DRC records having drc_status equal to 'Active',
 //  *   excluding the 'services_of_drc' field from each record.
 //  */
-export const getActiveDRCDetails= async(req, res) => {
 
-  //let mysqlData = null;
-  let mongoData = null;
+// export const getActiveDRCDetails= async(req, res) => {
+//   let mongoData = null;
+//   try {
+//     mongoData = await DRC.find({
+//       drc_status:{ $elemMatch: { drc_status: 'Active' } }
+//     }).select('-services_of_drc');
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message,
+//       errors: {
+//         code: 500,
+//         description: "Internal server error occurred while fetching DRC details.",
+//       },
+//     });
+//   }
+//   return res.status(200).json({
+//     status: "success",
+//     message: "DRC details retrieved successfully.",
+//     data: {
+//       mongoData: mongoData,
+      
+//     },
+//   });
+// };
 
-  // try {
-  //   mysqlData = await new Promise((resolve, reject) => {
-  //     const select_query = `SELECT * FROM debt_recovery_company
-  //                           WHERE drc_status='Active'`;
-  //     db.mysqlConnection.query(select_query, (err, result) => {
-  //       if (err) {
-  //         return reject(new Error("Error retieving DRC details"));
-  //       }
-  //       resolve(result);
-  //     });
-  //   });
-  // } catch (error) {
-  //   console.error("MySQL fetch error:", error.message);
-  // }
-
-  
+export const getActiveDRCDetails = async (req, res) => {
   try {
-    mongoData = await DRC.find({
-      drc_status:{ $elemMatch: { drc_status: 'Active' } }
-    }).select('-services_of_drc');
+    const mongoData = await DRC.aggregate([
+      { $unwind: "$drc_status" },
+      { $sort: { "drc_status.drc_status_dtm": -1 } },
+      {
+        $group: {
+          _id: "$_id",
+          latestStatus: { $first: "$drc_status" },
+          drc_name: { $first: "$drc_name" },
+          drc_id: { $first: "$drc_id" }
+        }
+      },
+      { $match: { "latestStatus.drc_status": "Active" } },
+      {
+        $project: {
+          _id: 0,
+          drc_name: 1,
+          drc_id: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Active DRC names and IDs retrieved successfully.",
+      data: { mongoData }
+    });
+
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -754,28 +785,10 @@ export const getActiveDRCDetails= async(req, res) => {
       },
     });
   }
-
-  // if (!mysqlData || mysqlData.length === 0) {
-  //   return res.status(500).json({
-  //     status: "error",
-  //     message: "Failed to retrieve DRC details.",
-  //     errors: {
-  //       code: 500,
-  //       description: "Internal server error occurred while fetching DRC details.",
-  //     },
-  //   });
-  // }
-
-  return res.status(200).json({
-    status: "success",
-    message: "DRC details retrieved successfully.",
-    data: {
-      mongoData: mongoData,
-      
-    },
-  });
-
 };
+
+
+
 
 // export const getDRCWithServicesByDRCId = async(req, res) => {
 
@@ -1389,7 +1402,11 @@ export const List_All_DRC_Details = async (req, res) => {
   try {
     const { status, page } = req.body;
 
-    // Build the base pipeline
+    let currentPage = Number(page);
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    const limit = currentPage === 1 ? 10 : 30;
+    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+
     const pipeline = [
       {
         $lookup: {
@@ -1401,46 +1418,64 @@ export const List_All_DRC_Details = async (req, res) => {
       },
       {
         $addFields: {
-          ro_count: { $size: "$ros" },
-          current_status: { $arrayElemAt: ["$drc_status.drc_status", -1] }
-        }
-      }
-    ];
-
-    // Add status filter if provided
-    if (status) {
-      pipeline.unshift({
-        $match: {
-          "drc_status": {
-            $elemMatch: {
-              "drc_status": status
+          last_status: {
+            $cond: {
+              if: { $and: [{ $isArray: "$status" }, { $gt: [{ $size: "$status" }, 0] }] },
+              then: {
+                $arrayElemAt: [
+                  "$status",
+                  { $subtract: [{ $size: "$status" }, 1] }
+                ]
+              },
+              else: null
             }
-          }
+          },
+        },
+      },
+      // Add status filtering after calculating last_status
+      ...(status ? [{ $match: { "last_status.drc_status": status } }] : []),
+      {
+        $lookup: {
+          from: "Recovery_officer",
+          localField: "drc_id",
+          foreignField: "drc_id",
+          as: "ros",
+        },
+      },
+      {
+        $addFields: {
+          ro_count: { $size: "$ros" },
         }
-      });
-    }
-
-    // Pagination setup
-    let currentPage = Number(page) || 1;
-    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
-    const limit = currentPage === 1 ? 10 : 30;
-    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
-
-    // Add remaining pipeline stages
-    pipeline.push(
+      },
       {
         $project: {
           _id: 0,
           drc_id: 1,
           drc_name: 1,
           drc_email: 1,
-          drc_status: "$current_status",
-          drc_contact_no: 1,
+          status: "$last_status.drc_status",
+          drc_contact_no: "$drc_contact_no",
           drc_business_registration_number: 1,
-          service_count: { $size: { $ifNull: ["$services", []] } },
+          service_count: { 
+            $size: { 
+              $cond: {
+                if: { $isArray: "$services" },
+                then: "$services",
+                else: []
+              }
+            }
+          },
           ro_count: 1,
-          rtom_count: { $size: { $ifNull: ["$rtom", []] } },
-          created_on: 1,
+          rtom_count: { 
+            $size: { 
+              $cond: {
+                if: { $isArray: "$rtom" },
+                then: "$rtom",
+                else: []
+              }
+            }
+          },
+          created_on: "$createdAt",
         }
       },
       { $sort: { drc_id: -1 } },
@@ -1471,6 +1506,8 @@ export const List_All_DRC_Details = async (req, res) => {
       });
     }
 
+    const totalCount = drcData.length;
+
     return res.status(200).json({
       status: "success",
       message: "DRC details fetched successfully",
@@ -1479,11 +1516,7 @@ export const List_All_DRC_Details = async (req, res) => {
         total: totalCount,
         page: currentPage,
         perPage: limit,
-        totalPages: Math.ceil(
-          totalCount <= 10
-            ? totalCount / 10
-            : (totalCount - 10) / 30 + 1
-        ),
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {
@@ -1499,6 +1532,7 @@ export const List_All_DRC_Details = async (req, res) => {
     });
   }
 };
+
 
 export const DRCRemarkDetailsById = async (req, res) => {
   try {
@@ -2185,9 +2219,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       drc_address,
       drc_contact_no,
       drc_email,
-      drc_status: drcStatus, // Now properly formatted as array of embedded docs
-      create_by,
-      create_on: currentDate,
       drc_end_dtm: null,
       drc_end_by: null,
       drc_agreement_details: agreementDetails, // Added required agreement details
@@ -2195,31 +2226,29 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         service_no: coord.service_no,
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
-        coordinator_create_dtm: coord.coordinator_create_dtm || currentDate,
-        coordinator_create_by: coord.coordinator_create_by || create_by,
-        coordinator_end_by: coord.coordinator_end_by || null,
-        coordinator_end_dtm: coord.coordinator_end_dtm || null
+        coordinator_create_dtm: new Date(),
+        coordinator_create_by: create_by,
       })),
       services: services.map(service => ({
         service_id: service.service_id,
         service_type: service.service_type,
         service_status: service.service_status || "Active",
-        create_by: service.create_by || create_by,
-        create_on: service.create_on || currentDate, // Changed from moment() to currentDate
-        create_dtm: service.create_dtm || currentDate, // Added missing create_dtm field
-        status_update_dtm: service.status_update_dtm || currentDate,
-        status_update_by: service.status_update_by || create_by
+        create_by: create_by,
+        create_dtm: new Date(),
       })),
+      drc_status: {
+        drc_status: "Inactive",
+        drc_status_dtm: new Date(),
+        drc_status_by: create_by
+      },
       rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,
-        rtom_status: r.rtom_status || "Active",
+        rtom_status: "Active",
         rtom_billing_center_code: r.rtom_billing_center_code,
-        create_by: r.create_by || create_by,
-        create_dtm: r.create_dtm || currentDate,
-        handling_type: r.handling_type, // Fixed typo from 'handling_type' to match your model
-        status_update_by: r.status_update_by || create_by,
-        status_update_dtm: r.status_update_dtm || currentDate
+        handling_type: r.handling_type,
+        status_update_by: create_by,
+        status_update_dtm: new Date()
       }))
     });
 
@@ -2236,8 +2265,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         drc_address,
         drc_contact_no,
         drc_email,
-        create_by,
-        create_on: currentDate,
+        drc_status: newDRC.drc_status,
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom
