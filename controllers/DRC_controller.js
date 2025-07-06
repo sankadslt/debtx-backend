@@ -1650,6 +1650,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_email: 1,
           drc_address: 1,
           drc_status: 1,
+          drc_end_dtm:1,
 
 
           slt_coordinator: {
@@ -2054,10 +2055,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       });
     }
 
-    // Default values
-    const drc_status = "Inactive"; // Default to Inactive status
-    const create_on = new Date(); // Current date and time
-
     // Connect to MongoDB
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
@@ -2111,39 +2108,35 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       drc_address,
       drc_contact_no,
       drc_email,
-      drc_status,
-      create_by,
-      create_on,
       drc_end_dtm: null,
       drc_end_by: null,
       slt_coordinator: slt_coordinator.map(coord => ({
         service_no: coord.service_no,
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
-        coordinator_create_dtm: coord.coordinator_create_dtm || new Date(),
-        coordinator_create_by: coord.coordinator_create_by || create_by,
-        coordinator_end_by: coord.coordinator_end_by || null,
-        coordinator_end_dtm: coord.coordinator_end_dtm || null
+        coordinator_create_dtm: new Date(),
+        coordinator_create_by: create_by,
       })),
       services: services.map(service => ({
         service_id: service.service_id,
         service_type: service.service_type,
         service_status: service.service_status || "Active",
-        create_by: service.create_by || create_by,
-        create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
-        status_update_dtm: service.status_update_dtm || new Date(),
-        status_update_by: service.status_update_by || create_by
+        create_by: create_by,
+        create_dtm: new Date(),
+      })),
+      drc_status: drc_status.map(status => ({
+        drc_status: "Inactive",
+        drc_status_dtm: new Date(),
+        drc_status_by: create_by
       })),
       rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,
-        rtom_status: r.rtom_status || "Active",
+        rtom_status: "Active",
         rtom_billing_center_code: r.rtom_billing_center_code,
-        create_by: r.create_by || create_by,
-        create_dtm: r.create_dtm || new Date(),
         handling_type: r.handling_type,
-        status_update_by: r.status_update_by || create_by,
-        status_update_dtm: r.status_update_dtm || new Date()
+        status_update_by: create_by,
+        status_update_dtm: new Date()
       }))
     });
 
@@ -2160,9 +2153,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         drc_address,
         drc_contact_no,
         drc_email,
-        drc_status,
-        create_by,
-        create_on,
+        drc_status: newDRC.drc_status,
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom
