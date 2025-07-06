@@ -2172,7 +2172,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         create_by: create_by,
         create_dtm: new Date(),
       })),
-      drc_status: {
+      status: {
         drc_status: "Inactive",
         drc_status_dtm: new Date(),
         drc_status_by: create_by
@@ -2201,7 +2201,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         drc_address,
         drc_contact_no,
         drc_email,
-        drc_status: newDRC.drc_status,
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom
