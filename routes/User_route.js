@@ -12,7 +12,7 @@
 
 // user_route.mjs
 import { Router } from "express";
-import { End_User, getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID, Update_User_Details } from "../controllers/User_controller.js";
+import { End_User, getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID, Update_User_Details, List_User_Approval_Details } from "../controllers/User_controller.js";
  
 const router = Router();
 
@@ -634,5 +634,9 @@ router.patch('/Update_User_Details', Update_User_Details);
  *                   example: Error message from the server
  */
 router.patch('/End_User', End_User);
+
+// router.post('/Create_User', Create_User);
+
+router.get('/List_User_Approval_Details', List_User_Approval_Details);
 
 export default router;
