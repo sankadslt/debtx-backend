@@ -401,7 +401,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
       },
       {
         $addFields: {
-          user_count: {
+          drc_coordinator: {
             $cond: {
               if: { $isArray: "$users" },
               then: {
@@ -432,7 +432,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_address: 1,
           drc_terminate_dtm: 1,
           status: "$last_status.drc_status",
-          user_count: 1,
+          drc_coordinator: 1,
           drc_agreement_details: {
             $cond: {
               if: { $isArray: "$drc_agreement_details" },
@@ -461,8 +461,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     service_no: "$$coord.service_no",
                     slt_coordinator_name: "$$coord.slt_coordinator_name",
-                    slt_coordinator_email: "$$coord.slt_coordinator_email",
-                    
+                    slt_coordinator_email: "$$coord.slt_coordinator_email"
                   }
                 }
               },
@@ -496,39 +495,33 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     rtom_name: "$$r.rtom_name",
                     status_update_dtm: "$$r.status_update_dtm",
+                     handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",
-                    handling_type: "$$r.handling_type"
                   }
                 }
               },
               else: []
             }
           },
-
           remark: {
             $cond: {
               if: { $isArray: "$remark" },
               then: {
                 $map: {
-                  input: {
-                    $sortArray: {
-                      input: "$remark",
-                      sortBy: { remark_dtm: -1 } // sort
-                    }
-                  },
-                  as: "rmk",
+                  input: "$remark",
+                  as: "r",
                   in: {
-                    remark: "$$rmk.remark",
-                    remark_dtm: "$$rmk.remark_dtm",
-                    remark_by: "$$rmk.remark_by"
+                    remark: "$$r.remark",
+                     remark_dtm: "$$r.remark_dtm",
+                    remark_by: "$$r.remark_by",
                   }
                 }
               },
               else: []
             }
-          }
-        }
-      }
+          },
+        },
+      },
     ]);
 
     if (result.length === 0) {
@@ -538,18 +531,10 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
       });
     }
 
-    
-    const sortedResult = {
-      ...result[0],
-      remark: Array.isArray(result[0].remark) 
-        ? result[0].remark.sort((a, b) => new Date(b.remark_dtm) - new Date(a.remark_dtm))
-        : []
-    };
-
     return res.status(200).json({
       status: "success",
       message: "DRC summary retrieved successfully.",
-      data: sortedResult,
+      data: result[0],
     });
   } catch (error) {
     console.error("Internal Server Error", error);
@@ -806,6 +791,8 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       $set: {
         drc_end_dtm: terminate_dtm,
         drc_end_by: terminate_by,
+        drc_terminate_dtm: terminate_dtm,  // Added
+        drc_terminate_by: terminate_by     // Added 
       },
       $push: {
         remark: {
