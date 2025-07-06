@@ -361,6 +361,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
   3. Return the result in a clean, structured response.
   4. Handle all errors with appropriate logging and status codes.
 */
+
 export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
@@ -798,6 +799,8 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
 
     const terminateDate = new Date(terminate_dtm);
     const today = new Date();
+    terminateDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
     const updateterminates = {
       $set: {
@@ -813,8 +816,8 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       },
     };
 
-    if (terminateDate = today) {
-      updates.$push.drc_status = {
+    if (terminateDate.getTime() === today.getTime()) {
+      updateterminates.$push.status = {
         drc_status: "Terminate",
         drc_status_dtm: new Date(),
         drc_status_by: terminate_by,
@@ -839,6 +842,7 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     });
   }
 };
+
 
 export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
