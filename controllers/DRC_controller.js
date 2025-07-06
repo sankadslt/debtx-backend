@@ -719,31 +719,62 @@ export const getDRCDetailsById = async(req, res) => {
 //  * - Returns a success response with the list of DRC records having drc_status equal to 'Active',
 //  *   excluding the 'services_of_drc' field from each record.
 //  */
-export const getActiveDRCDetails= async(req, res) => {
 
-  //let mysqlData = null;
-  let mongoData = null;
+// export const getActiveDRCDetails= async(req, res) => {
+//   let mongoData = null;
+//   try {
+//     mongoData = await DRC.find({
+//       drc_status:{ $elemMatch: { drc_status: 'Active' } }
+//     }).select('-services_of_drc');
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message,
+//       errors: {
+//         code: 500,
+//         description: "Internal server error occurred while fetching DRC details.",
+//       },
+//     });
+//   }
+//   return res.status(200).json({
+//     status: "success",
+//     message: "DRC details retrieved successfully.",
+//     data: {
+//       mongoData: mongoData,
+      
+//     },
+//   });
+// };
 
-  // try {
-  //   mysqlData = await new Promise((resolve, reject) => {
-  //     const select_query = `SELECT * FROM debt_recovery_company
-  //                           WHERE drc_status='Active'`;
-  //     db.mysqlConnection.query(select_query, (err, result) => {
-  //       if (err) {
-  //         return reject(new Error("Error retieving DRC details"));
-  //       }
-  //       resolve(result);
-  //     });
-  //   });
-  // } catch (error) {
-  //   console.error("MySQL fetch error:", error.message);
-  // }
-
-  
+export const getActiveDRCDetails = async (req, res) => {
   try {
-    mongoData = await DRC.find({
-      drc_status:{ $elemMatch: { drc_status: 'Active' } }
-    }).select('-services_of_drc');
+    const mongoData = await DRC.aggregate([
+      { $unwind: "$drc_status" },
+      { $sort: { "drc_status.drc_status_dtm": -1 } },
+      {
+        $group: {
+          _id: "$_id",
+          latestStatus: { $first: "$drc_status" },
+          drc_name: { $first: "$drc_name" },
+          drc_id: { $first: "$drc_id" }
+        }
+      },
+      { $match: { "latestStatus.drc_status": "Active" } },
+      {
+        $project: {
+          _id: 0,
+          drc_name: 1,
+          drc_id: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Active DRC names and IDs retrieved successfully.",
+      data: { mongoData }
+    });
+
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -754,28 +785,10 @@ export const getActiveDRCDetails= async(req, res) => {
       },
     });
   }
-
-  // if (!mysqlData || mysqlData.length === 0) {
-  //   return res.status(500).json({
-  //     status: "error",
-  //     message: "Failed to retrieve DRC details.",
-  //     errors: {
-  //       code: 500,
-  //       description: "Internal server error occurred while fetching DRC details.",
-  //     },
-  //   });
-  // }
-
-  return res.status(200).json({
-    status: "success",
-    message: "DRC details retrieved successfully.",
-    data: {
-      mongoData: mongoData,
-      
-    },
-  });
-
 };
+
+
+
 
 // export const getDRCWithServicesByDRCId = async(req, res) => {
 
