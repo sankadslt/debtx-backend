@@ -151,25 +151,18 @@ export const List_All_DRC_Details = async (req, res) => {
 
     const drcData = await DRC.aggregate(pipeline);
 
-    if (!drcData || drcData.length === 0) {
-      return res.status(404).json({
-        status: "success",
-        message: "No matching DRC records found.",
-        data: [],
-      });
-    }
-
-    const totalCount = drcData.length;
-
     return res.status(200).json({
       status: "success",
-      message: "DRC details fetched successfully",
+      message: drcData.length === 0 
+        ? status 
+          ? `No ${status} DRCs found` 
+          : "No DRCs available"
+        : "DRC details fetched successfully",
       data: drcData,
       pagination: {
-        total: totalCount,
+        total: drcData.length,
         page: currentPage,
         perPage: limit,
-        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {
