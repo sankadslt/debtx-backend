@@ -610,11 +610,6 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     // Create update object
     const updateObject = {};
 
-    // Update status information if provided
-    if (status !== undefined) {
-      updateObject.status.drc_status = status;
-    }
-    
     // Update contact information if provided
     if (drc_contact_no !== undefined) {
       updateObject.drc_contact_no = drc_contact_no;
@@ -671,6 +666,23 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     }
 
     // Add remark if provided
+    if (status) {
+      await DRC.findOneAndUpdate(
+        { drc_id },
+        {
+          $push: {
+            status: {
+              drc_status: status,
+              drc_status_dtm: new Date(),
+              drc_status_by: updated_by,
+            },
+          },
+        },
+        { new: true }
+      );
+    }
+
+    // Add remark if provided
     if (remark) {
       await DRC.findOneAndUpdate(
         { drc_id },
@@ -678,7 +690,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
           $push: {
             remark: {
               remark: remark,
-              remark_dtm: currentDate,
+              remark_dtm: new Date(),
               remark_by: updated_by,
             },
           },
