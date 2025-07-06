@@ -1389,16 +1389,12 @@ export const List_All_DRC_Details = async (req, res) => {
   try {
     const { status, page } = req.body;
 
-    const query = {};
-    if (status) query.drc_status = status;
-
     let currentPage = Number(page);
     if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
     const limit = currentPage === 1 ? 10 : 30;
     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
     const pipeline = [
-      { $match: query },
       {
         $lookup: {
           from: "Recovery_officer",
@@ -1409,7 +1405,33 @@ export const List_All_DRC_Details = async (req, res) => {
       },
       {
         $addFields: {
-          ro_count: { $size: "$ros" }
+          last_status: {
+            $cond: {
+              if: { $and: [{ $isArray: "$status" }, { $gt: [{ $size: "$status" }, 0] }] },
+              then: {
+                $arrayElemAt: [
+                  "$status",
+                  { $subtract: [{ $size: "$status" }, 1] }
+                ]
+              },
+              else: null
+            }
+          },
+        },
+      },
+      // Add status filtering after calculating last_status
+      ...(status ? [{ $match: { "last_status.drc_status": status } }] : []),
+      {
+        $lookup: {
+          from: "Recovery_officer",
+          localField: "drc_id",
+          foreignField: "drc_id",
+          as: "ros",
+        },
+      },
+      {
+        $addFields: {
+          ro_count: { $size: "$ros" },
         }
       },
       {
@@ -1418,13 +1440,29 @@ export const List_All_DRC_Details = async (req, res) => {
           drc_id: 1,
           drc_name: 1,
           drc_email: 1,
-          drc_status: 1,
+          status: "$last_status.drc_status",
           drc_contact_no: "$drc_contact_no",
           drc_business_registration_number: 1,
-          service_count: { $size: { $ifNull: ["$services", []] } },
+          service_count: { 
+            $size: { 
+              $cond: {
+                if: { $isArray: "$services" },
+                then: "$services",
+                else: []
+              }
+            }
+          },
           ro_count: 1,
-          rtom_count: { $size: { $ifNull: ["$rtom", []] } },
-          created_on: 1,
+          rtom_count: { 
+            $size: { 
+              $cond: {
+                if: { $isArray: "$rtom" },
+                then: "$rtom",
+                else: []
+              }
+            }
+          },
+          created_on: "$createdAt",
         }
       },
       { $sort: { drc_id: -1 } },
@@ -1442,7 +1480,8 @@ export const List_All_DRC_Details = async (req, res) => {
       });
     }
 
-    const totalCount = await DRC.countDocuments(query);
+    const countResult = await DRC.aggregate(pipeline);
+    const totalCount = countResult[0]?.total || 0;
 
     return res.status(200).json({
       status: "success",
@@ -1452,11 +1491,7 @@ export const List_All_DRC_Details = async (req, res) => {
         total: totalCount,
         page: currentPage,
         perPage: limit,
-        totalPages: Math.ceil(
-          totalCount <= 10
-            ? totalCount / 10
-            : (totalCount - 10) / 30 + 1
-        ),
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {
@@ -1471,6 +1506,7 @@ export const List_All_DRC_Details = async (req, res) => {
     });
   }
 };
+
 
 export const DRCRemarkDetailsById = async (req, res) => {
   try {
@@ -2124,11 +2160,11 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         create_by: create_by,
         create_dtm: new Date(),
       })),
-      drc_status: drc_status.map(status => ({
+      drc_status: {
         drc_status: "Inactive",
         drc_status_dtm: new Date(),
         drc_status_by: create_by
-      })),
+      },
       rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,

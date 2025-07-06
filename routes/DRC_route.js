@@ -12,25 +12,6 @@
     Notes:  
 */
 
-
-
-// import { Router } from "express";
-// import { registerDRC, getDRCDetails,updateDRCDetails, getDRCDetailsById, updateDRCStatus, addServiceToDRC,updateServiceStatusOnDRC} from "../controllers/DRC_controller.js";
-
-
-// const router = Router();
-
-// router.post("/Register_DRC", registerDRC);
-// router.put("/updateDRCStatus", updateDRCStatus);
-// router.get("/getDRCDetails", getDRCDetails);
-// router.put("/updateDRCDetails", updateDRCDetails);
-// router.get("/getDRCDetailsById/:drc_id", getDRCDetailsById);
-// router.post("/addServiceToDRC", addServiceToDRC);
-// router.put("/updateServiceStatusOnDRC", updateServiceStatusOnDRC);
-
-
-// export default router;
-
 import { Router } from "express"; 
 import {
   getDRCWithServices,
@@ -39,19 +20,12 @@ import {
   getDRCDetails,
   getDRCDetailsById,
   getActiveDRCDetails,
-
   endDRC,
   DRCRemarkDetailsById,
+  
   List_All_DRC_Details , 
   List_RTOM_Details_Owen_By_DRC_ID , 
   List_Service_Details_Owen_By_DRC_ID,
-
-  // endDRC,
-  // DRCRemarkDetailsById,
-
-
-  
-  getUserIdOwnedByDRCId,
   Create_DRC_With_Services_and_SLT_Coordinator,
   List_DRC_Details_By_DRC_ID,
   Terminate_Company_By_DRC_ID,

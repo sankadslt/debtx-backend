@@ -203,10 +203,6 @@ const drcSchema = new Schema(
       unique: true,
       required: true,
     },
-    drc_status: {
-      type: [companyStatusSchema],
-      required: true,
-    },
     drc_end_dtm: {
       type: Date,
       default: null
@@ -215,6 +211,10 @@ const drcSchema = new Schema(
       type: String,
       maxlength: 255,
       default: null
+    },
+    status: {
+      type: [companyStatusSchema],
+      required: true,
     },
     drc_agreement_details: {
       type: [agreementDetailsSchema],
