@@ -7,7 +7,8 @@
     Related Files: DRC_route.js
     Notes:  
 */
-
+import { getApprovalUserIdService } from "../services/ApprovalService.js";
+import mongoose from "mongoose";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
@@ -1082,7 +1083,10 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         },
       });
     }
-
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "approver_id" },
       { $inc: { seq: 1 } },
@@ -1104,20 +1108,10 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         message: "There is no valid approved_Deligated_by id",
       });
     }
-    const userData = await DRC.findOne({ drc_id }).session(session);
-
-    if (!userData) {
-      await session.abortTransaction();
-      return res.status(404).json({
-        status: "error",
-        message: "DRC record not found",
-      });
-    }
 
     const user_approve_record = new user_approve_model({
       user_approver_id,
       User_Type:"DRC",
-      User_id, //python
       DRC_id:drc_id,
       created_on: new Date(),
       created_by: assigned_by,
@@ -1141,7 +1135,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
             agreement_start_dtm:start_date,
             agreement_update_by:assigned_by,
             agreement_remark:remark,
-            agreement_end_dtm:end_dtm
+            agreement_end_dtm:end_date
           }
         },
       },
@@ -1179,7 +1173,6 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     }); 
   }
   catch (error) {
-    console.error("Error in Reassining send to the Aprover : ", error);
     await session.abortTransaction();
     return res.status(500).json({
       status: "error",
