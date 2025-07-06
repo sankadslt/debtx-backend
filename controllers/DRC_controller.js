@@ -74,14 +74,6 @@ export const List_All_DRC_Details = async (req, res) => {
     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
 
     const pipeline = [
-      // {
-      //   $lookup: {
-      //     from: "Recovery_officer",
-      //     localField: "drc_id",
-      //     foreignField: "drc_id",
-      //     as: "ros",
-      //   },
-      // },
       {
         $addFields: {
           last_status: {
@@ -598,7 +590,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     console.log("Request body:", req.body);
 
     // Validate required fields
-    if (!drc_id || !updated_by) {
+    if (!drc_id || !updated_by || !remark) {
       return res.status(400).json({
         status: "error",
         message: "DRC ID and updated_by are required fields.",
@@ -750,13 +742,13 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
 */
 export const Terminate_Company_By_DRC_ID = async (req, res) => {
   try {
-    const { drc_id, remark, remark_by, remark_dtm } = req.body;
+    const { drc_id, remark, terminate_by, terminate_dtm } = req.body;
 
     // Validate input
-    if (!drc_id || !remark || !remark_dtm) {
+    if (!drc_id || !remark || !terminate_dtm || !terminate_by) {
       return res.status(400).json({
         status: "error",
-        message: "DRC_ID, remark, and remark_dtm are required.",
+        message: "DRC_ID, remark, terminate_by and terminate_dtm are required.",
       });
     }
 
@@ -770,25 +762,34 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       });
     }
 
-    // Update the company with terminate status and add the new remark
-    const updatedCompany = await DRC.findOneAndUpdate(
-      { drc_id },
-      {
-        $set: {
-          drc_status: "Terminate",
-          drc_end_dtm: remark_dtm,
-          drc_end_by: remark_by,
-        },
-        $push: {
-          remark: {
-            remark: remark,
-            remark_dtm: remark_dtm,
-            remark_by: remark_by,
-          },
+    const terminateDate = new Date(terminate_dtm);
+    const today = new Date();
+
+    const updateterminates = {
+      $set: {
+        drc_end_dtm: terminate_dtm,
+        drc_end_by: terminate_by,
+      },
+      $push: {
+        remark: {
+          remark,
+          remark_dtm: new Date(),
+          remark_by: terminate_by,
         },
       },
-      { new: true }
-    );
+    };
+
+    if (terminateDate = today) {
+      updates.$push.drc_status = {
+        drc_status: "Terminate",
+        drc_status_dtm: new Date(),
+        drc_status_by: terminate_by,
+      };
+    } else {
+      console.log("termination will be done using python script");
+    }
+
+    const updatedCompany = await DRC.findOneAndUpdate({ drc_id }, updateterminates, { new: true });
 
     return res.status(200).json({
       status: "success",
