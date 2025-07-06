@@ -776,6 +776,8 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
 
     const terminateDate = new Date(terminate_dtm);
     const today = new Date();
+    terminateDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
     const updateterminates = {
       $set: {
@@ -791,8 +793,8 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       },
     };
 
-    if (terminateDate = today) {
-      updates.$push.drc_status = {
+    if (terminateDate.getTime() === today.getTime()) {
+      updateterminates.$push.status = {
         drc_status: "Terminate",
         drc_status_dtm: new Date(),
         drc_status_by: terminate_by,
