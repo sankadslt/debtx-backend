@@ -6,6 +6,7 @@
     Modified By: Janendra Chamodi (apjanendra@gmail.com)
                 Naduni Rabel (rabelnaduni2000@gmail.com)
                 Lasandi Randini (randini-im20057@stu.kln.ac.lk)
+                Sasindu Srinayaka (sasindusrinayaka@gmail.com)
     Version: Node.js v20.11.1
     Dependencies: mysql2
     Related Files: DRC_route.js
@@ -399,7 +400,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
       },
       {
         $addFields: {
-          user_count: {
+          drc_coordinator: {
             $cond: {
               if: { $isArray: "$users" },
               then: {
@@ -430,7 +431,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_address: 1,
           drc_terminate_dtm: 1,
           status: "$last_status.drc_status",
-          user_count: 1,
+          drc_coordinator: 1,
           drc_agreement_details: {
             $cond: {
               if: { $isArray: "$drc_agreement_details" },
@@ -781,12 +782,12 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
 
     const updateterminates = {
       $set: {
-        drc_end_dtm: terminate_dtm,
-        drc_end_by: terminate_by,
+        drc_terminate_dtm: terminate_dtm,
+        drc_terminate_by: terminate_by,
       },
       $push: {
         remark: {
-          remark,
+          remark: remark,
           remark_dtm: new Date(),
           remark_by: terminate_by,
         },
