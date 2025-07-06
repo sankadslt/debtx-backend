@@ -1480,24 +1480,11 @@ export const List_All_DRC_Details = async (req, res) => {
       },
       { $sort: { drc_id: -1 } },
       { $skip: skip },
-      { $limit: limit }
-    );
+      { $limit: limit },
+    ];
 
-    // Execute aggregation
     const drcData = await DRC.aggregate(pipeline);
 
-    // Count total documents 
-    const countQuery = status ? { 
-      "drc_status": {
-        $elemMatch: {
-          "drc_status": status
-        }
-      }
-    } : {};
-    
-    const totalCount = await DRC.countDocuments(countQuery);
-
-    // Handle empty results
     if (!drcData || drcData.length === 0) {
       return res.status(404).json({
         status: "success",
@@ -1520,14 +1507,13 @@ export const List_All_DRC_Details = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching All DRC details:", error);
+    console.error("Error fetching All DRC details", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
       errors: {
         code: 500,
         description: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
     });
   }
@@ -2233,22 +2219,21 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         service_id: service.service_id,
         service_type: service.service_type,
         service_status: service.service_status || "Active",
-        create_by: create_by,
-        create_dtm: new Date(),
+        create_by: service.create_by || create_by,
+        create_on: service.create_on || moment().format("YYYY-MM-DD HH:mm:ss"),
+        status_update_dtm: service.status_update_dtm || new Date(),
+        status_update_by: service.status_update_by || create_by
       })),
-      drc_status: {
-        drc_status: "Inactive",
-        drc_status_dtm: new Date(),
-        drc_status_by: create_by
-      },
       rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,
         rtom_status: "Active",
         rtom_billing_center_code: r.rtom_billing_center_code,
+        create_by: r.create_by || create_by,
+        create_dtm: r.create_dtm || new Date(),
         handling_type: r.handling_type,
-        status_update_by: create_by,
-        status_update_dtm: new Date()
+        status_update_by: r.status_update_by || create_by,
+        status_update_dtm: r.status_update_dtm || new Date()
       }))
     });
 
@@ -2265,7 +2250,9 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         drc_address,
         drc_contact_no,
         drc_email,
-        drc_status: newDRC.drc_status,
+        drc_status,
+        create_by,
+        create_on,
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom
