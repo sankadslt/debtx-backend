@@ -501,6 +501,23 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
               else: []
             }
           },
+          remark: {
+            $cond: {
+              if: { $isArray: "$remark" },
+              then: {
+                $map: {
+                  input: "$remark",
+                  as: "r",
+                  in: {
+                    remark: "$$r.remark",
+                    remark_date: "$$r.remark_dtm",
+                    remark_by: "$$r.remark_by",
+                  }
+                }
+              },
+              else: []
+            }
+          },
         },
       },
     ]);
