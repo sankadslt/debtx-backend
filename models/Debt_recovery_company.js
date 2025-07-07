@@ -166,7 +166,7 @@ const agreementDetailsSchema = new Schema({
     type: String,
     default: null,
   }  
-});
+},{_id: false });
 
 const drcSchema = new Schema(
   {
