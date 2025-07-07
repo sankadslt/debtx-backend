@@ -975,6 +975,19 @@ export const CreateActiveRTOM = async (req, res) => {
       throw new Error("MongoDB connection failed");
     }
 
+    // Check for duplicate RTOM first
+    const duplicate = await mongoConnection.collection("Rtom").findOne({
+      billing_center_code,
+      rtom_name,
+    });
+
+    if (duplicate) {
+      return res.status(400).json({
+        status: "error",
+        message: `RTOM with billing center code "${billing_center_code}" and name "${rtom_name}" already exists.`,
+      });
+    }
+
     const collection = mongoConnection.collection("collection_sequence");
 
     const seqDocExists = await collection.findOne({ _id: "rtom_id" });
