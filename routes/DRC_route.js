@@ -12,25 +12,6 @@
     Notes:  
 */
 
-
-
-// import { Router } from "express";
-// import { registerDRC, getDRCDetails,updateDRCDetails, getDRCDetailsById, updateDRCStatus, addServiceToDRC,updateServiceStatusOnDRC} from "../controllers/DRC_controller.js";
-
-
-// const router = Router();
-
-// router.post("/Register_DRC", registerDRC);
-// router.put("/updateDRCStatus", updateDRCStatus);
-// router.get("/getDRCDetails", getDRCDetails);
-// router.put("/updateDRCDetails", updateDRCDetails);
-// router.get("/getDRCDetailsById/:drc_id", getDRCDetailsById);
-// router.post("/addServiceToDRC", addServiceToDRC);
-// router.put("/updateServiceStatusOnDRC", updateServiceStatusOnDRC);
-
-
-// export default router;
-
 import { Router } from "express"; 
 import {
   getDRCWithServices,
@@ -39,19 +20,12 @@ import {
   getDRCDetails,
   getDRCDetailsById,
   getActiveDRCDetails,
-
   endDRC,
   DRCRemarkDetailsById,
+  
   List_All_DRC_Details , 
   List_RTOM_Details_Owen_By_DRC_ID , 
   List_Service_Details_Owen_By_DRC_ID,
-
-  // endDRC,
-  // DRCRemarkDetailsById,
-
-
-  
-  getUserIdOwnedByDRCId,
   Create_DRC_With_Services_and_SLT_Coordinator,
   List_DRC_Details_By_DRC_ID,
   Terminate_Company_By_DRC_ID,
@@ -1183,48 +1157,83 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
 
 /**
  * @swagger
- * /api/DRC/Terminate_Company_By_DRC_ID:
- *   patch:
- *     summary: DRC Terminate a Debt Recovery Company
+ * tags:
+ *   - name: Debt Recovery Companies
+ *     description: Endpoints for managing Debt Recovery Company (DRC) lifecycle.
+ *
+ * /api/drc/Terminate_Company_By_DRC_ID:
+ *   post:
+ *     summary: Terminate a DRC (Debt Recovery Company) by DRC ID
  *     description: |
- *       Terminate a DRC by updating its status to "Terminate" and adding a termination remark:
- *       
- *       | Version | Date       | Description |
- *       |---------|------------|-------------|
- *       | 01      | 2025-May-22| Initial implementation |
+ *       Terminates a DRC record by marking it as `"Terminate"`, logs the remark, and creates an approval entry.
+ *
+ *       | Version | Date       | Description                        | Changed By       |
+ *       |---------|------------|------------------------------------|------------------|
+ *       | 1.0     | 2025-06-26 | Initial implementation             | Nimesh Perera    |
  *     tags:
- *       - DRC
+ *       - Debt Recovery Companies
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the DRC to terminate.
+ *         example: "DRC_001"
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Reason for termination.
+ *         example: "Company ceased operations."
+ *       - in: query
+ *         name: remark_by
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Name or ID of the user terminating the company.
+ *         example: "admin_001"
+ *       - in: query
+ *         name: remark_dtm
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Timestamp of the remark.
+ *         example: "2025-06-26T14:00:00.000Z"
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               drc_id:
- *                 type: integer
- *                 description: Unique ID of the DRC to terminate.
- *                 example: 101
- *               remark:
- *                 type: string
- *                 description: Reason for termination.
- *                 example: "Contract terminated due to performance issues"
- *               remark_by:
- *                 type: string
- *                 description: User who is terminating the DRC.
- *                 example: "AdminUser"
- *               remark_dtm:
- *                 type: string
- *                 format: date-time
- *                 description: Timestamp of the termination.
- *                 example: "2025-05-22T10:30:00.000Z"
  *             required:
  *               - drc_id
  *               - remark
+ *               - remark_by
  *               - remark_dtm
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 description: Unique identifier of the DRC company.
+ *                 example: "DRC_001"
+ *               remark:
+ *                 type: string
+ *                 description: Reason for terminating the company.
+ *                 example: "No longer contracted for recovery services."
+ *               remark_by:
+ *                 type: string
+ *                 description: User who initiated the termination.
+ *                 example: "admin_001"
+ *               remark_dtm:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Termination date and time.
+ *                 example: "2025-06-26T14:00:00.000Z"
  *     responses:
  *       200:
- *         description: DRC terminated successfully.
+ *         description: DRC terminated and approval record created.
  *         content:
  *           application/json:
  *             schema:
@@ -1235,43 +1244,18 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Company terminated successfully.
+ *                   example: Company terminated successfully and sent for approval.
  *                 data:
  *                   type: object
  *                   properties:
- *                     drc_id:
- *                       type: integer
- *                       example: 101
- *                     drc_name:
- *                       type: string
- *                       example: "ABC Recovery"
- *                     drc_status:
- *                       type: string
- *                       example: "Terminate"
- *                     drc_end_dtm:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-05-22T10:30:00.000Z"
- *                     drc_end_by:
- *                       type: string
- *                       example: "AdminUser"
- *                     remark:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           remark:
- *                             type: string
- *                             example: "Contract terminated due to performance issues"
- *                           remark_dtm:
- *                             type: string
- *                             format: date-time
- *                             example: "2025-05-22T10:30:00.000Z"
- *                           remark_by:
- *                             type: string
- *                             example: "AdminUser"
+ *                     updatedCompany:
+ *                       type: object
+ *                       description: Updated company details.
+ *                     approval:
+ *                       type: object
+ *                       description: New approval entry.
  *       400:
- *         description: Validation error due to missing required fields.
+ *         description: Validation error due to missing fields.
  *         content:
  *           application/json:
  *             schema:
@@ -1282,9 +1266,9 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: DRC_ID, remark, and remark_dtm are required.
+ *                   example: DRC ID is required in the request body.
  *       404:
- *         description: No DRC found with the provided ID.
+ *         description: DRC not found or already terminated.
  *         content:
  *           application/json:
  *             schema:
@@ -1295,7 +1279,7 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No Debt Company found with DRC_ID.
+ *                   example: No Debt Company found with DRC_ID: DRC_001.
  *       500:
  *         description: Internal server error during termination.
  *         content:
@@ -1314,105 +1298,133 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                   properties:
  *                     exception:
  *                       type: string
- *                       example: "Database connection error"
+ *                       example: Database connection failure
  */
 router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
 
 /**
  * @swagger
- * /api/DRC/Update_DRC_With_Services_and_SLT_Cordinator:
- *   patch:
- *     summary: DRC Update DRC information, services, and coordinator details
+ * tags:
+ *   - name: Debt Recovery Companies
+ *     description: Endpoints for updating DRC contact, services, RTOMs, and SLT coordinators.
+ *
+ * /api/drc/Update_DRC_With_Services_and_SLT_Cordinator:
+ *   post:
+ *     summary: Update DRC details (contact info, services, SLT coordinators, RTOM) and optionally trigger approval
  *     description: |
- *       Update a Debt Recovery Company's contact information, coordinator, service status, RTOM status,
- *       and add remarks:
- *       
- *       | Version | Date       | Description |
- *       |---------|------------|-------------|
- *       | 01      | 2025-May-22| Initial implementation |
+ *       Updates a DRC's contact number, email, status, coordinator list, RTOM entries, and assigned services.
+ *       If the DRC status is changed, an approval record will be triggered automatically.
+ *
+ *       | Version | Date       | Description                        | Changed By       |
+ *       |---------|------------|------------------------------------|------------------|
+ *       | 1.0     | 2025-06-26 | Initial version                    | Nimesh Perera    |
  *     tags:
- *       - DRC
+ *       - Debt Recovery Companies
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the DRC to update.
+ *         example: "DRC_001"
+ *       - in: query
+ *         name: updated_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID of the person performing the update.
+ *         example: "admin_001"
+ *       - in: query
+ *         name: drc_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: New status to assign to the DRC (e.g., Active, Terminate).
+ *         example: "Active"
+ *       - in: query
+ *         name: drc_email
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Updated email address for the DRC.
+ *         example: "contact@drccompany.com"
+ *       - in: query
+ *         name: drc_contact_no
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Updated contact number for the DRC.
+ *         example: "+94771234567"
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               drc_id:
- *                 type: integer
- *                 description: Unique ID of the DRC to update.
- *                 example: 101
- *               drc_contact_no:
- *                 type: string
- *                 description: Updated contact number for the DRC.
- *                 example: "0112345678"
- *               drc_email:
- *                 type: string
- *                 description: Updated email address for the DRC.
- *                 example: "contact@abcrecovery.com"
- *               coordinator:
- *                 type: object
- *                 description: New coordinator details to add.
- *                 properties:
- *                   service_no:
- *                     type: integer
- *                     example: 5002
- *                   slt_coordinator_name:
- *                     type: string
- *                     example: "Jane Smith"
- *                   slt_coordinator_email:
- *                     type: string
- *                     example: "jane.smith@slt.com"
- *               services:
- *                 type: array
- *                 description: Updated services information.
- *                 items:
- *                   type: object
- *                   properties:
- *                     service_type:
- *                       type: string
- *                       example: "FIBRE"
- *                     service_status:
- *                       type: string
- *                       enum: ["Active", "Inactive"]
- *                       example: "Active"
- *                     create_by:
- *                       type: string
- *                       example: "AdminUser"
- *                     create_on:
- *                       type: string
- *                       example: "2025-01-15T08:30:00.000Z"
- *               rtom:
- *                 type: array
- *                 description: Updated RTOM information.
- *                 items:
- *                   type: object
- *                   properties:
- *                     rtom_id:
- *                       type: integer
- *                       example: 2001
- *                     rtom_name:
- *                       type: string
- *                       example: "Central Region"
- *                     rtom_status:
- *                       type: string
- *                       enum: ["Active", "Inactive"]
- *                       example: "Active"
- *               remark:
- *                 type: string
- *                 description: Remark describing the changes.
- *                 example: "Updated contact details and service status"
- *               updated_by:
- *                 type: string
- *                 description: User who is making the updates.
- *                 example: "AdminUser"
  *             required:
  *               - drc_id
  *               - updated_by
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 example: "DRC_001"
+ *               drc_contact_no:
+ *                 type: string
+ *                 example: "+94771234567"
+ *               drc_email:
+ *                 type: string
+ *                 format: email
+ *                 example: "contact@drccompany.com"
+ *               drc_status:
+ *                 type: string
+ *                 example: "Active"
+ *               coordinator:
+ *                 type: object
+ *                 properties:
+ *                   service_no:
+ *                     type: string
+ *                     example: "SLT12345"
+ *                   slt_coordinator_name:
+ *                     type: string
+ *                     example: "Samantha Perera"
+ *                   slt_coordinator_email:
+ *                     type: string
+ *                     example: "samantha@slt.lk"
+ *               services:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     service_code:
+ *                       type: string
+ *                       example: "SRV001"
+ *                     service_name:
+ *                       type: string
+ *                       example: "Legal Advice"
+ *                     status:
+ *                       type: string
+ *                       example: "Active"
+ *               rtom:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     rtom_division:
+ *                       type: string
+ *                       example: "North Western"
+ *                     rtom_officer:
+ *                       type: string
+ *                       example: "Rohan Silva"
+ *               remark:
+ *                 type: string
+ *                 example: "Changed coordinator and services"
+ *               updated_by:
+ *                 type: string
+ *                 example: "admin_001"
  *     responses:
  *       200:
- *         description: DRC information updated successfully.
+ *         description: DRC updated successfully and approval triggered if needed.
  *         content:
  *           application/json:
  *             schema:
@@ -1423,57 +1435,19 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: DRC information updated successfully.
+ *                   example: DRC information updated successfully and sent for approval.
  *                 data:
  *                   type: object
  *                   properties:
- *                     drc_id:
- *                       type: integer
- *                       example: 101
- *                     drc_contact_no:
- *                       type: string
- *                       example: "0112345678"
- *                     drc_email:
- *                       type: string
- *                       example: "contact@abcrecovery.com"
- *                     services:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           service_type:
- *                             type: string
- *                             example: "FIBRE"
- *                           service_status:
- *                             type: string
- *                             example: "Active"
- *                     slt_coordinator:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           service_no:
- *                             type: integer
- *                             example: 5002
- *                           slt_coordinator_name:
- *                             type: string
- *                             example: "Jane Smith"
- *                     remark:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           remark:
- *                             type: string
- *                             example: "Updated contact details and service status"
- *                           remark_dtm:
- *                             type: string
- *                             example: "2025-05-22T14:30:00.000Z"
- *                           remark_by:
- *                             type: string
- *                             example: "AdminUser"
+ *                     updatedCompany:
+ *                       type: object
+ *                       description: Updated DRC record
+ *                     approval:
+ *                       type: object
+ *                       nullable: true
+ *                       description: Approval record if status was changed
  *       400:
- *         description: Validation error due to missing required fields.
+ *         description: Required fields missing
  *         content:
  *           application/json:
  *             schema:
@@ -1486,7 +1460,7 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                   type: string
  *                   example: DRC ID and updated_by are required fields.
  *       404:
- *         description: No DRC found with the provided ID.
+ *         description: DRC not found
  *         content:
  *           application/json:
  *             schema:
@@ -1497,9 +1471,9 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No Debt Company found with DRC_ID.
+ *                   example: No Debt Company found with DRC_ID: DRC_001.
  *       500:
- *         description: Internal server error during update.
+ *         description: Server-side failure
  *         content:
  *           application/json:
  *             schema:
@@ -1516,7 +1490,7 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                   properties:
  *                     exception:
  *                       type: string
- *                       example: "Database error during update operation"
+ *                       example: MongoError or transaction issue
  */
 router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Services_and_SLT_Cordinator);
 

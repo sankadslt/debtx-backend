@@ -7,14 +7,17 @@
     Related Files: DRC_route.js
     Notes:  
 */
-
+// import { getApprovalUserIdService } from "../services/ApprovalService.js";
+import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
+import mongoose from "mongoose";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import Service from "../models/Service.js";
 import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
+import user_approve_model from "../models/User_Approval.js"
+import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 
-// Get all DRC details created on a specific date
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
 
@@ -984,7 +987,6 @@ export const Rtom_detais_of_the_DRC = async (req, res) => {
   }
 };
 
-
 export const Service_detais_of_the_DRC = async (req, res) => {
   const { drc_id, pages, service_status } = req.body;
 
@@ -1032,6 +1034,160 @@ export const Service_detais_of_the_DRC = async (req, res) => {
       message: "Server error occurred",
       error: error.message,
     });
+  }
+};
+
+export const DRC_Agreement_details_list = async (req, res) => {
+  const { drc_id } = req.body;
+
+  try {
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "DRC id field is required",
+      });
+    }
+
+    const agreement_details = await DRC.find({ drc_id })
+      .select('drc_agreement_details');
+
+    return res.status(200).json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: agreement_details,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server error occurred",
+      error: error.message,
+    });
+  }
+};
+
+export const Assign_DRC_To_Agreement = async (req, res) => {
+  
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const {drc_id, remark, assigned_by, start_date, end_date } = req.body;
+    
+    if (!start_date || !drc_id || !end_date || !assigned_by) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "assigned_by, end_date, start_date and drc_id is required.",
+        errors: {
+          code: 400,
+          description: "assigned_by, end_date, start_date and drc_id is required.",
+        },
+      });
+    }
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "user_approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    const user_approver_id = counterResult.seq;
+    console.log(user_approver_id);
+    if (!user_approver_id) {
+      throw new Error("Failed to generate Task_Id.");
+    }
+    // const approved_Deligated_by = await getApprovalUserIdService({
+    //     approval_type: "DRC_Agreement"
+    // });
+    const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
+    if(!approved_Deligated_by){
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "There is no valid approved_Deligated_by id",
+      });
+    }
+
+    const user_approve_record = new user_approve_model({
+      user_approver_id,
+      User_Type:"DRC",
+      DRC_id:drc_id,
+      created_on: new Date(),
+      created_by: assigned_by,
+      approve_status:"Open",
+      approve_status_on:new Date(),
+      approver_type:"DRC_Agreement",
+      approved_Deligated_by,
+      Parameters:{
+        drc_id,
+        start_date,
+        end_date,
+      },
+      remark
+    });
+    await user_approve_record.save({ session });
+    
+    const drc_agreement = await DRC.findOneAndUpdate({drc_id},
+      {
+        $push:{
+          drc_agreement_details:{
+            agreement_start_dtm:start_date,
+            agreement_update_by:assigned_by,
+            agreement_remark:remark,
+            agreement_end_dtm:end_date
+          }
+        },
+      },
+      { new: true, session },
+    );
+    const dynamicParams = {
+      start_date,
+      end_date,
+      drc_id
+    };
+
+    const interactionResult = await createUserInteractionFunction({
+      Interaction_ID:26,
+      User_Interaction_Type:"python", 
+      delegate_user_id:approved_Deligated_by,   
+      Created_By:assigned_by,
+      User_Interaction_Status: "Open",
+      ...dynamicParams,
+      session 
+    });
+
+    if(!interactionResult || interactionResult.status === "error"){
+      await session.abortTransaction();
+      return res.status(404).json({
+        status: "error",
+        message: "python.",
+      }); 
+    }
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      status: "success",
+      message: "DRC Reassining send to the Aprover.",
+      data: user_approve_record,
+    }); 
+  }
+  catch (error) {
+    await session.abortTransaction();
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while assigning the DRC.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+  finally {
+    session.endSession();
   }
 };
 
