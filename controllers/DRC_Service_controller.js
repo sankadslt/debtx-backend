@@ -1193,9 +1193,33 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 };
 
 export const List_User_Approval_Details = async (req, res) => {
-  const { user_role, user_type, status, pages } = req.body;
+  const { user_type, from_date, to_date, pages } = req.body;
 
   try {
+    if (!from_date ||!to_date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Open No Agent case details.",
+        errors: {
+          code: 400,
+          description: "from_date and to_date are required fields",
+        },
+      });
+    };
+    const fromDate = new Date(`${from_date}T00:00:00.000Z`);
+    const toDate = new Date(`${to_date}T23:59:59.999Z`);
+
+    if (isNaN(fromDate) || isNaN(toDate)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid date format",
+        errors: {
+          code: 400,
+          description: "Invalid date format for From_Date or To_Date",
+        },
+      })
+    }
+
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
 
@@ -1215,19 +1239,15 @@ export const List_User_Approval_Details = async (req, res) => {
 
     const matchConditions = [];
 
-    if (status) {
-      matchConditions.push({ approve_status: status });
-    }
-    if (user_role) {
-      matchConditions.push({ "user_data.role": user_role });
-    }
     if (user_type) {
       matchConditions.push({ "user_data.user_type": user_type });
-    }
+    };
+    matchConditions.push({
+      created_on: { $gte: fromDate, $lte: toDate }
+    });
     if (matchConditions.length > 0) {
       pipeline.push({ $match: { $and: matchConditions } });
     }
-
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
@@ -1244,13 +1264,11 @@ export const List_User_Approval_Details = async (req, res) => {
       }
     });
     const result = await user_approve_model.aggregate(pipeline)
-
     return res.status(200).json({
       status: "success",
       message: "User approval details fetched successfully.",
       data: result
     });
-
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -1259,6 +1277,4 @@ export const List_User_Approval_Details = async (req, res) => {
     });
   }
 };
-
-
 
