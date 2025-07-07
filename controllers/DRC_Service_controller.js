@@ -1231,6 +1231,18 @@ export const List_User_Approval_Details = async (req, res) => {
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
+    pipeline.push({
+      $project: {
+        User_id: 1,
+        approve_status: 1,
+        created_on: 1,
+        User_Type: 1,
+        "user_data.user_type": 1,
+        "user_data.username": 1,
+        "user_data.email": 1,
+        "user_data.contact_num": 1
+      }
+    });
     const result = await user_approve_model.aggregate(pipeline)
 
     return res.status(200).json({
