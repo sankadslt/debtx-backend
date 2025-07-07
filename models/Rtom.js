@@ -180,6 +180,7 @@ const rtomSchema = new Schema({
         default: null, // Default to null if not provided
         validate: {
             validator: function(v) {
+                if (v === null || v === undefined || v === "") return true;
                 return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v); // Basic email validation regex
             },
             message: props => `${props.value} is not a valid email!`
