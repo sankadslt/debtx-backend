@@ -7,7 +7,8 @@
     Related Files: DRC_route.js
     Notes:  
 */
-import { getApprovalUserIdService } from "../services/ApprovalService.js";
+// import { getApprovalUserIdService } from "../services/ApprovalService.js";
+import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
 import mongoose from "mongoose";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
@@ -15,7 +16,8 @@ import Service from "../models/Service.js";
 import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
 import user_approve_model from "../models/User_Approval.js"
-// Get all DRC details created on a specific date
+import {createUserInteractionFunction} from "../services/UserInteractionService.js"
+
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
 
@@ -1088,19 +1090,20 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       throw new Error("MongoDB connection failed");
     }
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "approver_id" },
+      { _id: "user_approver_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
     );
 
     const user_approver_id = counterResult.seq;
-
+    console.log(user_approver_id);
     if (!user_approver_id) {
       throw new Error("Failed to generate Task_Id.");
     }
-    const approved_Deligated_by = await getApprovalUserIdService({
-        approval_type: "DRC_Agreement"
-    });
+    // const approved_Deligated_by = await getApprovalUserIdService({
+    //     approval_type: "DRC_Agreement"
+    // });
+    const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
     if(!approved_Deligated_by){
       await session.abortTransaction();
       return res.status(400).json({
@@ -1148,7 +1151,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     };
 
     const interactionResult = await createUserInteractionFunction({
-      Interaction_ID:22, //python
+      Interaction_ID:26,
       User_Interaction_Type:"python", 
       delegate_user_id:approved_Deligated_by,   
       Created_By:assigned_by,
