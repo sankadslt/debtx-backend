@@ -5754,13 +5754,28 @@ export const CaseDetailsforDRC = async (req, res) => {
       });
     }
 
-    // Find the case that matches both case_id and has the specified drc_id in its drc array
-    const roFilter = [
-      { $eq: ["$$item.drc_id", drc_id] },
-    ];
-    if (ro_id) {
-      roFilter.push({ $eq: ["$$item.ro_id", ro_id] });
-    }
+    // // Find the case that matches both case_id and has the specified drc_id in its drc array
+    // const caseDetails = await Case_details.findOne({
+    //   case_id
+    // },
+    // { case_id: 1, 
+    //   case_current_status: 1, 
+    //   ro_cpe_collect:1, 
+    //   customer_ref: 1, 
+    //   account_no: 1, 
+    //   current_arrears_amount: 1, 
+    //   current_contact: 1, 
+    //   rtom: 1,
+    //   ref_products:1,
+    //   last_payment_date: 1,
+    //   drc: 1, 
+    //   ro_negotiation:1,
+    //   settlement:1, 
+    //   mediation_board:1,
+    //   money_transactions:1, 
+    //   ro_requests: 1,
+    //   mediation_board: 1,
+    // })
 
     const caseDetails = await Case_details.aggregate([
       {

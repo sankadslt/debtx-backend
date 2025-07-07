@@ -12,6 +12,8 @@
 
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import db from '../config/db.js';
+import User_Approval from '../models/User_Approval.js';
 
 // Function to Get user details by user roles
 export const getUserDetailsByRole = async (req, res) => {
@@ -129,6 +131,7 @@ export const List_All_User_Details = async (req, res) => {
           user_type: 1,
           username: 1,
           email: 1,
+          contact_num: 1,
           Created_DTM: 1,
         },
       },
@@ -354,7 +357,7 @@ export const End_User = async (req, res) => {
       }
 
       // Check if already terminated
-      if (user.user_status === "terminate") {
+      if (user.user_status === "Terminate") {
         const error = new Error("User is already terminated.");
         error.statusCode = 400;
         throw error;
@@ -367,7 +370,7 @@ export const End_User = async (req, res) => {
           $set: {
             User_End_DTM: terminationDate,
             User_End_By: end_by,
-            user_status: "terminate",
+            user_status: "Terminate",
             User_Status_Type: "user_update",
             User_Status_DTM: terminationDate,
             User_Status_By: end_by,
@@ -530,6 +533,198 @@ export const Update_User_Details = async (req, res) => {
     await session.endSession();
   }
 };
+
+// export const Create_User = async (req, res) => {
+//   const {
+//     user_id,
+//     user_type,
+//     username,
+//     email,
+//     contact_no,
+//     login_method,
+//     role,
+//     drc_id,
+//     ro_id,
+//     created_by,
+//   } = req.body;
+
+//   try {
+//     if (
+//       !user_id ||
+//       !user_type ||
+//       !username ||
+//       !email ||
+//       !contact_no ||
+//       !login_method ||
+//       !role ||
+//       drc_id === undefined
+//     ) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "All required fields must be provided.",
+//       });
+//     }
+
+//     const mongoConnection = await db.connectMongoDB();
+
+//     const existingUser = await User.findOne({ user_id });
+
+//     if (existingUser) {
+//       const existingNumbers = existingUser.contact_num.map(
+//         (c) => c.contact_number.toString()
+//       );
+
+//       if (!existingNumbers.includes(contact_no.toString())) {
+//         existingUser.contact_num.push({ contact_number: Number(contact_no) });
+
+//         await existingUser.save();
+
+//         return res.status(200).json({
+//           status: "success",
+//           message: "Contact number added to existing user.",
+//           data: {
+//             user_id,
+//             updated_contact_numbers: existingUser.contact_num,
+//           },
+//         });
+//       } else {
+//         return res.status(200).json({
+//           status: "info",
+//           message: "Contact number already exists for this user.",
+//         });
+//       }
+//     }
+
+//     // Generate sequence
+//     const counterResult = await mongoConnection
+//       .collection("collection_sequence")
+//       .findOneAndUpdate(
+//         { _id: "user_sequence" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true }
+//       );
+
+//     const User_Sequence = counterResult.value?.seq || counterResult.seq;
+//     if (!User_Sequence) {
+//       throw new Error("Failed to generate User_Sequence.");
+//     }
+
+//     const newUser = new User({
+//       User_Sequence,
+//       user_id,
+//       user_type,
+//       username,
+//       email,
+//       contact_num: [{ contact_number: Number(contact_no) }],
+//       login_method,
+//       role,
+//       drc_id,
+//       ro_id: ro_id || null,
+//       drcUser_id: drc_id,
+//       User_Status_Type: "user_update",
+//       user_status: "Active",
+//       User_Status_DTM: new Date(),
+//       User_Status_By: created_by,
+//       User_End_DTM: null,
+//       User_End_By: null,
+//       Created_BY: created_by,
+//       Created_DTM: new Date(),
+//       Approved_By: null,
+//       Approved_DTM: null,
+//       Remark: [
+//         {
+//           remark: "User Created",
+//           remark_dtm: new Date(),
+//           remark_by: created_by,
+//         },
+//       ],
+//       password: "default", // TODO: remove or hash
+//     });
+
+//     await newUser.save();
+
+//     return res.status(201).json({
+//       status: "success",
+//       message: "User registered successfully.",
+//       data: {
+//         newUser
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error in RegisterUser:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to register user.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
+export const List_User_Approval_Details = async (req, res) => {
+  try {
+    const { user_type, from_date, to_date, page } = req.body;
+
+    console.log("Payload:" ,req.body);
+    
+    // Pagination logic
+    let currentPage = Number(page);
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    const limit = currentPage === 1 ? 10 : 30;
+    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+
+    const query = {};
+
+    if (user_type) {
+      query.user_type = user_type;
+    }
+
+    if (from_date || to_date) {
+      const dateFilter = {};
+      if (from_date) dateFilter.$gte = new Date(from_date);
+      if (to_date) {
+        const endOfDay = new Date(to_date);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endOfDay;
+      }
+      query.created_dtm = dateFilter;
+    }
+
+    const result = await User_Approval.aggregate([
+      { $match: query },
+      { $sort: { created_dtm: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          approval_id: 1,
+          user_name: 1,
+          user_type: 1,
+          login_email: 1,
+          login_method: "$parameters.login_method",
+          created_dtm: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "User approval details retrieved successfully.",
+      data: result
+    });
+
+  } catch (error) {
+    console.error("Error fetching User Approval Details:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "There was an error retrieving user approval details."
+    });
+  }
+};
+
+
 
 
 
