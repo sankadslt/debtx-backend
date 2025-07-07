@@ -1193,9 +1193,14 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 };
 
 export const List_User_Approval_Details = async (req, res) => {
-  const { user_role, user_type, status } = req.body;
+  const { user_role, user_type, status, pages } = req.body;
 
   try {
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
     const pipeline = [
       {
         $lookup: {
@@ -1213,20 +1218,20 @@ export const List_User_Approval_Details = async (req, res) => {
     if (status) {
       matchConditions.push({ approve_status: status });
     }
-
     if (user_role) {
       matchConditions.push({ "user_data.role": user_role });
     }
-
     if (user_type) {
       matchConditions.push({ "user_data.user_type": user_type });
     }
-
     if (matchConditions.length > 0) {
       pipeline.push({ $match: { $and: matchConditions } });
     }
 
-    const result = await user_approve_model.aggregate(pipeline);
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const result = await user_approve_model.aggregate(pipeline)
 
     return res.status(200).json({
       status: "success",
