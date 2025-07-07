@@ -2498,6 +2498,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
  *   including task creation, approval entry, and user interaction logging.
  */
 export const Batch_Forward_for_Proceed = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -2525,14 +2526,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      current_batch_distribution_status: { $in: ["Open"] }
+      current_batch_distribution_status: { $in: ["open"] }
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({
-        message: "The batch does not have a 'Open' status and cannot be proceeded.",
+      return res.status(404).json({
+        message: "The batch does not have a 'open' status and cannot be proceeded.",
         batchId: case_distribution_batch_id,
       });
     }
@@ -2627,7 +2628,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     return res.status(200).json({
       message: "Batch forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
       updatedCount: result.modifiedCount,
-      taskData,
+      // taskData,
       approvalEntry,
       interactionResult,
     });
@@ -2842,7 +2843,9 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
  * - System_tasks
  */
 export const Validate_Existing_Batch_Task = async (req, res) => {
+  const { case_distribution_batch_id } = req.body;
   console.log("case_distribution_batch_id", req.body);
+
   if (!case_distribution_batch_id ) {
     return res.status(400).json({
       status: "error",
