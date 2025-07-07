@@ -19,8 +19,7 @@ const userApprovalSchema = new Schema(
       enum: [ "DRC","DRC User","RO"] 
     },
     User_id: { 
-      type: String, 
-      required: true 
+      type: String,
     },
     DRC_id: { 
       type: Number, 
