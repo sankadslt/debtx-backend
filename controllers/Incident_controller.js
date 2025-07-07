@@ -1162,7 +1162,7 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
     );
     return res.status(200).json({
       status: "success",
-      message: `Successfully rejected the F1 filtered incident.`
+      message: `Successfully rejected the selected incident.`
     });
   } catch (error) {
     console.log(error)
