@@ -12,7 +12,7 @@ import { Router } from "express";
 import {
 
     getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
-   ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,DRC_Agreement_details_list,Assign_DRC_To_Agreement
+   ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,DRC_Agreement_details_list,Assign_DRC_To_Agreement,List_User_Approval_Details
 
 } from "../controllers/DRC_Service_controller.js";
 
@@ -1078,7 +1078,269 @@ router.post("/Service_detais_of_the_DRC", Service_detais_of_the_DRC);
  */
 router.post("/DRC_Agreement_details_list", DRC_Agreement_details_list);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Debt Recovery Company-Services
+ *     description: Services-related endpoints, allowing management and registration of services.
+ *
+ * /api/DRC_service/Assign_DRC_To_Agreement:
+ *   post:
+ *     summary: DS-**** Assign DRC to Agreement and request approval
+ *     description: |
+ *       Assign agreement details (start/end date, remark, etc.) to the specified DRC and initiate an approval process.
+ *       
+ *       | Version | Date        | Description                  |
+ *       |---------|-------------|------------------------------|
+ *       | 01      | 2025-07-07  | Initial Implementation       |
+ *       
+ *     tags:
+ *       - Debt Recovery Company-Services
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - remark
+ *               - assigned_by
+ *               - start_date
+ *               - end_date
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 example: 101
+ *                 description: The ID of the Debt Recovery Company (DRC).
+ *               remark:
+ *                 type: string
+ *                 example: First agreement assigned for approval.
+ *                 description: Remark or note about the agreement.
+ *               assigned_by:
+ *                 type: string
+ *                 example: AdminUser
+ *                 description: The user who assigns the agreement.
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2025-01-01T00:00:00Z
+ *                 description: Agreement start datetime.
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2026-01-01T00:00:00Z
+ *                 description: Agreement end datetime.
+ *     responses:
+ *       200:
+ *         description: Agreement assignment initiated and sent for approval.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC Reassining send to the Aprover.
+ *                 data:
+ *                   type: object
+ *                   description: Saved approval request data.
+ *       400:
+ *         description: Missing required fields or invalid data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: assigned_by, end_date, start_date and drc_id is required.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: assigned_by, end_date, start_date and drc_id is required.
+ *       404:
+ *         description: Approval interaction failed (e.g., Python service error).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: python.
+ *       500:
+ *         description: Internal server error while processing the assignment.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: An error occurred while assigning the DRC.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: MongoDB connection failed
+ */
 router.post("/Assign_DRC_To_Agreement", Assign_DRC_To_Agreement);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Debt Recovery Company-Services
+ *     description: Services-related endpoints, allowing management and registration of services.
+ *
+ * /api/DRC_service/List_User_Approval_Details:
+ *   post:
+ *     summary: DS-**** List user approval details with optional filter
+ *     description: |
+ *       Retrieve paginated user approval details, filtered by date range and optional user type.
+ *       
+ *       | Version | Date        | Description            |
+ *       |---------|-------------|------------------------|
+ *       | 01      | 2025-07-07  | Initial Implementation |
+ *       
+ *     tags:
+ *       - Debt Recovery Company-Services
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - from_date
+ *               - to_date
+ *             properties:
+ *               user_type:
+ *                 type: string
+ *                 example: Agent
+ *                 description: Filter by user type (optional).
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: 2025-06-01
+ *                 description: Start date for filtering (inclusive).
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: 2025-06-30
+ *                 description: End date for filtering (inclusive).
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination.
+ *     responses:
+ *       200:
+ *         description: User approval details fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User approval details fetched successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       User_id:
+ *                         type: integer
+ *                         example: 123
+ *                       approve_status:
+ *                         type: string
+ *                         example: Open
+ *                       created_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-06-15T10:00:00Z
+ *                       User_Type:
+ *                         type: string
+ *                         example: DRC
+ *                       user_data:
+ *                         type: object
+ *                         properties:
+ *                           user_type:
+ *                             type: string
+ *                             example: Agent
+ *                           username:
+ *                             type: string
+ *                             example: JohnDoe
+ *                           email:
+ *                             type: string
+ *                             example: john@example.com
+ *                           contact_num:
+ *                             type: string
+ *                             example: +94712345678
+ *       400:
+ *         description: Missing or invalid required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: from_date and to_date are required fields
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: from_date and to_date are required fields
+ *       500:
+ *         description: Internal server error while fetching approval details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error while fetching user approval details.
+ *                 error:
+ *                   type: string
+ *                   example: Error stack or message here
+ */
+router.post("/List_User_Approval_Details", List_User_Approval_Details);
 
 export default router;
 

@@ -1,15 +1,18 @@
-import express from 'express';
-import { createTask,
-    getOpenTaskCount,
-    Handle_Interaction_Acknowledgement,
-    List_All_Open_Requests_For_To_Do_List
-} from '../services/TaskService.js';
+import express from "express";
+import {
+  createTask,
+  getOpenTaskCount,
+  Handle_Interaction_Acknowledgement,
+  List_All_Open_Requests_For_To_Do_List,
+} from "../services/TaskService.js";
+
+import { List_All_Tasks } from "../controllers/Task_List_Controller.js";
 
 const router = express.Router();
 
-router.post('/Create_Task', createTask);
+router.post("/Create_Task", createTask);
 
-router.post('/Open_Task_Count', getOpenTaskCount);
+router.post("/Open_Task_Count", getOpenTaskCount);
 
 /**
  * @swagger
@@ -17,7 +20,7 @@ router.post('/Open_Task_Count', getOpenTaskCount);
  *   post:
  *     summary: Retrieve all open requests assigned to a delegate user
  *     description: |
- *       Fetches all open requests from the `User_Interaction_Progress_Log` collection for a given delegate user. 
+ *       Fetches all open requests from the `User_Interaction_Progress_Log` collection for a given delegate user.
  *       It joins `Templete_User_Interaction` and `To_Do_List` collections to include associated process templates.
  *
  *       | Version | Date        | Description                   | Changed By |
@@ -116,7 +119,6 @@ router.post(
   List_All_Open_Requests_For_To_Do_List
 );
 
-
 /**
  * @swagger
  * /api/task/Handle_Interaction_Acknowledgement:
@@ -193,6 +195,130 @@ router.post(
  *                   type: string
  *                   example: "Detailed error message here"
  */
-router.post('/Handle_Interaction_Acknowledgement', Handle_Interaction_Acknowledgement);
+router.post(
+  "/Handle_Interaction_Acknowledgement",
+  Handle_Interaction_Acknowledgement
+);
+
+/**
+ * @swagger
+ * /api/task/List_All_Tasks:
+ *   post:
+ *     summary: Retrieve a paginated list of filtered tasks
+ *     description: |
+ *       Retrieves a list of tasks filtered by the creator's user ID, task status, and creation date range. Tasks are sorted by `Task_Id` in descending order. Pagination is applied with 10 tasks on the first page and 30 tasks on subsequent pages.
+ *
+ *       | Version | Date        | Description                   | Changed By       |
+ *       |---------|-------------|-------------------------------|------------------|
+ *       | 1.0     | 2025-07-02  | Initial endpoint definition   | Sathmi           |
+ *
+ *     tags: [Task Management]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               logged_in_user:
+ *                 type: string
+ *                 description: The email ID of the user who created the tasks to filter by.
+ *                 example: "super@gmail.com"
+ *               From_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date for filtering tasks by creation date (inclusive, YYYY-MM-DD).
+ *                 example: "2023-01-01"
+ *               TO_DAT:
+ *                 type: string
+ *                 format: date
+ *                 description: End date for filtering tasks by creation date (inclusive, until end of day, YYYY-MM-DD).
+ *                 example: "2025-12-31"
+ *               task_status:
+ *                 type: string
+ *                 enum: ['open', 'inprogress', 'complete', 'close']
+ *                 description: Filter tasks by their current status.
+ *                 example: "open"
+ *               pages:
+ *                 type: integer
+ *                 description: Page number for pagination (minimum 1). Page 1 returns 10 tasks; subsequent pages return 30 tasks.
+ *                 example: 1
+ *                 minimum: 1
+ *     responses:
+ *       200:
+ *         description: Tasks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   description: Status of the response.
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   description: Descriptive message about the response.
+ *                   example: "Task List retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   description: List of tasks matching the filter criteria.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       task_id:
+ *                         type: integer
+ *                         description: Unique identifier for the task.
+ *                         example: 1001
+ *                       template_task_id:
+ *                         type: integer
+ *                         description: Identifier for the template associated with the task.
+ *                         example: 2001
+ *                       task_type:
+ *                         type: string
+ *                         description: Type of the task (e.g., Manual, Automated).
+ *                         example: "Manual"
+ *                       Created_By:
+ *                         type: string
+ *                         description: Email ID of the user who created the task.
+ *                         example: "super@gmail.com"
+ *                       Execute_By:
+ *                         type: string
+ *                         description: Email ID of the user assigned to execute the task, if any.
+ *                         example: "user456@gmail.com"
+ *                         nullable: true
+ *                       Sys_Alert_ID:
+ *                         type: integer
+ *                         description: System alert ID associated with the task, if any.
+ *                         example: 789
+ *                         nullable: true
+ *                       task_status:
+ *                         type: string
+ *                         enum: ['open', 'inprogress', 'complete', 'close']
+ *                         description: Current status of the task.
+ *                         example: "inprogress"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date and time when the task was created (ISO 8601 format).
+ *                         example: "2025-01-05T10:00:00.000Z"
+ *                         nullable: true
+ *       500:
+ *         description: Server error while fetching task list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   description: Status of the response.
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   description: Descriptive message about the error.
+ *                   example: "There is an error fetching task list."
+ */
+router.post("/List_All_Tasks", List_All_Tasks);
 
 export default router;

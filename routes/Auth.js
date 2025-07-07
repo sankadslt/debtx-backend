@@ -37,7 +37,7 @@
 
 import express from "express";
 import passport from "passport";
-import { registerUser, loginUser, refreshToken, getUserData, handleAzureLogin } from "../controllers/authController.js";
+import { registerUser, loginUser, refreshToken, getUserData, handleAzureLogin, getUserFromAzure } from "../controllers/authController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -90,5 +90,8 @@ router.get(
 
 //aure login route
 router.post("/azure", handleAzureLogin);
+
+//get slt user data from AZURE
+router.get("/azure-user/:userId", getUserFromAzure);
 
 export default router;
