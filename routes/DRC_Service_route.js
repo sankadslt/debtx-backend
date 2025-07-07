@@ -1208,6 +1208,138 @@ router.post("/DRC_Agreement_details_list", DRC_Agreement_details_list);
  */
 router.post("/Assign_DRC_To_Agreement", Assign_DRC_To_Agreement);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Debt Recovery Company-Services
+ *     description: Services-related endpoints, allowing management and registration of services.
+ *
+ * /api/DRC_service/List_User_Approval_Details:
+ *   post:
+ *     summary: DS-**** List user approval details with optional filter
+ *     description: |
+ *       Retrieve paginated user approval details, filtered by date range and optional user type.
+ *       
+ *       | Version | Date        | Description            |
+ *       |---------|-------------|------------------------|
+ *       | 01      | 2025-07-07  | Initial Implementation |
+ *       
+ *     tags:
+ *       - Debt Recovery Company-Services
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - from_date
+ *               - to_date
+ *             properties:
+ *               user_type:
+ *                 type: string
+ *                 example: Agent
+ *                 description: Filter by user type (optional).
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: 2025-06-01
+ *                 description: Start date for filtering (inclusive).
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: 2025-06-30
+ *                 description: End date for filtering (inclusive).
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination.
+ *     responses:
+ *       200:
+ *         description: User approval details fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User approval details fetched successfully.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       User_id:
+ *                         type: integer
+ *                         example: 123
+ *                       approve_status:
+ *                         type: string
+ *                         example: Open
+ *                       created_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-06-15T10:00:00Z
+ *                       User_Type:
+ *                         type: string
+ *                         example: DRC
+ *                       user_data:
+ *                         type: object
+ *                         properties:
+ *                           user_type:
+ *                             type: string
+ *                             example: Agent
+ *                           username:
+ *                             type: string
+ *                             example: JohnDoe
+ *                           email:
+ *                             type: string
+ *                             example: john@example.com
+ *                           contact_num:
+ *                             type: string
+ *                             example: +94712345678
+ *       400:
+ *         description: Missing or invalid required fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: from_date and to_date are required fields
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: from_date and to_date are required fields
+ *       500:
+ *         description: Internal server error while fetching approval details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error while fetching user approval details.
+ *                 error:
+ *                   type: string
+ *                   example: Error stack or message here
+ */
 router.post("/List_User_Approval_Details", List_User_Approval_Details);
 
 export default router;
