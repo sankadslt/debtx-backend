@@ -1153,7 +1153,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
     const interactionResult = await createUserInteractionFunction({
       Interaction_ID:26,
-      User_Interaction_Type:"python", 
+      User_Interaction_Type:"Pending Approval DRC Agreement", 
       delegate_user_id:approved_Deligated_by,   
       Created_By:assigned_by,
       User_Interaction_Status: "Open",
