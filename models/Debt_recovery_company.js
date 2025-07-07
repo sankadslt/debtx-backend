@@ -230,8 +230,19 @@ const drcSchema = new Schema(
       required: true,
     },
     drc_agreement_details: {
-      type: [agreementDetailsSchema],
-      default: []
+      agreement_start_dtm: {
+        type: Date,
+        default: null,
+      },
+      agreement_end_dtm: {
+        type: Date,
+        defult: null,
+      },
+      agreement_remark: {
+        type: String,
+        maxlength: 255,
+        default: null,
+      },
     },
     slt_coordinator: {
       type: [coordinatorSchema],
