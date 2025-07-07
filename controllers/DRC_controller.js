@@ -698,7 +698,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
           $push: {
             remark: {
               remark: remark,
-              remark_dtm: currentDate,
+              remark_dtm: new Date(),
               remark_by: updated_by,
             },
           },
