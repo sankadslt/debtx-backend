@@ -1444,7 +1444,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           "MB Settle Open-Pending",
           "MB Settle Active",
           "MB Fail with Pending Non-Settlement"
-      ];
+      ]; 
 
       const pipeline = [];
 

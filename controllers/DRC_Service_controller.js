@@ -17,6 +17,7 @@ import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
 import user_approve_model from "../models/User_Approval.js"
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
+import User from "../models/User.js";
 
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
@@ -1190,4 +1191,57 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     session.endSession();
   }
 };
+
+export const List_User_Approval_Details = async (req, res) => {
+  const { user_role, user_type, status } = req.body;
+
+  try {
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "User_id",
+          foreignField: "user_id",
+          as: "user_data"
+        }
+      },
+      { $unwind: "$user_data" }
+    ];
+
+    const matchConditions = [];
+
+    if (status) {
+      matchConditions.push({ approve_status: status });
+    }
+
+    if (user_role) {
+      matchConditions.push({ "user_data.role": user_role });
+    }
+
+    if (user_type) {
+      matchConditions.push({ "user_data.user_type": user_type });
+    }
+
+    if (matchConditions.length > 0) {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+
+    const result = await user_approve_model.aggregate(pipeline);
+
+    return res.status(200).json({
+      status: "success",
+      message: "User approval details fetched successfully.",
+      data: result
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error while fetching user approval details.",
+      error: error.message
+    });
+  }
+};
+
+
 
