@@ -144,11 +144,13 @@ export const registerRTOM = async (req, res) => {
       throw new Error("MongoDB connection failed");
     }
 
-    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "rtom_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "rtom_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
 
     // Correctly extract the sequence ID from the top-level structure
     if (!counterResult || !counterResult.seq) {
@@ -957,19 +959,13 @@ export const CreateActiveRTOM = async (req, res) => {
   } = req.body;
 
   try {
-    if (
-      !billing_center_code ||
-      !rtom_name ||
-      !area_code ||
-      !rtom_email ||
-      !rtom_mobile_no ||
-      !rtom_telephone_no
-    ) {
+    if (!billing_center_code || !rtom_name || !area_code) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
         errors: {
-          field_name: "All fields are required",
+          field_name:
+            "billing_center_code, rtom_name, and area_code are required",
         },
       });
     }
@@ -979,36 +975,64 @@ export const CreateActiveRTOM = async (req, res) => {
       throw new Error("MongoDB connection failed");
     }
 
-    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+    const collection = mongoConnection.collection("collection_sequence");
+
+    const seqDocExists = await collection.findOne({ _id: "rtom_id" });
+    if (!seqDocExists) {
+      await collection.insertOne({ _id: "rtom_id", seq: 0 });
+    }
+
+    const counterResult = await collection.findOneAndUpdate(
       { _id: "rtom_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true }
     );
 
-    if (!counterResult || !counterResult.seq) {
+    const seqDoc = counterResult.value || counterResult;
+    if (!seqDoc || typeof seqDoc.seq !== "number") {
       throw new Error("Failed to generate rtom_id");
     }
 
-    const rtom_id = counterResult.seq;
+    const rtom_id = seqDoc.seq;
     const rtom_status = "Active";
     const created_on = new Date();
 
-    const newRTOM = new Rtom({
+    const newRTOMData = {
       doc_version: 1,
       rtom_id,
       billing_center_code,
       rtom_name,
       area_code,
-      rtom_email,
-      rtom_mobile_no: [{ mobile_number: rtom_mobile_no }],
-      rtom_telephone_no: [{ telephone_number: rtom_telephone_no }],
       created_by,
       created_on,
       rtom_status,
       rtom_end_date: null,
       rtom_end_by: "N/A",
       rtom_remarks: [],
-    });
+    };
+
+    if (typeof rtom_email === "string" && rtom_email.trim() !== "") {
+      newRTOMData.rtom_email = rtom_email.trim();
+    }
+
+    if (typeof rtom_mobile_no === "string" && rtom_mobile_no.trim() !== "") {
+      newRTOMData.rtom_mobile_no = [{ mobile_number: rtom_mobile_no.trim() }];
+    } else {
+      newRTOMData.rtom_mobile_no = [];
+    }
+
+    if (
+      typeof rtom_telephone_no === "string" &&
+      rtom_telephone_no.trim() !== ""
+    ) {
+      newRTOMData.rtom_telephone_no = [
+        { telephone_number: rtom_telephone_no.trim() },
+      ];
+    } else {
+      newRTOMData.rtom_telephone_no = [];
+    }
+
+    const newRTOM = new Rtom(newRTOMData);
 
     await newRTOM.save();
 
@@ -1091,28 +1115,28 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
     const pipeline = [
       {
         $match: {
-          rtom_id: Number(rtom_id)
-        }
+          rtom_id: Number(rtom_id),
+        },
       },
       {
         $addFields: {
           rtom_mobile_no: {
             $let: {
               vars: {
-                firstMobile: { $arrayElemAt: ["$rtom_mobile_no", -1] }
+                firstMobile: { $arrayElemAt: ["$rtom_mobile_no", -1] },
               },
-              in: "$$firstMobile.mobile_number"
-            }
+              in: "$$firstMobile.mobile_number",
+            },
           },
           rtom_telephone_no: {
             $let: {
               vars: {
-                firstTel: { $arrayElemAt: ["$rtom_telephone_no", -1] }
+                firstTel: { $arrayElemAt: ["$rtom_telephone_no", -1] },
               },
-              in: "$$firstTel.telephone_number"
-            }
-          }
-        }
+              in: "$$firstTel.telephone_number",
+            },
+          },
+        },
       },
       {
         $project: {
@@ -1126,9 +1150,9 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
           rtom_mobile_no: 1,
           rtom_telephone_no: 1,
           created_on: 1,
-          rtom_remarks: 1
-        }
-      }
+          rtom_remarks: 1,
+        },
+      },
     ];
 
     const result = await Rtom.aggregate(pipeline);
@@ -1154,7 +1178,6 @@ export const ListRTOMDetailsByRTOMID = async (req, res) => {
     });
   }
 };
-
 
 export const UpdateRTOMDetails = async (req, res) => {
   const {
@@ -1279,7 +1302,6 @@ export const UpdateRTOMDetails = async (req, res) => {
   }
 };
 
-
 export const TerminateRTOM = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1290,22 +1312,29 @@ export const TerminateRTOM = async (req, res) => {
     if (!rtom_id || !rtom_end_date || !rtom_end_by || !rtom_remarks) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     if (!Array.isArray(rtom_remarks) || rtom_remarks.length === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: 'Remarks must be a non-empty array' });
+      return res
+        .status(400)
+        .json({ message: "Remarks must be a non-empty array" });
     }
 
+    // Perform the update with $push to append remarks
     const result = await Rtom.findOneAndUpdate(
       { rtom_id: rtom_id },
       {
-        rtom_status: 'Terminate',
-        rtom_end_date,
-        rtom_end_by,
-        rtom_remarks
+        $set: {
+          rtom_status: "Terminate",
+          rtom_end_date,
+          rtom_end_by,
+        },
+        $push: {
+          rtom_remarks: { $each: rtom_remarks },
+        },
       },
       { new: true, session }
     );
@@ -1313,21 +1342,22 @@ export const TerminateRTOM = async (req, res) => {
     if (!result) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: 'RTOM not found' });
+      return res.status(404).json({ message: "RTOM not found" });
     }
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ message: 'RTOM terminated successfully', data: result });
+    res
+      .status(200)
+      .json({ message: "RTOM terminated successfully", data: result });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error('Error terminating RTOM:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error terminating RTOM:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
- 
 export const createRTOM = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1357,7 +1387,9 @@ export const createRTOM = async (req, res) => {
     const telephoneArray = Array.isArray(telephone) ? telephone : [];
 
     // Check for duplicate RTOM (optional)
-    const existingRTOM = await Rtom.findOne({ billing_center_code: billingCenterCode }).session(session);
+    const existingRTOM = await Rtom.findOne({
+      billing_center_code: billingCenterCode,
+    }).session(session);
     if (existingRTOM) {
       await session.abortTransaction();
       return res.status(400).json({
@@ -1366,33 +1398,34 @@ export const createRTOM = async (req, res) => {
       });
     }
 
-      const counterResult = await mongoose.connection.db.collection("collection_sequence").findOneAndUpdate(
+    const counterResult = await mongoose.connection.db
+      .collection("collection_sequence")
+      .findOneAndUpdate(
         { _id: "rtom_id" },
         { $inc: { seq: 1 } },
         { returnOriginal: false, upsert: true }
       );
 
-      console.log("counterResult:", counterResult);
+    console.log("counterResult:", counterResult);
 
-      const rtomId = counterResult?.seq;  
+    const rtomId = counterResult?.seq;
 
-      if (!rtomId) {
-        throw new Error("Failed to generate RTOM ID");
-      }
-
+    if (!rtomId) {
+      throw new Error("Failed to generate RTOM ID");
+    }
 
     // Create RTOM document
     const newRtom = new Rtom({
-       rtom_id: rtomId,  
+      rtom_id: rtomId,
       billing_center_code: billingCenterCode,
       rtom_name: name,
       area_code: areaCode,
       rtom_email: email,
-      rtom_mobile_no: mobileArray.map(m => ({ mobile_number: m })),
-      rtom_telephone_no: telephoneArray.map(t => ({ telephone_number: t })),
+      rtom_mobile_no: mobileArray.map((m) => ({ mobile_number: m })),
+      rtom_telephone_no: telephoneArray.map((t) => ({ telephone_number: t })),
       created_by,
       created_on: new Date(),
-      rtom_status: 'Active',
+      rtom_status: "Active",
       rtom_remarks: [],
       doc_version: 1,
     });
@@ -1402,7 +1435,7 @@ export const createRTOM = async (req, res) => {
     // Aggregation: Count total RTOMs per area code
     const aggregationResult = await Rtom.aggregate([
       { $match: { area_code: areaCode } },
-      { $group: { _id: '$area_code', totalRTOMs: { $sum: 1 } } }
+      { $group: { _id: "$area_code", totalRTOMs: { $sum: 1 } } },
     ]).session(session);
 
     await session.commitTransaction();
