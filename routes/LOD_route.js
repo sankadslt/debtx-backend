@@ -25,6 +25,7 @@ import {
   create_Customer_Responce,
   case_details_for_lod_final_reminder,
   List_All_LOD_Holdlist,
+  Proceed_LD_Hold_List,
 } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
@@ -1019,5 +1020,7 @@ router.post(
 );
 
 router.post("/List_All_LOD_Holdlist", List_All_LOD_Holdlist);
+
+router.post("/Proceed_LD_Hold_List", Proceed_LD_Hold_List);
 
 export default router;

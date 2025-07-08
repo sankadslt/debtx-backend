@@ -8,84 +8,63 @@ const userApprovalSchema = new Schema(
       required: true, 
       default: 1
     },  
-    approval_id: { 
+    user_approver_id: { 
       type: Number, 
       required: true, 
       unique: true 
     },
-    user_type: { 
+    User_Type: { 
       type: String, 
-      maxlength: 30,
       required: true, 
-      enum: [ 'RO', 'drcUser'] 
+      enum: [ "DRC","DRC User","RO"] 
     },
-    drc_id: { 
-      type: Number, 
-      required: true 
+    User_id: { 
+      type: String,
     },
-    ro_id: { 
-      type: Number, 
-      default: null 
-    },
-    drcUser_id: { 
+    DRC_id: { 
       type: Number, 
       default: null 
     },
-    user_name: { 
-      type: String, 
-      maxlength: 30,
+    created_on: { 
+      type: Date, 
+      default: Date() 
+    },
+    created_by: { 
+      type: String,
       required: true
     },
-    user_role: {
+    approve_status: {
       type: String, 
       maxlength: 30,
       required: true, 
-      enum: [ "DRC_Coodinator", "RO"] 
+      enum: ["Open","Approve","Reject"] 
     },
-    // login_email: {
-    //   type: String,
-    //   maxlength: 30,
-    //   default: null,
-    // },
-    // login_contact_no: {
-    //   type: String,
-    //   maxlength: 30,
-    //   required: true,
-    // },
-    // drcUser_status: {
-    //   type: String,
-    //   maxlength: 30,
-    //   enum: ['Active', 'Inactive', 'Terminate'],
-    //   default: "Active",
-    // },
-    created_by: { 
-      type: String, 
-      maxlength: 30,
-      required: true 
-    },
-    created_dtm: { 
+    approve_status_on: {
       type: Date, 
-      required: true 
+      default: Date() 
     },
-    approve_status: { 
+    approver_type: {
       type: String, 
       maxlength: 30,
-      default: null 
+      required: true, 
+      enum: [ "DRC_Agreement","DRC_user_registration","DRC_user_details_update"] 
     },
-    approve_by: { 
+    approved_Deligated_by: { 
       type: String,
-      maxlength: 30, 
-      default: null 
+      required: true
     },
-    approve_dtm: {
-      type: Date, 
-      default: null 
+    remark: { 
+      type: String,
+      default:null
     },
-    parameters: {
+    Parameters:{
       type: Map,
-      of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
+      of: mongoose.Schema.Types.Mixed,
       default: {},
-      default: {},
+    },
+    existing_reference_id:{
+      type: Number, 
+      default:null,
     }
   },
   {

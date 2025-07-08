@@ -195,7 +195,7 @@ export const changeServiceStatus = async (req, res) => {
     }
   };
   
-
+  
 export const Register_Service_Type = async (req, res) => {
   try {
     let { service_type, create_by } = req.body;
@@ -207,7 +207,6 @@ export const Register_Service_Type = async (req, res) => {
       });
     }
 
-    // Normalize input
     service_type = service_type.trim();
 
     if (!service_type) {
@@ -217,33 +216,42 @@ export const Register_Service_Type = async (req, res) => {
       });
     }
 
-    const existingServiceType = await Service.findOne({ service_type });
+    const forbiddenCharsRegex = /[@#!$%^&*]/;
+    if (forbiddenCharsRegex.test(service_type)) {
+      return res.status(400).json({
+        status: "error",
+        message: "service_type contains invalid special characters. Not allowed: @, #, !, $, %, ^, &, *",
+      });
+    }
+
+    const existingServiceType = await Service.findOne({
+      service_type: { $regex: `^${service_type}$`, $options: "i" },
+    });
+
     if (existingServiceType) {
       return res.status(400).json({
         status: "error",
-        message: `The service_type '${service_type}' already exists.`,
+        message: `The service_type '${service_type}' already exists (case-insensitive match).`,
       });
     }
 
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
-      throw new Error('MongoDB connection failed');
+      throw new Error("MongoDB connection failed");
     }
 
-      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "service_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-  
-      // Correctly extract the sequence ID from the top-level structure
-      if (!counterResult || !counterResult.seq) {
-        throw new Error("Failed to generate service_id");
-      }
-  
-      const seq_service_id = counterResult.seq;
-  
-      const default_service_type_status = "Active";
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "service_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    if (!counterResult || !counterResult.seq) {
+      throw new Error("Failed to generate service_id");
+    }
+
+    const seq_service_id = counterResult.seq;
+    const default_service_type_status = "Active";
 
     const newService = new Service({
       service_type,
@@ -254,12 +262,12 @@ export const Register_Service_Type = async (req, res) => {
 
     await newService.save();
 
+
     res.status(200).json({
       status: "success",
       message: "Service data stored successfully",
       service: newService,
     });
-
   } catch (err) {
     console.error("Error storing service data:", err);
     res.status(500).json({
@@ -269,5 +277,7 @@ export const Register_Service_Type = async (req, res) => {
     });
   }
 };
+
+
 
   
