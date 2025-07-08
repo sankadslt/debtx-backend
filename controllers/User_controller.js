@@ -724,6 +724,55 @@ export const List_User_Approval_Details = async (req, res) => {
   }
 };
 
+export const List_User_Details_By_Service = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "User ID is required.",
+    });
+  }
+
+  try {
+    const user = await User.aggregate([
+      { $match: { user_id: user_id } },
+      {
+        $project: {
+          _id: 0,
+          username: 1,
+          email: 1,
+        },
+      },
+    ]);
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No user found with the given user ID.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User details retrieved successfully.",
+      data: user[0],
+    });
+
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
 
 
 
