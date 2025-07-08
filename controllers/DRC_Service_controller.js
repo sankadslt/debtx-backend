@@ -18,6 +18,7 @@ import moment from "moment"; // Import moment.js for date formatting
 import user_approve_model from "../models/User_Approval.js"
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import User from "../models/User.js";
+import drc_agreement from "../models/DRC_Agreement_details.js"
 
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
@@ -1049,8 +1050,7 @@ export const DRC_Agreement_details_list = async (req, res) => {
       });
     }
 
-    const agreement_details = await DRC.find({ drc_id })
-      .select('drc_agreement_details');
+    const agreement_details = await drc_agreement.find({ drc_id });
 
     return res.status(200).json({
       status: "success",

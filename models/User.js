@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema(
       maxlength: 30,
       required: true,
     },
+    user_nic: {
+      type: String,
+      maxlength: 30,
+      required: true,
+    },
     email: {
       type: String,
       maxlength: 30,
