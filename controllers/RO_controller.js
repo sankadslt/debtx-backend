@@ -3709,7 +3709,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       login_contact_no: login_contact_no,
       nic: nic,
       drcUser_type: drcUser_type,
-      drcUser_status: "Active",
+      drcUser_status: "Inactive",
       create_dtm: currentDate,
       create_by: create_by,
       end_dtm: null,
@@ -3763,7 +3763,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       Parameters: {
         login_email: login_email || null,
         login_contact_no: login_contact_no,
-        drcUser_status: "Active"
+        drcUser_status: "Inactive"
       },
       existing_reference_id: null
     };
