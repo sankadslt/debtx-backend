@@ -234,7 +234,7 @@ const drcSchema = new Schema(
       required: true
     },
     rtom: {
-      type: rtomSchema,
+      type: [rtomSchema],
       required: true
     },
     remark: {
