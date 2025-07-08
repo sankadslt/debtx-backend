@@ -1305,94 +1305,124 @@ export const List_User_Approval_Details = async (req, res) => {
   }
 };
 
-// export const Approve_DRC_Agreement_Approval = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const { drc_id, approved_by, user_approver_id } = req.body;
-//     if (!drc_id || !user_approver_id) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: "user_approver_id, drc_id, and  approved_by are required" });
-//     }
-//     if (!approved_by) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: "approved_by is required" });
-//     };
-//     const approvalDoc = await User_Approval.findOne(
-//       { 
-//         DRC_id:drc_id,                           
-//         user_approver_id
-//       }
-//     ).session(session);
-//     if (!approvalDoc) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(404).json({ message: "No matching approver reference found" });
-//     }
-//     const deligate_id = approvalDoc.created_by;
+export const Approve_DRC_Agreement_Approval = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    
+    const { drc_id, approved_by, user_approver_id } = req.body;
+    
+    if (!drc_id || !user_approver_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "user_approver_id, drc_id, and  approved_by are required" });
+    }
+    if (!approved_by) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "approved_by is required" });
+    };
+    
+    const approvalDoc = await User_Approval.findOne(
+      { 
+        DRC_id:drc_id,                           
+        user_approver_id
+      }
+    ).session(session);
+    if (!approvalDoc) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "No matching approver reference found" });
+    };
 
-//     const result = await TmpForwardedApprover.updateOne(
-//       {
-//         DRC_id:drc_id,                           
-//         user_approver_id
-//       },
-//       {
-//         $set: {
-//           approve_status: "Approve",
-//         }
-//       },
-//       { session }
-//     );
+    const start_date = approvalDoc.Parameters.start_date;
+    const end_date = approvalDoc.Parameters.end_date;
+    const deligate_id = approvalDoc.created_by;
 
-//     if (result.modifiedCount === 0) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(304).json({ message: "Approval update failed" });
-//     }
-//     // Update Case_details
-//     const caseResult = await DRC.updateOne(
-//       { drc_id: drc_id },
-//       { session }
-//     );
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        DRC_id:drc_id,                           
+        user_approver_id
+      },
+      {
+        $set: {
+          approve_status: "Approve",
+        }
+      },
+      { session }
+    );
+    if (result.modifiedCount === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(304).json({ message: "Approval update failed" });
+    }
 
-//     // --- Create User Interaction Log ---
-//     const interaction_id = 16;
-//     const request_type = "Approved DRC Assign Manager Approval";
-//     const created_by = approved_by;
-//     const dynamicParams = { approver_reference };
+    if(end_date>new Date()){
+      const parameters = {
+        start_date,
+        end_date,
+        drc_id
+      };
+      const taskData = {
+        Template_Task_Id: 33, //python
+        task_type: "python", //python
+        ...parameters,
+        created_by,
+        task_status: "open",
+      };
+      const response = await createTaskFunction(taskData, session);
+      session.endSession();
+    }else{
+      const caseResult = await DRC.updateOne(
+        { drc_id: drc_id },
+        {
+          push:{
+            status:{
+              drc_status:"Active",
+              drc_status_dtm:new Date(),
+              drc_status_by:approved_by
+            }
+          }
+        },
+        { session }
+      );
+    }
+    // --- Create User Interaction Log ---
+    const interaction_id = 16; //python
+    const request_type = "python"; //python
+    const created_by = approved_by;
+    const dynamicParams = { start_date,end_date,drc_id };
 
-//     await createUserInteractionFunction({
-//       Interaction_ID: interaction_id,
-//       User_Interaction_Type: request_type,
-//       delegate_user_id: deligate_id,
-//       Created_By: created_by,
-//       User_Interaction_Status: "Open",
-//       User_Interaction_Status_DTM: currentDate,
-//       session,
-//       ...dynamicParams,
-//     });
+    await createUserInteractionFunction({
+      Interaction_ID: interaction_id,
+      User_Interaction_Type: request_type,
+      delegate_user_id: deligate_id,
+      Created_By: created_by,
+      User_Interaction_Status: "Open",
+      User_Interaction_Status_DTM: currentDate,
+      session,
+      ...dynamicParams,
+    });
 
-//     await session.commitTransaction();
-//     session.endSession();
+    await session.commitTransaction();
+    session.endSession();
 
-//     return res.status(200).json({
-//       message: "Approval added successfully.",
-//       updatedCount: result.modifiedCount + caseResult.modifiedCount,
-//     });
-//   } catch (error) {
-//     console.error("Error approving DRC Assign Manager Approvals:", error);
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({
-//       message: "Error approving DRC Assign Manager Approvals",
-//       error: error.message || "Internal server error.",
-//     });
-//   } finally {
-//     if (session) {
-//       session.endSession();
-//     }
-//   }
-// };
+    return res.status(200).json({
+      message: "Approval added successfully.",
+      updatedCount: result.modifiedCount + caseResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error approving DRC Assign Manager Approvals:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error approving DRC Assign Manager Approvals",
+      error: error.message || "Internal server error.",
+    });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
+  }
+};
 
