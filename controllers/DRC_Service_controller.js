@@ -1069,7 +1069,6 @@ export const DRC_Agreement_details_list = async (req, res) => {
 
 export const Assign_DRC_To_Agreement = async (req, res) => {
   const session = await mongoose.startSession();
-
   try {
     session.startTransaction();
     const { drc_id, remark, assigned_by, start_date, end_date } = req.body;
