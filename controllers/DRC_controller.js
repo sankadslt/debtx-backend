@@ -444,10 +444,8 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     agreement_start_dtm: "$$agreement.agreement_start_dtm",
                     agreement_end_dtm: "$$agreement.agreement_end_dtm",
-                    agreement_remark: "$$agreement.agreement_remark",
-                    agreement_update_by: "$$agreement.agreement_update_by"
-                  }
-                }
+                  },
+                },
               },
               else: []
             }
@@ -496,7 +494,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     rtom_name: "$$r.rtom_name",
                     status_update_dtm: "$$r.status_update_dtm",
-                     handling_type: "$$r.handling_type",
+                    handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",
                   }
                 }

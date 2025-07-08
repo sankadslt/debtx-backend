@@ -147,7 +147,6 @@ const companyStatusSchema = new Schema({
   },
 });
 
-// Schema for agreement details
 const agreementDetailsSchema = new Schema({
   agreement_start_dtm: {
     type: Date,
@@ -155,22 +154,15 @@ const agreementDetailsSchema = new Schema({
   },
   agreement_end_dtm: {
     type: Date,
-    defult: null,
+    default: null,
   },
   agreement_remark: {
     type: String,
     maxlength: 255,
     default: null,
   },
-  agreement_update_by: {
-    type: String,
-    default: null,
-  },
-  agreement_update_dtm: {
-    type: Date,
-    default: null,
-  },
-},{_id: false });
+}, { _id: false });
+
 
 const drcSchema = new Schema(
   {
@@ -197,7 +189,7 @@ const drcSchema = new Schema(
       required: true,
     },
     drc_contact_no: {
-      type: String,
+      type: Number,
       maxlength: 255,
       required: true
     },
@@ -230,8 +222,8 @@ const drcSchema = new Schema(
       required: true,
     },
     drc_agreement_details: {
-      type: [agreementDetailsSchema],
-      default: []
+      type: agreementDetailsSchema,
+      default: {}
     },
     slt_coordinator: {
       type: [coordinatorSchema],
@@ -242,7 +234,7 @@ const drcSchema = new Schema(
       required: true
     },
     rtom: {
-      type: [rtomSchema],
+      type: rtomSchema,
       required: true
     },
     remark: {
