@@ -1068,44 +1068,54 @@ export const DRC_Agreement_details_list = async (req, res) => {
 };
 
 export const Assign_DRC_To_Agreement = async (req, res) => {
-  
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
-    const {drc_id, remark, assigned_by, start_date, end_date } = req.body;
-    
+    const { drc_id, remark, assigned_by, start_date, end_date } = req.body;
+
     if (!start_date || !drc_id || !end_date || !assigned_by) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
-        message: "assigned_by, end_date, start_date and drc_id is required.",
+        message: "assigned_by, end_date, start_date and drc_id are required.",
         errors: {
           code: 400,
-          description: "assigned_by, end_date, start_date and drc_id is required.",
+          description: "assigned_by, end_date, start_date and drc_id are required.",
         },
       });
     }
+
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
     }
+
+    // Generate user_approver_id
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "user_approver_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
     );
-
-    const user_approver_id = counterResult.seq;
-    console.log(user_approver_id);
+    const user_approver_id = counterResult?.seq;
     if (!user_approver_id) {
-      throw new Error("Failed to generate Task_Id.");
+      throw new Error("Failed to generate user_approver_id.");
     }
-    // const approved_Deligated_by = await getApprovalUserIdService({
-    //     approval_type: "DRC_Agreement"
-    // });
+
+    // Generate agreement_id
+    const counterResultTwo = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "agreement_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+    const agreement_id = counterResultTwo?.seq;
+    if (!agreement_id) {
+      throw new Error("Failed to generate agreement_id.");
+    }
+
+    // Get delegate user
     const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-    if(!approved_Deligated_by){
+    if (!approved_Deligated_by) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
@@ -1113,17 +1123,18 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       });
     }
 
+    // Insert into user_approve_model
     const user_approve_record = new user_approve_model({
       user_approver_id,
-      User_Type:"DRC",
-      DRC_id:drc_id,
+      User_Type: "DRC",
+      DRC_id: drc_id,
       created_on: new Date(),
       created_by: assigned_by,
-      approve_status:"Open",
-      approve_status_on:new Date(),
-      approver_type:"DRC_Agreement",
+      approve_status: "Open",
+      approve_status_on: new Date(),
+      approver_type: "DRC_Agreement",
       approved_Deligated_by,
-      Parameters:{
+      Parameters: {
         drc_id,
         start_date,
         end_date,
@@ -1131,52 +1142,65 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       remark
     });
     await user_approve_record.save({ session });
-    
-    const drc_agreement = await DRC.findOneAndUpdate({drc_id},
+
+    // Insert into DRC Agreement Details
+    const drc_agreement_record = new drc_agreement({
+      agreement_id,
+      drc_id,
+      agreement_start_dtm: start_date,
+      agreement_end_dtm: end_date,
+      agreement_remark: remark,
+      agreement_update_dtm: new Date(),
+      agreement_update_by: assigned_by
+    });
+    await drc_agreement_record.save({ session });
+
+    // Update DRC document
+    await DRC.findOneAndUpdate(
+      { drc_id },
       {
-        $push:{
-          drc_agreement_details:{
-            agreement_start_dtm:start_date,
-            agreement_update_by:assigned_by,
-            agreement_remark:remark,
-            agreement_end_dtm:end_date
+        $set: {
+          drc_agreement_details: {
+            agreement_start_dtm: start_date,
+            agreement_update_by: assigned_by,
+            agreement_remark: remark,
+            agreement_end_dtm: end_date
           }
-        },
+        }
       },
-      { new: true, session },
+      { new: true, session }
     );
-    const dynamicParams = {
+
+    // Log user interaction
+    const interactionResult = await createUserInteractionFunction({
+      Interaction_ID: 26,
+      User_Interaction_Type: "Pending Approval DRC Agreement",
+      delegate_user_id: approved_Deligated_by,
+      Created_By: assigned_by,
+      User_Interaction_Status: "Open",
+      drc_id,
       start_date,
       end_date,
-      drc_id
-    };
-
-    const interactionResult = await createUserInteractionFunction({
-      Interaction_ID:26,
-      User_Interaction_Type:"Pending Approval DRC Agreement", 
-      delegate_user_id:approved_Deligated_by,   
-      Created_By:assigned_by,
-      User_Interaction_Status: "Open",
-      ...dynamicParams,
-      session 
+      session
     });
 
-    if(!interactionResult || interactionResult.status === "error"){
+    if (!interactionResult || interactionResult.status === "error") {
       await session.abortTransaction();
-      return res.status(404).json({
+      return res.status(500).json({
         status: "error",
-        message: "python.",
-      }); 
+        message: "Failed to create user interaction.",
+      });
     }
+
     await session.commitTransaction();
 
     return res.status(200).json({
       status: "success",
-      message: "DRC Reassining send to the Aprover.",
+      message: "DRC Agreement sent for approval.",
       data: user_approve_record,
-    }); 
-  }
-  catch (error) {
+    });
+
+  } catch (error) {
     await session.abortTransaction();
     return res.status(500).json({
       status: "error",
@@ -1186,11 +1210,11 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         description: error.message,
       },
     });
-  }
-  finally {
+  } finally {
     session.endSession();
   }
 };
+
 
 export const List_User_Approval_Details = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
