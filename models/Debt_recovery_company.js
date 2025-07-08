@@ -165,8 +165,12 @@ const agreementDetailsSchema = new Schema({
   agreement_update_by: {
     type: String,
     default: null,
-  }  
-});
+  },
+  agreement_update_dtm: {
+    type: Date,
+    default: null,
+  },
+},{_id: false });
 
 const drcSchema = new Schema(
   {
@@ -203,18 +207,27 @@ const drcSchema = new Schema(
       unique: true,
       required: true,
     },
-    drc_status: {
-      type: [companyStatusSchema],
-      required: true,
+    drc_create_dtm: {
+      type: Date,
+      required: true
     },
-    drc_end_dtm: {
+    drc_create_by: {
+      type: String,
+      maxlength: 255,
+      required: true
+    },
+    drc_terminate_dtm: {
       type: Date,
       default: null
     },
-    drc_end_by: {
+    drc_terminate_by: {
       type: String,
       maxlength: 255,
       default: null
+    },
+    status: {
+      type: [companyStatusSchema],
+      required: true,
     },
     drc_agreement_details: {
       type: [agreementDetailsSchema],
