@@ -189,7 +189,7 @@ const drcSchema = new Schema(
       required: true,
     },
     drc_contact_no: {
-      type: String,
+      type: Number,
       maxlength: 255,
       required: true
     },
