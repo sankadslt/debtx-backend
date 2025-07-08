@@ -165,7 +165,11 @@ const agreementDetailsSchema = new Schema({
   agreement_update_by: {
     type: String,
     default: null,
-  }  
+  },
+  agreement_update_dtm: {
+    type: Date,
+    default: null,
+  },
 },{_id: false });
 
 const drcSchema = new Schema(

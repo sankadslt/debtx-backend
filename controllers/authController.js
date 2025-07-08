@@ -100,8 +100,6 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // if (!user.user_status) return res.status(403).json({ message: "Account is disabled. Contact admin." });
-
     if (user.user_status !== "Active") {
       return res
         .status(403)
@@ -191,7 +189,7 @@ export const getUserData = async (req, res) => {
   }
 };
 
-// azure login
+// Azure login
 export const handleAzureLogin = async (req, res) => {
   try {
     const { code: idToken } = req.body;
@@ -236,5 +234,47 @@ export const handleAzureLogin = async (req, res) => {
   } catch (error) {
     console.error("Azure login error:", error);
     res.status(500).json({ message: "Server error during Azure login" });
+  }
+};
+
+// SLT user details from Azure
+const getAzureToken = async () => {
+  const tenantId = process.env.AZURE_TENANT_ID;
+  const clientId = process.env.AZURE_CLIENT_ID;
+  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+
+  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+
+  const params = new URLSearchParams();
+  params.append("client_id", clientId);
+  params.append("scope", "https://graph.microsoft.com/.default");
+  params.append("client_secret", clientSecret);
+  params.append("grant_type", "client_credentials");
+
+  try {
+    const tokenRes = await axios.post(tokenUrl, params);
+    return tokenRes.data.access_token;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getUserFromAzure = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const token = await getAzureToken();
+    const url = `https://graph.microsoft.com/v1.0/users/${userId}`;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch user from Azure",
+      details: error.response?.data || error.message,
+    });
   }
 };

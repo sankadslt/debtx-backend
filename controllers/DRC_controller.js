@@ -91,7 +91,7 @@ export const List_All_DRC_Details = async (req, res) => {
           },
         },
       },
-      // Add status filtering after calculating last_status
+     
       ...(status ? [{ $match: { "last_status.drc_status": status } }] : []),
       {
         $lookup: {
@@ -158,6 +158,7 @@ export const List_All_DRC_Details = async (req, res) => {
         perPage: limit,
       },
     });
+
   } catch (error) {
     console.error("Error fetching All DRC details", error);
     return res.status(500).json({
@@ -361,6 +362,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
   3. Return the result in a clean, structured response.
   4. Handle all errors with appropriate logging and status codes.
 */
+
 export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
@@ -494,6 +496,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     rtom_name: "$$r.rtom_name",
                     status_update_dtm: "$$r.status_update_dtm",
+                     handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",
                   }
                 }
@@ -510,7 +513,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   as: "r",
                   in: {
                     remark: "$$r.remark",
-                    remark_date: "$$r.remark_dtm",
+                    remark_dtm: "$$r.remark_dtm",
                     remark_by: "$$r.remark_by",
                   }
                 }
@@ -837,6 +840,7 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     });
   }
 };
+
 
 export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
   try {

@@ -1279,7 +1279,7 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No Debt Company found with DRC_ID: DRC_001.
+ *                   example: No Debt Company found with DRC_ID.
  *       500:
  *         description: Internal server error during termination.
  *         content:
@@ -1471,7 +1471,7 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No Debt Company found with DRC_ID: DRC_001.
+ *                   example: No Debt Company found with DRC_ID.
  *       500:
  *         description: Server-side failure
  *         content:

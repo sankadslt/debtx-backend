@@ -94,7 +94,8 @@ import {
   
   List_All_Cases,
   CaseStatus,
-  List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
+  List_Rejected_Batch_Summary_Case_Distribution_Batch_Id,
+  Validate_Existing_Batch_Task
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -4399,6 +4400,8 @@ router.post(
  *                   example: "An error occurred while creating the task."
  */
 router.post("/Exchange_DRC_RTOM_Cases", Exchange_DRC_RTOM_Cases);
+
+router.post("/Validate_Existing_Batch_Task", Validate_Existing_Batch_Task);
 
  /**
  * @swagger
