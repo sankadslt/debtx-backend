@@ -1032,6 +1032,18 @@ export const CreateActiveRTOM = async (req, res) => {
       newRTOMData.rtom_telephone_no = [];
     }
 
+    const existingRTOM = await Rtom.findOne({
+      billing_center_code,
+      rtom_name,
+    });
+
+    if (existingRTOM) {
+      return res.status(409).json({
+        status: "error",
+        message: "An RTOM with the same name, and billing center already exists.",
+      });
+    }
+
     const newRTOM = new Rtom(newRTOMData);
 
     await newRTOM.save();
