@@ -970,6 +970,41 @@ export const CreateActiveRTOM = async (req, res) => {
       });
     }
 
+    const fullDuplicate = await Rtom.findOne({
+      billing_center_code: billing_center_code.trim(),
+      rtom_name: rtom_name.trim(),
+    });
+
+    if (fullDuplicate) {
+      return res.status(409).json({
+        status: "error",
+        message:
+          "An RTOM with this billing center code and name already exists.",
+      });
+    }
+
+    const billingCenterExists = await Rtom.findOne({
+      billing_center_code: billing_center_code.trim(),
+    });
+
+    if (billingCenterExists) {
+      return res.status(409).json({
+        status: "error",
+        message: "An RTOM with this billing center code already exists.",
+      });
+    }
+
+    const nameExists = await Rtom.findOne({
+      rtom_name: rtom_name.trim(),
+    });
+
+    if (nameExists) {
+      return res.status(409).json({
+        status: "error",
+        message: "An RTOM with this name already exists.",
+      });
+    }
+
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");

@@ -23,6 +23,11 @@ const drcAgreementDetailsSchema = new Schema({
         type: Date,
         default: null,
     },
+    agreement_status: {
+        type: String,
+        enum: ['Approved', 'Rejected', 'Pending', 'Expired'],
+        required: true
+    },
     agreement_remark: {
         type: String,
         maxlength: 255,

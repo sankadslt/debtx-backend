@@ -35,7 +35,7 @@ const coordinatorSchema = new Schema({
     type: Date,
     default:null
   },
-});
+}, { _id: false });
 
 const serviceSchema = new Schema({
   service_id: {
@@ -72,7 +72,7 @@ const serviceSchema = new Schema({
     maxlength: 255,
     default: null,
   },
-});
+}, { _id: false });
 
 const rtomSchema = new Schema({
   rtom_id: {
@@ -101,16 +101,7 @@ const rtomSchema = new Schema({
     required: true,
     enum: ["CPE", "Arrears", "All-Type"]
   },
-  status_update_by: {
-    type: String,
-    maxlength: 255,
-    required: true
-  },
-  status_update_dtm: {
-    type: Date,
-    required: true
-  },
-});
+}, { _id: false });
 
 // Sub-schema for remarks
 const remarkSchema = new Schema({
@@ -128,7 +119,7 @@ const remarkSchema = new Schema({
     maxlength: 255,
     defult: null
   },
-});
+}, { _id: false });
 
 // Schema for company status
 const companyStatusSchema = new Schema({
@@ -145,7 +136,7 @@ const companyStatusSchema = new Schema({
     type: String,
     required: true,
   },
-});
+}, { _id: false });
 
 const agreementDetailsSchema = new Schema({
   agreement_start_dtm: {
@@ -189,8 +180,8 @@ const drcSchema = new Schema(
       required: true,
     },
     drc_contact_no: {
-      type: Number,
-      maxlength: 255,
+      type: String,
+      maxlength: 30,
       required: true
     },
     drc_email: {
@@ -234,7 +225,7 @@ const drcSchema = new Schema(
       required: true
     },
     rtom: {
-      type: rtomSchema,
+      type: [rtomSchema],
       required: true
     },
     remark: {
