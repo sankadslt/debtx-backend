@@ -18,6 +18,9 @@ import moment from "moment"; // Import moment.js for date formatting
 import user_approve_model from "../models/User_Approval.js"
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import User from "../models/User.js";
+import drc_agreement from "../models/DRC_Agreement_details.js"
+import User_Approval from "../models/User_Approval.js"
+import {getApprovalUserIdService} from "../services/ApprovalService.js"
 
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
@@ -1049,8 +1052,7 @@ export const DRC_Agreement_details_list = async (req, res) => {
       });
     }
 
-    const agreement_details = await DRC.find({ drc_id })
-      .select('drc_agreement_details');
+    const agreement_details = await drc_agreement.find({ drc_id });
 
     return res.status(200).json({
       status: "success",
@@ -1068,62 +1070,73 @@ export const DRC_Agreement_details_list = async (req, res) => {
 };
 
 export const Assign_DRC_To_Agreement = async (req, res) => {
-  
   const session = await mongoose.startSession();
-
   try {
     session.startTransaction();
-    const {drc_id, remark, assigned_by, start_date, end_date } = req.body;
-    
+    const { drc_id, remark, assigned_by, start_date, end_date } = req.body;
+
     if (!start_date || !drc_id || !end_date || !assigned_by) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
-        message: "assigned_by, end_date, start_date and drc_id is required.",
+        message: "assigned_by, end_date, start_date and drc_id are required.",
         errors: {
           code: 400,
-          description: "assigned_by, end_date, start_date and drc_id is required.",
+          description: "assigned_by, end_date, start_date and drc_id are required.",
         },
       });
     }
+
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
     }
+
+    // Generate user_approver_id
     const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "user_approver_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
     );
-
-    const user_approver_id = counterResult.seq;
-    console.log(user_approver_id);
+    const user_approver_id = counterResult?.seq;
     if (!user_approver_id) {
-      throw new Error("Failed to generate Task_Id.");
+      throw new Error("Failed to generate user_approver_id.");
     }
-    // const approved_Deligated_by = await getApprovalUserIdService({
-    //     approval_type: "DRC_Agreement"
-    // });
-    const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-    if(!approved_Deligated_by){
+
+    // Generate agreement_id
+    const counterResultTwo = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "agreement_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+    const agreement_id = counterResultTwo?.seq;
+    if (!agreement_id) {
+      throw new Error("Failed to generate agreement_id.");
+    }
+    //Get delegate user correct
+    const approval_type = "DRC_Agreement";
+    const approved_Deligated_by = await getApprovalUserIdService(approval_type);
+    console.log(approved_Deligated_by);
+    if (!approved_Deligated_by) {
       await session.abortTransaction();
-      return res.status(400).json({
+      return res.status(404).json({
         status: "error",
         message: "There is no valid approved_Deligated_by id",
       });
     }
 
+    // Insert into user_approve_model
     const user_approve_record = new user_approve_model({
       user_approver_id,
-      User_Type:"DRC",
-      DRC_id:drc_id,
+      User_Type: "DRC",
+      DRC_id: drc_id,
       created_on: new Date(),
       created_by: assigned_by,
-      approve_status:"Open",
-      approve_status_on:new Date(),
-      approver_type:"DRC_Agreement",
+      approve_status: "Open",
+      approve_status_on: new Date(),
+      approver_type: "DRC_Agreement",
       approved_Deligated_by,
-      Parameters:{
+      Parameters: {
         drc_id,
         start_date,
         end_date,
@@ -1131,52 +1144,65 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       remark
     });
     await user_approve_record.save({ session });
-    
-    const drc_agreement = await DRC.findOneAndUpdate({drc_id},
+
+    // Insert into DRC Agreement Details
+    const drc_agreement_record = new drc_agreement({
+      agreement_id,
+      drc_id,
+      agreement_start_dtm: start_date,
+      agreement_end_dtm: end_date,
+      agreement_remark: remark,
+      agreement_update_dtm: new Date(),
+      agreement_update_by: assigned_by
+    });
+    await drc_agreement_record.save({ session });
+
+    // Update DRC document
+    await DRC.findOneAndUpdate(
+      { drc_id },
       {
-        $push:{
-          drc_agreement_details:{
-            agreement_start_dtm:start_date,
-            agreement_update_by:assigned_by,
-            agreement_remark:remark,
-            agreement_end_dtm:end_date
+        $set: {
+          drc_agreement_details: {
+            agreement_start_dtm: start_date,
+            agreement_update_by: assigned_by,
+            agreement_remark: remark,
+            agreement_end_dtm: end_date
           }
-        },
+        }
       },
-      { new: true, session },
+      { new: true, session }
     );
-    const dynamicParams = {
+
+    // Log user interaction
+    const interactionResult = await createUserInteractionFunction({
+      Interaction_ID: 26,
+      User_Interaction_Type: "Pending Approval DRC Agreement",
+      delegate_user_id: approved_Deligated_by,
+      Created_By: assigned_by,
+      User_Interaction_Status: "Open",
+      drc_id,
       start_date,
       end_date,
-      drc_id
-    };
-
-    const interactionResult = await createUserInteractionFunction({
-      Interaction_ID:26,
-      User_Interaction_Type:"Pending Approval DRC Agreement", 
-      delegate_user_id:approved_Deligated_by,   
-      Created_By:assigned_by,
-      User_Interaction_Status: "Open",
-      ...dynamicParams,
-      session 
+      session
     });
 
-    if(!interactionResult || interactionResult.status === "error"){
+    if (!interactionResult || interactionResult.status === "error") {
       await session.abortTransaction();
-      return res.status(404).json({
+      return res.status(500).json({
         status: "error",
-        message: "python.",
-      }); 
+        message: "Failed to create user interaction.",
+      });
     }
+
     await session.commitTransaction();
 
     return res.status(200).json({
       status: "success",
-      message: "DRC Reassining send to the Aprover.",
+      message: "DRC Agreement sent for approval.",
       data: user_approve_record,
-    }); 
-  }
-  catch (error) {
+    });
+
+  } catch (error) {
     await session.abortTransaction();
     return res.status(500).json({
       status: "error",
@@ -1186,11 +1212,11 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         description: error.message,
       },
     });
-  }
-  finally {
+  } finally {
     session.endSession();
   }
 };
+
 
 export const List_User_Approval_Details = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
@@ -1255,6 +1281,7 @@ export const List_User_Approval_Details = async (req, res) => {
       $project: {
         User_id: 1,
         approve_status: 1,
+        user_approver_id:1,
         created_on: 1,
         User_Type: 1,
         "user_data.user_type": 1,
@@ -1275,6 +1302,127 @@ export const List_User_Approval_Details = async (req, res) => {
       message: "Internal server error while fetching user approval details.",
       error: error.message
     });
+  }
+};
+
+export const Approve_DRC_Agreement_Approval = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    
+    const { drc_id, approved_by, user_approver_id } = req.body;
+    
+    if (!drc_id || !user_approver_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "user_approver_id, drc_id, and  approved_by are required" });
+    }
+    if (!approved_by) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "approved_by is required" });
+    };
+    
+    const approvalDoc = await User_Approval.findOne(
+      { 
+        DRC_id:drc_id,                           
+        user_approver_id
+      }
+    ).session(session);
+    if (!approvalDoc) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "No matching approver reference found" });
+    };
+
+    const start_date = approvalDoc.Parameters.start_date;
+    const end_date = approvalDoc.Parameters.end_date;
+    const deligate_id = approvalDoc.created_by;
+
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        DRC_id:drc_id,                           
+        user_approver_id
+      },
+      {
+        $set: {
+          approve_status: "Approve",
+        }
+      },
+      { session }
+    );
+    if (result.modifiedCount === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(304).json({ message: "Approval update failed" });
+    }
+
+    if(end_date>new Date()){
+      const parameters = {
+        start_date,
+        end_date,
+        drc_id
+      };
+      const taskData = {
+        Template_Task_Id: 33, //python
+        task_type: "python", //python
+        ...parameters,
+        created_by,
+        task_status: "open",
+      };
+      const response = await createTaskFunction(taskData, session);
+      session.endSession();
+    }else{
+      const caseResult = await DRC.updateOne(
+        { drc_id: drc_id },
+        {
+          push:{
+            status:{
+              drc_status:"Active",
+              drc_status_dtm:new Date(),
+              drc_status_by:approved_by
+            }
+          }
+        },
+        { session }
+      );
+    }
+    // --- Create User Interaction Log ---
+    const interaction_id = 16; //python
+    const request_type = "python"; //python
+    const created_by = approved_by;
+    const dynamicParams = { start_date,end_date,drc_id };
+
+    await createUserInteractionFunction({
+      Interaction_ID: interaction_id,
+      User_Interaction_Type: request_type,
+      delegate_user_id: deligate_id,
+      Created_By: created_by,
+      User_Interaction_Status: "Open",
+      User_Interaction_Status_DTM: currentDate,
+      session,
+      ...dynamicParams,
+    });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Approval added successfully.",
+      updatedCount: result.modifiedCount + caseResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error approving DRC Assign Manager Approvals:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error approving DRC Assign Manager Approvals",
+      error: error.message || "Internal server error.",
+    });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
 
