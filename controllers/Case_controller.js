@@ -2243,7 +2243,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -2251,7 +2251,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     return res.status(201).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     //console.error("Error in Create_Task_For_case_distribution:", error);
@@ -2679,7 +2679,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
       task_status:"open"
     };
 
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -2687,7 +2687,7 @@ export const Create_Task_For_case_distribution_transaction = async (req, res) =>
     return res.status(200).json({
       status: "success",
       message: "Create Case distribution DRC Transaction_1_Batch List for Download",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     console.error("Error in Create_Task_For_case_distribution:", error);
