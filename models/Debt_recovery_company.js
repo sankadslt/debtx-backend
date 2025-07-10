@@ -101,15 +101,6 @@ const rtomSchema = new Schema({
     required: true,
     enum: ["CPE", "Arrears", "All-Type"]
   },
-  status_update_by: {
-    type: String,
-    maxlength: 255,
-    required: true
-  },
-  status_update_dtm: {
-    type: Date,
-    required: true
-  },
 }, { _id: false });
 
 // Sub-schema for remarks
