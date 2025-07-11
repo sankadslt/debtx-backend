@@ -177,10 +177,58 @@ export const List_All_DRC_Details = async (req, res) => {
   }
 };
 
-export const Create_DRC_With_Services_and_SLT_Coordinator = async (
-  req,
-  res
-) => {
+/*
+## Function: Create_DRC_With_Services_and_SLT_Coordinator (DRC-1C01)
+
+### Description:
+This function creates a new DRC (Debt Recovery Center) record in the MongoDB database along with its associated SLT coordinators, services, and RTOM (Regional Telecom Operations Manager) entities. It also generates corresponding billing center logs for each RTOM. All operations are performed within a MongoDB transaction to ensure data consistency.
+
+### Collections Used:
+- **DRC**: Stores the main DRC information, coordinators, services, and RTOM details.
+- **BillingCenter**: Stores billing center logs for each RTOM associated with the DRC.
+- **collection_sequence**: Used to generate unique sequential IDs for DRC and billing center logs.
+
+### Request Body Parameters:
+- **drc_name**: *(Required)* The name of the DRC.
+- **drc_business_registration_number**: *(Required)* Business registration number of the DRC.
+- **drc_address**: *(Required)* Physical address of the DRC.
+- **drc_contact_no**: *(Required)* Contact phone number of the DRC.
+- **drc_email**: *(Required)* Email address of the DRC.
+- **create_by**: *(Required)* Identifier of the user creating the DRC.
+- **slt_coordinator**: *(Required)* Array of SLT coordinator objects containing service numbers, names, and emails.
+- **services**: *(Required)* Array of service objects with service IDs, types, and optional status.
+- **rtom**: *(Required)* Array of RTOM objects with IDs, names, billing center codes, and handling types.
+
+### Response:
+- **HTTP 201**: Success. DRC created successfully with all associated records.
+- **HTTP 400**: Missing required fields or empty arrays provided.
+- **HTTP 500**: Internal server error, MongoDB connection failure, or transaction failure.
+
+### Flow:
+1. **Start MongoDB session and transaction.**
+2. **Parse and validate all required input fields** from the request body, ensuring arrays are non-empty.
+3. **Establish MongoDB connection** and throw an error if connection fails.
+4. **Generate a unique DRC ID** using the `collection_sequence` counter with atomic increment.
+5. **Validate RTOM data** by ensuring each RTOM has a required billing center code.
+6. **Create the DRC document** with:
+   - Basic DRC information and timestamps
+   - Mapped SLT coordinators with creation timestamps
+   - Mapped services with default "Active" status if not specified
+   - Initial status set to "Inactive"
+   - Mapped RTOM entities with "Active" status
+7. **Save the DRC document** within the transaction.
+8. **Create billing center logs**:
+   - For each RTOM, generate a unique billing center log ID
+   - Create and save a corresponding BillingCenter document
+   - Collect all billing logs for the response
+9. **Commit the transaction and end the session** on success.
+10. **Return a success response** with the created DRC data and billing logs.
+11. **Handle errors**:
+    - Abort transaction and return 400 for validation errors
+    - Abort transaction and return 500 for database or system errors
+    - Log all errors for debugging purposes
+*/
+export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => {
   const {
     drc_name,
     drc_business_registration_number,
@@ -193,8 +241,10 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
     rtom,
   } = req.body;
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    // Validate required fields
     if (
       !drc_name ||
       !drc_business_registration_number ||
@@ -202,24 +252,21 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
       !drc_contact_no ||
       !drc_email ||
       !create_by ||
-      !slt_coordinator ||
-      !services ||
-      !rtom
+      !Array.isArray(slt_coordinator) || slt_coordinator.length === 0 ||
+      !Array.isArray(services) || services.length === 0 ||
+      !Array.isArray(rtom) || rtom.length === 0
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
-        errors: {
-          field_name: "All fields are required",
-        },
+        errors: { field_name: "All fields are required and must be non-empty arrays." },
       });
     }
 
-    // Connect to MongoDB
     const mongoConnection = await db.connectMongoDB();
-    if (!mongoConnection) {
-      throw new Error("MongoDB connection failed");
-    }
+    if (!mongoConnection) throw new Error("MongoDB connection failed");
 
     // Generate unique DRC ID
     const drcCounterResult = await mongoConnection
@@ -238,58 +285,15 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
       : drcCounterResult.seq;
 
     if (!drc_id) {
-      throw new Error("Failed to generate drc_id");
+      throw new Error("Failed to generate DRC ID");
     }
 
-    // Generate unique DRC ID
-    const billingCenterCounterResult = await mongoConnection
-      .collection("collection_sequence")
-      .findOneAndUpdate(
-        { _id: "billing_center_log_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
-      );
-
-    console.log("Billing Center Counter Result:", billingCenterCounterResult);
-
-    // Fix: Check if drcCounterResult has value property or seq directly
-    const billing_center_log_id = billingCenterCounterResult.value
-      ? billingCenterCounterResult.value.seq
-      : billingCenterCounterResult.seq;
-
-    // Generate unique billing center log ID
-    if (!billing_center_log_id) {
-      throw new Error("Failed to generate billing_center_log_id");
-    }
-
-    // Validate coordinator data
-    if (!Array.isArray(slt_coordinator) || slt_coordinator.length === 0) {
-      throw new Error("At least one SLT coordinator is required");
-    }
-
-    // Validate services data
-    if (!Array.isArray(services) || services.length === 0) {
-      throw new Error("At least one service is required");
-    }
-
-    // Validate RTOM data
-    if (!Array.isArray(rtom) || rtom.length === 0) {
-      throw new Error("At least one RTOM is required");
-    }
-
-    // Validate rtom_billing_center_code
     for (const r of rtom) {
       if (!r.rtom_billing_center_code) {
         throw new Error("RTOM billing center code is required");
       }
     }
 
-    const addrtom = rtom[0];
-    const rtom_id = addrtom.rtom_id;
-    const handling_type = addrtom.handling_type;
-
-
-    // Save data to MongoDB
     const newDRC = new DRC({
       doc_version: 1,
       drc_id,
@@ -302,14 +306,14 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
       drc_create_by: create_by,
       drc_terminate_dtm: null,
       drc_terminate_by: null,
-      slt_coordinator: slt_coordinator.map((coord) => ({
+      slt_coordinator: slt_coordinator.map(coord => ({
         service_no: coord.service_no,
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
         coordinator_create_dtm: new Date(),
         coordinator_create_by: create_by,
       })),
-      services: services.map((service) => ({
+      services: services.map(service => ({
         service_id: service.service_id,
         service_type: service.service_type,
         service_status: service.service_status || "Active",
@@ -318,12 +322,12 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         status_update_by: create_by,
         status_update_dtm: new Date(),
       })),
-      status: {
+      status: [{
         drc_status: "Inactive",
         drc_status_dtm: new Date(),
         drc_status_by: create_by,
-      },
-      rtom: rtom.map((r) => ({
+      }],
+      rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,
         rtom_status: "Active",
@@ -333,22 +337,49 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
       })),
     });
 
-    const newBillingCenter = new BillingCenter({
-      doc_version: 1,
-      billing_center_log_id,
-      drc_id,
-      rtom_id: rtom_id, // Assuming first RTOM for billing center
-      rtom_status: "Active",
-      handling_type,
-      status_update_by: create_by,
-      status_update_dtm: new Date(),
-    });
+    await newDRC.save({ session });
 
-    await newDRC.save();
-    await newBillingCenter.save();
+    const billingLogs = [];
 
-    // Return success response
-    res.status(201).json({
+    for (const r of rtom) {
+      const billingCounter = await mongoConnection
+        .collection("collection_sequence")
+        .findOneAndUpdate(
+          { _id: "billing_center_log_id" },
+          { $inc: { seq: 1 } },
+          { returnDocument: "after", upsert: true }
+        );
+
+      console.log("Billing Center Log Counter Result:", billingCounter);
+
+      // Fix: Check if billingCounter has value property or seq directly
+      const billing_center_log_id = billingCounter.value
+        ? billingCounter.value.seq
+        : billingCounter.seq;
+
+      if (!billing_center_log_id) {
+        throw new Error("Failed to generate billing_center_log_id");
+      };
+
+      const newBillingLog = new BillingCenter({
+        doc_version: 1,
+        billing_center_log_id,
+        drc_id,
+        rtom_id: r.rtom_id,
+        rtom_status: "Active",
+        handling_type: r.handling_type,
+        status_update_by: create_by,
+        status_update_dtm: new Date(),
+      });
+
+      await newBillingLog.save({ session });
+      billingLogs.push(newBillingLog);
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
       status: "success",
       message: "DRC registered successfully.",
       data: {
@@ -361,9 +392,12 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         slt_coordinator: newDRC.slt_coordinator,
         services: newDRC.services,
         rtom: newDRC.rtom,
+        billing_logs: billingLogs,
       },
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Unexpected error during DRC registration:", error);
     return res.status(500).json({
       status: "error",
