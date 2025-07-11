@@ -20,6 +20,7 @@ import User from "../models/User.js";
 import User_Approval from "../models/User_Approval.js";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
+import { createTaskFunction } from "../services/TaskService.js";
 
 
 
@@ -2871,201 +2872,333 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 // };
 
 
-export const Terminate_RO = async (req, res) => {
-    const session = await mongoose.startSession();
+// export const Terminate_RO = async (req, res) => {
+//     const session = await mongoose.startSession();
     
-    try {
-        const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
+//     try {
+//         const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
 
-        // Validate that at least one ID is provided
-        if (!ro_id && !drcUser_id) {
-            return res.status(400).json({ 
-                status: "error",
-                message: 'Either ro_id or drcUser_id is required in the request body' 
-            });
-        }
+//         // Validate that at least one ID is provided
+//         if (!ro_id && !drcUser_id) {
+//             return res.status(400).json({ 
+//                 status: "error",
+//                 message: 'Either ro_id or drcUser_id is required in the request body' 
+//             });
+//         }
 
-        // Validate that both IDs are not provided at the same time
-        if (ro_id && drcUser_id) {
-            return res.status(400).json({ 
-                status: "error",
-                message: 'Please provide either ro_id or drcUser_id, not both' 
-            });
-        }
+//         // Validate that both IDs are not provided at the same time
+//         if (ro_id && drcUser_id) {
+//             return res.status(400).json({ 
+//                 status: "error",
+//                 message: 'Please provide either ro_id or drcUser_id, not both' 
+//             });
+//         }
 
-        // Validate other required fields
-        if (!end_by) {
-            return res.status(400).json({ 
-                status: "error",
-                message: 'ro_end_by is required in the request body' 
-            });
-        }
-        if (!remark) {
-            return res.status(400).json({ 
-                status: "error",
-                message: 'remark is required in the request body' 
-            });
-        }
-        if (!end_dtm) {
-            return res.status(400).json({ 
-                status: "error",
-                message: 'end_dtm is required in the request body' 
-            });
-        }
+//         // Validate other required fields
+//         if (!end_by) {
+//             return res.status(400).json({ 
+//                 status: "error",
+//                 message: 'ro_end_by is required in the request body' 
+//             });
+//         }
+//         if (!remark) {
+//             return res.status(400).json({ 
+//                 status: "error",
+//                 message: 'remark is required in the request body' 
+//             });
+//         }
+//         if (!end_dtm) {
+//             return res.status(400).json({ 
+//                 status: "error",
+//                 message: 'end_dtm is required in the request body' 
+//             });
+//         }
 
-        let updatedRO;
-        let newRemark;
-        let queryCondition = {};
-        let drcUser_type = '';
+//         let updatedRO;
+//         let newRemark;
+//         let queryCondition = {};
+//         let drcUser_type = '';
 
-        // Build query condition based on provided ID
-        if (ro_id) {
-            queryCondition = { ro_id: Number(ro_id) };
-            drcUser_type = 'RO';
-        } else if (drcUser_id) {
-            queryCondition = { drcUser_id: Number(drcUser_id) };
-            drcUser_type = 'drcUser';
-        }
+//         // Build query condition based on provided ID
+//         if (ro_id) {
+//             queryCondition = { ro_id: Number(ro_id) };
+//             drcUser_type = 'RO';
+//         } else if (drcUser_id) {
+//             queryCondition = { drcUser_id: Number(drcUser_id) };
+//             drcUser_type = 'drcUser';
+//         }
 
-        // Start transaction
-        await session.withTransaction(async () => {
-            // Check if user exists
-            const user = await Recovery_officer.findOne(queryCondition).session(session);
+//         // Start transaction
+//         await session.withTransaction(async () => {
+//             // Check if user exists
+//             const user = await Recovery_officer.findOne(queryCondition).session(session);
             
-            if (!user) {
-                const error = new Error(`${drcUser_type} not found`);
-                error.statusCode = 404;
-                throw error;
-            }
+//             if (!user) {
+//                 const error = new Error(`${drcUser_type} not found`);
+//                 error.statusCode = 404;
+//                 throw error;
+//             }
 
-            // Check if already terminated
-            if (user.drcUser_status === 'Terminate') {
-                const error = new Error(`${drcUser_type} is already terminated`);
-                error.statusCode = 400;
-                throw error;
-            }
+//             // Check if already terminated
+//             if (user.drcUser_status === 'Terminate') {
+//                 const error = new Error(`${drcUser_type} is already terminated`);
+//                 error.statusCode = 400;
+//                 throw error;
+//             }
 
-            // Create new remark object
-            newRemark = {
-                remark: remark,
-                remark_by: end_by,
-                remark_dtm: end_dtm
-            };
+//             // Create new remark object
+//             newRemark = {
+//                 remark: remark,
+//                 remark_by: end_by,
+//                 remark_dtm: end_dtm
+//             };
 
-            // --- If terminating RO, set all RTOM statuses to Inactive ---
-            let updateFields = {
-                drcUser_status: 'Terminate',
-                end_dtm: end_dtm,
-                end_by: end_by
-            };
-            if (drcUser_type === 'RO' && Array.isArray(user.rtom) && user.rtom.length > 0) {
-                // Set all rtom_status to "Inactive"
-                updateFields.rtom = user.rtom.map(rtom => ({
-                    ...rtom.toObject ? rtom.toObject() : rtom,
-                    rtom_status: "Inactive",
-                    rtom_update_dtm: end_dtm,
-                    rtom_update_by: end_by
-                }));
-            }
+//             // --- If terminating RO, set all RTOM statuses to Inactive ---
+//             let updateFields = {
+//                 drcUser_status: 'Terminate',
+//                 end_dtm: end_dtm,
+//                 end_by: end_by
+//             };
+//             if (drcUser_type === 'RO' && Array.isArray(user.rtom) && user.rtom.length > 0) {
+//                 // Set all rtom_status to "Inactive"
+//                 updateFields.rtom = user.rtom.map(rtom => ({
+//                     ...rtom.toObject ? rtom.toObject() : rtom,
+//                     rtom_status: "Inactive",
+//                     rtom_update_dtm: end_dtm,
+//                     rtom_update_by: end_by
+//                 }));
+//             }
 
-            // Update the Recovery_officer document
-            updatedRO = await Recovery_officer.findOneAndUpdate(
-                queryCondition,
-                {
-                    $set: updateFields,
-                    $push: {
-                        remark: newRemark
-                    }
-                },
-                { 
-                    new: true, 
-                    runValidators: true,
-                    session: session
-                }
-            );
+//             // Update the Recovery_officer document
+//             updatedRO = await Recovery_officer.findOneAndUpdate(
+//                 queryCondition,
+//                 {
+//                     $set: updateFields,
+//                     $push: {
+//                         remark: newRemark
+//                     }
+//                 },
+//                 { 
+//                     new: true, 
+//                     runValidators: true,
+//                     session: session
+//                 }
+//             );
 
-            if (!updatedRO) {
-                const error = new Error(`Failed to terminate ${drcUser_type}`);
-                error.statusCode = 500;
-                throw error;
-            }
+//             if (!updatedRO) {
+//                 const error = new Error(`Failed to terminate ${drcUser_type}`);
+//                 error.statusCode = 500;
+//                 throw error;
+//             }
 
-            // Update User document
-            const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
-            const userRemark = {
-                remark: remark,
-                remark_by: end_by,
-                remark_dtm: end_dtm
-            };
+//             // Update User document
+//             const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+//             const userRemark = {
+//                 remark: remark,
+//                 remark_by: end_by,
+//                 remark_dtm: end_dtm
+//             };
 
-            const updatedUser = await User.findOneAndUpdate(
-                userQuery,
-                {
-                    $set: {
-                        User_Status_Type: 'RO_update',
-                        user_status: 'Terminate',
-                        User_Status_DTM: end_dtm,
-                        User_Status_By: end_by,
-                        User_End_DTM: end_dtm,
-                        User_End_By: end_by
-                    },
-                    $push: {
-                        Remark: userRemark
-                    }
-                },
-                {
-                    new: true,
-                    runValidators: true,
-                    session: session
-                }
-            );
+//             const updatedUser = await User.findOneAndUpdate(
+//                 userQuery,
+//                 {
+//                     $set: {
+//                         User_Status_Type: 'RO_update',
+//                         user_status: 'Terminate',
+//                         User_Status_DTM: end_dtm,
+//                         User_Status_By: end_by,
+//                         User_End_DTM: end_dtm,
+//                         User_End_By: end_by
+//                     },
+//                     $push: {
+//                         Remark: userRemark
+//                     }
+//                 },
+//                 {
+//                     new: true,
+//                     runValidators: true,
+//                     session: session
+//                 }
+//             );
 
-            if (!updatedUser) {
-                const error = new Error('Failed to update User document');
-                error.statusCode = 500;
-                throw error;
-            }
-        });
+//             if (!updatedUser) {
+//                 const error = new Error('Failed to update User document');
+//                 error.statusCode = 500;
+//                 throw error;
+//             }
+//         });
 
-        // Build response data based on user type
-        let responseData = {
-            ro_name: updatedRO.ro_name,
-            drcUser_status: updatedRO.drcUser_status,
-            end_dtm: updatedRO.end_dtm,
-            end_by: updatedRO.end_by,
-            termination_remark: newRemark
-        };
+//         // Build response data based on user type
+//         let responseData = {
+//             ro_name: updatedRO.ro_name,
+//             drcUser_status: updatedRO.drcUser_status,
+//             end_dtm: updatedRO.end_dtm,
+//             end_by: updatedRO.end_by,
+//             termination_remark: newRemark
+//         };
 
-        // Add specific ID field to response
-        if (ro_id) {
-            responseData.ro_id = updatedRO.ro_id;
-        } else if (drcUser_id) {
-            responseData.drcUser_id = updatedRO.drcUser_id;
-        }
+//         // Add specific ID field to response
+//         if (ro_id) {
+//             responseData.ro_id = updatedRO.ro_id;
+//         } else if (drcUser_id) {
+//             responseData.drcUser_id = updatedRO.drcUser_id;
+//         }
 
-        // Transaction completed successfully
-        return res.status(200).json({
-            status: "success",
-            message: `${drcUser_type} terminated successfully`,
-            data: responseData
-        });
+//         // Transaction completed successfully
+//         return res.status(200).json({
+//             status: "success",
+//             message: `${drcUser_type} terminated successfully`,
+//             data: responseData
+//         });
 
-    } catch (error) {
-        console.error('Error terminating user:', error);
+//     } catch (error) {
+//         console.error('Error terminating user:', error);
         
-        // Handle errors with status codes
-        const statusCode = error.statusCode || 500;
-        const message = error.message || 'Internal server error';
+//         // Handle errors with status codes
+//         const statusCode = error.statusCode || 500;
+//         const message = error.message || 'Internal server error';
         
-        return res.status(statusCode).json({
-            status: "error",
-            message: message,
-            ...(statusCode === 500 && { error: error.toString() })
-        });
-    } finally {
-        // Always end the session
-        await session.endSession();
+//         return res.status(statusCode).json({
+//             status: "error",
+//             message: message,
+//             ...(statusCode === 500 && { error: error.toString() })
+//         });
+//     } finally {
+//         // Always end the session
+//         await session.endSession();
+//     }
+// };
+
+export const Terminate_RO = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
+
+    if (!ro_id && !drcUser_id) {
+      return res.status(400).json({ status: "error", message: 'Either ro_id or drcUser_id is required in the request body' });
     }
+    if (ro_id && drcUser_id) {
+      return res.status(400).json({ status: "error", message: 'Please provide either ro_id or drcUser_id, not both' });
+    }
+    if (!end_by || !remark || !end_dtm) {
+      return res.status(400).json({ status: "error", message: 'end_by, remark, and end_dtm are required' });
+    }
+
+    const endDate = new Date(end_dtm);
+    const today = new Date();
+
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (endDateOnly > todayOnly) {
+      const taskData = {
+        Template_Task_Id: 38,
+        task_type: "RO Inactivate for the date",
+        User_id: ro_id ? `ro_id:${ro_id}` : `drcUser_id:${drcUser_id}`,
+        end_date: endDate.toISOString(),
+        Created_By: end_by,
+        task_status: "open"
+      };
+
+      await session.withTransaction(async () => {
+        await createTaskFunction(taskData, session);
+      });
+
+      return res.status(202).json({
+        status: "success",
+        message: "Future-dated termination converted into task creation.",
+        task: taskData
+      });
+    }
+
+    let updatedRO;
+    let newRemark;
+    let queryCondition = {};
+    let drcUser_type = '';
+
+    if (ro_id) {
+      queryCondition = { ro_id: Number(ro_id) };
+      drcUser_type = 'RO';
+    } else {
+      queryCondition = { drcUser_id: Number(drcUser_id) };
+      drcUser_type = 'drcUser';
+    }
+
+    await session.withTransaction(async () => {
+      const user = await Recovery_officer.findOne(queryCondition).session(session);
+
+      if (!user) throw Object.assign(new Error(`${drcUser_type} not found`), { statusCode: 404 });
+      if (user.drcUser_status === 'Terminate') throw Object.assign(new Error(`${drcUser_type} is already terminated`), { statusCode: 400 });
+
+      newRemark = { remark, remark_by: end_by, remark_dtm: end_dtm };
+
+      const updateFields = {
+        drcUser_status: 'Terminate',
+        end_dtm,
+        end_by
+      };
+
+      if (drcUser_type === 'RO' && Array.isArray(user.rtom)) {
+        updateFields.rtom = user.rtom.map(rtom => ({
+          ...rtom.toObject ? rtom.toObject() : rtom,
+          rtom_status: "Inactive",
+          rtom_update_dtm: end_dtm,
+          rtom_update_by: end_by
+        }));
+      }
+
+      updatedRO = await Recovery_officer.findOneAndUpdate(
+        queryCondition,
+        { $set: updateFields, $push: { remark: newRemark } },
+        { new: true, runValidators: true, session }
+      );
+
+      if (!updatedRO) throw Object.assign(new Error(`Failed to terminate ${drcUser_type}`), { statusCode: 500 });
+
+      const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+
+      const updatedUser = await User.findOneAndUpdate(
+        userQuery,
+        {
+          $set: {
+            User_Status_Type: 'RO_update',
+            user_status: 'Terminate',
+            User_Status_DTM: end_dtm,
+            User_Status_By: end_by,
+            User_End_DTM: end_dtm,
+            User_End_By: end_by
+          },
+          $push: { Remark: newRemark }
+        },
+        { new: true, runValidators: true, session }
+      );
+
+      if (!updatedUser) throw Object.assign(new Error('Failed to update User document'), { statusCode: 500 });
+    });
+
+    const responseData = {
+      ...(ro_id ? { ro_id: updatedRO.ro_id } : { drcUser_id: updatedRO.drcUser_id }),
+      ro_name: updatedRO.ro_name,
+      drcUser_status: updatedRO.drcUser_status,
+      end_dtm: updatedRO.end_dtm,
+      end_by: updatedRO.end_by,
+      termination_remark: newRemark
+    };
+
+    return res.status(200).json({
+      status: "success",
+      message: `${drcUser_type} terminated successfully`,
+      data: responseData
+    });
+  } catch (error) {
+    console.error('Error terminating user:', error);
+    const statusCode = error.statusCode || 500;
+    const message = error.message || 'Internal server error';
+    return res.status(statusCode).json({ status: "error", message, ...(statusCode === 500 && { error: error.toString() }) });
+  } finally {
+    await session.endSession();
+  }
 };
 
 
