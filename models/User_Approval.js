@@ -66,51 +66,6 @@ const userApprovalSchema = new Schema(
       type: Number, 
       default:null,
     }
-    // login_email: {
-    //   type: String,
-    //   maxlength: 30,
-    //   default: null,
-    // },
-    // login_contact_no: {
-    //   type: String,
-    //   maxlength: 30,
-    //   required: true,
-    // },
-    // drcUser_status: {
-    //   type: String,
-    //   maxlength: 30,
-    //   enum: ['Active', 'Inactive', 'Terminate'],
-    //   default: "Active",
-    // },
-    // created_by: { 
-    //   type: String, 
-    //   maxlength: 30,
-    //   required: true 
-    // },
-    // created_dtm: { 
-    //   type: Date, 
-    //   required: true 
-    // },
-    // approve_status: { 
-    //   type: String, 
-    //   maxlength: 30,
-    //   default: null 
-    // },
-    // approve_by: { 
-    //   type: String,
-    //   maxlength: 30, 
-    //   default: null 
-    // },
-    // approve_dtm: {
-    //   type: Date, 
-    //   default: null 
-    // },
-    // parameters: {
-    //   type: Map,
-    //   of: mongoose.Schema.Types.Mixed, // Allow different types for the map values (String, Number, Array, etc.)
-    //   default: {},
-    //   default: {},
-    // }
   },
   {
     timestamps: true, 
