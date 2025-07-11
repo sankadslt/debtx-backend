@@ -1218,7 +1218,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 };
 
 
-export const List_User_Approval_Details = async (req, res) => {
+export const List_User_Approval_Details2 = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
 
   try {
@@ -1226,10 +1226,10 @@ export const List_User_Approval_Details = async (req, res) => {
 
     // Optional date range filtering
     if (from_date && to_date) {
-      const fromDate = new Date(`${from_date}T00:00:00.000Z`);
-      const toDate = new Date(`${to_date}T23:59:59.999Z`);
+      const startOfDay = new Date(`${from_date}T00:00:00.000Z`);
+      const endOfDay = new Date(`${to_date}T23:59:59.999Z`);
 
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      if (isNaN(startOfDay.getTime()) || isNaN(endOfDay.getTime())) {
         return res.status(400).json({
           status: "error",
           message: "Invalid date format",
@@ -1241,7 +1241,7 @@ export const List_User_Approval_Details = async (req, res) => {
       }
 
       matchConditions.push({
-        created_on: { $gte: fromDate, $lte: toDate }
+        created_on: { $gte: startOfDay, $lte: endOfDay }
       });
     }
 
@@ -1283,7 +1283,7 @@ export const List_User_Approval_Details = async (req, res) => {
     pipeline.push({
       $project: {
         User_id: 1,
-        DRC_id:1,
+        DRC_id: 1,
         approve_status: 1,
         user_approver_id: 1,
         created_on: 1,
@@ -1291,7 +1291,7 @@ export const List_User_Approval_Details = async (req, res) => {
         "user_data.user_type": 1,
         "user_data.username": 1,
         "user_data.email": 1,
-        "user_data.contact_num": 1
+        "user_data.contact_num.contact_number": 1 // Assuming it's an array of subdocs
       }
     });
 
@@ -1308,6 +1308,95 @@ export const List_User_Approval_Details = async (req, res) => {
       status: "error",
       message: "Internal server error while fetching user approval details.",
       error: error.message
+    });
+  }
+};
+
+export const List_User_Approval_Details = async (req, res) => {
+  const { user_type, from_date, to_date, pages } = req.body;
+
+  try {
+    let page = Number(pages) || 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Build dynamic match condition
+    const matchStage = {};
+
+    if (user_type) {
+      matchStage.User_Type = user_type;
+    }
+
+    if (from_date && to_date) {
+      const startDate = new Date(from_date);
+      const endDate = new Date(to_date);
+      endDate.setHours(23, 59, 59, 999);
+      matchStage.created_on = { $gte: startDate, $lte: endDate };
+    }
+
+    // Build aggregation pipeline
+    const pipeline = [];
+
+    // Apply $match only if filters exist
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    // Common aggregation stages
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "User_id",
+          foreignField: "user_id",
+          as: "user_data"
+        }
+      },
+      {
+        $unwind: {
+          path: "$user_data",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $sort: { created_on: -1 }
+      },
+      {
+        $skip: skip
+      },
+      {
+        $limit: limit
+      },
+      {
+        $project: {
+          _id: 0,
+          user_approver_id: 1,
+          User_Type: 1,
+          approve_status: 1,
+          User_id:1,
+          created_on: 1,
+          approver_type: 1,
+          DRC_id:1,
+          "user_data.username": 1,
+          "user_data.email": 1,
+          "user_data.user_type": 1,
+        }
+      }
+    );
+
+    // Execute aggregation
+    const data = await user_approve_model.aggregate(pipeline);
+
+    return res.status(200).json({
+      status: "success",
+      message: "User approval records fetched successfully",
+      data
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "There is a server error",
+      error: error.message,
     });
   }
 };
