@@ -411,6 +411,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   as: "user",
                   in: {
                     user_id: "$$user.user_id",
+                    user_nic: "$$user.user_nic",
                     user_name: "$$user.username",
                     user_email: "$$user.email",
                     user_contact_no: "$$user.contact_num",
