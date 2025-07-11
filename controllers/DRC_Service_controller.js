@@ -1283,7 +1283,7 @@ export const List_User_Approval_Details = async (req, res) => {
     pipeline.push({
       $project: {
         User_id: 1,
-        DRC_id,
+        DRC_id:1,
         approve_status: 1,
         user_approver_id: 1,
         created_on: 1,
