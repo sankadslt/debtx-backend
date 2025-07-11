@@ -1085,6 +1085,12 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
           description: "assigned_by, end_date, start_date and drc_id are required.",
         },
       });
+    };
+
+    const last_agreement_with_drc_id = await drc_agreement.findOne({drc_id})
+    .sort({ agreement_create_dtm: -1 });
+    if(agreement_status==="Rejected"||greement_status==="Expired" || greement_status==="Rejected" ){
+      console.log(last_agreement_with_drc_id);     
     }
 
     const mongoConnection = await db.connectMongoDB();
@@ -1116,7 +1122,6 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     //Get delegate user correct
     const approval_type = "DRC_Agreement";
     const approved_Deligated_by = await getApprovalUserIdService(approval_type);
-    console.log(approved_Deligated_by);
     if (!approved_Deligated_by) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -1151,9 +1156,11 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       drc_id,
       agreement_start_dtm: start_date,
       agreement_end_dtm: end_date,
+      agreement_status:"Pending",
       agreement_remark: remark,
       agreement_update_dtm: new Date(),
-      agreement_update_by: assigned_by
+      agreement_update_by: assigned_by,
+      agreement_create_dtm:new Date()
     });
     await drc_agreement_record.save({ session });
 
@@ -1308,40 +1315,38 @@ export const List_User_Approval_Details = async (req, res) => {
 export const Approve_DRC_Agreement_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
+
   try {
-    
     const { drc_id, approved_by, user_approver_id } = req.body;
-    
-    if (!drc_id || !user_approver_id) {
+
+    if (!drc_id || !user_approver_id || !approved_by) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: "user_approver_id, drc_id, and  approved_by are required" });
+      return res.status(400).json({
+        message: "user_approver_id, drc_id, and approved_by are required"
+      });
     }
-    if (!approved_by) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "approved_by is required" });
-    };
-    
+
     const approvalDoc = await User_Approval.findOne(
-      { 
-        DRC_id:drc_id,                           
+      {
+        DRC_id: drc_id,
         user_approver_id
       }
     ).session(session);
+
     if (!approvalDoc) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ message: "No matching approver reference found" });
-    };
+    }
 
     const start_date = approvalDoc.Parameters.start_date;
     const end_date = approvalDoc.Parameters.end_date;
     const deligate_id = approvalDoc.created_by;
 
-    const result = await TmpForwardedApprover.updateOne(
+    const result = await user_approve_model.updateOne(
       {
-        DRC_id:drc_id,                           
+        DRC_id: drc_id,
         user_approver_id
       },
       {
@@ -1351,13 +1356,16 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       },
       { session }
     );
+
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(304).json({ message: "Approval update failed" });
+      return res.status(400).json({ message: "Approval update failed" });
     }
 
-    if(end_date>new Date()){
+    let caseResult = { modifiedCount: 0 }; 
+
+    if (end_date > new Date()) {
       const parameters = {
         start_date,
         end_date,
@@ -1365,33 +1373,34 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       };
       const taskData = {
         Template_Task_Id: 33, //python
-        task_type: "python", //python
+        task_type: "python",  //python
         ...parameters,
-        created_by,
+        created_by: approved_by,
         task_status: "open",
       };
-      const response = await createTaskFunction(taskData, session);
-      session.endSession();
-    }else{
-      const caseResult = await DRC.updateOne(
+
+      await createTaskFunction(taskData, session);
+    } else {
+      caseResult = await DRC.updateOne(
         { drc_id: drc_id },
         {
-          push:{
-            status:{
-              drc_status:"Active",
-              drc_status_dtm:new Date(),
-              drc_status_by:approved_by
+          $push: {
+            status: {
+              drc_status: "Active",
+              drc_status_dtm: new Date(),
+              drc_status_by: approved_by
             }
           }
         },
         { session }
       );
     }
-    // --- Create User Interaction Log ---
+
+    // Create User Interaction Log
     const interaction_id = 16; //python
     const request_type = "python"; //python
     const created_by = approved_by;
-    const dynamicParams = { start_date,end_date,drc_id };
+    const dynamicParams = { start_date, end_date, drc_id };
 
     await createUserInteractionFunction({
       Interaction_ID: interaction_id,
@@ -1399,7 +1408,7 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       delegate_user_id: deligate_id,
       Created_By: created_by,
       User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
+      User_Interaction_Status_DTM: new Date(),
       session,
       ...dynamicParams,
     });
@@ -1411,18 +1420,19 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       message: "Approval added successfully.",
       updatedCount: result.modifiedCount + caseResult.modifiedCount,
     });
+
   } catch (error) {
-    console.error("Error approving DRC Assign Manager Approvals:", error);
-    await session.abortTransaction();
+
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     session.endSession();
+
     return res.status(500).json({
       message: "Error approving DRC Assign Manager Approvals",
       error: error.message || "Internal server error.",
     });
-  } finally {
-    if (session) {
-      session.endSession();
-    }
   }
 };
+
 
