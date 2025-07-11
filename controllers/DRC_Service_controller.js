@@ -1086,13 +1086,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         },
       });
     };
-
-    const last_agreement_with_drc_id = await drc_agreement.findOne({drc_id})
-    .sort({ agreement_create_dtm: -1 });
-    if(agreement_status==="Rejected"||greement_status==="Expired" || greement_status==="Rejected" ){
-      console.log(last_agreement_with_drc_id);     
-    }
-
+    
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");

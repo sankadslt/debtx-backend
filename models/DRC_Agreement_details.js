@@ -47,7 +47,7 @@ const drcAgreementDetailsSchema = new Schema({
         required: true
     },
 }, {
-    collection: 'DRC_Agreement_Details', // Specify the collection name
+    collection: 'DRC_Agreement_Details', 
     timestamps: true
 });
 
