@@ -19,7 +19,6 @@ import user_approve_model from "../models/User_Approval.js"
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import User from "../models/User.js";
 import drc_agreement from "../models/DRC_Agreement_details.js"
-import User_Approval from "../models/User_Approval.js"
 import {getApprovalUserIdService} from "../services/ApprovalService.js"
 
 export const getDRCDetailsByDate = async (req, res) => {
@@ -1221,26 +1220,44 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
 export const List_User_Approval_Details = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
-  try {
-    const fromDate = new Date(`${from_date}T00:00:00.000Z`);
-    const toDate = new Date(`${to_date}T23:59:59.999Z`);
 
-    if (isNaN(fromDate) || isNaN(toDate)) {
-      return res.status(400).json({
-        status: "error",
-        message: "Invalid date format",
-        errors: {
-          code: 400,
-          description: "Invalid date format for From_Date or To_Date",
-        },
-      })
+  try {
+    const matchConditions = [];
+
+    // Optional date range filtering
+    if (from_date && to_date) {
+      const fromDate = new Date(`${from_date}T00:00:00.000Z`);
+      const toDate = new Date(`${to_date}T23:59:59.999Z`);
+
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format",
+          errors: {
+            code: 400,
+            description: "Invalid date format for from_date or to_date",
+          },
+        });
+      }
+
+      matchConditions.push({
+        created_on: { $gte: fromDate, $lte: toDate }
+      });
     }
 
+    // Optional user_type filter
+    if (user_type) {
+      matchConditions.push({ "user_data.user_type": user_type });
+    }
+
+    // Pagination logic
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
 
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Aggregation pipeline
     const pipeline = [
       {
         $lookup: {
@@ -1253,25 +1270,22 @@ export const List_User_Approval_Details = async (req, res) => {
       { $unwind: "$user_data" }
     ];
 
-    const matchConditions = [];
-
-    if (user_type) {
-      matchConditions.push({ "user_data.user_type": user_type });
-    };
-    matchConditions.push({
-      created_on: { $gte: fromDate, $lte: toDate }
-    });
+    // Apply match filters
     if (matchConditions.length > 0) {
       pipeline.push({ $match: { $and: matchConditions } });
     }
+
+    // Pagination
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
+    // Final projection
     pipeline.push({
       $project: {
         User_id: 1,
+        DRC_id,
         approve_status: 1,
-        user_approver_id:1,
+        user_approver_id: 1,
         created_on: 1,
         User_Type: 1,
         "user_data.user_type": 1,
@@ -1280,12 +1294,15 @@ export const List_User_Approval_Details = async (req, res) => {
         "user_data.contact_num": 1
       }
     });
-    const result = await user_approve_model.aggregate(pipeline)
+
+    const result = await user_approve_model.aggregate(pipeline);
+
     return res.status(200).json({
       status: "success",
       message: "User approval details fetched successfully.",
       data: result
     });
+
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -1294,6 +1311,7 @@ export const List_User_Approval_Details = async (req, res) => {
     });
   }
 };
+
 
 export const Approve_DRC_Agreement_Approval = async (req, res) => {
   const session = await mongoose.startSession();
@@ -1310,7 +1328,7 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       });
     }
 
-    const approvalDoc = await User_Approval.findOne(
+    const approvalDoc = await user_approve_model.findOne(
       {
         DRC_id: drc_id,
         user_approver_id
