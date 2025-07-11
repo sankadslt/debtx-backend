@@ -1149,6 +1149,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       drc_id,
       agreement_start_dtm: start_date,
       agreement_end_dtm: end_date,
+      user_approver_id,
       agreement_status:"Pending",
       agreement_remark: remark,
       agreement_update_dtm: new Date(),
@@ -1446,7 +1447,23 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       },
       { session }
     );
-
+    const agreement_result = await drc_agreement.updateOne(
+      {
+        drc_id,
+        user_approver_id
+      },
+      {
+        $set: {
+          agreement_status: "Approved",
+        }
+      },
+      { session }
+    );
+    if(!agreement_result){
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "DRC agreement not updated" }); 
+    }
     if (result.modifiedCount === 0) {
       await session.abortTransaction();
       session.endSession();
