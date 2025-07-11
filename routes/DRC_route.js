@@ -12,7 +12,7 @@
     Notes:  
 */
 
-import { Router } from "express"; 
+import { Router } from "express";
 import {
   getDRCWithServices,
   changeDRCStatus,
@@ -22,15 +22,15 @@ import {
   getActiveDRCDetails,
   endDRC,
   DRCRemarkDetailsById,
-  
-  List_All_DRC_Details , 
-  List_RTOM_Details_Owen_By_DRC_ID , 
+  List_All_DRC_Details,
+  List_RTOM_Details_Owen_By_DRC_ID,
   List_Service_Details_Owen_By_DRC_ID,
   Create_DRC_With_Services_and_SLT_Coordinator,
   List_DRC_Details_By_DRC_ID,
   Terminate_Company_By_DRC_ID,
   Update_DRC_With_Services_and_SLT_Cordinator,
-
+  Create_Pre_Negotiation,
+  List_Pre_Negotiation_By_Case_Id,
 } from "../controllers/DRC_controller.js";
 
 const router = Router();
@@ -46,7 +46,7 @@ const router = Router();
  *     summary: Retrieve remarks of a specific DRC by DRC_ID
  *     description: |
  *       Obtain remarks for a specific Debt Recovery Company using its DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07| Initial release |
@@ -152,7 +152,7 @@ router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
  *     summary: DRC-1B01 End a DRC with remarks
  *     description: |
  *       Ends a DRC by updating its end date and adding a remark.
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2025-Jan-10| Initial implementation. |
@@ -293,7 +293,10 @@ router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
  */
 router.patch("/End_DRC", endDRC);
 
-router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
+router.post(
+  "/Create_DRC_With_Services_and_SLT_Coordinator",
+  Create_DRC_With_Services_and_SLT_Coordinator
+);
 
 /**
  * @swagger
@@ -306,7 +309,7 @@ router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Ser
  *     summary: DRC-1A01 Update the status of a DRC
  *     description: |
  *       changes the status of a DRC:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -442,13 +445,13 @@ router.patch("/Change_DRC_Status", changeDRCStatus);
  *     summary: DRC-2G01 Retrieve details of all DRCs along with Services.
  *     description: |
  *       List DRCs along with Services list:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -524,7 +527,7 @@ router.patch("/Change_DRC_Status", changeDRCStatus);
  *                                 status_changed_by:
  *                                   type: string
  *                                   example: Admin
- *                           
+ *
  *       500:
  *         description: Internal server error occurred while fetching DRC details.
  *         content:
@@ -554,7 +557,7 @@ router.get("/DRC_with_Services", getDRCWithServices);
  *     summary: DRC-2P01 Retrieve details of a specific DRC along with Services by DRC_ID
  *     description: |
  *       Get DRC along with Services list w.r.t. DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -703,16 +706,16 @@ router.post("/DRC_with_Services_By_DRC_ID", getDRCWithServicesByDRCId);
  * /api/DRC/DRC_Details:
  *   get:
  *     summary: DRC-1G01 Retrieve details of all DRCs.
- *     
+ *
  *     description: |
  *       List All Debt Recovery Company Details:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -791,10 +794,10 @@ router.get("/DRC_Details", getDRCDetails);
  * @swagger
  * /api/DRC/DRC_Details_By_ID:
  *   post:
- *     summary: DRC-1P02 Retrieve details of a specific DRC by DRC_ID 
+ *     summary: DRC-1P02 Retrieve details of a specific DRC by DRC_ID
  *     description: |
  *       Obtain Debt Recovery Company Details w.r.t. DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -922,13 +925,13 @@ router.post("/DRC_Details_By_ID", getDRCDetailsById);
  *     summary: DRC-1G02 Retrieve details of all active DRCs.
  *     description: |
  *       List All Active Debt Recovery Company Details:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -981,7 +984,7 @@ router.post("/DRC_Details_By_ID", getDRCDetailsById);
  *                           updatedAt:
  *                             type: string
  *                             example: 2024-12-23T16:58:49.975Z
- *                      
+ *
  *       500:
  *         description: Internal server error occurred while fetching DRC details.
  *         content:
@@ -1011,7 +1014,7 @@ router.get("/Active_DRC_Details", getActiveDRCDetails);
  *     summary: Retrieve DRC information by DRC ID
  *     description: |
  *       Get selected information of a specific Debt Recovery Company using its DRC ID.
- *       
+ *
  *       | Version | Date       | Description         |
  *       |---------|------------|---------------------|
  *       | 01      | 2025-06-04 | Selected fields only|
@@ -1153,7 +1156,7 @@ router.get("/Active_DRC_Details", getActiveDRCDetails);
  *                       type: string
  *                       example: "Internal server error"
  */
-router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
+router.post("/List_DRC_Details_By_DRC_ID", List_DRC_Details_By_DRC_ID);
 
 /**
  * @swagger
@@ -1300,7 +1303,7 @@ router.post('/List_DRC_Details_By_DRC_ID', List_DRC_Details_By_DRC_ID);
  *                       type: string
  *                       example: Database connection failure
  */
-router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
+router.patch("/Terminate_Company_By_DRC_ID", Terminate_Company_By_DRC_ID);
 
 /**
  * @swagger
@@ -1492,7 +1495,10 @@ router.patch('/Terminate_Company_By_DRC_ID', Terminate_Company_By_DRC_ID);
  *                       type: string
  *                       example: MongoError or transaction issue
  */
-router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Services_and_SLT_Cordinator);
+router.patch(
+  "/Update_DRC_With_Services_and_SLT_Cordinator",
+  Update_DRC_With_Services_and_SLT_Cordinator
+);
 
 /**
  * @swagger
@@ -1501,11 +1507,11 @@ router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Ser
  *     summary: Retrieve a paginated list of DRCs with summary details
  *     description: |
  *       Returns a summary of Debt Recovery Companies (DRCs), including counts of services, RTOMs, and Recovery Officers.
- *       
+ *
  *       | Version | Date       | Description                          |
  *       |---------|------------|--------------------------------------|
  *       | 01      | 2025-06-08 | Initial paginated DRC summary fetch  |
- *       
+ *
  *       Pagination logic:
  *       - Page 1 returns 10 items.
  *       - Page 2 and onward return 30 items per page.
@@ -1632,10 +1638,24 @@ router.patch('/Update_DRC_With_Services_and_SLT_Cordinator', Update_DRC_With_Ser
  */
 router.post("/List_All_DRC_Details", List_All_DRC_Details);
 
-router.post("/List_RTOM_Details_Owen_By_DRC_ID", List_RTOM_Details_Owen_By_DRC_ID);
+router.post(
+  "/List_RTOM_Details_Owen_By_DRC_ID",
+  List_RTOM_Details_Owen_By_DRC_ID
+);
 
-router.post("/List_Service_Details_Owen_By_DRC_ID", List_Service_Details_Owen_By_DRC_ID);
+router.post(
+  "/List_Service_Details_Owen_By_DRC_ID",
+  List_Service_Details_Owen_By_DRC_ID
+);
 
-router.post("/Create_DRC_With_Services_and_SLT_Coordinator", Create_DRC_With_Services_and_SLT_Coordinator);
+router.post(
+  "/Create_DRC_With_Services_and_SLT_Coordinator",
+  Create_DRC_With_Services_and_SLT_Coordinator
+);
+router.post("/Create_Pre_Negotiation", Create_Pre_Negotiation);
+router.post(
+  "/List_Pre_Negotiation_By_Case_Id",
+  List_Pre_Negotiation_By_Case_Id
+);
 
 export default router;
