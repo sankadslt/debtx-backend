@@ -17,6 +17,7 @@
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import RTOM from "../models/Rtom.js";
+import BillingCenter from "../models/DRC_Billing_Center_Log.js";
 import case_inquiry from "../models/Case_inquiry.js";
 import mongoose from "mongoose";
 
@@ -221,7 +222,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
     }
 
     // Generate unique DRC ID
-    const counterResult = await mongoConnection
+    const drcCounterResult = await mongoConnection
       .collection("collection_sequence")
       .findOneAndUpdate(
         { _id: "drc_id" },
@@ -229,15 +230,36 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         { returnDocument: "after", upsert: true }
       );
 
-    console.log("Counter Result:", counterResult);
+    console.log("DRC Counter Result:", drcCounterResult);
 
-    // Fix: Check if counterResult has value property or seq directly
-    const drc_id = counterResult.value
-      ? counterResult.value.seq
-      : counterResult.seq;
+    // Fix: Check if drcCounterResult has value property or seq directly
+    const drc_id = drcCounterResult.value
+      ? drcCounterResult.value.seq
+      : drcCounterResult.seq;
 
     if (!drc_id) {
       throw new Error("Failed to generate drc_id");
+    }
+
+    // Generate unique DRC ID
+    const billingCenterCounterResult = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "billing_center_log_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
+
+    console.log("Billing Center Counter Result:", billingCenterCounterResult);
+
+    // Fix: Check if drcCounterResult has value property or seq directly
+    const billing_center_log_id = billingCenterCounterResult.value
+      ? billingCenterCounterResult.value.seq
+      : billingCenterCounterResult.seq;
+
+    // Generate unique billing center log ID
+    if (!billing_center_log_id) {
+      throw new Error("Failed to generate billing_center_log_id");
     }
 
     // Validate coordinator data
@@ -261,6 +283,11 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         throw new Error("RTOM billing center code is required");
       }
     }
+
+    const addrtom = rtom[0];
+    const rtom_id = addrtom.rtom_id;
+    const handling_type = addrtom.handling_type;
+
 
     // Save data to MongoDB
     const newDRC = new DRC({
@@ -288,6 +315,8 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         service_status: service.service_status || "Active",
         create_by: create_by,
         create_dtm: new Date(),
+        status_update_by: create_by,
+        status_update_dtm: new Date(),
       })),
       status: {
         drc_status: "Inactive",
@@ -300,12 +329,23 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         rtom_status: "Active",
         rtom_billing_center_code: r.rtom_billing_center_code,
         handling_type: r.handling_type,
-        status_update_by: create_by,
-        status_update_dtm: new Date(),
+        last_update_dtm: new Date(),
       })),
     });
 
+    const newBillingCenter = new BillingCenter({
+      doc_version: 1,
+      billing_center_log_id,
+      drc_id,
+      rtom_id: rtom_id, // Assuming first RTOM for billing center
+      rtom_status: "Active",
+      handling_type,
+      status_update_by: create_by,
+      status_update_dtm: new Date(),
+    });
+
     await newDRC.save();
+    await newBillingCenter.save();
 
     // Return success response
     res.status(201).json({
@@ -463,20 +503,9 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           status: "$last_status.drc_status",
           drc_coordinator: 1,
           drc_agreement_details: {
-            $cond: {
-              if: { $isArray: "$drc_agreement_details" },
-              then: {
-                $map: {
-                  input: "$drc_agreement_details",
-                  as: "agreement",
-                  in: {
-                    agreement_start_dtm: "$$agreement.agreement_start_dtm",
-                    agreement_end_dtm: "$$agreement.agreement_end_dtm",
-                  },
-                },
-              },
-              else: [],
-            },
+            agreement_start_dtm: "$drc_agreement_details.agreement_start_dtm",
+            agreement_end_dtm: "$drc_agreement_details.agreement_end_dtm",
+            agreement_remark: "$drc_agreement_details.agreement_remark"
           },
           slt_coordinator: {
             $cond: {
@@ -524,6 +553,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                     status_update_dtm: "$$r.status_update_dtm",
                     handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",
+                    last_update_dtm: "$$r.last_update_dtm",
                   },
                 },
               },
@@ -689,8 +719,9 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       // Pre-process RTOM entries to update status_update fields
       const updatedRtom = rtom.map((rtomEntry) => ({
         ...rtomEntry,
-        status_update_dtm: new Date(),
-        status_update_by: updated_by,
+        last_update_dtm: new Date(),
+        // status_update_dtm: new Date(),
+        // status_update_by: updated_by,
       }));
 
       updateObject.rtom = updatedRtom;

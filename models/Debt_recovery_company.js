@@ -101,6 +101,10 @@ const rtomSchema = new Schema({
     required: true,
     enum: ["CPE", "Arrears", "All-Type"]
   },
+  last_update_dtm: {
+    type: Date,
+    required: true,
+  },
 }, { _id: false });
 
 // Sub-schema for remarks
