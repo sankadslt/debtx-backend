@@ -10,10 +10,18 @@
 
 import { Router } from "express";
 import {
-
-    getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
-   ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,DRC_Agreement_details_list,Assign_DRC_To_Agreement,List_User_Approval_Details
-
+  getDRCDetailsByDate,
+  getDRCDetailsByTimePeriod,
+  registerDRCWithServices,
+  Service_to_DRC,
+  Remove_Service_From_DRC,
+  Change_DRC_Details_with_Services,
+  Ro_detais_of_the_DRC,
+  Rtom_detais_of_the_DRC,
+  Service_detais_of_the_DRC,
+  DRC_Agreement_details_list,
+  Assign_DRC_To_Agreement,
+  List_User_Approval_Details,
 } from "../controllers/DRC_Service_controller.js";
 
 const router = Router();
@@ -29,11 +37,11 @@ const router = Router();
  *     summary: DRC-1P02 Update DRC Details
  *     description: |
  *       Update details of an existing DRC, including services and remarks.
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07| Initial creation |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -176,9 +184,15 @@ const router = Router();
  *                   type: string
  *                   example: Failed to update DRC.
  */
-router.post("/Change_DRC_Details_with_Services", Change_DRC_Details_with_Services);
+router.post(
+  "/Change_DRC_Details_with_Services",
+  Change_DRC_Details_with_Services
+);
 
-router.post("/Change_DRC_Details_with_Services", Change_DRC_Details_with_Services);
+router.post(
+  "/Change_DRC_Details_with_Services",
+  Change_DRC_Details_with_Services
+);
 
 router.get("/drc-details-by-date", getDRCDetailsByDate);
 router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
@@ -194,11 +208,11 @@ router.get("/drc-details-by-time-period", getDRCDetailsByTimePeriod);
  *     summary: DRC-1P01 Register a new Debt Recovery Company (DRC)
  *     description: |
  *       Create a new Debt Recovery Company (DRC) with associated services.
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07| Initial creation |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -350,11 +364,11 @@ router.post("/Register_DRC_with_Services", registerDRCWithServices);
  *     summary: DS-2PO1 Create new record in debt_reocovery_compnay_service
  *     description: |
  *       Assigns a service to a DRC with a default status of "Active." Ensures no active service exists for the specified DRC before assignment:
- *       
+ *
  *       | Version | Date       | Description            |
  *       |---------|------------|------------------------|
  *       | 01      | 2024-Dec-07|                        |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -463,7 +477,6 @@ router.post("/Register_DRC_with_Services", registerDRCWithServices);
  */
 router.post("/Service_to_DRC", Service_to_DRC);
 
-
 /**
  * @swagger
  * tags:
@@ -475,11 +488,11 @@ router.post("/Service_to_DRC", Service_to_DRC);
  *     summary: DS-2AO1 Remove Service From DRC
  *     description: |
  *       Deactivates an active service from a specific DRC by updating its status to "Inactive".
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -603,11 +616,11 @@ router.patch("/Remove_Service_From_DRC", Remove_Service_From_DRC);
  *     summary: DS-**** Fetch the RO details of the DRC
  *     description: |
  *       Fetch Recovery Officer (RO) details for the specified DRC ID.
- *       
+ *
  *       | Version | Date        | Description            |
  *       |---------|-------------|------------------------|
  *       | 01      | 2025-06-07  | Initial Implementation |
- *       
+ *
  *     tags:
  *       - Recovery Officer
  *     parameters:
@@ -722,11 +735,11 @@ router.post("/Ro_detais_of_the_DRC", Ro_detais_of_the_DRC);
  *     summary: DS-**** Fetch the RTOM details of the DRC
  *     description: |
  *       Fetch RTOM (Regional Telecom Operations Manager) details assigned to a DRC (Debt Recovery Company).
- *       
+ *
  *       | Version | Date        | Description            |
  *       |---------|-------------|------------------------|
  *       | 01      | 2025-07-03  | Initial Implementation |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -848,11 +861,11 @@ router.post("/Rtom_detais_of_the_DRC", Rtom_detais_of_the_DRC);
  *     summary: DS-**** Fetch the Service details of the DRC
  *     description: |
  *       Fetch service details for the specified DRC ID.
- *       
+ *
  *       | Version | Date        | Description              |
  *       |---------|-------------|--------------------------|
  *       | 01      | 2025-07-03  | Initial Implementation   |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -982,11 +995,11 @@ router.post("/Service_detais_of_the_DRC", Service_detais_of_the_DRC);
  *     summary: DS-**** Fetch agreement details of the DRC
  *     description: |
  *       Fetch the list of agreement details (start/end date, remark, etc.) for the specified DRC ID.
- *       
+ *
  *       | Version | Date        | Description            |
  *       |---------|-------------|------------------------|
  *       | 01      | 2025-07-03  | Initial Implementation |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     parameters:
@@ -1089,11 +1102,11 @@ router.post("/DRC_Agreement_details_list", DRC_Agreement_details_list);
  *     summary: DS-**** Assign DRC to Agreement and request approval
  *     description: |
  *       Assign agreement details (start/end date, remark, etc.) to the specified DRC and initiate an approval process.
- *       
+ *
  *       | Version | Date        | Description                  |
  *       |---------|-------------|------------------------------|
  *       | 01      | 2025-07-07  | Initial Implementation       |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     requestBody:
@@ -1219,11 +1232,11 @@ router.post("/Assign_DRC_To_Agreement", Assign_DRC_To_Agreement);
  *     summary: DS-**** List user approval details with optional filter
  *     description: |
  *       Retrieve paginated user approval details, filtered by date range and optional user type.
- *       
+ *
  *       | Version | Date        | Description            |
  *       |---------|-------------|------------------------|
  *       | 01      | 2025-07-07  | Initial Implementation |
- *       
+ *
  *     tags:
  *       - Debt Recovery Company-Services
  *     requestBody:
@@ -1343,4 +1356,3 @@ router.post("/Assign_DRC_To_Agreement", Assign_DRC_To_Agreement);
 router.post("/List_User_Approval_Details", List_User_Approval_Details);
 
 export default router;
-
