@@ -18,6 +18,7 @@ import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import RTOM from "../models/Rtom.js";
 import case_inquiry from "../models/Case_inquiry.js";
+import mongoose from "mongoose";
 
 /**
  * /List_All_DRC_Details
