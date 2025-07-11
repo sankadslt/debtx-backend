@@ -1086,7 +1086,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
         },
       });
     };
-    
+
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
       throw new Error("MongoDB connection failed");
@@ -1221,18 +1221,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
 export const List_User_Approval_Details = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
-
   try {
-    if (!from_date ||!to_date) {
-      return res.status(400).json({
-        status: "error",
-        message: "Failed to retrieve Open No Agent case details.",
-        errors: {
-          code: 400,
-          description: "from_date and to_date are required fields",
-        },
-      });
-    };
     const fromDate = new Date(`${from_date}T00:00:00.000Z`);
     const toDate = new Date(`${to_date}T23:59:59.999Z`);
 
