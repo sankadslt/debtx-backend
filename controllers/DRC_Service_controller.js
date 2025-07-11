@@ -1085,6 +1085,12 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
           description: "assigned_by, end_date, start_date and drc_id are required.",
         },
       });
+    };
+
+    const last_agreement_with_drc_id = await drc_agreement.findOne({drc_id})
+    .sort({ agreement_create_dtm: -1 });
+    if(agreement_status==="Rejected"||greement_status==="Expired" || greement_status==="Rejected" ){
+      console.log(last_agreement_with_drc_id);     
     }
 
     const mongoConnection = await db.connectMongoDB();
@@ -1153,7 +1159,8 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       agreement_status:"Pending",
       agreement_remark: remark,
       agreement_update_dtm: new Date(),
-      agreement_update_by: assigned_by
+      agreement_update_by: assigned_by,
+      agreement_create_dtm:new Date()
     });
     await drc_agreement_record.save({ session });
 
@@ -1356,7 +1363,7 @@ export const Approve_DRC_Agreement_Approval = async (req, res) => {
       return res.status(400).json({ message: "Approval update failed" });
     }
 
-    let caseResult = { modifiedCount: 0 }; // Default value
+    let caseResult = { modifiedCount: 0 }; 
 
     if (end_date > new Date()) {
       const parameters = {

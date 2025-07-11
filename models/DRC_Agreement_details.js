@@ -42,6 +42,10 @@ const drcAgreementDetailsSchema = new Schema({
         type: Date,
         required: true
     },
+    agreement_create_dtm: {
+        type: Date,
+        required: true
+    },
 }, {
     collection: 'DRC_Agreement_Details', // Specify the collection name
     timestamps: true
