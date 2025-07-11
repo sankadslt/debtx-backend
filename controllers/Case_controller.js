@@ -1272,7 +1272,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
         }); 
 
         if (existingBatch) {
-          if(existingBatch.current_batch_distribution_status !== "batch_rejected" && existingBatch.current_batch_distribution_status !== "batch_distributed"){
+          if(existingBatch.current_batch_distribution_status !== "batch_rejected" && existingBatch.current_batch_distribution_status !== "batch_distributed" && existingBatch.current_batch_distribution_status !== "selection_failed"){
             return res.status(409).json({
               status: "error",
               message: "Already has a processing batch with this commision rule and arrears band.",
@@ -1444,7 +1444,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           "MB Settle Open-Pending",
           "MB Settle Active",
           "MB Fail with Pending Non-Settlement"
-      ];
+      ]; 
 
       const pipeline = [];
 
@@ -2498,6 +2498,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
  *   including task creation, approval entry, and user interaction logging.
  */
 export const Batch_Forward_for_Proceed = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -2525,14 +2526,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      current_batch_distribution_status: { $in: ["Open"] }
+      current_batch_distribution_status: { $in: ["open"] }
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(204).json({
-        message: "The batch does not have a 'Open' status and cannot be proceeded.",
+      return res.status(404).json({
+        message: "The batch does not have a 'open' status and cannot be proceeded.",
         batchId: case_distribution_batch_id,
       });
     }
@@ -2627,7 +2628,7 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     return res.status(200).json({
       message: "Batch forwarded for proceed successfully, task created, approval recorded, and user interaction logged.",
       updatedCount: result.modifiedCount,
-      taskData,
+      // taskData,
       approvalEntry,
       interactionResult,
     });
@@ -2830,6 +2831,51 @@ export const Create_Task_For_case_distribution_transaction_array = async (req, r
       errors: {
         exception: error.message,
       },
+    });
+  }
+};
+
+/**
+ * Inputs:
+ * - case_distribution_batch_id: String (required)
+ * 
+ * Collection:
+ * - System_tasks
+ */
+export const Validate_Existing_Batch_Task = async (req, res) => {
+  const { case_distribution_batch_id } = req.body;
+  console.log("case_distribution_batch_id", req.body);
+
+  if (!case_distribution_batch_id ) {
+    return res.status(400).json({
+      status: "error",
+      message: "case distribution batch id is required.",
+    });
+  };
+
+  try {
+    const mongo = await db.connectMongoDB();
+    const existingTask = await mongo.collection("System_tasks").findOne({
+      task_status: "open",
+      "parameters.case_distribution_batch_id": Number(case_distribution_batch_id),
+      }
+    );
+    if (existingTask) {
+      return res.status(409).json({
+        status: "error",
+        message: "Already has tasks with this case distribution batch id",
+      });
+    } else {
+      return res.status(200).json({
+        status: "success",
+        message: "No existing tasks found for this case distribution batch id.",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: "error",
+      message: `An error occurred while validation: ${error.message}`,
     });
   }
 };
@@ -5754,13 +5800,28 @@ export const CaseDetailsforDRC = async (req, res) => {
       });
     }
 
-    // Find the case that matches both case_id and has the specified drc_id in its drc array
-    const roFilter = [
-      { $eq: ["$$item.drc_id", drc_id] },
-    ];
-    if (ro_id) {
-      roFilter.push({ $eq: ["$$item.ro_id", ro_id] });
-    }
+    // // Find the case that matches both case_id and has the specified drc_id in its drc array
+    // const caseDetails = await Case_details.findOne({
+    //   case_id
+    // },
+    // { case_id: 1, 
+    //   case_current_status: 1, 
+    //   ro_cpe_collect:1, 
+    //   customer_ref: 1, 
+    //   account_no: 1, 
+    //   current_arrears_amount: 1, 
+    //   current_contact: 1, 
+    //   rtom: 1,
+    //   ref_products:1,
+    //   last_payment_date: 1,
+    //   drc: 1, 
+    //   ro_negotiation:1,
+    //   settlement:1, 
+    //   mediation_board:1,
+    //   money_transactions:1, 
+    //   ro_requests: 1,
+    //   mediation_board: 1,
+    // })
 
     const caseDetails = await Case_details.aggregate([
       {

@@ -227,7 +227,7 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases =
       };
 
       // Call createTaskFunction
-      await createTaskFunction(taskData, session);
+      const response = await createTaskFunction(taskData, session);
 
       await session.commitTransaction();
       session.endSession();
@@ -235,7 +235,7 @@ export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases =
       return res.status(200).json({
         status: "success",
         message: "Task created successfully.",
-        data: taskData,
+        data: response,
       });
     } catch (error) {
       await session.abortTransaction();
@@ -366,7 +366,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     await session.endSession();
@@ -374,7 +374,7 @@ export const Create_Task_for_Proceed_LOD_OR_Final_Reminder_List = async (
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     if (session.inTransaction()) {
@@ -669,5 +669,71 @@ export const List_All_LOD_Holdlist = async (req, res) => {
       status: "error",
       message: "There is an error ",
     });
+  }
+};
+
+export const Proceed_LD_Hold_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { approver_reference, created_by } = req.body;
+
+    if (!approver_reference || !created_by) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
+    }
+
+    const currentDate = new Date();
+
+    let case_phase = "Letter of Demand";
+
+    // Verify case exists
+    const caseExists = await Case_details.findOne({
+      case_id: approver_reference,
+    }).session(session);
+    if (!caseExists) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "Case not found" });
+    }
+
+    // Update approve array in CaseDetails with requested_on and requested_by
+    const caseResult = await Case_details.updateOne(
+      { case_id: approver_reference },
+      {
+        $push: {
+          case_status: {
+            case_status: "LIT Prescribed",
+            status_reason: "Case proceeded from LD Hold",
+            created_dtm: currentDate,
+            created_by: created_by,
+            case_phase,
+          },
+        },
+        $set: {
+          case_current_status: "LIT Prescribed",
+          case_current_phase: case_phase,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case proceed request added successfully",
+      data: { caseResult },
+    });
+  } catch (error) {
+    // console.error("Error withdrawing case:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ message: error.message });
   }
 };
