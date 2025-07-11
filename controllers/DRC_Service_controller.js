@@ -20,7 +20,7 @@ import {createUserInteractionFunction} from "../services/UserInteractionService.
 import User from "../models/User.js";
 import drc_agreement from "../models/DRC_Agreement_details.js"
 import {getApprovalUserIdService} from "../services/ApprovalService.js"
-
+import {createTaskFunction} from "../services/TaskService.js"
 export const getDRCDetailsByDate = async (req, res) => {
   const { creationDate } = req.query;
 
@@ -1218,101 +1218,6 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
   }
 };
 
-
-export const List_User_Approval_Details2 = async (req, res) => {
-  const { user_type, from_date, to_date, pages } = req.body;
-
-  try {
-    const matchConditions = [];
-
-    // Optional date range filtering
-    if (from_date && to_date) {
-      const startOfDay = new Date(`${from_date}T00:00:00.000Z`);
-      const endOfDay = new Date(`${to_date}T23:59:59.999Z`);
-
-      if (isNaN(startOfDay.getTime()) || isNaN(endOfDay.getTime())) {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid date format",
-          errors: {
-            code: 400,
-            description: "Invalid date format for from_date or to_date",
-          },
-        });
-      }
-
-      matchConditions.push({
-        created_on: { $gte: startOfDay, $lte: endOfDay }
-      });
-    }
-
-    // Optional user_type filter
-    if (user_type) {
-      matchConditions.push({ "user_data.user_type": user_type });
-    }
-
-    // Pagination logic
-    let page = Number(pages);
-    if (isNaN(page) || page < 1) page = 1;
-
-    const limit = page === 1 ? 10 : 30;
-    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
-
-    // Aggregation pipeline
-    const pipeline = [
-      {
-        $lookup: {
-          from: "users",
-          localField: "User_id",
-          foreignField: "user_id",
-          as: "user_data"
-        }
-      },
-      { $unwind: "$user_data" }
-    ];
-
-    // Apply match filters
-    if (matchConditions.length > 0) {
-      pipeline.push({ $match: { $and: matchConditions } });
-    }
-
-    // Pagination
-    pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limit });
-
-    // Final projection
-    pipeline.push({
-      $project: {
-        User_id: 1,
-        DRC_id: 1,
-        approve_status: 1,
-        user_approver_id: 1,
-        created_on: 1,
-        User_Type: 1,
-        "user_data.user_type": 1,
-        "user_data.username": 1,
-        "user_data.email": 1,
-        "user_data.contact_num.contact_number": 1 // Assuming it's an array of subdocs
-      }
-    });
-
-    const result = await user_approve_model.aggregate(pipeline);
-
-    return res.status(200).json({
-      status: "success",
-      message: "User approval details fetched successfully.",
-      data: result
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error while fetching user approval details.",
-      error: error.message
-    });
-  }
-};
-
 export const List_User_Approval_Details = async (req, res) => {
   const { user_type, from_date, to_date, pages } = req.body;
 
@@ -1378,9 +1283,7 @@ export const List_User_Approval_Details = async (req, res) => {
           created_on: 1,
           approver_type: 1,
           DRC_id:1,
-          "user_data.username": 1,
-          "user_data.email": 1,
-          "user_data.user_type": 1,
+          user_data:1
         }
       }
     );
@@ -1401,7 +1304,6 @@ export const List_User_Approval_Details = async (req, res) => {
     });
   }
 };
-
 
 export const Approve_DRC_Agreement_Approval = async (req, res) => {
   const session = await mongoose.startSession();
@@ -1646,4 +1548,48 @@ export const Reject_DRC_Agreement_Approval = async (req, res) => {
     });
   }
 };
+
+export const Download_User_Approval_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { user_type, from_date, to_date,create_by} = req.body;
+
+    if (!create_by) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Created_By is required" });
+    }
+    const parameters = {
+      user_type,
+      from_date: from_date && !isNaN(new Date(from_date)) ? new Date(from_date).toISOString() : null,
+      to_date: to_date && !isNaN(new Date(to_date)) ? new Date(to_date).toISOString() : null,
+    };
+
+    const taskData = {
+      Template_Task_Id: 54,
+      task_type: " Download User Approval List", 
+      ...parameters,
+      Created_By:create_by, 
+      task_status: "open",
+    };
+
+    await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Task for user approval download successfully create.",
+      taskData,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Internal server error.",
+      error: error.message || "Internal server error.",
+    });
+  }
+}
 

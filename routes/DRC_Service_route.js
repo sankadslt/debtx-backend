@@ -14,7 +14,7 @@ import {
     getDRCDetailsByDate, getDRCDetailsByTimePeriod, registerDRCWithServices, Service_to_DRC, Remove_Service_From_DRC
    ,Change_DRC_Details_with_Services,Ro_detais_of_the_DRC,Rtom_detais_of_the_DRC,Service_detais_of_the_DRC,
    DRC_Agreement_details_list,Assign_DRC_To_Agreement,List_User_Approval_Details,Approve_DRC_Agreement_Approval,
-   Reject_DRC_Agreement_Approval
+   Reject_DRC_Agreement_Approval,Download_User_Approval_List
 } from "../controllers/DRC_Service_controller.js";
 
 const router = Router();
@@ -1347,5 +1347,6 @@ router.post("/Approve_DRC_Agreement_Approval", Approve_DRC_Agreement_Approval);
 
 router.post("/Reject_DRC_Agreement_Approval", Reject_DRC_Agreement_Approval);
 
+router.post("/Download_User_Approval_List", Download_User_Approval_List);
 export default router;
 
