@@ -25,7 +25,7 @@ const drcAgreementDetailsSchema = new Schema({
     },
     agreement_status: {
         type: String,
-        enum: ['Approved', 'Rejected', 'Pending', 'Expired'],
+        enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
         required: true
     },
     agreement_remark: {
