@@ -3137,7 +3137,6 @@ export const List_All_Batch_Details = async (req, res) => {
   }
 };
 
-
 /**
  * Inputs:
  * - approver_reference: String (required) – The reference ID of the batch to approve.
