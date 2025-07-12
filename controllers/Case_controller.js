@@ -3059,52 +3059,33 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 
 export const List_All_Batch_Details = async (req, res) => {
   try {
-    const { approved_deligated_by } = req.body; 
+    const { approved_deligated_by, pages } = req.body; 
     
     if (!approved_deligated_by) {
       return res.status(400).json({ message: "approved_deligated_by is required" });
     }
 
-    // Fetch all data in a single aggregation pipeline
-    const result = await TmpForwardedApprover.aggregate([
-      // Stage 1: Match approver documents with required conditions
-      {
-        $match: {
-          approver_type: "DRC Assign Approval",
-          approved_deligated_by: approved_deligated_by
-        }
-      },
-      // Stage 2: Add a field for the last status
-      {
-        $addFields: {
-          lastStatus: { $arrayElemAt: ["$approve_status", -1] }
-        }
-      },
-      // Stage 3: Filter to only include documents where last status is "Open"
-      {
-        $match: {
-          "lastStatus.status": "Open"
-        }
-      },
-      // Stage 4: Lookup related case distribution data
-      {
-        $lookup: {
-          from: "Case_distribution_drc_transactions", // Collection name
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Build aggregation pipeline
+    const pipeline = [
+      { $match: { approver_type: "DRC Assign Approval", approved_deligated_by } },
+      { $addFields: { lastStatus: { $arrayElemAt: ["$approve_status", -1] } } },
+      { $match: { "lastStatus.status": "Open" } },
+      { $lookup: {
+          from: "Case_distribution_drc_transactions",
           localField: "approver_reference",
           foreignField: "case_distribution_batch_id",
           as: "case_distribution_details"
         }
       },
-      // Stage 5: Unwind the case_distribution_details array (converts array to object)
-      {
-        $unwind: {
-          path: "$case_distribution_details",
-          preserveNullAndEmptyArrays: true // Keep documents even if no matching case distribution
-        }
-      },
-      // Stage 6: Project only the fields we need
-      {
-        $project: {
+      { $unwind: { path: "$case_distribution_details", preserveNullAndEmptyArrays: true } },
+      { $project: {
           _id: 1,
           approver_reference: 1,
           created_on: 1,
@@ -3127,8 +3108,13 @@ export const List_All_Batch_Details = async (req, res) => {
             }
           }
         }
-      }
-    ]);
+      },
+      { $sort: { case_id: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ];
+
+    const result = await TmpForwardedApprover.aggregate(pipeline);
 
     res.status(200).json(result);
   } catch (error) {
@@ -3136,6 +3122,7 @@ export const List_All_Batch_Details = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 /**
  * Inputs:
