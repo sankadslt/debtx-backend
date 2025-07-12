@@ -2526,14 +2526,14 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      current_batch_distribution_status: { $in: ["open"] }
+      current_batch_distribution_status: { $in: ["Open"] }
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({
-        message: "The batch does not have a 'open' status and cannot be proceeded.",
+        message: "The batch does not have a 'Open' status and cannot be proceeded.",
         batchId: case_distribution_batch_id,
       });
     }
