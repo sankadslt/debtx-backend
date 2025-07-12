@@ -27,7 +27,7 @@ const userApprovalSchema = new Schema(
     },
     created_on: { 
       type: Date, 
-      default: Date() 
+      default: () => new Date() 
     },
     created_by: { 
       type: String,
@@ -41,7 +41,7 @@ const userApprovalSchema = new Schema(
     },
     approve_status_on: {
       type: Date, 
-      default: Date() 
+      default: () => new Date() 
     },
     approver_type: {
       type: String, 
