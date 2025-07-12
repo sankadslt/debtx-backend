@@ -15,7 +15,6 @@ const coordinatorSchema = new Schema({
     type: String,
     maxlength: 255,
     required: true,
-    maxlength: 30,
   },
   coordinator_create_dtm: {
     type: Date,
@@ -39,7 +38,7 @@ const coordinatorSchema = new Schema({
 
 const serviceSchema = new Schema({
   service_id: {
-    type: String,
+    type: Number,
     maxlength: 255,
     required: true,
   },

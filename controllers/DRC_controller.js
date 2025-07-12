@@ -698,88 +698,47 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       updated_by,
     } = req.body;
 
-    console.log("Request body:", req.body);
-
-    // Validate required fields
     if (!drc_id || !updated_by || !remark) {
       return res.status(400).json({
         status: "error",
-        message: "DRC ID and updated_by are required fields.",
+        message: "drc_id, updated_by, and remark are required.",
       });
     }
 
-    // Find company to verify it exists
     const company = await DRC.findOne({ drc_id });
-
     if (!company) {
       return res.status(404).json({
         status: "error",
-        message: `No Debt Company found with DRC_ID: ${drc_id}.`,
+        message: `DRC with ID ${drc_id} not found.`,
       });
     }
 
-    // Create update object
-    const updateObject = {};
+    // Prepare update fields
+    const updateFields = {};
+    if (drc_contact_no) updateFields.drc_contact_no = drc_contact_no;
+    if (drc_email) updateFields.drc_email = drc_email;
+    if (drc_address) updateFields.drc_address = drc_address;
 
-    // Update contact information if provided
-    if (drc_contact_no !== undefined) {
-      updateObject.drc_contact_no = drc_contact_no;
-    }
+    // Update contact fields
+    await DRC.updateOne({ drc_id }, { $set: updateFields });
 
-    // Update email information if provided
-    if (drc_email !== undefined) {
-      updateObject.drc_email = drc_email;
-    }
+    // Push remark
+    await DRC.updateOne(
+      { drc_id },
+      {
+        $push: {
+          remark: {
+            remark,
+            remark_dtm: new Date(),
+            remark_by: updated_by,
+          },
+        },
+      }
+    );
 
-    // Update address information if provided
-    if (drc_address !== undefined) {
-      updateObject.drc_address = drc_address;
-    }
-
-    // Update services status if provided
-    if (services && Array.isArray(services)) {
-      // Pre-process services to update status_update fields
-      const updatedServices = services.map((service) => ({
-        ...service,
-        status_update_dtm: new Date(),
-        status_update_by: updated_by,
-      }));
-
-      updateObject.services = updatedServices;
-    }
-
-    // Update RTOM status if provided
-    if (rtom && Array.isArray(rtom)) {
-      // Pre-process RTOM entries to update status_update fields
-      const updatedRtom = rtom.map((rtomEntry) => ({
-        ...rtomEntry,
-        last_update_dtm: new Date(),
-        // status_update_dtm: new Date(),
-        // status_update_by: updated_by,
-      }));
-
-      updateObject.rtom = updatedRtom;
-    }
-
-    // Add a new coordinator entry if provided
-    if (coordinator && coordinator.service_no) {
-      const newCoordinator = {
-        ...coordinator,
-        coordinator_create_dtm: new Date(),
-        coordinator_create_by: updated_by,
-      };
-
-      // Use $push to add the new coordinator to the array
-      await DRC.findOneAndUpdate(
-        { drc_id },
-        { $push: { slt_coordinator: newCoordinator } },
-        { new: true }
-      );
-    }
-
-    // Add remark if provided
+    // Push new status
     if (status) {
-      await DRC.findOneAndUpdate(
+      await DRC.updateOne(
         { drc_id },
         {
           $push: {
@@ -789,49 +748,107 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
               drc_status_by: updated_by,
             },
           },
-        },
-        { new: true }
+        }
       );
     }
 
-    // Add remark if provided
-    if (remark) {
-      await DRC.findOneAndUpdate(
-        { drc_id },
-        {
-          $push: {
-            remark: {
-              remark: remark,
-              remark_dtm: new Date(),
-              remark_by: updated_by,
-            },
-          },
-        },
-        { new: true }
-      );
+    // // Update slt_coordinator
+    // if (coordinator && coordinator.service_no) {
+    //   const lastCoordIndex = company.slt_coordinator.length - 1;
+    //   if (lastCoordIndex >= 0) {
+    //     company.slt_coordinator[lastCoordIndex].coordinator_end_by = updated_by;
+    //     company.slt_coordinator[lastCoordIndex].coordinator_end_dtm = new Date();
+    //   }
+
+    //   company.slt_coordinator.push({
+    //     service_no: coordinator.service_no,
+    //     slt_coordinator_name: coordinator.slt_coordinator_name,
+    //     slt_coordinator_email: coordinator.slt_coordinator_email,
+    //     coordinator_create_dtm: new Date(),
+    //     coordinator_create_by: updated_by,
+    //   });
+
+    //   await company.save();
+    // }
+
+    // Add slt coordinator if it is an array
+    if (Array.isArray(coordinator)) {
+      const newCoordinator = coordinator[0];
+      const lastCoordIndex = company.slt_coordinator.length - 1;
+      if (lastCoordIndex >= 0) {
+        company.slt_coordinator[lastCoordIndex].coordinator_end_by = updated_by;
+        company.slt_coordinator[lastCoordIndex].coordinator_end_dtm = new Date();
+      }
+
+      company.slt_coordinator.push({
+        service_no: newCoordinator.service_no,
+        slt_coordinator_name: newCoordinator.slt_coordinator_name,
+        slt_coordinator_email: newCoordinator.slt_coordinator_email,
+        coordinator_create_dtm: new Date(),
+        coordinator_create_by: updated_by,
+      });
+
+      await company.save();
+    };
+
+    // Update or add services
+    if (Array.isArray(services)) {
+      services.forEach((newService) => {
+        const existing = company.services.find(s => s.service_id === newService.service_id);
+        if (existing) {
+          existing.service_status = newService.service_status;
+          existing.status_update_dtm = new Date();
+          existing.status_update_by = updated_by;
+        } else {
+          company.services.push({
+            ...newService,
+            service_status: newService.service_status || "Active",
+            create_by: updated_by,
+            create_dtm: new Date(),
+            status_update_by: updated_by,
+            status_update_dtm: new Date(),
+          });
+        }
+      });
+      await company.save();
     }
 
-    // Apply the main updates if there are any fields to update
-    const updatedCompany = await DRC.findOneAndUpdate(
-      { drc_id },
-      { $set: updateObject },
-      { new: true }
-    );
+    // Update or add RTOM
+    if (Array.isArray(rtom)) {
+      rtom.forEach((newRtom) => {
+        const existing = company.rtom.find(r => r.rtom_id === newRtom.rtom_id);
+        if (existing) {
+          existing.rtom_status = newRtom.rtom_status;
+          existing.last_update_dtm = new Date();
+        } else {
+          company.rtom.push({
+            rtom_id: newRtom.rtom_id,
+            rtom_name: newRtom.rtom_name,
+            rtom_status: newRtom.rtom_status,
+            rtom_billing_center_code: newRtom.rtom_billing_center_code,
+            handling_type: newRtom.handling_type,
+            last_update_dtm: new Date(),
+          });
+        }
+      });
+      await company.save();
+    }
 
     return res.status(200).json({
       status: "success",
       message: "DRC information updated successfully.",
-      data: updatedCompany,
+      data: await DRC.findOne({ drc_id }),
     });
   } catch (error) {
-    console.error("Error updating DRC information:", error);
+    console.error("Error updating DRC:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to update DRC information.",
+      message: "Failed to update DRC.",
       errors: { exception: error.message },
     });
   }
 };
+
 
 /*
   /Terminate_Company_By_DRC_ID
