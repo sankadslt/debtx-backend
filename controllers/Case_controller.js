@@ -2114,14 +2114,20 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
  */
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
   try {
-    const { date_from, date_to, current_arrears_band, drc_commision_rule } = req.body;
+    const { date_from, date_to, current_arrears_band, drc_commision_rule, pages } = req.body;
 
-    if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
-      return res.status(200).json({
-        status: "error",
-        message: "No filters provided",
-      });
-    }
+    // if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
+    //   return res.status(200).json({
+    //     status: "error",
+    //     message: "No filters provided",
+    //   });
+    // }
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    // Define pagination limits
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     const baseMatch = {};
     if (current_arrears_band) {
       baseMatch.current_arrears_band = current_arrears_band;
@@ -2138,6 +2144,9 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     };
     const pipeline = [
       { $match: baseMatch },
+      { $sort: { case_distribution_id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
         $addFields: {
           first_created_on: { $arrayElemAt: ["$batch_details.created_on", 0] }
@@ -2161,7 +2170,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
               lastBatch: {
                 $arrayElemAt: [
                   "$batch_details",
-                  { $subtract: [ { $size: "$batch_details" }, 1 ] }
+                  { $subtract: [ { $size: { $ifNull: ["$batch_details", []] } }, 1 ] }
                 ]
               }
             },
@@ -2188,7 +2197,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
       }
     });
     const caseDistributions = await CaseDistribution.aggregate(pipeline);
-    return res.status(201).json({
+    return res.status(200).json({
       status: "success",
       message: "Batch details fetching success",
       data: caseDistributions,
