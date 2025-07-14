@@ -2177,20 +2177,22 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
  */
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
   try {
-    const { date_from, date_to, current_arrears_band, drc_commision_rule } =
-      req.body;
 
-    if (
-      !date_from &&
-      !date_to &&
-      !current_arrears_band &&
-      !drc_commision_rule
-    ) {
-      return res.status(200).json({
-        status: "error",
-        message: "No filters provided",
-      });
-    }
+    const { date_from, date_to, current_arrears_band, drc_commision_rule, pages } = req.body;
+
+    // if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
+    //   return res.status(200).json({
+    //     status: "error",
+    //     message: "No filters provided",
+    //   });
+    // }
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    // Define pagination limits
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+
     const baseMatch = {};
     if (current_arrears_band) {
       baseMatch.current_arrears_band = current_arrears_band;
@@ -2207,6 +2209,9 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     }
     const pipeline = [
       { $match: baseMatch },
+      { $sort: { case_distribution_id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
         $addFields: {
           first_created_on: { $arrayElemAt: ["$batch_details.created_on", 0] },
@@ -2230,9 +2235,11 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
               lastBatch: {
                 $arrayElemAt: [
                   "$batch_details",
-                  { $subtract: [{ $size: "$batch_details" }, 1] },
-                ],
-              },
+
+                  { $subtract: [ { $size: { $ifNull: ["$batch_details", []] } }, 1 ] }
+                ]
+              }
+
             },
             in: "$$lastBatch.action_type",
           },
@@ -2257,7 +2264,7 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
       },
     });
     const caseDistributions = await CaseDistribution.aggregate(pipeline);
-    return res.status(201).json({
+    return res.status(200).json({
       status: "success",
       message: "Batch details fetching success",
       data: caseDistributions,
@@ -2319,7 +2326,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -2327,7 +2334,7 @@ export const Create_Task_For_case_distribution = async (req, res) => {
     return res.status(201).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     //console.error("Error in Create_Task_For_case_distribution:", error);
@@ -2620,15 +2627,18 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     // Validate if batch has "Complete" status
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
-      current_batch_distribution_status: { $in: ["open"] },
+
+      current_batch_distribution_status: { $in: ["Open"] }
+
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({
-        message:
-          "The batch does not have a 'open' status and cannot be proceeded.",
+
+        message: "The batch does not have a 'Open' status and cannot be proceeded.",
+
         batchId: case_distribution_batch_id,
       });
     }
@@ -2783,16 +2793,17 @@ export const Create_Task_For_case_distribution_transaction = async (
       task_status: "open",
     };
 
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(200).json({
       status: "success",
-      message:
-        "Create Case distribution DRC Transaction_1_Batch List for Download",
-      data: taskData,
+
+      message: "Create Case distribution DRC Transaction_1_Batch List for Download",
+      data: response,
+
     });
   } catch (error) {
     console.error("Error in Create_Task_For_case_distribution:", error);
