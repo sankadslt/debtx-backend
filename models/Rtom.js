@@ -64,7 +64,6 @@ const rtomSchema = new Schema({
     },
     area_code: {
         type: String, 
-        required: true,
         maxlength: 30,
     },
     rtom_email: {
