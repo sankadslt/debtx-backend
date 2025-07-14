@@ -1668,13 +1668,7 @@ export const assignROToCase = async (req, res) => {
     const { case_ids, ro_id, drc_id, assigned_by } = req.body;
 
     // Validate input
-    if (
-      !Array.isArray(case_ids) ||
-      case_ids.length === 0 ||
-      !ro_id ||
-      !drc_id ||
-      !assigned_by
-    ) {
+    if (!Array.isArray(case_ids) || !ro_id || !drc_id || !assigned_by) {
       return res.status(400).json({
         status: "error",
         message: "Failed to assign Recovery Officer.",
@@ -1685,7 +1679,12 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-
+    if(case_ids.length === 0 ){
+      return res.status(400).json({
+        status: "error",
+        message: "There should be selected case ids."
+      });
+    }
     // Fetch the recovery officer details
     const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
     if (!recoveryOfficer) {
@@ -1698,9 +1697,6 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-
-    // const assigned_by = "System";
-    // Extract the RTOM areas assigned to the recovery officer
     const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name);
 
     const errors = [];
@@ -1708,10 +1704,7 @@ export const assignROToCase = async (req, res) => {
 
     // Fetch all cases with the provided case IDs
     const cases = await Case_details.find({
-      $and: [
-        { case_id: { $in: case_ids } }, // Match cases with the provided case_ids
-        { "drc.drc_id": drc_id }, // Ensure the drc_id matches
-      ],
+      case_id: { $in: case_ids }
     });
 
     if (cases.length === 0) {
@@ -4281,6 +4274,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
  * - Returns a success response after assigning the DRC and logging the approval request.
  */
 export const Assign_DRC_To_Case = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
 
   try {
@@ -4298,7 +4292,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
-        message: "case_id and drc_id is required.",
+        message: "case_id, drc_id, assigned_by, and drc_name are required.",
         errors: {
           code: 400,
           description: "case_id and drc_id is required.",
@@ -4356,11 +4350,8 @@ export const Assign_DRC_To_Case = async (req, res) => {
     const payload = { case_status: case_current_status };
     let case_phase = "";
     try {
-      const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
-        payload
-      );
-
+      const response = await axios.post('https://debtx.slt.lk:6500/get_case_phase', payload);
+      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -4409,9 +4400,10 @@ export const Assign_DRC_To_Case = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
-      data: TmpForwardedApproverRespons,
-    });
-  } catch (error) {
+      data: TmpForwardedApproverRespons.toObject(),
+    }); 
+  }
+  catch (error) {
     console.error("Error in Reassining send to the Aprover : ", error);
     await session.abortTransaction();
     return res.status(500).json({
@@ -5153,151 +5145,97 @@ export const Customer_Negotiations = async (req, res) => {
 };
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
-  let { drc_id, case_id, account_no, from_date, to_date } = req.body;
-
-  if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
-    return res.status(400).json({
-      status: "error",
-      message: "Failed to retrieve case details.",
-      errors: {
-        code: 400,
-        description:
-          "At least one of drc_id, case_id, or account_no is required.",
-      },
-    });
-  }
+  const { drc_id, case_id, account_no, from_date, to_date, pages } = req.body;
 
   try {
-    // List of invalid statuses
-    const invalidStatuses = [
-      "Withdraw",
-      "Forward to WRIT",
-      "WRIT",
-      "Forward to Re-WRIT",
-      "Re-WRIT",
-      "WRIT Settle Pending",
-      "WRIT Settle Open-Pending",
-      "WRIT Settle Active",
-      "Re-WRIT Settle Pending",
-      "Re-WRIT Settle Open-Pending",
-      "Re-WRIT Settle Active",
-      "LOD Monitoring Expire",
-      "Forward LOD Dispute",
-      "Dispute Settle Pending",
-      "Dispute Settle Open-Pending",
-      "Dispute Settle Active",
-      "Initial Litigation",
-      "Pending FTL",
-      "Forward To Litigation",
-      "Fail from Legal Unit",
-      "Fail Legal Action",
-      "Litigation",
-      "Litigation Settle Pending",
-      "Litigation Settle Open-Pending",
-      "Litigation Settle Active",
-      "Pending FTL LOD",
-      "Initial FTL LOD",
-      "FTL LOD Settle Pending",
-      "FTL LOD Settle Open-Pending",
-      "FTL LOD Settle Active",
-      "LIT Prescribed",
-      "Final Reminder",
-      "Initial LOD",
-      "LOD Settle Pending",
-      "LOD Settle Open-Pending",
-      "LOD Settle Active",
-      "Final Reminder Settle Pending",
-      "Final Reminder Settle Open-Pending",
-      "Final Reminder Settle Active",
-      "LOD Monitoring Expire",
-      "Pending Abandoned",
-      "Abandoned",
-      "Pending Withdraw",
-      "Case Close",
-      "Pending Write-Off",
-      "Write-Off",
-      "MB Fail with Non-Settlement",
-    ];
-
-    // Build the query
-    let query = {
-      "drc.removed_dtm": null,
-      "drc.drc_status": "Active",
-      case_current_status: { $nin: invalidStatuses },
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve DRC details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
     };
 
-    if (drc_id) query["drc.drc_id"] = Number(drc_id);
-    if (case_id) query["case_id"] = Number(case_id);
-    if (account_no) query["account_no"] = String(account_no);
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    // Add date range filtering if both dates are provided
-    if (from_date && to_date) {
-      query.created_dtm = {
-        $gte: new Date(from_date),
-        $lte: new Date(to_date),
-      };
-    }
+    const pipeline = [];
 
-    const caseDetails = await Case_details.find(query, {
-      case_id: 1,
-      case_current_status: 1,
-      account_no: 1,
-      current_arrears_amount: 1,
-      created_dtm: 1,
-      end_dtm: 1,
-      drc: 1, // Include the drc array
-      _id: 0,
-    }).lean();
+    if (case_id) {
+      pipeline.push({ $match: { case_id } });
+    };
 
-    if (!caseDetails || caseDetails.length === 0) {
-      return res.status(204).json({
-        status: "success",
-        message: "No Case Details Found.",
-        data: [],
-      });
-    }
+    if (account_no) {
+      pipeline.push({ $match: { account_no } });
+    };
 
-    // Process the results to include only the relevant DRC object
-    const processedCaseDetails = caseDetails.map((detail) => {
-      // Find the specific DRC that matches the drc_id if provided
-      let selectedDrc = null;
-      if (drc_id && Array.isArray(detail.drc)) {
-        selectedDrc = detail.drc.find(
-          (d) =>
-            d.drc_id === Number(drc_id) &&
-            d.drc_status === "Active" &&
-            !d.removed_dtm
-        );
-      } else if (Array.isArray(detail.drc)) {
-        // If no drc_id provided, get the first active DRC
-        selectedDrc = detail.drc.find(
-          (d) => d.drc_status === "Active" && !d.removed_dtm
-        );
+    pipeline.push({
+      $addFields: {
+        last_drc: { $arrayElemAt: ['$drc', -1] }
       }
-
-      // Return case details with only the selected DRC
-      return {
-        case_id: detail.case_id,
-        case_current_status: detail.case_current_status,
-        account_no: detail.account_no,
-        current_arrears_amount: detail.current_arrears_amount,
-        created_dtm: selectedDrc?.created_dtm,
-        end_dtm: selectedDrc?.end_dtm || "",
-        drc: selectedDrc || null,
-      };
     });
 
-    res.status(200).json({
+    pipeline.push({
+      $match: {
+        'last_drc.drc_status': 'Active',
+        'last_drc.removed_dtm': null,
+        'last_drc.drc_id': Number(drc_id)
+      }
+    });
+
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) dateFilter.$lte = new Date(to_date);
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({
+        $match: { 'last_drc.created_dtm': dateFilter }
+      });
+    };
+
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+    pipeline.push({
+      $project: {
+        case_id: 1,
+        "last_drc.drc_id": 1,
+        "last_drc.created_dtm": 1,
+        "last_drc.expire_dtm": 1,
+        "last_drc.removed_dtm": 1,
+        case_current_status:1,
+        account_no:1,
+        current_arrears_amount:1,
+      }
+    });
+    const filtered_cases = await Case_details.aggregate(pipeline);
+
+    if (filtered_cases.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching cases found for the given criteria.",
+      });
+    };
+
+    return res.status(200).json({
       status: "success",
-      message: "Case details retrieved successfully.",
-      Cases: processedCaseDetails,
+      message: "Cases retrieved successfully.",
+      data: filtered_cases,
     });
+
   } catch (error) {
-    console.error("Error fetching case details:", error);
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
-      message: "Error Fetching Case Details.",
-      errors: { code: 500, description: error.message },
+      message: "An error occurred while retrieving cases.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
     });
   }
 };
