@@ -1623,7 +1623,7 @@ export const assignROToCase = async (req, res) => {
     const { case_ids, ro_id, drc_id, assigned_by } = req.body;
 
     // Validate input
-    if (!Array.isArray(case_ids) || case_ids.length === 0 || !ro_id || !drc_id || !assigned_by) {
+    if (!Array.isArray(case_ids) || !ro_id || !drc_id || !assigned_by) {
       return res.status(400).json({
         status: "error",
         message: "Failed to assign Recovery Officer.",
@@ -1633,7 +1633,12 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-
+    if(case_ids.length === 0 ){
+      return res.status(400).json({
+        status: "error",
+        message: "There should be selected case ids."
+      });
+    }
     // Fetch the recovery officer details
     const recoveryOfficer = await RecoveryOfficer.findOne({ ro_id });
     if (!recoveryOfficer) {
@@ -1646,9 +1651,6 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-
-    // const assigned_by = "System";
-    // Extract the RTOM areas assigned to the recovery officer
     const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name);
 
     const errors = [];
@@ -1656,10 +1658,7 @@ export const assignROToCase = async (req, res) => {
 
     // Fetch all cases with the provided case IDs
     const cases = await Case_details.find({
-      $and: [
-        { case_id: { $in: case_ids } }, // Match cases with the provided case_ids
-        { "drc.drc_id": drc_id }       // Ensure the drc_id matches
-      ]
+      case_id: { $in: case_ids }
     });
     
     if (cases.length === 0) {
