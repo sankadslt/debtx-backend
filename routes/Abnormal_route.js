@@ -1,6 +1,9 @@
 
 import { Router } from "express";
-import { List_All_Withdrawal_Case_Logs,Task_for_Download_Withdrawals,Create_Wthdraw_case} from "../controllers/Abnormal_controller";
+import { List_All_Withdrawal_Case_Logs,Task_for_Download_Withdrawals,Create_Withdraw_case} from "../controllers/Abnormal_controller";
+import { Create_Abondoned_case } from "../controllers/Abnormal_controller";
+import { Task_for_Download_Abondoned } from "../controllers/Abnormal_controller";
+import { List_All_Abondoned_Case_Logs } from "../controllers/Abnormal_controller";
  
 const router = Router();
 
@@ -459,7 +462,13 @@ router.post("/Task_for_Download_Withdrawals", Task_for_Download_Withdrawals);
  *                   example: "Internal server error."
  */
 
-router.post("/Create_Wthdraw_case", Create_Wthdraw_case);
+router.post("/Create_Withdraw_case", Create_Withdraw_case);
  
 
+
+router.post("/List_All_Abondoned_Case_Logs", List_All_Abondoned_Case_Logs);
+
+router.post("/Task_for_Download_Abondoned", Task_for_Download_Abondoned);
+
+router.post("/Create_Abondoned_case", Create_Abondoned_case);
 export default router;
