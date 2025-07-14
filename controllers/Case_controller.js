@@ -5146,7 +5146,7 @@ export const Customer_Negotiations = async (req, res) => {
 };
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
-  let { drc_id, case_id, account_no, from_date, to_date } = req.body;
+  let { drc_id, case_id, account_no, from_date, to_date, pages } = req.body;
 
   if (!drc_id && !case_id && !account_no && !from_date && !to_date) {
     return res.status(400).json({
@@ -5219,6 +5219,12 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       case_current_status: { $nin: invalidStatuses },
     };
 
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+
     if (drc_id) query["drc.drc_id"] = Number(drc_id);
     if (case_id) query["case_id"] = Number(case_id);
     if (account_no) query["account_no"] = String(account_no);
@@ -5240,7 +5246,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       end_dtm: 1,
       drc: 1, // Include the drc array
       _id: 0,
-    }).lean();
+    }).skip(skip).limit(limit).lean();
 
     if (!caseDetails || caseDetails.length === 0) {
       return res.status(204).json({
