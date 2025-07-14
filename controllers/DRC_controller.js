@@ -587,6 +587,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   in: {
                     rtom_id: "$$r.rtom_id",
                     rtom_name: "$$r.rtom_name",
+                    rtom_billing_center_code: "$$r.rtom_billing_center_code",
                     status_update_dtm: "$$r.status_update_dtm",
                     handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",
