@@ -6302,19 +6302,6 @@ export const CaseDetailsforDRC = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Inputs:
  * - None
