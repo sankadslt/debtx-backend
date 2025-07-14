@@ -3367,22 +3367,25 @@ export const Approve_Batch = async (req, res) => {
     const delegate_id = approverDoc.created_by;
 
     // Update approve_status for the matching document
-    const result = await TmpForwardedApprover.updateOne(
-      {
-        approver_reference: approver_reference,
-        approver_type: "DRC Assign Approval",
-      },
-      {
-        $push: {
-          approve_status: {
-            status: statusTempForwardedApprover,
-            status_date: currentDate,
-            status_edit_by: approved_by,
-          },
-        },
-      },
-      { session }
-    );
+    // const result = await TmpForwardedApprover.updateOne(
+    //   {
+    //     approver_reference: approver_reference,
+    //     approver_type: "DRC Assign Approval",
+    //   },
+    //   {
+    //     $push: {
+    //       approve_status: {
+    //         status: statusTempForwardedApprover,
+    //         status_date: currentDate,
+    //         status_edit_by: approved_by,
+    //       },
+    //     },
+    //   },
+    //   { session }
+    // );
+
+    console.log("Approve By", approved_by);
+    console.log("current Date", currentDate);
 
     const resultCaseDistribution = await CaseDistribution.updateOne(
       {
@@ -3408,7 +3411,7 @@ export const Approve_Batch = async (req, res) => {
     );
 
     if (
-      result.modifiedCount === 0 ||
+      // result.modifiedCount === 0 ||
       resultCaseDistribution.modifiedCount === 0
     ) {
       await session.abortTransaction();
@@ -3457,7 +3460,7 @@ export const Approve_Batch = async (req, res) => {
     return res.status(200).json({
       message:
         "Approval added successfully, task created and interaction added.",
-      updatedCount: result.modifiedCount,
+      // updatedCount: result.modifiedCount,
       response: taskCreatedResponse,
     });
   } catch (error) {
