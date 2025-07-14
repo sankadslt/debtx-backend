@@ -105,7 +105,7 @@ const roSchema = new Schema({
         drcUser_status: {
             type: String,
             maxlength: 30,
-            enum: ['Active', 'Inactive', 'Terminate'],
+            enum: ['Active', 'Inactive', 'Terminate','Pending_approval'],
             default: "Active",
         },
         create_dtm:{
