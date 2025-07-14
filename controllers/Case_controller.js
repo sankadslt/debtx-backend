@@ -3387,7 +3387,7 @@ export const Create_task_for_batch_approval = async (req, res) => {
 
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
-    const { approver_type, date_from, date_to, approved_deligated_by, approve_status } = req.body;
+    const { approver_type, date_from, date_to, approved_deligated_by, approve_status, pages } = req.body;
     
     const allowedApproverTypes = [
       "DRC Re-Assign Approval",
@@ -3396,6 +3396,12 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       "Case Write-Off Approval",
       "Commission Approval"
     ];
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    // Define pagination limits
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
     
     if (!approved_deligated_by) {
       return res.status(400).json({ message: "approved_deligated_by is required" });
@@ -3470,7 +3476,15 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       
       // Sort by created_on in descending order (latest first)
       {
-        $sort: { created_on: -1 }
+        $sort: { created_on: -1 },
+      },
+
+      {
+        $skip: skip // Skip documents for pagination
+      },
+
+      {
+        $limit: limit // Limit the number of documents returned
       }
     ]);
 
