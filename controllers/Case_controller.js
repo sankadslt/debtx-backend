@@ -1437,7 +1437,7 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 };
 
 export const listHandlingCasesByDRC = async (req, res) => {
-  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date } = req.body;
+  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } = req.body;
 
   try {
     // Validate the DRC ID
@@ -1453,22 +1453,22 @@ export const listHandlingCasesByDRC = async (req, res) => {
     }
 
     // Ensure at least one optional parameter is provided
-    if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description:
-            "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
-        },
-      });
-    }
+    // if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
 
     const allowedStatusTypes = [
-      "Open with Agent",
+      "Open With Agent",
       "RO Negotiation",
-      "Negotiation Settle pending",
+      "Negotiation Settle Pending",
       "Negotiation Settle Open-Pending",
       "Negotiation Settle Active",
       "RO Negotiation Extension Pending",
@@ -1478,7 +1478,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
       "MB Negotiation",
       "MB Request Customer-Info",
       "MB Handover Customer-Info",
-      "MB Settle pending",
+      "MB Settle Pending",
       "MB Settle Open-Pending",
       "MB Settle Active",
       "MB Fail with Pending Non-Settlement",
@@ -1528,7 +1528,11 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endofDate = new Date(to_date);
+      endofDate.setHours(23, 59, 59, 999); //
+      dateFilter.$lte = endofDate;
+    };
 
     // pipeline.push({
     //   $addFields: {
@@ -1586,29 +1590,29 @@ export const listHandlingCasesByDRC = async (req, res) => {
     //   }
     // });
 
-    // let page = Number(pages);
-    // if (isNaN(page) || page < 1) page = 1;
-    // const limit = page === 1 ? 10 : 30;
-    // const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     // Pagination
     pipeline.push({ $sort: { case_id: -1 } });
-    // pipeline.push({ $skip: skip });
-    // pipeline.push({ $limit: limit });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
 
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     // Handle case where no matching cases are found
-    if (filtered_cases.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No matching cases found for the given criteria.",
-        errors: {
-          code: 404,
-          description: "No cases satisfy the provided criteria.",
-        },
-      });
-    }
+    // if (filtered_cases.length === 0) {
+    //   return res.status(204).json({
+    //     status: "error",
+    //     message: "No matching cases found for the given criteria.",
+    //     errors: {
+    //       code: 404,
+    //       description: "No cases satisfy the provided criteria.",
+    //     },
+    //   });
+    // }
 
     // Use Promise.all to handle asynchronous operations
     const formattedCases = await Promise.all(
