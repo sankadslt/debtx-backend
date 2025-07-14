@@ -4939,7 +4939,10 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     pipeline.push({
       $project: {
         case_id: 1,
-        last_drc: 1,
+        "last_drc.drc_id": 1,
+        "last_drc.created_dtm": 1,
+        "last_drc.expire_dtm": 1,
+        "last_drc.removed_dtm": 1,
         case_current_status:1,
         account_no:1,
         current_arrears_amount:1,
