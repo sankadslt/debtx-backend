@@ -5526,7 +5526,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
       query.case_current_status = { $in: allowedStatuses };
     }
 
-    if (rtom) query.area = rtom;
+    if (rtom) query.rtom = rtom;
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
@@ -5630,6 +5630,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
           created_dtm: "$last_drc.created_dtm",
           contact_no: "$last_contact.contact_no",
           area: 1,
+          rtom:1,
           action_type: 1,
           ro_name: {
             $cond: {
