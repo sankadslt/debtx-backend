@@ -4055,7 +4055,7 @@ export const Create_task_for_DRC_Assign_Manager_Approval = async (req, res) => {
  * - Returns a success response after assigning the DRC and logging the approval request.
  */
 export const Assign_DRC_To_Case = async (req, res) => {
-  
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
 
   try {
@@ -4066,7 +4066,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
-        message: "case_id and drc_id is required.",
+        message: "case_id, drc_id, assigned_by, and drc_name are required.",
         errors: {
           code: 400,
           description: "case_id and drc_id is required.",
@@ -4120,8 +4120,8 @@ export const Assign_DRC_To_Case = async (req, res) => {
     const payload = {case_status:case_current_status};
     let case_phase = ""
     try {
-      const response = await axios.post('http://124.43.177.52:6000/app2/get_case_phase', payload);
-
+      const response = await axios.post('https://debtx.slt.lk:6500/get_case_phase', payload);
+      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -4170,7 +4170,7 @@ export const Assign_DRC_To_Case = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "DRC Reassining send to the Aprover.",
-      data: TmpForwardedApproverRespons,
+      data: TmpForwardedApproverRespons.toObject(),
     }); 
   }
   catch (error) {
