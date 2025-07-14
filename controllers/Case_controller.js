@@ -6079,110 +6079,242 @@ export const Count_Mediation_Board_Phase_Cases = async (req, res) => {
  * Success Result:
  * - Returns a success response with the case details and the calling_round count (number of mediation board entries).
  */
+// export const CaseDetailsforDRC = async (req, res) => {
+//   try {
+//     const { case_id, drc_id, ro_id } = req.body;
+
+//     if (!case_id || !drc_id) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Both Case ID and DRC ID are required.",
+//         errors: {
+//           code: 400,
+//           description: "Please provide both case_id and drc_id in the request body.",
+//         },
+//       });
+//     }
+
+//     const roFilter = ro_id
+//       ? [{ $eq: ["$$item.ro_id", ro_id] }]
+//       : [{}]; // No filter if ro_id not provided
+
+//     const caseDetails = await CaseDetails.aggregate([
+//       {
+//         $match: { case_id: Number(case_id) }
+//       },
+//       {
+//         $project: {
+//           case_id: 1,
+//           case_current_status: 1,
+//           ro_cpe_collect: 1,
+//           customer_ref: 1,
+//           region: 1,
+//           account_no: 1,
+//           current_arrears_amount: 1,
+//           current_contact: 1,
+//           rtom: 1,
+//           ref_products: 1,
+//           last_payment_date: 1,
+//           money_transactions: 1,
+//           drc: {
+//             $filter: {
+//               input: "$drc",
+//               as: "item",
+//               cond: { $eq: ["$$item.drc_id", Number(drc_id)] }
+//             }
+//           },
+//           mediation_board: {
+//             $filter: {
+//               input: "$mediation_board",
+//               as: "item",
+//               cond: { $and: roFilter }
+//             }
+//           },
+//           ro_negotiation: {
+//             $filter: {
+//               input: "$ro_negotiation",
+//               as: "item",
+//               cond: { $and: roFilter }
+//             }
+//           },
+//           ro_requests: {
+//             $filter: {
+//               input: "$ro_requests",
+//               as: "item",
+//               cond: { $and: roFilter }
+//             }
+//           }
+//         }
+//       }
+//     ]);
+
+//     if (!caseDetails.length) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "No case found with the given case_id.",
+//         errors: { code: 404 },
+//       });
+//     }
+
+//     const mediationBoardCount = caseDetails[0]?.mediation_board?.length || 0;
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Case details retrieved successfully.",
+//       data: caseDetails,
+//       calling_round: mediationBoardCount
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching case details:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Failed to retrieve case details.",
+//       errors: {
+//         code: 500,
+//         description: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const CaseDetailsforDRC = async (req, res) => {
   try {
     const { case_id, drc_id, ro_id } = req.body;
+
     if (!case_id || !drc_id) {
       return res.status(400).json({
         status: "error",
         message: "Both Case ID and DRC ID are required.",
         errors: {
           code: 400,
-          description:
-            "Please provide both case_id and drc_id in the request body.",
+          description: "Please provide both case_id and drc_id in the request body.",
         },
       });
     }
 
-    // // Find the case that matches both case_id and has the specified drc_id in its drc array
-    // const caseDetails = await Case_details.findOne({
-    //   case_id
-    // },
-    // { case_id: 1,
-    //   case_current_status: 1,
-    //   ro_cpe_collect:1,
-    //   customer_ref: 1,
-    //   account_no: 1,
-    //   current_arrears_amount: 1,
-    //   current_contact: 1,
-    //   rtom: 1,
-    //   ref_products:1,
-    //   last_payment_date: 1,
-    //   drc: 1,
-    //   ro_negotiation:1,
-    //   settlement:1,
-    //   mediation_board:1,
-    //   money_transactions:1,
-    //   ro_requests: 1,
-    //   mediation_board: 1,
-    // })
+    const pipeline = [
+      {
+        $match: { case_id: Number(case_id) }
+      },
+      {
+        $addFields: {
+          last_drc: { $arrayElemAt: ["$drc", -1] }
+        }
+      },
+      {
+        $match: {
+          "last_drc.drc_id": Number(drc_id)
+        }
+      }
+    ];
 
-    const caseDetails = await Case_details.aggregate([
-      {
-        $match: { case_id },
-      },
-      {
-        $project: {
-          case_id: 1,
-          case_current_status: 1,
-          ro_cpe_collect: 1,
-          customer_ref: 1,
-          region: 1,
-          account_no: 1,
-          current_arrears_amount: 1,
-          current_contact: 1,
-          rtom: 1,
-          ref_products: 1,
-          last_payment_date: 1,
-          drc: {
-            $filter: {
-              input: "$drc",
-              as: "item",
-              cond: { $eq: ["$$item.drc_id", drc_id] },
-            },
-          },
-          money_transactions: 1,
-          mediation_board: {
-            $filter: {
-              input: "$mediation_board",
-              as: "item",
-              cond: { $and: roFilter },
-            },
-          },
-          ro_negotiation: {
-            $filter: {
-              input: "$ro_negotiation",
-              as: "item",
-              cond: { $and: roFilter },
-            },
-          },
-          ro_requests: {
-            $filter: {
-              input: "$ro_requests",
-              as: "item",
-              cond: { $and: roFilter },
-            },
-          },
+    // If ro_id is provided, add filter for the last recovery officer's ro_id
+    if (ro_id) {
+      pipeline.push({
+        $addFields: {
+          last_ro: { $arrayElemAt: ["$last_drc.recovery_officers", -1] }
+        }
+      });
+      pipeline.push({
+        $match: {
+          "last_ro.ro_id": Number(ro_id)
+        }
+      });
+    }
+
+    pipeline.push({
+      $project: {
+        case_id: 1,
+        case_current_status: 1,
+        ro_cpe_collect: 1,
+        customer_ref: 1,
+        region: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+        current_contact: 1,
+        rtom: 1,
+        ref_products: 1,
+        last_payment_date: 1,
+        money_transactions: 1,
+        drc: "$last_drc",
+        mediation_board: {
+          $filter: {
+            input: "$mediation_board",
+            as: "item",
+            cond: {
+              $eq: ["$$item.ro_id", Number(ro_id || 0)] // Only matches if provided
+            }
+          }
         },
-      },
-    ]);
-    const mediationBoardCount = caseDetails[0].mediation_board?.length || 0;
+        ro_negotiation: {
+          $filter: {
+            input: "$ro_negotiation",
+            as: "item",
+            cond: {
+              $eq: ["$$item.ro_id", Number(ro_id || 0)]
+            }
+          }
+        },
+        ro_requests: {
+          $filter: {
+            input: "$ro_requests",
+            as: "item",
+            cond: {
+              $eq: ["$$item.ro_id", Number(ro_id || 0)]
+            }
+          }
+        }
+      }
+    });
+
+    const caseDetails = await CaseDetails.aggregate(pipeline);
+
+    if (!caseDetails.length) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching case found with the given case_id, drc_id and optional ro_id.",
+        errors: {
+          code: 404,
+          description: "No matching document found.",
+        },
+      });
+    }
+
+    const mediationBoardCount = caseDetails[0]?.mediation_board?.length || 0;
+
     return res.status(200).json({
       status: "success",
       message: "Case details retrieved successfully.",
       data: caseDetails,
-      calling_round: mediationBoardCount, // Include the count in the response
+      calling_round: mediationBoardCount
     });
+
   } catch (error) {
-    console.error("Error fetching cases:", error);
+    console.error("Error fetching case details:", error);
     return res.status(500).json({
       status: "error",
-      code: 500,
-      message: "Failed to retrieve cases.",
-      errors: error.message,
+      message: "Failed to retrieve case details.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
     });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Inputs:
  * - None
