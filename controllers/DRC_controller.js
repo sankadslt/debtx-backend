@@ -20,6 +20,8 @@ import RTOM from "../models/Rtom.js";
 import BillingCenter from "../models/DRC_Billing_Center_Log.js";
 import case_inquiry from "../models/Case_inquiry.js";
 import mongoose from "mongoose";
+import Case_details from "../models/Case_details.js";
+import CaseDetails from "../models/Case_details.js";
 
 /**
  * /List_All_DRC_Details
@@ -1585,6 +1587,22 @@ export const Create_Pre_Negotiation = async (req, res) => {
       });
     }
 
+    // Check if case_details exists for the given case_id
+    const caseDetails = await CaseDetails.findOne({ case_id }).session(session);
+
+    if (!caseDetails) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        message: `No case details found for case_id: ${case_id}`,
+      });
+    }
+
+    // Determine case_phase based on ro_negotiation array
+    const roNegotiationArray = caseDetails.ro_negotiation || [];
+    const determinedCasePhase =
+      roNegotiationArray.length === 0 ? "Pre Negotiation" : case_phase;
+
     // Generate a unique Call_Inquiry_seq (example: fetch the max sequence and increment)
     const maxSeq = await case_inquiry
       .findOne({}, { Call_Inquiry_seq: 1 })
@@ -1598,7 +1616,7 @@ export const Create_Pre_Negotiation = async (req, res) => {
       Call_Inquiry_seq: newSeq,
       case_id: case_id,
       Call_Topic: call_topic,
-      Case_Phase: case_phase,
+      Case_Phase: determinedCasePhase,
       created_by: created_by,
       created_dtm: new Date(),
       Call_Inquiry_Remark: call_inquiry_remark,
