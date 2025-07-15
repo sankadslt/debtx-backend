@@ -120,7 +120,7 @@ export const Create_Incident = async (req, res) => {
       Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
-      
+      Incident_Status_Dtm: moment().toDate(),
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
