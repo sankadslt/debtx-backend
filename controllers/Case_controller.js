@@ -3060,7 +3060,10 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (req, res
 export const List_All_Batch_Details = async (req, res) => {
   try {
     const { approved_deligated_by, pages } = req.body; 
-    
+    if (!req.body || typeof req.body !== "object") {
+      return res.status(400).json({ error: "Invalid JSON body" });
+    }
+
     if (!approved_deligated_by) {
       return res.status(400).json({ message: "approved_deligated_by is required" });
     }
@@ -3074,7 +3077,7 @@ export const List_All_Batch_Details = async (req, res) => {
 
     // Build aggregation pipeline
     const pipeline = [
-      { $match: { approver_type: "DRC Assign Approval", approved_deligated_by } },
+      { $match: { approver_type: "DRC Assign Approval", approved_deligated_by  } },
       { $addFields: { lastStatus: { $arrayElemAt: ["$approve_status", -1] } } },
       { $match: { "lastStatus.status": "Open" } },
       { $lookup: {
@@ -3109,7 +3112,7 @@ export const List_All_Batch_Details = async (req, res) => {
           }
         }
       },
-      { $sort: { case_id: -1 } },
+      { $sort: { created_on: -1 } },
       { $skip: skip },
       { $limit: limit }
     ];
