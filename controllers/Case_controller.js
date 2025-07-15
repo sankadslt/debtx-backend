@@ -1598,10 +1598,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     //   }
     // });
 
-    let page = Number(pages);
-    if (isNaN(page) || page < 1) page = 1;
-    const limit = page === 1 ? 10 : 30;
-    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+ 
 
     // Pagination
     pipeline.push({ $sort: { case_id: -1 } });
