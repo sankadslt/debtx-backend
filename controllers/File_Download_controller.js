@@ -84,6 +84,7 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
         Deligate_By: log.Deligate_By,
         Created_On: log.created_on,
         File_Remove_On: log.File_Remove_On,
+        File_Name: log.file_name,
       };
     });
 
