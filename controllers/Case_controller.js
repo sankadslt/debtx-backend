@@ -1437,7 +1437,8 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 };
 
 export const listHandlingCasesByDRC = async (req, res) => {
-  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date } = req.body;
+  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } =
+    req.body;
 
   try {
     // Validate the DRC ID
@@ -1452,18 +1453,23 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     // Ensure at least one optional parameter is provided
-    if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description:
-            "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
-        },
-      });
-    }
+    // if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
 
     const allowedStatusTypes = [
       "Open with Agent",
@@ -1596,7 +1602,11 @@ export const listHandlingCasesByDRC = async (req, res) => {
     // pipeline.push({ $skip: skip });
     // pipeline.push({ $limit: limit });
 
-    const filtered_cases = await Case_details.aggregate(pipeline);
+    // const filtered_cases = await Case_details.aggregate(pipeline);
+
+    const filtered_cases = await Case_details.aggregate(pipeline)
+      .skip(skip)
+      .limit(limit);
 
     // Handle case where no matching cases are found
     if (filtered_cases.length === 0) {
@@ -2177,8 +2187,13 @@ export const count_cases_rulebase_and_arrears_band = async (req, res) => {
  */
 export const List_Case_Distribution_DRC_Summary = async (req, res) => {
   try {
-
-    const { date_from, date_to, current_arrears_band, drc_commision_rule, pages } = req.body;
+    const {
+      date_from,
+      date_to,
+      current_arrears_band,
+      drc_commision_rule,
+      pages,
+    } = req.body;
 
     // if (!date_from && !date_to && !current_arrears_band && !drc_commision_rule) {
     //   return res.status(200).json({
@@ -2191,7 +2206,6 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
     // Define pagination limits
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
-
 
     const baseMatch = {};
     if (current_arrears_band) {
@@ -2236,10 +2250,14 @@ export const List_Case_Distribution_DRC_Summary = async (req, res) => {
                 $arrayElemAt: [
                   "$batch_details",
 
-                  { $subtract: [ { $size: { $ifNull: ["$batch_details", []] } }, 1 ] }
-                ]
-              }
-
+                  {
+                    $subtract: [
+                      { $size: { $ifNull: ["$batch_details", []] } },
+                      1,
+                    ],
+                  },
+                ],
+              },
             },
             in: "$$lastBatch.action_type",
           },
@@ -2628,16 +2646,15 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
     const batchToProcess = await CaseDistribution.findOne({
       case_distribution_batch_id,
 
-      current_batch_distribution_status: { $in: ["Open"] }
-
+      current_batch_distribution_status: { $in: ["Open"] },
     }).session(session);
 
     if (!batchToProcess) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({
-
-        message: "The batch does not have a 'Open' status and cannot be proceeded.",
+        message:
+          "The batch does not have a 'Open' status and cannot be proceeded.",
 
         batchId: case_distribution_batch_id,
       });
@@ -2801,9 +2818,9 @@ export const Create_Task_For_case_distribution_transaction = async (
     return res.status(200).json({
       status: "success",
 
-      message: "Create Case distribution DRC Transaction_1_Batch List for Download",
+      message:
+        "Create Case distribution DRC Transaction_1_Batch List for Download",
       data: response,
-
     });
   } catch (error) {
     console.error("Error in Create_Task_For_case_distribution:", error);
@@ -3140,11 +3157,9 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (
     const { case_distribution_batch_id } = req.body;
 
     if (!case_distribution_batch_id) {
-      return res
-        .status(400)
-        .json({
-          message: "Missing required field: case_distribution_batch_id",
-        });
+      return res.status(400).json({
+        message: "Missing required field: case_distribution_batch_id",
+      });
     }
 
     const data = await caseDistributionDRCSummary.aggregate([
@@ -3413,11 +3428,9 @@ export const Approve_Batch = async (req, res) => {
     ) {
       await session.abortTransaction();
       session.endSession();
-      return res
-        .status(204)
-        .json({
-          message: "No matching approver reference found or already approved",
-        });
+      return res.status(204).json({
+        message: "No matching approver reference found or already approved",
+      });
     }
 
     let taskCreatedResponse;
@@ -3493,11 +3506,9 @@ export const Create_task_for_batch_approval = async (req, res) => {
     ) {
       await session.abortTransaction();
       session.endSession();
-      return res
-        .status(400)
-        .json({
-          message: "Invalid input, provide an array of approver references",
-        });
+      return res.status(400).json({
+        message: "Invalid input, provide an array of approver references",
+      });
     }
 
     if (!Created_By) {
@@ -3750,21 +3761,17 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       if (caseDetails.drc && caseDetails.drc.length >= 3) {
         await session.abortTransaction();
         session.endSession();
-        return res
-          .status(400)
-          .json({
-            message: "Cannot add more DRCs. Maximum limit of 3 DRCs reached.",
-          });
+        return res.status(400).json({
+          message: "Cannot add more DRCs. Maximum limit of 3 DRCs reached.",
+        });
       }
 
       if (caseDetails.monitor_months >= 5) {
         await session.abortTransaction();
         session.endSession();
-        return res
-          .status(400)
-          .json({
-            message: "Cannot add DRC when monitor_months are reached to 5.",
-          });
+        return res.status(400).json({
+          message: "Cannot add DRC when monitor_months are reached to 5.",
+        });
       }
     }
 
@@ -4425,11 +4432,9 @@ export const List_Case_Distribution_Details = async (req, res) => {
     const { case_distribution_batch_id, drc_id } = req.body;
 
     if (!case_distribution_batch_id) {
-      return res
-        .status(400)
-        .json({
-          message: "Missing required field: case_distribution_batch_id",
-        });
+      return res.status(400).json({
+        message: "Missing required field: case_distribution_batch_id",
+      });
     }
 
     const pipeline = [
@@ -6941,12 +6946,10 @@ export const Accept_Non_Settlement_Request_from_Mediation_Board = async (
 
     await caseRecord.save({ validateBeforeSave: false });
 
-    return res
-      .status(200)
-      .json({
-        message: "Mediation board data updated successfully",
-        caseRecord,
-      });
+    return res.status(200).json({
+      message: "Mediation board data updated successfully",
+      caseRecord,
+    });
   } catch (error) {
     return res
       .status(500)
@@ -7968,12 +7971,10 @@ export const List_Details_Of_Mediation_Board_Acceptance = async (req, res) => {
     } = req.body;
 
     if (!delegate_user_id || !case_id || !Interaction_Log_ID) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "delegate_user_id, case_id, and Interaction_Log_ID are required",
-        });
+      return res.status(400).json({
+        message:
+          "delegate_user_id, case_id, and Interaction_Log_ID are required",
+      });
     }
 
     let matchStage = { delegate_user_id, Interaction_Log_ID };
@@ -8726,20 +8727,16 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    return res
-      .status(200)
-      .json({
-        message: "Withdrawal mediation board request submitted successfully.",
-      });
+    return res.status(200).json({
+      message: "Withdrawal mediation board request submitted successfully.",
+    });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    return res
-      .status(500)
-      .json({
-        message: "Failed to process withdrawal mediation board acceptance.",
-        error: error.message,
-      });
+    return res.status(500).json({
+      message: "Failed to process withdrawal mediation board acceptance.",
+      error: error.message,
+    });
   }
 };
 
@@ -8779,12 +8776,10 @@ export const RO_CPE_Collection = async (req, res) => {
 
     if (!case_id || !drc_id || !cp_type || !cpe_model || !serial_no) {
       await session.abortTransaction();
-      return res
-        .status(400)
-        .json({
-          message:
-            "case_id, drc_id, cpe_model, serial_no and cp_type are required",
-        });
+      return res.status(400).json({
+        message:
+          "case_id, drc_id, cpe_model, serial_no and cp_type are required",
+      });
     }
     const mongoConnection = await db.connectMongoDB();
     if (!mongoConnection) {
@@ -9230,13 +9225,11 @@ export const List_Settlement_Details_Owen_By_SettlementID_and_DRCID = async (
       data: result[0]?.settlement_details || [],
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        status: "error",
-        message: "Internal Server Error",
-        error: error.message,
-      });
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
