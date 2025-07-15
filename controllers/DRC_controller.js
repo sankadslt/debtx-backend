@@ -325,7 +325,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
         status_update_dtm: new Date(),
       })),
       status: [{
-        drc_status: "Inactive",
+        drc_status: "Pending",
         drc_status_dtm: new Date(),
         drc_status_by: create_by,
       }],
