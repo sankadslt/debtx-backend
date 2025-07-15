@@ -1658,7 +1658,7 @@ export const List_Reject_Incident = async (req, res) => {
       if (FromDate && ToDate) {
         const from = new Date(FromDate)
         const to = new Date(ToDate)
-        to.setHours(23, 59, 59, 999); // Set to end of the day
+        to.setHours(23, 59, 59, 999);  
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
