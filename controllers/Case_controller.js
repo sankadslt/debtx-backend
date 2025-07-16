@@ -1518,13 +1518,12 @@ export const listHandlingCasesByDRC = async (req, res) => {
       },
     });
 
-    if (drc_id) {
-      pipeline.push({
-        $match: {
-          "last_drc.drc_id": Number(drc_id),
-        },
-      });
-    }
+    
+    pipeline.push({
+      $match: {
+        "last_drc.drc_id": Number(drc_id),
+      },
+    });
 
     if (arrears_band) {
       pipeline.push({
@@ -1605,9 +1604,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     // const filtered_cases = await Case_details.aggregate(pipeline);
 
-    const filtered_cases = await Case_details.aggregate(pipeline)
-      .skip(skip)
-      .limit(limit);
+    const filtered_cases = await Case_details.aggregate(pipeline);
 
     // Handle case where no matching cases are found
     // if (filtered_cases.length === 0) {
