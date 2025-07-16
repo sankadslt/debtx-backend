@@ -2,21 +2,21 @@ import mongoose from "mongoose";
 
 const fileDownloadLogSchema = new mongoose.Schema(
   {
-    docVersion: {
+    doc_version: {
       type: Number,
       required: true,
       default: 1,
     },
-    fileDownloadSeq: {
+    file_download_seq: {
       type: Number,
       required: true,
       unique: true,
     },
-    fileName: {
+    file_name: {
       type: String,
       required: true,
     },
-    createdOn: {
+    created_on: {
       type: Date,
       required: true,
     },
@@ -24,19 +24,19 @@ const fileDownloadLogSchema = new mongoose.Schema(
     //   type: String,
     //   required: true,
     // },
-    deligateBy: {
+    Deligate_By: {
       type: String,
       required: true,
     },
-    downloadBy: {
+    DownLoad_BY: {
       type: String,
        default:null,
     },
-    downloadOn: {
+    DownLoad_ON: {
       type: Date,
       default:null,
     },
-    fileRemoveOn: {
+    File_Remove_On: {
       type: Date,
       required: true,
     },

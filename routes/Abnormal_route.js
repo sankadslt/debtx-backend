@@ -1,15 +1,14 @@
-
 import { Router } from "express";
-import { List_All_Withdrawal_Case_Logs,Task_for_Download_Withdrawals,Create_Withdraw_case} from "../controllers/Abnormal_controller";
-import { Create_Abondoned_case } from "../controllers/Abnormal_controller";
-import { Task_for_Download_Abondoned } from "../controllers/Abnormal_controller";
-import { List_All_Abondoned_Case_Logs } from "../controllers/Abnormal_controller";
- 
+import {
+  List_All_Withdrawal_Case_Logs,
+  Task_for_Download_Withdrawals,
+  Create_Withdraw_case,
+} from "../controllers/Abnormal_controller.js";
+import { Create_Abondoned_case } from "../controllers/Abnormal_controller.js";
+import { Task_for_Download_Abondoned } from "../controllers/Abnormal_controller.js";
+import { List_All_Abondoned_Case_Logs } from "../controllers/Abnormal_controller.js";
+
 const router = Router();
-
- 
-
-
 
 /**
  * @swagger
@@ -148,7 +147,7 @@ const router = Router();
  */
 
 router.post("/List_All_Withdrawal_Case_Logs", List_All_Withdrawal_Case_Logs);
- /**
+/**
  * @swagger
  * /api/abnormal/Task_for_Download_Withdrawals:
  *   post:
@@ -463,8 +462,6 @@ router.post("/Task_for_Download_Withdrawals", Task_for_Download_Withdrawals);
  */
 
 router.post("/Create_Withdraw_case", Create_Withdraw_case);
- 
-
 
 router.post("/List_All_Abondoned_Case_Logs", List_All_Abondoned_Case_Logs);
 
