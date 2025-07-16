@@ -6,6 +6,7 @@ const incidentLogSchema = new Schema({
     Incident_Log_Id: { type: Number, required: true, unique: true },
     Account_Num: { type: String, maxlength: 30, required: true },
     Incident_Status: { type: String, maxlength: 30, enum: ['Incident Open','Reject','Complete','Incident Error','Incident InProgress'], required: true },
+    Incident_Status_Dtm: { type: Date, required: true },
     Status_Reason: { type: String, maxlength: 255, default: null },
     Actions: {
         type: String,
@@ -21,6 +22,9 @@ const incidentLogSchema = new Schema({
         maxlength: 30,
         required: true,
         enum: ["Pilot Suspended", "Product Terminate", "Special"], // Enum validation
+    },
+    Incident_Required_Reason:{
+        type:String
     },
     Rejected_Reason: { type: String, maxlength: 255, required: null },
     Rejected_By: { type: String, maxlength: 30, required: null },

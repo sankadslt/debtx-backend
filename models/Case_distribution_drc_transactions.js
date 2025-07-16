@@ -107,7 +107,7 @@ const crdDistributionStatusSchema = new Schema({
   crd_distribution_status: { 
     type: String, 
     maxlength: 30,
-    enum: ['open', 'batch_forword_distribute', 'batch_amend', 'batch_approved', 'batch_forword_approval', 'batch_distributed', 'batch_rejected', 'rejected_batch_distributed'], // Define allowed statuses
+    enum: ['Open', 'batch_forword_distribute', 'batch_amend', 'batch_approved', 'batch_forword_approval', 'batch_distributed', 'batch_rejected', 'rejected_batch_distributed', 'selection_failed'], // Define allowed statuses
     required: true 
   },
   created_dtm: { type: Date, required: true },
@@ -133,8 +133,8 @@ const caseDistributionSchema = new Schema({
     // distribution_status: { type: String, required: true },
     last_updatedAt: { type: Date, required: true },
     Forward_For_Approvals_On: { type: Date, default: null },
-    // Approved_By: { type: String, default: null },
-    // Approved_On: { type: Date, default: null },
+    Approved_By: { type: String, default: null },
+    Approved_On: { type: Date, default: null },
     Proceed_On: { type: Date, default: null },
     tmp_record_remove_on: { type: Date, default: null },
     forward_case_distribution_batch_id: { type: Number, default: null },
