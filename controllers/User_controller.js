@@ -221,7 +221,11 @@ export const List_All_User_Details_By_ID = async (req, res) => {
 
   try {
     const user = await User.aggregate([
-      { $match: { user_id: user_id, user_type: "Slt" } },
+      { $match: { 
+        user_id: user_id, 
+        user_type: "Slt", 
+        user_status: "Active" 
+      } },
       {
         $project: {
           _id: 0,
