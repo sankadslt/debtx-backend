@@ -96,7 +96,7 @@ export const createTask = async (req, res) => {
 
     try {
       const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
-      // console.log("Request body:", req.body);
+    
   
       if (!Template_Task_Id || !Created_By) {
         return res.status(400).json({ message: "Template_Task_Id and created_by are required." });
@@ -126,7 +126,13 @@ export const createTask = async (req, res) => {
         Task_Id,
         Template_Task_Id,
         task_type,
-        parameters: dynamicParams, // Accept dynamic parameters
+        parameters:{
+          dynamicParams,
+          Actions: dynamicParams?.Actions ?? null,
+          Incident_Status: dynamicParams?.Incident_Status ?? null,
+          
+
+        } , // Accept dynamic parameters
         Created_By,
         Execute_By: "SYS",
         task_status,  // Use task_status directly here
