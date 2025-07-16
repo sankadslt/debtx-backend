@@ -40,6 +40,8 @@ import LodRoutes from "./routes/LOD_route.js";
 import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 import User from "./routes/User_route.js";
 import AbnormalRouter from "./routes/Abnormal_route.js";
+// import "./passport.js"
+
 config();
 const app = express();
 const PORT = process.env.PORT || 5000;
