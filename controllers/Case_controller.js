@@ -1500,8 +1500,20 @@ export const listHandlingCasesByDRC = async (req, res) => {
     });
 
     // Optional filters
+    // if (rtom) {
+    //   pipeline.push({ $match: { rtom: rtom } });
+    // }
     if (rtom) {
-      pipeline.push({ $match: { rtom: rtom } });
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $trim: { input: { $toLower: "$rtom" } } },
+              rtom.toLowerCase().trim()
+            ]
+          }
+        }
+      });
     }
 
     // Add a projection to get the last DRC entry
