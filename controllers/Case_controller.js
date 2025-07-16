@@ -1513,8 +1513,10 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     pipeline.push({
       $match: {
-        "last_drc.drc_status": "Active",
         "last_drc.removed_dtm": null,
+        $expr: {
+          $gt: ["$last_drc.expire_dtm", new Date()]
+        }
       },
     });
 
