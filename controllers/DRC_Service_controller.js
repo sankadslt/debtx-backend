@@ -7,8 +7,7 @@
     Related Files: DRC_route.js
     Notes:  
 */
-// import { getApprovalUserIdService } from "../services/ApprovalService.js";
-import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
+import TmpForwardedApprover from "../models/Template_forwarded_approver.js";
 import mongoose from "mongoose";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
@@ -1072,35 +1071,72 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
+
     const { drc_id, remark, assigned_by, start_date, end_date } = req.body;
 
+    // Validate required fields
     if (!start_date || !drc_id || !end_date || !assigned_by) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
         message: "assigned_by, end_date, start_date and drc_id are required.",
-        errors: {
-          code: 400,
-          description: "assigned_by, end_date, start_date and drc_id are required.",
-        },
+      });
+    }
+
+    // Check if start date is after today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(start_date);
+    start.setHours(0, 0, 0, 0);
+
+    if (start <= today) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "Start date should be greater than today.",
       });
     };
 
-    const mongoConnection = await db.connectMongoDB();
-    if (!mongoConnection) {
-      throw new Error("MongoDB connection failed");
-    }
-
-    // Generate user_approver_id
-    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "user_approver_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true, session }
+    // Check existing DRC
+    const exist_drc = await DRC.findOne(
+      { drc_id },
+      { drc_id: 1, _id: 0, drc_agreement_details: 1 }
     );
-    const user_approver_id = counterResult?.seq;
-    if (!user_approver_id) {
-      throw new Error("Failed to generate user_approver_id.");
-    }
+
+    if (!exist_drc) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        status: "error",
+        message: "No existing DRC found for the given drc_id.",
+      });
+    };
+
+    const existingAgreement = exist_drc.drc_agreement_details || {};
+    const currentStatus = existingAgreement.agreement_status;
+    const existing_end_date = new Date(existingAgreement.agreement_end_dtm || 0);
+    existing_end_date.setHours(0, 0, 0, 0);
+
+    // Check status is eligible
+    if (!["Rejected", "Expired", "Terminate"].includes(currentStatus)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: `Cannot assign new agreement while current status is "${currentStatus}".`,
+      });
+    };
+
+    // Ensure start date is after previous agreement's end
+    if (start >= existing_end_date) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        status: "error",
+        message: "Start date must be after existing agreement's end date.",
+      });
+    };
+
+    // Use existing mongoose connection
+    const mongoConnection = mongoose.connection;
 
     // Generate agreement_id
     const counterResultTwo = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
@@ -1112,53 +1148,73 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     if (!agreement_id) {
       throw new Error("Failed to generate agreement_id.");
     }
-    //Get delegate user correct
+
+    // Get delegated approver
     const approval_type = "DRC_Agreement";
     const approved_Deligated_by = await getApprovalUserIdService(approval_type);
-    if (!approved_Deligated_by) {
+
+    if (approved_Deligated_by === null || approved_Deligated_by === undefined) {
       await session.abortTransaction();
       return res.status(404).json({
         status: "error",
-        message: "There is no valid approved_Deligated_by id",
+        message: "There is no valid approved_Deligated_by id.",
       });
     }
 
-    // Insert into user_approve_model
-    const user_approve_record = new user_approve_model({
-      user_approver_id,
-      User_Type: "DRC",
-      DRC_id: drc_id,
-      created_on: new Date(),
-      created_by: assigned_by,
-      approve_status: "Open",
-      approve_status_on: new Date(),
-      approver_type: "DRC_Agreement",
-      approved_Deligated_by,
-      Parameters: {
-        drc_id,
-        start_date,
-        end_date,
-      },
-      remark
-    });
-    await user_approve_record.save({ session });
+    // Generate approver_id
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+      { _id: "approver_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true, session }
+    );
+    const approver_id = counterResult?.seq;
 
-    // Insert into DRC Agreement Details
+    if (!approver_id) {
+      throw new Error("Failed to generate approver_id.");
+    }
+
+    const parameters = {
+      drc_id,
+      start_date,
+      end_date,
+    };
+
+    // Create entry in TmpForwardedApprover
+    const approvalEntry = new TmpForwardedApprover({
+      approver_id,
+      approver_reference: drc_id,
+      created_by: assigned_by,
+      approver_type: "DRC Agreement",
+      parameters,
+      approve_status: [
+        {
+          status: "Open",
+          status_date: new Date(),
+          status_edit_by: assigned_by,
+        },
+      ],
+      approved_deligated_by: approved_Deligated_by,
+    });
+
+    await approvalEntry.save({ session });
+
+    // Create record in drc_agreement
     const drc_agreement_record = new drc_agreement({
       agreement_id,
+      approver_id,
       drc_id,
       agreement_start_dtm: start_date,
       agreement_end_dtm: end_date,
-      user_approver_id,
-      agreement_status:"Pending",
+      agreement_status: "Pending",
       agreement_remark: remark,
       agreement_update_dtm: new Date(),
       agreement_update_by: assigned_by,
-      agreement_create_dtm:new Date()
+      agreement_create_dtm: new Date(),
     });
+
     await drc_agreement_record.save({ session });
 
-    // Update DRC document
+    // Update DRC with new agreement details
     await DRC.findOneAndUpdate(
       { drc_id },
       {
@@ -1167,13 +1223,18 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
             agreement_start_dtm: start_date,
             agreement_update_by: assigned_by,
             agreement_remark: remark,
-            agreement_end_dtm: end_date
-          }
-        }
+            agreement_end_dtm: end_date,
+            agreement_status:"Pending"
+          },
+        },
       },
       { new: true, session }
     );
-
+    const dynamicParams = {
+      drc_id,
+      start_date,
+      end_date
+    }
     // Log user interaction
     const interactionResult = await createUserInteractionFunction({
       Interaction_ID: 26,
@@ -1181,10 +1242,8 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
       delegate_user_id: approved_Deligated_by,
       Created_By: assigned_by,
       User_Interaction_Status: "Open",
-      drc_id,
-      start_date,
-      end_date,
-      session
+      ...dynamicParams,
+      session,
     });
 
     if (!interactionResult || interactionResult.status === "error") {
@@ -1200,11 +1259,16 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "DRC Agreement sent for approval.",
-      data: user_approve_record,
+      data: {
+        agreement_id,
+        approver_id,
+        approval_status: "Open",
+      },
     });
 
   } catch (error) {
     await session.abortTransaction();
+    console.error("Assign_DRC_To_Agreement Error:", error);
     return res.status(500).json({
       status: "error",
       message: "An error occurred while assigning the DRC.",
