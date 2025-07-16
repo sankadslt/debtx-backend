@@ -1823,12 +1823,13 @@ export const Task_for_Download_Incidents = async (req, res) => {
   session.startTransaction();
   try {
     const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+     
     if (!From_Date || !To_Date || !Created_By ) {
       return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
     }
     const taskData = {
-      Template_Task_Id: 20,  
-      task_type: "Create Incident list for download",
+      Template_Task_Id: 21,  
+      task_type: "Create incident  distribution download",
       parameters: {
           Actions,
           Incident_Status,
@@ -1840,6 +1841,17 @@ export const Task_for_Download_Incidents = async (req, res) => {
       Execute_By: "SYS",
       task_status: "open",
       created_dtm: new Date(),
+      Sys_Alert_ID: null,
+      Interaction_ID_Success:null,
+      Interaction_ID_Error: null,
+      Task_Id_Error: null,
+      end_dtm: null,
+  
+  status_changed_dtm: null,
+  status_description: "",
+  created_dtm: new Date()
+
+
     };
     const ResponseData = await createTaskFunction(taskData, session);
     console.log("Task created successfully:", ResponseData);
