@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 const recoveryOfficerSchema = new Schema({
   order_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  ro_name: { type: String, required: true },
   assigned_dtm: { type: Date, required: true },
   assigned_by: { type: String, maxlength: 30, required: true },
   removed_dtm: { type: Date, default: null },
