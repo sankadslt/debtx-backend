@@ -331,7 +331,7 @@ const caseDetailsSchema = new Schema({
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
   area: { type: String, maxlength: 30, required: true },
-  rtom: { type: Number, maxlength: 30, required: true },
+  rtom: { type: String, maxlength: 30, required: true },
   arrears_band: {type: String, maxlength: 30, required: true},
   bss_arrears_amount: { type: Number, required: true },
   current_arrears_amount: { type: Number, required: true },
