@@ -3263,10 +3263,10 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
         // Add drcUser_status to filter if provided
         if (drcUser_status) {
             // Validate drcUser_status enum if provided
-            if (!['Active', 'Inactive', 'Terminate', 'Pending_approval'].includes(drcUser_status)) {
+            if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
                 return res.status(400).json({
                     status: "error",
-                    message: 'drcUser_status must be one of: Active, Inactive, Terminate, Pending_approval'
+                    message: 'drcUser_status must be one of: Active, Inactive, Terminate'
                 });
             }
             filter.drcUser_status = drcUser_status;
@@ -3544,10 +3544,10 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
         // Add drcUser_status to filter if provided
         if (drcUser_status) {
             // Validate drcUser_status enum if provided
-            if (!['Active', 'Inactive', 'Terminate', 'Pending_approval'].includes(drcUser_status)) {
+            if (!['Active', 'Inactive', 'Terminate'].includes(drcUser_status)) {
                 return res.status(400).json({
                     status: "error",
-                    message: 'drcUser_status must be one of: Active, Inactive, Terminate, Pending_approval'
+                    message: 'drcUser_status must be one of: Active, Inactive, Terminate'
                 });
             }
             filter.drcUser_status = drcUser_status;

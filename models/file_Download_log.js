@@ -2,51 +2,66 @@ import mongoose from "mongoose";
 
 const fileDownloadLogSchema = new mongoose.Schema(
   {
-    doc_version: {
-      type: Number,
-      required: true,
-      default: 1,
-    },
+    doc_version : {type:Number, required: true, default: 1},
     file_download_seq: {
       type: Number,
       required: true,
-      unique: true,
+      unique: true, 
     },
-    file_name: {
+    File_Name: {
       type: String,
-      required: true,
+      maxlength: 30,
+      required: true, 
     },
-    created_on: {
+    File_Type: {
+      type: String,
+      maxlength: 30,
+      required: true,
+      enum: [
+        "Incident Creation",
+        "Incident Reject",
+        "Distribute to DRC",
+        "Validity Period Extend",
+        "Hold",
+        "Discard",
+      ],
+    },
+    Created_On: {
       type: Date,
       required: true,
     },
-    // fileLocation: {
-    //   type: String,
-    //   required: true,
-    // },
+    File_Location: {
+      type: String,
+      maxlength: 255,
+      required: true, 
+    },
     Deligate_By: {
-      type: String,
-      required: true,
+        type: String,
+        maxlength: 30,
+        required: true, 
     },
-    DownLoad_BY: {
-      type: String,
-       default:null,
+    Download_By: {
+        type: String,
+        maxlength: 30,
+        required: true, 
     },
-    DownLoad_ON: {
-      type: Date,
-      default:null,
+    Download_On: {
+        type: Date,
+        required: true, 
     },
     File_Remove_On: {
-      type: Date,
-      required: true,
+        type: Date,
+        required: true, 
     },
   },
   {
-    collection: "file_Download_log",
+    collection: "file_Download_log", 
     timestamps: true,
   }
 );
 
+
 const FileDownloadLog = mongoose.model("FileDownloadLog", fileDownloadLogSchema);
+
 
 export default FileDownloadLog;
