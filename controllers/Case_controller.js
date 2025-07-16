@@ -1437,10 +1437,8 @@ export const Case_Distribution_Among_Agents = async (req, res) => {
 };
 
 export const listHandlingCasesByDRC = async (req, res) => {
-
-  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } = req.body;
-
-
+  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } =
+    req.body;
 
   try {
     // Validate the DRC ID
@@ -1515,18 +1513,19 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     pipeline.push({
       $match: {
-        "last_drc.drc_status": "Active",
         "last_drc.removed_dtm": null,
+        $expr: {
+          $gt: ["$last_drc.expire_dtm", new Date()]
+        }
       },
     });
 
-    if (drc_id) {
-      pipeline.push({
-        $match: {
-          "last_drc.drc_id": Number(drc_id),
-        },
-      });
-    }
+    
+    pipeline.push({
+      $match: {
+        "last_drc.drc_id": Number(drc_id),
+      },
+    });
 
     if (arrears_band) {
       pipeline.push({
@@ -1540,7 +1539,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
       const endofDate = new Date(to_date);
       endofDate.setHours(23, 59, 59, 999); //
       dateFilter.$lte = endofDate;
-    };
+    }
 
     // pipeline.push({
     //   $addFields: {
@@ -1598,7 +1597,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
     //   }
     // });
 
- 
+
 
     // Pagination
     pipeline.push({ $sort: { case_id: -1 } });
@@ -1607,9 +1606,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
 
     // const filtered_cases = await Case_details.aggregate(pipeline);
 
-    const filtered_cases = await Case_details.aggregate(pipeline)
-      .skip(skip)
-      .limit(limit);
+    const filtered_cases = await Case_details.aggregate(pipeline);
 
     // Handle case where no matching cases are found
     // if (filtered_cases.length === 0) {
@@ -1688,10 +1685,10 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-    if(case_ids.length === 0 ){
+    if (case_ids.length === 0) {
       return res.status(400).json({
         status: "error",
-        message: "There should be selected case ids."
+        message: "There should be selected case ids.",
       });
     }
     // Fetch the recovery officer details
@@ -1713,7 +1710,7 @@ export const assignROToCase = async (req, res) => {
 
     // Fetch all cases with the provided case IDs
     const cases = await Case_details.find({
-      case_id: { $in: case_ids }
+      case_id: { $in: case_ids },
     });
 
     if (cases.length === 0) {
@@ -3564,8 +3561,15 @@ export const Create_task_for_batch_approval = async (req, res) => {
 
 export const List_DRC_Assign_Manager_Approval = async (req, res) => {
   try {
-    const { approver_type, date_from, date_to, approved_deligated_by, approve_status, pages } = req.body;
-  
+    const {
+      approver_type,
+      date_from,
+      date_to,
+      approved_deligated_by,
+      approve_status,
+      pages,
+    } = req.body;
+
     const allowedApproverTypes = [
       "DRC Re-Assign Approval",
       "Case Withdrawal Approval",
@@ -3579,7 +3583,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
     // Define pagination limits
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
-    
+
     if (!approved_deligated_by) {
       return res
         .status(400)
@@ -3659,14 +3663,14 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       {
         $sort: { created_on: -1 },
       },
-      
+
       {
-        $skip: skip // Skip documents for pagination
+        $skip: skip, // Skip documents for pagination
       },
 
       {
-        $limit: limit // Limit the number of documents returned
-      }
+        $limit: limit, // Limit the number of documents returned
+      },
     ]);
 
     res.status(200).json(approvals);
@@ -4356,7 +4360,10 @@ export const Assign_DRC_To_Case = async (req, res) => {
     const payload = { case_status: case_current_status };
     let case_phase = "";
     try {
-      const response = await axios.post('https://debtx.slt.lk:6500/get_case_phase', payload);
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/get_case_phase",
+        payload
+      );
       console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
@@ -4407,9 +4414,8 @@ export const Assign_DRC_To_Case = async (req, res) => {
       status: "success",
       message: "DRC Reassining send to the Aprover.",
       data: TmpForwardedApproverRespons.toObject(),
-    }); 
-  }
-  catch (error) {
+    });
+  } catch (error) {
     console.error("Error in Reassining send to the Aprover : ", error);
     await session.abortTransaction();
     return res.status(500).json({
@@ -5161,7 +5167,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
           description: "DRC ID is required.",
         },
       });
-    };
+    }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -5172,24 +5178,24 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     if (case_id) {
       pipeline.push({ $match: { case_id } });
-    };
+    }
 
     if (account_no) {
       pipeline.push({ $match: { account_no } });
-    };
+    }
 
     pipeline.push({
       $addFields: {
-        last_drc: { $arrayElemAt: ['$drc', -1] }
-      }
+        last_drc: { $arrayElemAt: ["$drc", -1] },
+      },
     });
 
     pipeline.push({
       $match: {
-        'last_drc.drc_status': 'Active',
-        'last_drc.removed_dtm': null,
-        'last_drc.drc_id': Number(drc_id)
-      }
+        "last_drc.drc_status": "Active",
+        "last_drc.removed_dtm": null,
+        "last_drc.drc_id": Number(drc_id),
+      },
     });
 
     const dateFilter = {};
@@ -5198,9 +5204,9 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     if (Object.keys(dateFilter).length > 0) {
       pipeline.push({
-        $match: { 'last_drc.created_dtm': dateFilter }
+        $match: { "last_drc.created_dtm": dateFilter },
       });
-    };
+    }
 
     pipeline.push({ $sort: { case_id: -1 } });
     pipeline.push({ $skip: skip });
@@ -5212,10 +5218,10 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         "last_drc.created_dtm": 1,
         "last_drc.expire_dtm": 1,
         "last_drc.removed_dtm": 1,
-        case_current_status:1,
-        account_no:1,
-        current_arrears_amount:1,
-      }
+        case_current_status: 1,
+        account_no: 1,
+        current_arrears_amount: 1,
+      },
     });
     const filtered_cases = await Case_details.aggregate(pipeline);
 
@@ -5224,14 +5230,13 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         status: "error",
         message: "No matching cases found for the given criteria.",
       });
-    };
+    }
 
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
       data: filtered_cases,
     });
-
   } catch (error) {
     return res.status(500).json({
       status: "error",
@@ -5634,7 +5639,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
           created_dtm: "$last_drc.created_dtm",
           contact_no: "$last_contact.contact_no",
           area: 1,
-          rtom:1,
+          rtom: 1,
           action_type: 1,
           ro_name: {
             $cond: {
@@ -6200,38 +6205,39 @@ export const CaseDetailsforDRC = async (req, res) => {
         message: "Both Case ID and DRC ID are required.",
         errors: {
           code: 400,
-          description: "Please provide both case_id and drc_id in the request body.",
+          description:
+            "Please provide both case_id and drc_id in the request body.",
         },
       });
     }
 
     const pipeline = [
       {
-        $match: { case_id: Number(case_id) }
+        $match: { case_id: Number(case_id) },
       },
       {
         $addFields: {
-          last_drc: { $arrayElemAt: ["$drc", -1] }
-        }
+          last_drc: { $arrayElemAt: ["$drc", -1] },
+        },
       },
       {
         $match: {
-          "last_drc.drc_id": Number(drc_id)
-        }
-      }
+          "last_drc.drc_id": Number(drc_id),
+        },
+      },
     ];
 
     // If ro_id is provided, add filter for the last recovery officer's ro_id
     if (ro_id) {
       pipeline.push({
         $addFields: {
-          last_ro: { $arrayElemAt: ["$last_drc.recovery_officers", -1] }
-        }
+          last_ro: { $arrayElemAt: ["$last_drc.recovery_officers", -1] },
+        },
       });
       pipeline.push({
         $match: {
-          "last_ro.ro_id": Number(ro_id)
-        }
+          "last_ro.ro_id": Number(ro_id),
+        },
       });
     }
 
@@ -6255,29 +6261,29 @@ export const CaseDetailsforDRC = async (req, res) => {
             input: "$mediation_board",
             as: "item",
             cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)] // Only matches if provided
-            }
-          }
+              $eq: ["$$item.ro_id", Number(ro_id || 0)], // Only matches if provided
+            },
+          },
         },
         ro_negotiation: {
           $filter: {
             input: "$ro_negotiation",
             as: "item",
             cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)]
-            }
-          }
+              $eq: ["$$item.ro_id", Number(ro_id || 0)],
+            },
+          },
         },
         ro_requests: {
           $filter: {
             input: "$ro_requests",
             as: "item",
             cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)]
-            }
-          }
-        }
-      }
+              $eq: ["$$item.ro_id", Number(ro_id || 0)],
+            },
+          },
+        },
+      },
     });
 
     const caseDetails = await CaseDetails.aggregate(pipeline);
@@ -6285,7 +6291,8 @@ export const CaseDetailsforDRC = async (req, res) => {
     if (!caseDetails.length) {
       return res.status(404).json({
         status: "error",
-        message: "No matching case found with the given case_id, drc_id and optional ro_id.",
+        message:
+          "No matching case found with the given case_id, drc_id and optional ro_id.",
         errors: {
           code: 404,
           description: "No matching document found.",
@@ -6299,9 +6306,8 @@ export const CaseDetailsforDRC = async (req, res) => {
       status: "success",
       message: "Case details retrieved successfully.",
       data: caseDetails,
-      calling_round: mediationBoardCount
+      calling_round: mediationBoardCount,
     });
-
   } catch (error) {
     console.error("Error fetching case details:", error);
     return res.status(500).json({
