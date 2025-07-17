@@ -16,7 +16,6 @@ import RecoveryOfficer from "../models/Recovery_officer.js"
 import moment from "moment"; // Import moment.js for date formatting
 import user_approve_model from "../models/User_Approval.js"
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
-import User from "../models/User.js";
 import drc_agreement from "../models/DRC_Agreement_details.js"
 import {getApprovalUserIdService} from "../services/ApprovalService.js"
 import {createTaskFunction} from "../services/TaskService.js"

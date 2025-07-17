@@ -37,7 +37,7 @@ const statusSchema = new Schema({
 });
 const temmplateForwardedApproverSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
-  approver_id: { type: String, maxlength: 30, required: true, unique: true },
+  approver_id: { type: Number, maxlength: 30, required: true, unique: true },
   approver_reference: { type: Number, required: true },
   created_on: { type: Date, required: true, default: Date.now },
   created_by: { type: String, maxlength: 30, required: true },
