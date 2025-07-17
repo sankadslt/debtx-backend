@@ -24,7 +24,7 @@ const fileDownloadLogSchema = new mongoose.Schema(
     //   type: String,
     //   required: true,
     // },
-    Deligate_by: {
+    deligate_by: {
       type: String,
       required: true,
     },
