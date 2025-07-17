@@ -1072,7 +1072,6 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     session.startTransaction();
 
     const { drc_id, remark, assigned_by, start_date, end_date } = req.body;
-
     // Validate required fields
     if (!start_date || !drc_id || !end_date || !assigned_by) {
       await session.abortTransaction();
@@ -1088,6 +1087,8 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
     const start = new Date(start_date);
     start.setHours(0, 0, 0, 0);
+
+    const end = new Date(end_date);
 
     if (start <= today) {
       await session.abortTransaction();
@@ -1174,8 +1175,8 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
     const parameters = {
       drc_id,
-      start_date,
-      end_date,
+      start_date:start,
+      end_date:end,
     };
 
     // Create entry in TmpForwardedApprover
@@ -1231,8 +1232,8 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     );
     const dynamicParams = {
       drc_id,
-      start_date,
-      end_date
+      start_date:start,
+      end_date:end
     }
     // Log user interaction
     const interactionResult = await createUserInteractionFunction({
