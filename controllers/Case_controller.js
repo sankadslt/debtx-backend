@@ -1501,8 +1501,20 @@ export const listHandlingCasesByDRC = async (req, res) => {
     });
 
     // Optional filters
+    // if (rtom) {
+    //   pipeline.push({ $match: { rtom: rtom } });
+    // }
     if (rtom) {
-      pipeline.push({ $match: { rtom: rtom } });
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $trim: { input: { $toLower: "$rtom" } } },
+              rtom.toLowerCase().trim()
+            ]
+          }
+        }
+      });
     }
 
     // Add a projection to get the last DRC entry
@@ -1582,14 +1594,14 @@ export const listHandlingCasesByDRC = async (req, res) => {
       });
     }
 
-    pipeline.push({
-      $lookup: {
-        from: "Recovery_officer", // name of the recovery officer collection
-        localField: "last_ro.ro_id",
-        foreignField: "ro_id",
-        as: "recovery_officer",
-      },
-    });
+    // pipeline.push({
+    //   $lookup: {
+    //     from: "Recovery_officer", // name of the recovery officer collection
+    //     localField: "last_ro.ro_id",
+    //     foreignField: "ro_id",
+    //     as: "recovery_officer",
+    //   },
+    // });
 
     // Optionally flatten the result if you expect only one match
     // pipeline.push({
@@ -1643,7 +1655,7 @@ export const listHandlingCasesByDRC = async (req, res) => {
           action_type: caseData.action_type,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
-          ro_name: caseData.recovery_officer?.[0]?.ro_name || null,
+          ro_name: caseData.last_ro ? caseData.last_ro.ro_name : null,
           assigned_date: caseData.last_ro
             ? caseData.last_ro.assigned_dtm
             : null,
@@ -1704,7 +1716,7 @@ export const assignROToCase = async (req, res) => {
         },
       });
     }
-    const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name);
+    const assignedAreas = recoveryOfficer?.rtom?.map((r) => r.rtom_name?.toLowerCase()) || [];
 
     const errors = [];
     const updates = [];
@@ -1722,13 +1734,13 @@ export const assignROToCase = async (req, res) => {
     }
 
     for (const caseData of cases) {
-      const { case_id, drc, area } = caseData;
+      const { case_id, drc, rtom } = caseData;
 
       // Ensure the case area matches one of the recovery officer's assigned areas
-      if (!assignedAreas.includes(area)) {
+      if (!assignedAreas.includes(rtom.toLowerCase())) {
         errors.push({
           case_id,
-          message: `The area "${area}" does not match any RTOM area assigned to Recovery Officer with ro_id: ${ro_id}.`,
+          message: `The area "${rtom}" does not match any RTOM area assigned to Recovery Officer with ro_id: ${ro_id}.`,
         });
         continue;
       }
@@ -1755,6 +1767,7 @@ export const assignROToCase = async (req, res) => {
       // Prepare the new recovery officer object
       const newOfficer = {
         ro_id,
+        ro_name: recoveryOfficer.ro_name,
         assigned_dtm: new Date(),
         assigned_by,
         removed_dtm: null,
