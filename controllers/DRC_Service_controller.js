@@ -1118,7 +1118,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     existing_end_date.setHours(0, 0, 0, 0);
 
     // Check status is eligible
-    if (!["Rejected", "Expired", "Terminate"].includes(currentStatus)) {
+    if (!["Rejected", "Expired", "Terminate", null].includes(currentStatus)) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
