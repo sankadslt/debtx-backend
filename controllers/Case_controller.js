@@ -3077,9 +3077,13 @@ export const List_All_Batch_Details = async (req, res) => {
 
     // Build aggregation pipeline
     const pipeline = [
+      // Filter by approver type and the specific delegated approver
       { $match: { approver_type: "DRC Assign Approval", approved_deligated_by  } },
+      // Add a field 'lastStatus' which is the last element in the 'approve_status' array
       { $addFields: { lastStatus: { $arrayElemAt: ["$approve_status", -1] } } },
       { $match: { "lastStatus.status": "Open" } },
+      
+      // Lookup to join with Case_distribution_drc_transactions collection
       { $lookup: {
           from: "Case_distribution_drc_transactions",
           localField: "approver_reference",
@@ -3087,7 +3091,10 @@ export const List_All_Batch_Details = async (req, res) => {
           as: "case_distribution_details"
         }
       },
+         // Unwind the case_distribution_details array into single objects
+      
       { $unwind: { path: "$case_distribution_details", preserveNullAndEmptyArrays: true } },
+      // Format the final output structure
       { $project: {
           _id: 1,
           approver_reference: 1,
@@ -3098,6 +3105,7 @@ export const List_All_Batch_Details = async (req, res) => {
           parameters: 1,
           approved_deligated_by: 1,
           remark: 1,
+          // Conditionally include case_distribution_details if exists
           case_distribution_details: {
             $cond: {
               if: { $ifNull: ["$case_distribution_details", false] },
@@ -3112,7 +3120,8 @@ export const List_All_Batch_Details = async (req, res) => {
           }
         }
       },
-      { $sort: { created_on: -1 } },
+
+      { $sort: { created_on: -1 } }, // Sort the results by newest first
       { $skip: skip },
       { $limit: limit }
     ];
