@@ -1127,7 +1127,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
     };
 
     // Ensure start date is after previous agreement's end
-    if (start >= existing_end_date) {
+    if (start <= existing_end_date) {
       await session.abortTransaction();
       return res.status(400).json({
         status: "error",
