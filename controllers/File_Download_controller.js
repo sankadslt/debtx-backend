@@ -53,7 +53,7 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
 
    
     let query = {
-      Deligate_by: Deligate_By
+      deligate_by: Deligate_By
     };
 
      
@@ -81,7 +81,7 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
     const responseData = logs.map((log) => {
       return {
         file_download_seq: log.file_download_seq,
-        Deligate_By: log.Deligate_by,
+        Deligate_By: log.deligate_by,
         Created_On: log.created_on,
         File_Remove_On: log.file_remove_on,
         File_Name: log.file_name,
