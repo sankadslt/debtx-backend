@@ -230,7 +230,10 @@ This function creates a new DRC (Debt Recovery Center) record in the MongoDB dat
     - Abort transaction and return 500 for database or system errors
     - Log all errors for debugging purposes
 */
-export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => {
+export const Create_DRC_With_Services_and_SLT_Coordinator = async (
+  req,
+  res
+) => {
   const {
     drc_name,
     drc_business_registration_number,
@@ -254,16 +257,21 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       !drc_contact_no ||
       !drc_email ||
       !create_by ||
-      !Array.isArray(slt_coordinator) || slt_coordinator.length === 0 ||
-      !Array.isArray(services) || services.length === 0 ||
-      !Array.isArray(rtom) || rtom.length === 0
+      !Array.isArray(slt_coordinator) ||
+      slt_coordinator.length === 0 ||
+      !Array.isArray(services) ||
+      services.length === 0 ||
+      !Array.isArray(rtom) ||
+      rtom.length === 0
     ) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         status: "error",
         message: "Failed to register DRC.",
-        errors: { field_name: "All fields are required and must be non-empty arrays." },
+        errors: {
+          field_name: "All fields are required and must be non-empty arrays.",
+        },
       });
     }
 
@@ -308,14 +316,14 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
       drc_create_by: create_by,
       drc_terminate_dtm: null,
       drc_terminate_by: null,
-      slt_coordinator: slt_coordinator.map(coord => ({
+      slt_coordinator: slt_coordinator.map((coord) => ({
         service_no: coord.service_no,
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
         coordinator_create_dtm: new Date(),
         coordinator_create_by: create_by,
       })),
-      services: services.map(service => ({
+      services: services.map((service) => ({
         service_id: service.service_id,
         service_type: service.service_type,
         service_status: service.service_status || "Active",
@@ -361,7 +369,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (req, res) => 
 
       if (!billing_center_log_id) {
         throw new Error("Failed to generate billing_center_log_id");
-      };
+      }
 
       const newBillingLog = new BillingCenter({
         doc_version: 1,
@@ -541,7 +549,7 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
           drc_agreement_details: {
             agreement_start_dtm: "$drc_agreement_details.agreement_start_dtm",
             agreement_end_dtm: "$drc_agreement_details.agreement_end_dtm",
-            agreement_remark: "$drc_agreement_details.agreement_remark"
+            agreement_remark: "$drc_agreement_details.agreement_remark",
           },
           slt_coordinator: {
             $cond: {
@@ -781,7 +789,8 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       const lastCoordIndex = company.slt_coordinator.length - 1;
       if (lastCoordIndex >= 0) {
         company.slt_coordinator[lastCoordIndex].coordinator_end_by = updated_by;
-        company.slt_coordinator[lastCoordIndex].coordinator_end_dtm = new Date();
+        company.slt_coordinator[lastCoordIndex].coordinator_end_dtm =
+          new Date();
       }
 
       company.slt_coordinator.push({
@@ -793,12 +802,14 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       });
 
       await company.save();
-    };
+    }
 
     // Update or add services
     if (Array.isArray(services)) {
       services.forEach((newService) => {
-        const existing = company.services.find(s => s.service_id === newService.service_id);
+        const existing = company.services.find(
+          (s) => s.service_id === newService.service_id
+        );
         if (existing) {
           existing.service_status = newService.service_status;
           existing.status_update_dtm = new Date();
@@ -820,7 +831,9 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     // Update or add RTOM
     if (Array.isArray(rtom)) {
       rtom.forEach((newRtom) => {
-        const existing = company.rtom.find(r => r.rtom_id === newRtom.rtom_id);
+        const existing = company.rtom.find(
+          (r) => r.rtom_id === newRtom.rtom_id
+        );
         if (existing) {
           existing.rtom_status = newRtom.rtom_status;
           existing.last_update_dtm = new Date();
@@ -852,7 +865,6 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     });
   }
 };
-
 
 /*
   /Terminate_Company_By_DRC_ID
@@ -1563,21 +1575,14 @@ export const Create_Pre_Negotiation = async (req, res) => {
   session.startTransaction();
 
   try {
-    const {
-      case_id,
-      call_inquiry_remark,
-      call_topic,
-      case_phase,
-      created_by,
-      drc_id,
-    } = req.body;
+    const { case_id, call_inquiry_remark, call_topic, created_by, drc_id } =
+      req.body;
 
-    // Validate required fields based on the schema
+    // Validate required fields
     if (
       !case_id ||
       !call_inquiry_remark ||
       !call_topic ||
-      !case_phase ||
       !created_by ||
       !drc_id
     ) {
@@ -1585,12 +1590,14 @@ export const Create_Pre_Negotiation = async (req, res) => {
       session.endSession();
       return res.status(400).json({
         message:
-          "All required fields must be provided: case_id, call_inquiry_remark, call_topic, case_phase, created_by, drc_id",
+          "All required fields must be provided: case_id, call_inquiry_remark, call_topic, created_by, drc_id",
       });
     }
 
-    // Check if case_details exists for the given case_id
-    const caseDetails = await CaseDetails.findOne({ case_id }).session(session);
+    // Check if case_details exists for the given case_id and fetch necessary fields
+    const caseDetails = await CaseDetails.findOne({ case_id })
+      .select("ro_negotiation case_current_status")
+      .session(session);
 
     if (!caseDetails) {
       await session.abortTransaction();
@@ -1600,12 +1607,54 @@ export const Create_Pre_Negotiation = async (req, res) => {
       });
     }
 
-    // Determine case_phase based on ro_negotiation array
+    // Determine case_phase based on ro_negotiation
+    let determinedCasePhase;
     const roNegotiationArray = caseDetails.ro_negotiation || [];
-    const determinedCasePhase =
-      roNegotiationArray.length === 0 ? "Pre Negotiation" : case_phase;
+    if (roNegotiationArray.length === 0) {
+      determinedCasePhase = "Pre Negotiation";
+    } else {
+      const case_status = caseDetails.case_current_status;
 
-    // Generate a unique Call_Inquiry_seq (example: fetch the max sequence and increment)
+      if (!case_status) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: `case_current_status not found for case_id: ${case_id}`,
+        });
+      }
+
+      // Call external API to get case_phase
+      try {
+        const payload = { case_status };
+        const response = await axios.post(
+          "http://124.43.177.52:6000/app2/get_case_phase",
+          payload
+        );
+
+        if (!response.data.case_phase) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "case_phase not found in API response",
+          });
+        }
+        determinedCasePhase = response.data.case_phase;
+        console.log("case_phase from API:", determinedCasePhase);
+      } catch (error) {
+        console.error("Error during axios call:", error.message);
+        if (error.response) {
+          console.error("API Error Response:", error.response.data);
+        }
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({
+          message: "Failed to get case_phase from external API",
+          error: error.message,
+        });
+      }
+    }
+
+    // Generate a unique Call_Inquiry_seq
     const maxSeq = await case_inquiry
       .findOne({}, { Call_Inquiry_seq: 1 })
       .sort({ Call_Inquiry_seq: -1 })
@@ -1614,7 +1663,7 @@ export const Create_Pre_Negotiation = async (req, res) => {
 
     // Create a new document for case_inquiry
     const newCaseInquiry = new case_inquiry({
-      doc_version: 1, // Default value as per schema
+      doc_version: 1,
       Call_Inquiry_seq: newSeq,
       case_id: case_id,
       Call_Topic: call_topic,
@@ -1642,3 +1691,88 @@ export const Create_Pre_Negotiation = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+// export const Create_Pre_Negotiation = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const {
+//       case_id,
+//       call_inquiry_remark,
+//       call_topic,
+//       case_phase,
+//       created_by,
+//       drc_id,
+//     } = req.body;
+
+//     // Validate required fields based on the schema
+//     if (
+//       !case_id ||
+//       !call_inquiry_remark ||
+//       !call_topic ||
+//       !case_phase ||
+//       !created_by ||
+//       !drc_id
+//     ) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({
+//         message:
+//           "All required fields must be provided: case_id, call_inquiry_remark, call_topic, case_phase, created_by, drc_id",
+//       });
+//     }
+
+//     // Check if case_details exists for the given case_id
+//     const caseDetails = await CaseDetails.findOne({ case_id }).session(session);
+
+//     if (!caseDetails) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({
+//         message: `No case details found for case_id: ${case_id}`,
+//       });
+//     }
+
+//     // Determine case_phase based on ro_negotiation array
+//     const roNegotiationArray = caseDetails.ro_negotiation || [];
+//     const determinedCasePhase =
+//       roNegotiationArray.length === 0 ? "Pre Negotiation" : case_phase;
+
+//     // Generate a unique Call_Inquiry_seq (example: fetch the max sequence and increment)
+//     const maxSeq = await case_inquiry
+//       .findOne({}, { Call_Inquiry_seq: 1 })
+//       .sort({ Call_Inquiry_seq: -1 })
+//       .session(session);
+//     const newSeq = maxSeq ? maxSeq.Call_Inquiry_seq + 1 : 1;
+
+//     // Create a new document for case_inquiry
+//     const newCaseInquiry = new case_inquiry({
+//       doc_version: 1, // Default value as per schema
+//       Call_Inquiry_seq: newSeq,
+//       case_id: case_id,
+//       Call_Topic: call_topic,
+//       Case_Phase: determinedCasePhase,
+//       created_by: created_by,
+//       created_dtm: new Date(),
+//       Call_Inquiry_Remark: call_inquiry_remark,
+//       DRC_ID: drc_id,
+//     });
+
+//     // Save the new document to the collection
+//     const savedInquiry = await newCaseInquiry.save({ session });
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Case inquiry created successfully",
+//       data: { savedInquiry },
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({ message: error.message });
+//   }
+// };

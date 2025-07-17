@@ -157,6 +157,21 @@ const userSchema = new mongoose.Schema(
       type: [remarkSchema],
       required: true,
     },
+    user_nic: {
+      type: String,
+      maxlength: 30,
+      required: true,
+    },
+      user_nic: {
+      type: String,
+      maxlength: 30,
+      required: true,
+    },
+    Grade: {
+      type: String,
+      maxlength: 30,
+       default: null,
+    },
     password: {
       type: String,
       maxlength: 30,

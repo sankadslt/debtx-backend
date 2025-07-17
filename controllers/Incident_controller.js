@@ -120,6 +120,7 @@ export const Create_Incident = async (req, res) => {
       Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
+      Incident_Status_Dtm: moment().toDate(),
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
@@ -1636,50 +1637,73 @@ export const Forward_CPE_Collect = async (req, res) => {
  * Success Result:
  * - Returns a success response with the list of rejected incidents matching the provided filters.
  */
-export const List_Reject_Incident = async (req, res) => {
-
+ // Backend API
+ export const List_Reject_Incident = async (req, res) => {
   try {
-    const { Action_Type, FromDate, ToDate } = req.body;
+    const {
+      Actions,
+      from_date,
+      to_date,
+      pages
+    } = req.body;
 
-    const rejectIncidentStatuses = ["Incident Reject"];
-    let incidents;
+   
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    if (!Action_Type && !FromDate && !ToDate) {
-      incidents = await Incident.find({
-        Incident_Status: { $in: rejectIncidentStatuses }
-      }).sort({ Created_Dtm: -1 })
-        .limit(10);
-    } else {
-      const query = { Incident_Status: { $in: rejectIncidentStatuses } };
+    
+    let query = { Incident_Status: "Incident Reject" };
 
-      if (Action_Type) {
-        query.Actions = Action_Type;
-      }
-      if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
-        to.setHours(23, 59, 59, 999); // Set to end of the day
-        query.Created_Dtm = {
-          $gte: from,
-          $lte: to,
-        };
-      }
-      incidents = await Incident.find(query);
+    
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999);
+      dateFilter.$lte = endOfDay;
     }
+    if (Object.keys(dateFilter).length > 0) {
+      query.Created_Dtm = dateFilter;
+    }
+
+     
+    if (Actions) query.Actions = Actions;
+
+ 
+    const incidents = await Incident.find(query)
+      .sort({ Created_Dtm: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+  
+    const responseData = incidents.map((incident) => ({
+      incidentID: incident.Incident_Id,
+      status: incident.Incident_Status,
+      accountNo: incident.Account_Num,
+      action: incident.Actions,
+      sourceType: incident.Source_Type,
+      created_dtm: incident.Created_Dtm
+    }));
+
     return res.status(200).json({
       status: "success",
       message: "Rejected incidents retrieved successfully.",
-      data: incidents,
+      data: responseData,
     });
   } catch (error) {
-    console.error("Error fetching rejected incidents:", error);
+    console.error("Error in List_Reject_Incident:", error);
     return res.status(500).json({
       status: "error",
-      message: error.message || "An unexpected error occurred.",
+      message: "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
     });
   }
-}
-
+};
 
 export const getOpenTaskCountforCPECollect = async (req, res) => {
 
@@ -1799,12 +1823,13 @@ export const Task_for_Download_Incidents = async (req, res) => {
   session.startTransaction();
   try {
     const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+     
     if (!From_Date || !To_Date || !Created_By ) {
       return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
     }
     const taskData = {
-      Template_Task_Id: 20,  
-      task_type: "Create Incident list for download",
+      Template_Task_Id: 21,  
+      task_type: "Create incident  distribution download",
       parameters: {
           Actions,
           Incident_Status,
@@ -1816,6 +1841,17 @@ export const Task_for_Download_Incidents = async (req, res) => {
       Execute_By: "SYS",
       task_status: "open",
       created_dtm: new Date(),
+      Sys_Alert_ID: null,
+      Interaction_ID_Success:null,
+      Interaction_ID_Error: null,
+      Task_Id_Error: null,
+      end_dtm: null,
+  
+  status_changed_dtm: null,
+  status_description: "",
+  created_dtm: new Date()
+
+
     };
     const ResponseData = await createTaskFunction(taskData, session);
     console.log("Task created successfully:", ResponseData);

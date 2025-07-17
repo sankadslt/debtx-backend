@@ -39,6 +39,8 @@ import litigationRouter from "./routes/Litigation_route.js";
 import LodRoutes from "./routes/LOD_route.js";
 import FTL_LODRoutes from "./routes/FTL_LOD_route.js";
 import User from "./routes/User_route.js";
+import AbnormalRouter from "./routes/Abnormal_route.js";
+// import "./passport.js"
 
 config();
 const app = express();
@@ -120,5 +122,6 @@ app.use("/api/lod", LodRoutes);
 app.use("/api/litigation", litigationRouter);
 app.use("/api/ftl_lod", FTL_LODRoutes);
 app.use("/api/user", User);
+app.use("/api/abnormal",AbnormalRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
