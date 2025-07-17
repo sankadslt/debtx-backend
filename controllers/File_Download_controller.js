@@ -53,7 +53,7 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
 
    
     let query = {
-      Deligate_By: Deligate_By
+      Deligate_by: Deligate_By
     };
 
      
@@ -66,14 +66,14 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
     }
 
     if (Object.keys(dateFilter).length > 0) {
-      query.File_Remove_On = dateFilter;
+      query.file_remove_on = dateFilter;
     } else {
-      query.File_Remove_On = { $gt: new Date() };  
+      query.file_remove_on = { $gt: new Date() };  
     }
 
      
     const logs = await FileDownloadLog.find(query)
-      .sort({ Created_On: -1 })
+      .sort({ created_on: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
@@ -81,9 +81,9 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
     const responseData = logs.map((log) => {
       return {
         file_download_seq: log.file_download_seq,
-        Deligate_By: log.Deligate_By,
+        Deligate_By: log.Deligate_by,
         Created_On: log.created_on,
-        File_Remove_On: log.File_Remove_On,
+        File_Remove_On: log.file_remove_on,
         File_Name: log.file_name,
       };
     });
