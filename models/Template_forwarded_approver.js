@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 const remarkSchema = new Schema({
     remark: {
         type: String,
+        maxlength: 255,
         required: true,
     },
     remark_date: {
@@ -13,12 +14,14 @@ const remarkSchema = new Schema({
     },
     remark_edit_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
 });
 const statusSchema = new Schema({
     status: {
         type: String,
+        maxlength: 30,
         enum: ['Open', 'Approve', 'Reject'],
         required: true,
     },
@@ -28,18 +31,21 @@ const statusSchema = new Schema({
     },
     status_edit_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
 });
 const temmplateForwardedApproverSchema = new Schema({
   doc_version : {type:Number, required: true, default: 1},
+  approver_id: { type: Number, required: true, unique: true },
   approver_reference: { type: Number, required: true },
   created_on: { type: Date, required: true, default: Date.now },
-  created_by: { type: String, required: true },
+  created_by: { type: String, maxlength: 30, required: true },
   approve_status: { type: [statusSchema]},
   approver_type: { 
     type: String, 
-    enum: ['DRC_Distribution', 'DRC Re-Assign Approval','DRC Assign Approval', 'Case Withdrawal Approval','Case Abandoned Approval','Case Write-Off Approval','Commission Approval' ], 
+    maxlength: 30,
+    enum: ['DRC_Distribution', 'DRC Re-Assign Approval','DRC Assign Approval', 'Case Withdrawal Approval','Case Abandoned Approval','Case Write-Off Approval','Commission Approval','DRC Agreement' ], 
     required: true 
   }, 
   parameters: {
@@ -48,7 +54,7 @@ const temmplateForwardedApproverSchema = new Schema({
       default: {},
       default: {},
     },
-  approved_deligated_by: { type: String, default: null },
+  approved_deligated_by: { type: String, maxlength: 30, default: null },
   remark:  {type:[remarkSchema]},
 }, { 
   collection: 'Template_forwarded_approver', 

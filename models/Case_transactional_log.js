@@ -13,10 +13,12 @@ const { Schema, model } = mongoose;
 const updatedSchema = new Schema({
     action: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     created_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
     created_date: {
@@ -42,6 +44,7 @@ const caseTransactionalLogSchema = new Schema(
     },
     created_by: { 
         type: String, 
+        maxlength: 30,
         required: true 
     },
     parameters: { 

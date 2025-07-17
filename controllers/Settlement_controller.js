@@ -11,8 +11,9 @@
 // import db from "../config/db.js";
 import CaseSettlement from "../models/Case_settlement.js";
 import Case_details from "../models/Case_details.js";
-import CasePayment from "../models/Case_payments.js";
+// import CasePayment from "../models/Case_payments.js";
 import { createTaskFunction } from "../services/TaskService.js";
+import Money_transactions from "../models/Money_transactions.js"
 import mongoose from "mongoose";
 
 /*  
@@ -56,12 +57,12 @@ export const ListAllSettlementCases = async (req, res) => {
   try {
     const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
-      });
-    }
+    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
+    //   });
+    // }
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -77,7 +78,11 @@ export const ListAllSettlementCases = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
+    }
     if (Object.keys(dateFilter).length > 0) {
       query.created_dtm = dateFilter;
     }
@@ -169,7 +174,7 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
     const moneyTransactions = caseDetails.money_transactions || [];
     const transactionIds = moneyTransactions.map(txn => txn.money_transaction_id);
 
-    const payments = await CasePayment.find({ money_transaction_id: { $in: transactionIds } });
+    const payments = await Money_transactions.find({ money_transaction_id: { $in: transactionIds } });
 
     const paymentDetails = moneyTransactions.map(txn => {
       const paymentDoc = payments.find(p => p.money_transaction_id === txn.money_transaction_id);
@@ -177,10 +182,10 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
         money_transaction_id: txn.money_transaction_id,
         payment: txn.payment,
         payment_Dtm: txn.payment_Dtm,
-        cummilative_settled_balance: paymentDoc?.cummilative_settled_balance || null,
+        cummilative_settled_balance: paymentDoc?.cummulative_settled_balance || null,
         installment_seq: paymentDoc?.installment_seq || null,
-        money_transaction_type: paymentDoc?.money_transaction_type || null,
-        money_transaction_amount: paymentDoc?.money_transaction_amount || null,
+        money_transaction_type: paymentDoc?.transaction_type || null,
+        money_transaction_amount: paymentDoc?.settle_Effected_Amount || null,
         money_transaction_date: paymentDoc?.money_transaction_date || null
       };
     });
@@ -303,9 +308,7 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     }
 
     // Flatten the parameters structure
-    const parameters = {
-      Created_By,
-      task_status: "open",
+    const parameters = {  
       Account_No: Account_Number,
       case_ID: Case_ID,
       Phase: Phase,
@@ -318,7 +321,9 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     const taskData = {
       Template_Task_Id: 42,
       task_type: "Create task for Download Settlement Case List",
-      ...parameters
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction
@@ -439,17 +444,17 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
 
     // Flatten the parameters structure
     const parameters = {
-      Created_By,
-      task_status: "open",
-      case_ID: Case_ID,
-      settlement_id: Settlement_ID
+      Case_ID,
+      Settlement_ID,
     };
 
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 43,
-      task_type: "Create task for Download Settlement Details By Case_Id",
-      ...parameters
+      task_type: "Create task for Download Settlement Details By  Settlement_Id and Case_Id",
+      ...parameters,
+      Created_By,
+      task_status: "open",
     };
 
     // Call createTaskFunction

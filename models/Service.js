@@ -9,13 +9,25 @@ const serviceSchema = new Schema({
     },
     service_type: {
         type: String, 
+        maxlength: 30,
         required: true,
         unique: true 
     },
     service_status: {
         type: String, 
-        enum: ['Active', 'Inactive', 'Pending'], 
+        maxlength: 30,
+        enum: ['Active', 'Inactive'], 
         default: 'Active'
+    },
+    create_by: {
+        type: String, 
+        maxlength: 30,
+        required: true
+    },
+    create_on: {
+        type: Date, 
+        required: true, 
+        default: Date.now
     }
 }, {
     collection: 'Services', // Specify the collection name

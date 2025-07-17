@@ -13,12 +13,22 @@ const TemplateNegotiationSchema = new mongoose.Schema(
     negotiation_description: 
     { 
         type: String, 
+        maxlength: 255,
         required: true 
     }, // Description of the negotiation
     negotiation_type: {
       type: String,
+      maxlength: 30,
       enum: ["Field", "Fail"], // Allowed values: Field, Fail
       required: true,
+    },
+    Field: {
+      type: Boolean,
+      required: true
+    },
+    Fail: {
+      type: Boolean,
+      required: true
     },
     commision: { 
         type: Number, 
@@ -27,6 +37,7 @@ const TemplateNegotiationSchema = new mongoose.Schema(
      }, // Commission percentage or amount
     abbreviation: { 
         type: String, 
+        maxlength: 30,
         required: true 
     }, // Short form or abbreviation
     end_dtm: { 

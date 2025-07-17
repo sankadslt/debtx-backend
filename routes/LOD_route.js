@@ -13,17 +13,20 @@
 import { Router } from "express";
 const router = Router();
 
-import { Retrive_logic,
-         F2_selection_cases_count, 
-         List_F2_Selection_Cases, 
-         Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases,
-         Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases,
-         Change_Document_Type,
-         Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
-         List_Final_Reminder_Lod_Cases,
-         create_Customer_Responce,
-         case_details_for_lod_final_reminder,
-        } from "../controllers/LOD_controller.js";
+import {
+  Retrive_logic,
+  F2_selection_cases_count,
+  List_F2_Selection_Cases,
+  Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases,
+  Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases,
+  Change_Document_Type,
+  Create_Task_for_Proceed_LOD_OR_Final_Reminder_List,
+  List_Final_Reminder_Lod_Cases,
+  create_Customer_Responce,
+  case_details_for_lod_final_reminder,
+  List_All_LOD_Holdlist,
+  Proceed_LD_Hold_List,
+} from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
 
@@ -91,7 +94,7 @@ router.get("/F2_selection_cases_count", F2_selection_cases_count);
  *   post:
  *     summary:  list of the cases which has the case_current_status as the LIT Prescribed
  *     description: |
- *       Retrieve cases which has the provided `current_document_type` 
+ *       Retrieve cases which has the provided `current_document_type`
  *
  *       | Version | Date        | Description                    | Changed By       |
  *       |---------|-------------|--------------------------------|------------------|
@@ -172,7 +175,7 @@ router.get("/F2_selection_cases_count", F2_selection_cases_count);
  *                   type: string
  *                   example: Failed to retrieve cases.
  */
-router.post("/List_F2_Selection_Cases", List_F2_Selection_Cases); 
+router.post("/List_F2_Selection_Cases", List_F2_Selection_Cases);
 
 /**
  * @swagger
@@ -269,7 +272,10 @@ router.post("/List_F2_Selection_Cases", List_F2_Selection_Cases);
  *                       type: string
  *                       example: Error details here.
  */
-router.post("/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases", Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases);
+router.post(
+  "/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases",
+  Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases
+);
 
 /**
  * @swagger
@@ -296,7 +302,7 @@ router.post("/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases", Create
  *         schema:
  *           type: string
  *           example: "LOD"
- *         description: The current_document_type of the cases thats wants to download. 
+ *         description: The current_document_type of the cases thats wants to download.
  *     requestBody:
  *       required: true
  *       content:
@@ -375,7 +381,10 @@ router.post("/Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases", Create
  *                       type: string
  *                       example: Error details here.
  */
-router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases);
+router.post(
+  "/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases",
+  Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases
+);
 
 /**
  * @swagger
@@ -404,21 +413,21 @@ router.post("/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases", Creat
  *         schema:
  *           type: number
  *           example: 1
- *         description: this is the case id 
+ *         description: this is the case id
  *       - in: query
  *         name: Created_By
  *         required: true
  *         schema:
  *           type: string
  *           example: Admin
- *         description: this is one who change the Change_Document_Type 
+ *         description: this is one who change the Change_Document_Type
  *       - in: query
  *         name: changed_type_remark
  *         required: true
  *         schema:
  *           type: string
  *           example: any things
- *         description: this is comment to that change 
+ *         description: this is comment to that change
  *     requestBody:
  *       required: true
  *       content:
@@ -527,13 +536,13 @@ router.post("/Change_Document_Type", Change_Document_Type);
  *         schema:
  *           type: string
  *           example: "LOD"
- *         description: The current_document_type of the cases thats wants to download. 
+ *         description: The current_document_type of the cases thats wants to download.
  *       - in: query
  *         name: Case_count
  *         schema:
  *           type: number
  *           example: 2500
- *         description: The case count that try to create lod or final reminder 
+ *         description: The case count that try to create lod or final reminder
  *     requestBody:
  *       required: true
  *       content:
@@ -615,7 +624,10 @@ router.post("/Change_Document_Type", Change_Document_Type);
  *                       type: string
  *                       example: Error details here.
  */
-router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_for_Proceed_LOD_OR_Final_Reminder_List);
+router.post(
+  "/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",
+  Create_Task_for_Proceed_LOD_OR_Final_Reminder_List
+);
 
 /**
  * @swagger
@@ -644,14 +656,14 @@ router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_fo
  *         schema:
  *           type: number
  *           example: 1
- *         description: this is the case current status 
+ *         description: this is the case current status
  *       - in: query
  *         name: date_type
  *         required: false
  *         schema:
  *           type: string
  *           example: Admin
- *         description: this is the type of the date how can filter 
+ *         description: this is the type of the date how can filter
  *       - in: query
  *         name: date_to
  *         required: false
@@ -665,7 +677,7 @@ router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_fo
  *         schema:
  *           type: string
  *           example: "2025-03-31"
- *         description: the first date of the range to filter 
+ *         description: the first date of the range to filter
  *     requestBody:
  *       required: true
  *       content:
@@ -756,7 +768,7 @@ router.post("/Create_Task_for_Proceed_LOD_OR_Final_Reminder_List",Create_Task_fo
  *                   type: string
  *                   example: There is an error
  */
-router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
+router.post("/List_Final_Reminder_Lod_Cases", List_Final_Reminder_Lod_Cases);
 
 /**
  * @swagger
@@ -785,7 +797,7 @@ router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
  *         schema:
  *           type: string
  *           example: "any response"
- *         description: this is the response that come from front end drop down 
+ *         description: this is the response that come from front end drop down
  *       - in: query
  *         name: remark
  *         required: false
@@ -891,7 +903,7 @@ router.post("/List_Final_Reminder_Lod_Cases",List_Final_Reminder_Lod_Cases);
  *                   type: string
  *                   example: There is an error
  */
-router.post("/Create_Customer_Responce",create_Customer_Responce); 
+router.post("/Create_Customer_Responce", create_Customer_Responce);
 
 /**
  * @swagger
@@ -997,8 +1009,18 @@ router.post("/Create_Customer_Responce",create_Customer_Responce);
  *                   type: string
  *                   example: Error message
  */
-router.post("/Case_details_for_lod_final_reminder",case_details_for_lod_final_reminder); 
+router.post(
+  "/Case_details_for_lod_final_reminder",
+  case_details_for_lod_final_reminder
+);
 
-router.post("/case_details_for_lod_final_reminder", case_details_for_lod_final_reminder);
+router.post(
+  "/case_details_for_lod_final_reminder",
+  case_details_for_lod_final_reminder
+);
+
+router.post("/List_All_LOD_Holdlist", List_All_LOD_Holdlist);
+
+router.post("/Proceed_LD_Hold_List", Proceed_LD_Hold_List);
 
 export default router;

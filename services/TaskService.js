@@ -2,6 +2,8 @@ import Task from "../models/Task.js";
 import Task_Inprogress from "../models/Task_Inprogress.js";
 import db from "../config/db.js"; // MongoDB connection config
 import mongoose from "mongoose";
+import User_Interaction_Progress_Log from "../models/User_Interaction_Progress_Log.js";
+import User_Interaction_Log from "../models/User_Interaction_Log.js";
 
 
 //Create Task Function
@@ -22,7 +24,7 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
       }
   
       // Generate a unique Task_Id
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
@@ -89,9 +91,12 @@ export const createTaskFunction = async ({ Template_Task_Id, task_type, Created_
 
   //Create Task API
 export const createTask = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
-      console.log("Request body:", req.body);
+    
   
       if (!Template_Task_Id || !Created_By) {
         return res.status(400).json({ message: "Template_Task_Id and created_by are required." });
@@ -104,10 +109,10 @@ export const createTask = async (req, res) => {
       }
   
       // Generate a unique Task_Id
-      const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "task_id" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
   
       const Task_Id = counterResult.seq;
@@ -121,7 +126,13 @@ export const createTask = async (req, res) => {
         Task_Id,
         Template_Task_Id,
         task_type,
-        parameters: dynamicParams, // Accept dynamic parameters
+        parameters:{
+          dynamicParams,
+          Actions: dynamicParams?.Actions ?? null,
+          Incident_Status: dynamicParams?.Incident_Status ?? null,
+          
+
+        } , // Accept dynamic parameters
         Created_By,
         Execute_By: "SYS",
         task_status,  // Use task_status directly here
@@ -129,28 +140,34 @@ export const createTask = async (req, res) => {
   
       // Insert into System_task collection
       const newTask = new Task(taskData);
-      await newTask.save();
+      await newTask.save({ session });
   
       // Insert into System_task_Inprogress collection
       const newTaskInProgress = new Task_Inprogress(taskData);
-      await newTaskInProgress.save();
+      await newTaskInProgress.save({ session });
+
+      await session.commitTransaction(); // Commit the transaction
+      session.endSession();
   
       return res.status(201).json({ 
         message: "Task created successfully", 
         Task_Id, 
         Template_Task_Id,
         task_type,
-        dynamicParams, // Accept dynamic parameters
+        dynamicParams, 
         Created_By 
       });
     } catch (error) {
+      await session.abortTransaction(); // Rollback on error
+      session.endSession();
+      
       console.error("Error creating task:", error);
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
      
     }
   };
 
-export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By }) => {
+export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Incident_Status, From_Date, To_Date, Created_By, Source_type }) => {
   if (!DRC_Action || !Incident_Status || !From_Date || !To_Date || !Created_By) {
     throw new Error("Missing required parameters");
   }
@@ -161,25 +178,25 @@ export const Task_for_Download_Incidents_Function = async ({ DRC_Action, Inciden
   try {
     // Generate a unique Task_Id
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
+    const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "task_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", session, upsert: true }
     );
 
     const Task_Id = counterResult.value.seq;
-
+    const dynamicParams = {
+            DRC_Action,
+            Incident_Status,
+            From_Date,
+            To_Date,
+          }
     // Task object
     const taskData = {
       Task_Id,
       Template_Task_Id: 20,
       task_type: "Create Incident list for download",
-      parameters: {
-        DRC_Action,
-        Incident_Status,
-        From_Date,
-        To_Date,
-      },
+      ...dynamicParams,
       Created_By,
       task_status: "open",
       created_dtm: new Date(),
@@ -313,6 +330,291 @@ export const getOpenTaskCount = async (req, res) => {
   }
 };
 
+/**
+ * Inputs:
+ * - delegate_user_id: String (required)
+ * 
+ * Collection: 
+ * - User_Interaction_Progress_Log
+ * - To_Do_List
+ * - Templete_User_Interaction
+ * 
+ * Success Result:
+ * - Returns a success response with a list of all open requests for the to-do list assigned to the specified delegate user.
+ */
+export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
+  try {
+    const {
+      delegate_user_id,
+    } = req.body;
+
+    if (!delegate_user_id) {
+      return res.status(400).json({ 
+        message: "Missing required fields: delegate_user_id is required." 
+      });
+    }
+
+    // Build match filter - only add date filter if both dates are provided
+    const matchFilter = {
+      delegate_user_id: delegate_user_id
+    };
+
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $match: matchFilter
+      },
+      
+      {
+        $addFields: {
+          last_status: {
+            $cond: {
+              if: { $isArray: "$User_Interaction_Status" },
+              then: {
+                $cond: {
+                  if: { $gt: [{ $size: "$User_Interaction_Status" }, 0] },
+                  then: { $arrayElemAt: ["$User_Interaction_Status", -1] },
+                  else: null
+                }
+              },
+              else: null
+            }
+          }
+        }
+      },
+      
+      {
+        $match: {
+          "last_status.User_Interaction_Status": "Open" 
+        },
+      },
+      
+      {
+        $lookup: {
+          from: "Template_User_Interaction",
+          localField: "Interaction_ID",
+          foreignField: "Interaction_ID",
+          as: "Templete_User_Interaction_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$Templete_User_Interaction_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $lookup: {
+          from: "To_Do_List",
+          localField: "Templete_User_Interaction_info.ToDoID",
+          foreignField: "ToDoID",
+          as: "To_Do_List_info"
+        }
+      },
+      
+      {
+        $unwind: {
+          path: "$To_Do_List_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $addFields: {
+          parameter_entries: {
+            $objectToArray: "$parameters"
+          }
+        }
+      },
+
+      { 
+        $addFields: {
+          normalized_showParameters: {
+            $map: {
+              input: { $ifNull: ["$To_Do_List_info.parameters", []] },
+              as: "param",
+              in: {
+                $toLower: {
+                  $replaceAll: {
+                    input: "$$param",
+                    find: " ",
+                    replacement: "_"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          filtered_parameters_array: {
+            $filter: {
+              input: "$parameter_entries",
+              as: "entry",
+              cond: {
+                $in: [
+                  { $toLower: "$$entry.k" },
+                  "$normalized_showParameters"
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          filtered_parameters: {
+            $arrayToObject: "$filtered_parameters_array"
+          }
+        }
+      },
+
+      
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          Interaction_Log_ID: 1,
+          delegate_user_id: "$delegate_user_id",
+          User_Interaction_Status: {
+            $ifNull: ["$last_status.User_Interaction_Status", "N/A"]
+          },
+          Process: "$To_Do_List_info.Process",
+          CreateDTM: 1,
+          // parameters: "$parameters",
+          showParameters: "$To_Do_List_info.parameters",
+          filtered_parameters: 1
+        }
+      }
+    ];
+
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+
+    if (!results || results.length === 0) {
+      return res.status(204).json({ 
+        message: "No matching data found for the specified criteria." 
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: results
+    });
+    
+  } catch (error) {
+    console.error("Error fetching user interaction response log:", error);
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: error.message 
+    });
+  }
+};
+
+export const Handle_Interaction_Acknowledgement = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Interaction_Log_ID, delegate_user_id } = req.body;
+
+    if (!Interaction_Log_ID || !delegate_user_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Interaction_Log_ID is required." });
+    }
+
+    const matchFilter = {
+      Interaction_Log_ID: Number(Interaction_Log_ID),
+      delegate_user_id: delegate_user_id
+    }
+
+    const pipeline = [
+      {
+        $match: matchFilter
+      },
+
+      {
+        $lookup: {
+          from: "Templete_User_Interaction",
+          localField: "Interaction_ID",
+          foreignField: "Interaction_ID",
+          as: "Templete_User_Interaction_info"
+        }
+      },
+
+      {
+        $unwind: {
+          path: "$Templete_User_Interaction_info",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          Interaction_Log_ID: 1,
+          delegate_user_id: "$delegate_user_id",
+          Interaction_Mode: "$Templete_User_Interaction_info.Interation_Mode",
+        }
+      }
+    ]
+
+    // Execute the aggregation pipeline
+    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+    
+    if (results.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "User Interaction Progress Log not found." });
+    }
+
+    const interactionMode = results[0].Interaction_Mode;
+
+    // Update User_Interaction_Log status to "Seen"
+    const seenStatus = {
+      User_Interaction_Status: "Seen",
+      created_dtm: new Date()
+    };
+
+    await User_Interaction_Log.updateOne(
+      { Interaction_Log_ID },
+      { $push: { User_Interaction_Status: seenStatus } },
+      { session }
+    );
+
+    // Branch logic based on interaction mode
+    if (interactionMode === "Special" || interactionMode === "Approval") {
+      // Delete progress log
+      await User_Interaction_Progress_Log.deleteOne({ Interaction_Log_ID: Number(Interaction_Log_ID) }, { session });
+    } else {
+      // Update progress log status to "Seen"
+      await User_Interaction_Progress_Log.updateOne(
+        { Interaction_Log_ID },
+        { $push: { User_Interaction_Status: seenStatus } },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Interaction acknowledged successfully.",
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
 
 
   

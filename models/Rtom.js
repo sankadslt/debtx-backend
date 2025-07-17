@@ -12,19 +12,37 @@ Notes:  */
 import { Schema, model } from 'mongoose';
 
 // Sub-schema for remarks
-const updatedSchema = new Schema({
-    action: {
+const remarkSchema = new Schema({
+    remark: {
         type: String,
+        maxlength: 255,
         required: true,
     },
-    updated_date: {
+    remark_date: {
         type: Date, // Save date in day/month/year format
         required: true,
     },
-    updated_by: {
+    remark_by: {
         type: String,
+        maxlength: 30,
         required: true,
     },
+});
+
+// Sub-schema for Telephone numbers
+const telephoneNumberSchema = new Schema({
+    telephone_number: {
+        type: String,
+        defult: null, // Default to null if not provided
+    }
+});
+
+// Sub-schema for mobile numbers
+const mobileNumberSchema = new Schema({
+    mobile_number: {
+        type: String,
+        defult: null, // Default to null if not provided
+    }
 });
 
 // Main schema for RTOM
@@ -35,44 +53,59 @@ const rtomSchema = new Schema({
         required: true, 
         unique: true
     },
-    rtom_abbreviation: {
+    billing_center_code: {
         type: String, 
+        maxlength: 30,
         required: true 
     },
-    area_name: {
+    rtom_name: {
         type: String, 
-        required: true
+        required: true,
     },
-    rtom_status: {
-        type: String,
-        enum: ['Active', 'Inactive', 'Terminate'],
-        required: true
+    area_code: {
+        type: String, 
+        maxlength: 30,
     },
-    rtom_contact_number:{
-        type: Number,
-        required: true
+    rtom_email: {
+        type: String, 
+        default: null, // Default to null if not provided
     },
-    rtom_fax_number: {
-        type: Number,
-        required: true
+    rtom_mobile_no: {
+        type: [mobileNumberSchema], // Mobile number with subfields
+        default: [], // Default empty array
     },
-    updated_rtom: {
-        type: [updatedSchema], // Remark array with date and editor
+    rtom_telephone_no: {
+        type: [telephoneNumberSchema], // Telephone number with subfields
         default: [], // Default empty array
     },
     created_by: {
         type: String,
+        required: true,
+    },
+    created_on: {
+        type: Date,
+        required: true
+    },
+    rtom_status: {
+        type: String,
+        maxlength: 30,
+        enum: ['Active', 'Inactive', 'Terminate'],
         required: true
     },
     rtom_end_date: {
         type: Date,
         default: null
     },
-    created_dtm: {
-        type: Date,
+    rtom_end_by: {
+        type: String,
+        maxlength: 30,
+        default: null
+    },
+    rtom_remarks: {
+        type: [remarkSchema], // Remarks array with subfields
         required: true
-    }
-}, 
+    },
+},
 {
     collection: 'Rtom', 
     // timestamps: true

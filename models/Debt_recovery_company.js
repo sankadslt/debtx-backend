@@ -1,102 +1,244 @@
 import { Schema, model } from "mongoose";
 
-const serviceSchema = new Schema({
-  service_id: {
-    // Add this field explicitly
-    type: Number,
+const coordinatorSchema = new Schema({
+  service_no: {
+    type: String,
+    maxlength: 255,
     required: true,
   },
-  user_id: {
-    type:String,
-    // required:true,
+  slt_coordinator_name: {
+    type: String,
+    maxlength: 255,
+    required: true
+  },
+  slt_coordinator_email: {
+    type: String,
+    maxlength: 255,
+    required: true,
+  },
+  coordinator_create_dtm: {
+    type: Date,
+    required: true
+  },
+  coordinator_create_by: {
+    type: String,
+    maxlength: 255,
+    required: true
+  },
+  coordinator_end_by: {
+    type: String,
+    maxlength: 255,
+    default:null
+  },
+  coordinator_end_dtm: {
+    type: Date,
+    default:null
+  },
+}, { _id: false });
+
+const serviceSchema = new Schema({
+  service_id: {
+    type: Number,
+    maxlength: 255,
+    required: true,
   },
   service_type: {
     type: String,
+    maxlength: 255,
     required: true,
   },
-  drc_service_status: {
+  service_status: {
     type: String,
+    maxlength: 255,
     enum: ["Active", "Inactive"],
     default: "Active",
   },
-  status_change_dtm: {
+  create_by: {
+    type: String,
+    maxlength: 255,
+    default: null,
+  },
+  create_dtm: {
+    type: Date,
+    default: null,
+  },
+  status_update_dtm: {
+    type: Date,
+    default: null,
+  },
+  status_update_by: {
+    type: String,
+    maxlength: 255,
+    default: null,
+  },
+}, { _id: false });
+
+const rtomSchema = new Schema({
+  rtom_id: {
+    type: Number,
+    required: true
+  },
+  rtom_name: {
+    type: String,
+    maxlength: 255,
+    required: true
+  },
+  rtom_status: {
+    type: String,
+    maxlength: 255,
+    enum: ["Active", "Inactive"],
+    default: "Active",
+  },
+  rtom_billing_center_code: {
+    type: String,
+    maxlength: 255,
+    required: true
+  },
+  handling_type: {
+    type: String,
+    maxlength: 255,
+    required: true,
+    enum: ["CPE", "Arrears", "All-Type"]
+  },
+  last_update_dtm: {
     type: Date,
     required: true,
   },
-  status_changed_by: {
-    type: String,
-    required: true,
-  },
-});
+}, { _id: false });
 
 // Sub-schema for remarks
 const remarkSchema = new Schema({
   remark: {
     type: String,
+    maxlength: 255,
+    defult: null,
+  },
+  remark_dtm: {
+    type: Date,
+    default: null
+  },
+  remark_by: {
+    type: String,
+    maxlength: 255,
+    defult: null
+  },
+}, { _id: false });
+
+// Schema for company status
+const companyStatusSchema = new Schema({
+  drc_status: {
+    type: String,
+    enum: ["Active", "Inactive", "Terminate"],
+    default: "Inactive",
+  },
+  drc_status_dtm: {
+    type: Date,
     required: true,
   },
-  remark_Dtm: {
-    type: Date, // Change to Date type
-    required: true,
-  },
-  remark_edit_by: {
+  drc_status_by: {
     type: String,
     required: true,
   },
-});
+}, { _id: false });
+
+const agreementDetailsSchema = new Schema({
+  agreement_start_dtm: {
+    type: Date,
+    default: null,
+  },
+  agreement_end_dtm: {
+    type: Date,
+    default: null,
+  },
+  agreement_remark: {
+    type: String,
+    maxlength: 255,
+    default: null,
+  },
+  agreement_status: {
+    type: String,
+    enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
+    required: true
+  },
+}, { _id: false });
+
+
 const drcSchema = new Schema(
   {
     doc_version : {type:Number, required: true, default: 1},
     drc_id: {
       type: Number,
       required: true,
-      unique: true,
-    },
-    drc_business_registration_number: {
-        type: String, 
-        required: true 
+      unique: true
     },
     drc_name: {
       type: String,
+      maxlength: 255,
       required: true,
+    },
+    drc_business_registration_number: {
+        type: String, 
+        maxlength: 255,
+        required: true, 
+        unique: true
+    },
+    drc_address: {
+      type: String,
+      maxlength: 255,
+      required: true,
+    },
+    drc_contact_no: {
+      type: String,
+      maxlength: 30,
+      required: true
     },
     drc_email: {
       type: String,
-      required: true,
+      maxlength: 255,
       unique: true,
-    },
-    drc_status: {
-      type: String,
-      enum: ["Active", "Inactive", "Pending","Ended"],
-      default: "Active",
-    },
-    teli_no: {
-      type: String,
       required: true,
     },
-    drc_end_dat: {
+    drc_create_dtm: {
       type: Date,
-      default: null,
+      required: true
     },
-    create_by: {
+    drc_create_by: {
       type: String,
-      required: true,
+      maxlength: 255,
+      required: true
     },
-    create_dtm: {
+    drc_terminate_dtm: {
       type: Date,
+      default: null
+    },
+    drc_terminate_by: {
+      type: String,
+      maxlength: 255,
+      default: null
+    },
+    status: {
+      type: [companyStatusSchema],
       required: true,
     },
-    services_of_drc: {
+    drc_agreement_details: {
+      type: agreementDetailsSchema,
+      default: {}
+    },
+    slt_coordinator: {
+      type: [coordinatorSchema],
+      required: true
+    },
+    services: {
       type: [serviceSchema],
-      required: true,
+      required: true
+    },
+    rtom: {
+      type: [rtomSchema],
+      required: true
     },
     remark: {
       type: [remarkSchema],
-      required: true,
-    },
-    current_drc_operator: {
-      type: String,
-      // required: true,
+      default: []
     },
   },
   {

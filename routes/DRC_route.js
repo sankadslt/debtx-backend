@@ -12,28 +12,8 @@
     Notes:  
 */
 
-
-
-// import { Router } from "express";
-// import { registerDRC, getDRCDetails,updateDRCDetails, getDRCDetailsById, updateDRCStatus, addServiceToDRC,updateServiceStatusOnDRC} from "../controllers/DRC_controller.js";
-
-
-// const router = Router();
-
-// router.post("/Register_DRC", registerDRC);
-// router.put("/updateDRCStatus", updateDRCStatus);
-// router.get("/getDRCDetails", getDRCDetails);
-// router.put("/updateDRCDetails", updateDRCDetails);
-// router.get("/getDRCDetailsById/:drc_id", getDRCDetailsById);
-// router.post("/addServiceToDRC", addServiceToDRC);
-// router.put("/updateServiceStatusOnDRC", updateServiceStatusOnDRC);
-
-
-// export default router;
-
-import { Router } from "express"; 
+import { Router } from "express";
 import {
-  // registerDRC,
   getDRCWithServices,
   changeDRCStatus,
   getDRCWithServicesByDRCId,
@@ -41,7 +21,16 @@ import {
   getDRCDetailsById,
   getActiveDRCDetails,
   endDRC,
-  DRCRemarkDetailsById 
+  DRCRemarkDetailsById,
+  List_All_DRC_Details,
+  List_RTOM_Details_Owen_By_DRC_ID,
+  List_Service_Details_Owen_By_DRC_ID,
+  Create_DRC_With_Services_and_SLT_Coordinator,
+  List_DRC_Details_By_DRC_ID,
+  Terminate_Company_By_DRC_ID,
+  Update_DRC_With_Services_and_SLT_Cordinator,
+  Create_Pre_Negotiation,
+  List_Pre_Negotiation_By_Case_Id,
 } from "../controllers/DRC_controller.js";
 
 const router = Router();
@@ -57,7 +46,7 @@ const router = Router();
  *     summary: Retrieve remarks of a specific DRC by DRC_ID
  *     description: |
  *       Obtain remarks for a specific Debt Recovery Company using its DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07| Initial release |
@@ -163,7 +152,7 @@ router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
  *     summary: DRC-1B01 End a DRC with remarks
  *     description: |
  *       Ends a DRC by updating its end date and adding a remark.
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2025-Jan-10| Initial implementation. |
@@ -304,10 +293,10 @@ router.post("/DRC_Remark_Details_By_ID", DRCRemarkDetailsById);
  */
 router.patch("/End_DRC", endDRC);
 
-
-
-
-// router.post("/Register_DRC", registerDRC);
+router.post(
+  "/Create_DRC_With_Services_and_SLT_Coordinator",
+  Create_DRC_With_Services_and_SLT_Coordinator
+);
 
 /**
  * @swagger
@@ -320,7 +309,7 @@ router.patch("/End_DRC", endDRC);
  *     summary: DRC-1A01 Update the status of a DRC
  *     description: |
  *       changes the status of a DRC:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -456,13 +445,13 @@ router.patch("/Change_DRC_Status", changeDRCStatus);
  *     summary: DRC-2G01 Retrieve details of all DRCs along with Services.
  *     description: |
  *       List DRCs along with Services list:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -538,7 +527,7 @@ router.patch("/Change_DRC_Status", changeDRCStatus);
  *                                 status_changed_by:
  *                                   type: string
  *                                   example: Admin
- *                           
+ *
  *       500:
  *         description: Internal server error occurred while fetching DRC details.
  *         content:
@@ -559,9 +548,7 @@ router.patch("/Change_DRC_Status", changeDRCStatus);
  *                       type: string
  *                       example: null
  */
-
 router.get("/DRC_with_Services", getDRCWithServices);
-
 
 /**
  * @swagger
@@ -570,7 +557,7 @@ router.get("/DRC_with_Services", getDRCWithServices);
  *     summary: DRC-2P01 Retrieve details of a specific DRC along with Services by DRC_ID
  *     description: |
  *       Get DRC along with Services list w.r.t. DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -712,7 +699,6 @@ router.get("/DRC_with_Services", getDRCWithServices);
  *                       type: string
  *                       example: null
  */
-
 router.post("/DRC_with_Services_By_DRC_ID", getDRCWithServicesByDRCId);
 
 /**
@@ -720,16 +706,16 @@ router.post("/DRC_with_Services_By_DRC_ID", getDRCWithServicesByDRCId);
  * /api/DRC/DRC_Details:
  *   get:
  *     summary: DRC-1G01 Retrieve details of all DRCs.
- *     
+ *
  *     description: |
  *       List All Debt Recovery Company Details:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -808,10 +794,10 @@ router.get("/DRC_Details", getDRCDetails);
  * @swagger
  * /api/DRC/DRC_Details_By_ID:
  *   post:
- *     summary: DRC-1P02 Retrieve details of a specific DRC by DRC_ID 
+ *     summary: DRC-1P02 Retrieve details of a specific DRC by DRC_ID
  *     description: |
  *       Obtain Debt Recovery Company Details w.r.t. DRC_ID:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
@@ -932,7 +918,6 @@ router.get("/DRC_Details", getDRCDetails);
  */
 router.post("/DRC_Details_By_ID", getDRCDetailsById);
 
-
 /**
  * @swagger
  * /api/DRC/Active_DRC_Details:
@@ -940,13 +925,13 @@ router.post("/DRC_Details_By_ID", getDRCDetailsById);
  *     summary: DRC-1G02 Retrieve details of all active DRCs.
  *     description: |
  *       List All Active Debt Recovery Company Details:
- *       
+ *
  *       | Version | Date       | Description |
  *       |---------|------------|-------------|
  *       | 01      | 2024-Dec-07|             |
  *     tags:
  *       - DRC
- * 
+ *
  *     responses:
  *       200:
  *         description: DRC details retrieved successfully.
@@ -999,7 +984,7 @@ router.post("/DRC_Details_By_ID", getDRCDetailsById);
  *                           updatedAt:
  *                             type: string
  *                             example: 2024-12-23T16:58:49.975Z
- *                      
+ *
  *       500:
  *         description: Internal server error occurred while fetching DRC details.
  *         content:
@@ -1022,5 +1007,655 @@ router.post("/DRC_Details_By_ID", getDRCDetailsById);
  */
 router.get("/Active_DRC_Details", getActiveDRCDetails);
 
+/**
+ * @swagger
+ * /api/DRC/List_DRC_Details_By_DRC_ID:
+ *   post:
+ *     summary: Retrieve DRC information by DRC ID
+ *     description: |
+ *       Get selected information of a specific Debt Recovery Company using its DRC ID.
+ *
+ *       | Version | Date       | Description         |
+ *       |---------|------------|---------------------|
+ *       | 01      | 2025-06-04 | Selected fields only|
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *             properties:
+ *               drc_id:
+ *                 type: integer
+ *                 description: Unique DRC ID to fetch.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: Summarized DRC details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC information data retrieved successfully.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     create_on:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-28T03:44:41.000Z"
+ *                     drc_business_registration_number:
+ *                       type: string
+ *                       example: "br123578"
+ *                     drc_contact_no:
+ *                       type: string
+ *                       example: "0776283842"
+ *                     drc_email:
+ *                       type: string
+ *                       example: "sampledrac@gmail.com"
+ *                     drc_address:
+ *                       type: string
+ *                       example: "158/A, Colombo 1."
+ *                     slt_coordinator:
+ *                       type: object
+ *                       properties:
+ *                         service_no:
+ *                           type: string
+ *                           example: "slt@gmail.com"
+ *                         slt_coordinator_name:
+ *                           type: string
+ *                           example: "SLT"
+ *                         slt_coordinator_email:
+ *                           type: string
+ *                           example: "slt@gmail.com"
+ *                     services:
+ *                       type: array
+ *                       description: List of all services linked to the DRC.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           service_type:
+ *                             type: string
+ *                             example: "PEO MOBILE"
+ *                           service_status:
+ *                             type: string
+ *                             example: "Active"
+ *                           status_update_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-05-27T09:40:41.558Z"
+ *                     rtom:
+ *                       type: array
+ *                       description: List of RTOMs assigned to the DRC.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           rtom_name:
+ *                             type: string
+ *                             example: "Gampaha"
+ *                           rtom_status:
+ *                             type: string
+ *                             example: "Active"
+ *                           status_update_dtm:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-05-27T09:40:41.558Z"
+ *       400:
+ *         description: Missing or invalid DRC ID.y
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC_ID is required.
+ *       404:
+ *         description: No DRC found for the provided ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No Debt Company found with DRC_ID.
+ *       500:
+ *         description: Internal server error occurred during the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to retrieve Debt Company Details.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: "Internal server error"
+ */
+router.post("/List_DRC_Details_By_DRC_ID", List_DRC_Details_By_DRC_ID);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Debt Recovery Companies
+ *     description: Endpoints for managing Debt Recovery Company (DRC) lifecycle.
+ *
+ * /api/drc/Terminate_Company_By_DRC_ID:
+ *   post:
+ *     summary: Terminate a DRC (Debt Recovery Company) by DRC ID
+ *     description: |
+ *       Terminates a DRC record by marking it as `"Terminate"`, logs the remark, and creates an approval entry.
+ *
+ *       | Version | Date       | Description                        | Changed By       |
+ *       |---------|------------|------------------------------------|------------------|
+ *       | 1.0     | 2025-06-26 | Initial implementation             | Nimesh Perera    |
+ *     tags:
+ *       - Debt Recovery Companies
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the DRC to terminate.
+ *         example: "DRC_001"
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Reason for termination.
+ *         example: "Company ceased operations."
+ *       - in: query
+ *         name: remark_by
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Name or ID of the user terminating the company.
+ *         example: "admin_001"
+ *       - in: query
+ *         name: remark_dtm
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Timestamp of the remark.
+ *         example: "2025-06-26T14:00:00.000Z"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - remark
+ *               - remark_by
+ *               - remark_dtm
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 description: Unique identifier of the DRC company.
+ *                 example: "DRC_001"
+ *               remark:
+ *                 type: string
+ *                 description: Reason for terminating the company.
+ *                 example: "No longer contracted for recovery services."
+ *               remark_by:
+ *                 type: string
+ *                 description: User who initiated the termination.
+ *                 example: "admin_001"
+ *               remark_dtm:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Termination date and time.
+ *                 example: "2025-06-26T14:00:00.000Z"
+ *     responses:
+ *       200:
+ *         description: DRC terminated and approval record created.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Company terminated successfully and sent for approval.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updatedCompany:
+ *                       type: object
+ *                       description: Updated company details.
+ *                     approval:
+ *                       type: object
+ *                       description: New approval entry.
+ *       400:
+ *         description: Validation error due to missing fields.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC ID is required in the request body.
+ *       404:
+ *         description: DRC not found or already terminated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No Debt Company found with DRC_ID.
+ *       500:
+ *         description: Internal server error during termination.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to terminate company.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: Database connection failure
+ */
+router.patch("/Terminate_Company_By_DRC_ID", Terminate_Company_By_DRC_ID);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Debt Recovery Companies
+ *     description: Endpoints for updating DRC contact, services, RTOMs, and SLT coordinators.
+ *
+ * /api/drc/Update_DRC_With_Services_and_SLT_Cordinator:
+ *   post:
+ *     summary: Update DRC details (contact info, services, SLT coordinators, RTOM) and optionally trigger approval
+ *     description: |
+ *       Updates a DRC's contact number, email, status, coordinator list, RTOM entries, and assigned services.
+ *       If the DRC status is changed, an approval record will be triggered automatically.
+ *
+ *       | Version | Date       | Description                        | Changed By       |
+ *       |---------|------------|------------------------------------|------------------|
+ *       | 1.0     | 2025-06-26 | Initial version                    | Nimesh Perera    |
+ *     tags:
+ *       - Debt Recovery Companies
+ *     parameters:
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the DRC to update.
+ *         example: "DRC_001"
+ *       - in: query
+ *         name: updated_by
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID of the person performing the update.
+ *         example: "admin_001"
+ *       - in: query
+ *         name: drc_status
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: New status to assign to the DRC (e.g., Active, Terminate).
+ *         example: "Active"
+ *       - in: query
+ *         name: drc_email
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Updated email address for the DRC.
+ *         example: "contact@drccompany.com"
+ *       - in: query
+ *         name: drc_contact_no
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Updated contact number for the DRC.
+ *         example: "+94771234567"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *               - updated_by
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 example: "DRC_001"
+ *               drc_contact_no:
+ *                 type: string
+ *                 example: "+94771234567"
+ *               drc_email:
+ *                 type: string
+ *                 format: email
+ *                 example: "contact@drccompany.com"
+ *               drc_status:
+ *                 type: string
+ *                 example: "Active"
+ *               coordinator:
+ *                 type: object
+ *                 properties:
+ *                   service_no:
+ *                     type: string
+ *                     example: "SLT12345"
+ *                   slt_coordinator_name:
+ *                     type: string
+ *                     example: "Samantha Perera"
+ *                   slt_coordinator_email:
+ *                     type: string
+ *                     example: "samantha@slt.lk"
+ *               services:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     service_code:
+ *                       type: string
+ *                       example: "SRV001"
+ *                     service_name:
+ *                       type: string
+ *                       example: "Legal Advice"
+ *                     status:
+ *                       type: string
+ *                       example: "Active"
+ *               rtom:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     rtom_division:
+ *                       type: string
+ *                       example: "North Western"
+ *                     rtom_officer:
+ *                       type: string
+ *                       example: "Rohan Silva"
+ *               remark:
+ *                 type: string
+ *                 example: "Changed coordinator and services"
+ *               updated_by:
+ *                 type: string
+ *                 example: "admin_001"
+ *     responses:
+ *       200:
+ *         description: DRC updated successfully and approval triggered if needed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC information updated successfully and sent for approval.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updatedCompany:
+ *                       type: object
+ *                       description: Updated DRC record
+ *                     approval:
+ *                       type: object
+ *                       nullable: true
+ *                       description: Approval record if status was changed
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: DRC ID and updated_by are required fields.
+ *       404:
+ *         description: DRC not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No Debt Company found with DRC_ID.
+ *       500:
+ *         description: Server-side failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Failed to update DRC information.
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     exception:
+ *                       type: string
+ *                       example: MongoError or transaction issue
+ */
+router.patch(
+  "/Update_DRC_With_Services_and_SLT_Cordinator",
+  Update_DRC_With_Services_and_SLT_Cordinator
+);
+
+/**
+ * @swagger
+ * /api/DRC/List_All_DRC_Details:
+ *   post:
+ *     summary: Retrieve a paginated list of DRCs with summary details
+ *     description: |
+ *       Returns a summary of Debt Recovery Companies (DRCs), including counts of services, RTOMs, and Recovery Officers.
+ *
+ *       | Version | Date       | Description                          |
+ *       |---------|------------|--------------------------------------|
+ *       | 01      | 2025-06-08 | Initial paginated DRC summary fetch  |
+ *
+ *       Pagination logic:
+ *       - Page 1 returns 10 items.
+ *       - Page 2 and onward return 30 items per page.
+ *     tags:
+ *       - DRC
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 description: Optional status to filter DRCs (Active, Inactive, Terminate).
+ *                 example: Active
+ *               page:
+ *                 type: integer
+ *                 description: Page number for pagination.
+ *                 example: 1
+ *     responses:
+ *       200:
+ *         description: List of DRCs retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: DRC details fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       drc_id:
+ *                         type: integer
+ *                         example: 101
+ *                       drc_name:
+ *                         type: string
+ *                         example: "Ravindu Recovery Services"
+ *                       drc_email:
+ *                         type: string
+ *                         example: "ravindu@example.com"
+ *                       drc_status:
+ *                         type: string
+ *                         example: Active
+ *                       drc_contact_no:
+ *                         type: string
+ *                         example: "0711234567"
+ *                       drc_business_registration_number:
+ *                         type: string
+ *                         example: "BRN-452348"
+ *                       service_count:
+ *                         type: integer
+ *                         example: 4
+ *                       rtom_count:
+ *                         type: integer
+ *                         example: 3
+ *                       ro_count:
+ *                         type: integer
+ *                         example: 2
+ *                       created_on:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-15T08:23:41.000Z"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 43
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     perPage:
+ *                       type: integer
+ *                       example: 10
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *       404:
+ *         description: No matching DRC records found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No matching DRC records found.
+ *                 data:
+ *                   type: array
+ *                   example: []
+ *       500:
+ *         description: Internal server error occurred during the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: Error stack or message
+ */
+router.post("/List_All_DRC_Details", List_All_DRC_Details);
+
+router.post(
+  "/List_RTOM_Details_Owen_By_DRC_ID",
+  List_RTOM_Details_Owen_By_DRC_ID
+);
+
+router.post(
+  "/List_Service_Details_Owen_By_DRC_ID",
+  List_Service_Details_Owen_By_DRC_ID
+);
+
+router.post(
+  "/Create_DRC_With_Services_and_SLT_Coordinator",
+  Create_DRC_With_Services_and_SLT_Coordinator
+);
+router.post("/Create_Pre_Negotiation", Create_Pre_Negotiation);
+router.post(
+  "/List_Pre_Negotiation_By_Case_Id",
+  List_Pre_Negotiation_By_Case_Id
+);
 
 export default router;
