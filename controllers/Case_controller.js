@@ -6390,7 +6390,7 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
       case_current_status: { $in: allowedStatuses },
     };
 
-    if (rtom) query.area = rtom;
+    if (rtom) query.rtom = rtom;
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
