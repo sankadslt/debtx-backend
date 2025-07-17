@@ -4039,6 +4039,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       "Case Abandoned Approval",
       "Case Write-Off Approval",
       "Commission Approval",
+      "DRC Agreement"
     ];
 
     let page = Number(pages);
