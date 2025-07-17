@@ -11,9 +11,8 @@ const drcAgreementDetailsSchema = new Schema({
         required: true,
         unique: true
     },
-    user_approver_id: {
+    approver_id: {
         type: Number,
-        required: true,
     },
     drc_id: {
         type: Number,

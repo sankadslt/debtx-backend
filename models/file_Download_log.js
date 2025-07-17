@@ -24,22 +24,27 @@ const fileDownloadLogSchema = new mongoose.Schema(
     //   type: String,
     //   required: true,
     // },
-    Deligate_By: {
+    Deligate_by: {
       type: String,
       required: true,
     },
-    DownLoad_BY: {
+    downLoad_by: {
       type: String,
        default:null,
     },
-    DownLoad_ON: {
+    downLoad_on: {
       type: Date,
       default:null,
     },
-    File_Remove_On: {
+    file_remove_on: {
       type: Date,
       required: true,
     },
+    download_by_ip: {
+      type: String,
+      maxlength: 30,
+      default: null,
+    }
   },
   {
     collection: "file_Download_log",

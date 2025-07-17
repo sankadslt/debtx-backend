@@ -155,6 +155,11 @@ const agreementDetailsSchema = new Schema({
     maxlength: 255,
     default: null,
   },
+  agreement_status: {
+    type: String,
+    enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
+    required: true
+  },
 }, { _id: false });
 
 
