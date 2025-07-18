@@ -20,7 +20,7 @@ import RTOM from "../models/Rtom.js";
 import BillingCenter from "../models/DRC_Billing_Center_Log.js";
 import case_inquiry from "../models/Case_inquiry.js";
 import mongoose from "mongoose";
-import Case_details from "../models/Case_details.js";
+import { createTaskFunction } from "../services/TaskService.js";
 import CaseDetails from "../models/Case_details.js";
 
 /**
@@ -945,12 +945,28 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
         drc_status_by: terminate_by,
       };
     } else {
-      console.log("termination will be done using python script");
+      let taskCreatedResponse;
+      const dynamicParams = {
+        drc_id: drc_id,
+        end_dtm
+      };
+
+      // Create Task for Approved Approver
+      const taskData = {
+        Template_Task_Id: 55,
+        task_type: "Create Task for  terminate  DRC",
+        ...dynamicParams,
+        Created_By: terminate_by,
+        task_status: "open",
+      };
+
+      taskCreatedResponse = await createTaskFunction(taskData, session);
     }
 
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       updateterminates,
+      taskCreatedResponse,
       { new: true }
     );
 
