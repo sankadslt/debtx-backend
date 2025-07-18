@@ -3682,7 +3682,12 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (
 
 export const List_All_Batch_Details = async (req, res) => {
   try {
-    const { approved_deligated_by } = req.body;
+    const { approved_deligated_by, pages } = req.body;
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     if (!approved_deligated_by) {
       return res
@@ -3726,6 +3731,15 @@ export const List_All_Batch_Details = async (req, res) => {
           path: "$case_distribution_details",
           preserveNullAndEmptyArrays: true, // Keep documents even if no matching case distribution
         },
+      },
+      {
+        $sort: { "created_on": -1 }, // Sort by created_on date in descending order
+      },
+      {
+        $skip: skip, // Skip documents for pagination
+      },
+      {
+        $limit: limit, // Limit the number of documents returned
       },
       // Stage 6: Project only the fields we need
       {
