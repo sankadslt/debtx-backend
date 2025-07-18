@@ -5840,7 +5840,11 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); // Set to end of the day
+      dateFilter.$lte = endOfDay;
+    };
 
     if (Object.keys(dateFilter).length > 0) {
       pipeline.push({
