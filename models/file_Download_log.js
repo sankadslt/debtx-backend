@@ -1,3 +1,62 @@
+// import mongoose from "mongoose";
+
+// const fileDownloadLogSchema = new mongoose.Schema(
+//   {
+//     doc_version: {
+//       type: Number,
+//       required: true,
+//       default: 1,
+//     },
+//     file_download_seq: {
+//       type: Number,
+//       required: true,
+//       unique: true,
+//     },
+//     file_name: {
+//       type: String,
+//       required: true,
+//     },
+//     created_on: {
+//       type: Date,
+//       required: true,
+//     },
+//     // fileLocation: {
+//     //   type: String,
+//     //   required: true,
+//     // },
+//     deligate_by: {
+//       type: String,
+//       required: true,
+//     },
+//     downLoad_by: {
+//       type: String,
+//        default:null,
+//     },
+//     downLoad_on: {
+//       type: Date,
+//       default:null,
+//     },
+//     file_remove_on: {
+//       type: Date,
+//       required: true,
+//     },
+//     download_by_ip: {
+//       type: String,
+//       maxlength: 30,
+//       default: null,
+//     }
+//   },
+//   {
+//     collection: "file_Download_log",
+//     timestamps: true,
+//   }
+// );
+
+// const FileDownloadLog = mongoose.model("FileDownloadLog", fileDownloadLogSchema);
+
+// export default FileDownloadLog;
+
+
 import mongoose from "mongoose";
 
 const fileDownloadLogSchema = new mongoose.Schema(
@@ -20,21 +79,17 @@ const fileDownloadLogSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    // fileLocation: {
-    //   type: String,
-    //   required: true,
-    // },
     deligate_by: {
       type: String,
       required: true,
     },
     downLoad_by: {
       type: String,
-       default:null,
+      default: null,
     },
     downLoad_on: {
       type: Date,
-      default:null,
+      default: null,
     },
     file_remove_on: {
       type: Date,
@@ -47,7 +102,7 @@ const fileDownloadLogSchema = new mongoose.Schema(
     }
   },
   {
-    collection: "file_Download_log",
+    collection: "file_download_log",  //  fixed here
     timestamps: true,
   }
 );
@@ -55,3 +110,4 @@ const fileDownloadLogSchema = new mongoose.Schema(
 const FileDownloadLog = mongoose.model("FileDownloadLog", fileDownloadLogSchema);
 
 export default FileDownloadLog;
+

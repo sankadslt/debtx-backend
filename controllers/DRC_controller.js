@@ -332,14 +332,12 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
         status_update_by: create_by,
         status_update_dtm: new Date(),
       })),
-      status: [
-        {
-          drc_status: "Inactive",
-          drc_status_dtm: new Date(),
-          drc_status_by: create_by,
-        },
-      ],
-      rtom: rtom.map((r) => ({
+      status: [{
+        drc_status: "Pending",
+        drc_status_dtm: new Date(),
+        drc_status_by: create_by,
+      }],
+      rtom: rtom.map(r => ({
         rtom_id: r.rtom_id,
         rtom_name: r.rtom_name,
         rtom_status: "Active",
@@ -595,7 +593,9 @@ export const List_DRC_Details_By_DRC_ID = async (req, res) => {
                   input: "$rtom",
                   as: "r",
                   in: {
+                    rtom_id: "$$r.rtom_id",
                     rtom_name: "$$r.rtom_name",
+                    rtom_billing_center_code: "$$r.rtom_billing_center_code",
                     status_update_dtm: "$$r.status_update_dtm",
                     handling_type: "$$r.handling_type",
                     rtom_status: "$$r.rtom_status",

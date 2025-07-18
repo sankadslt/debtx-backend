@@ -2328,13 +2328,20 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       last_payment_date: caseData.last_payment_date,
       rtom: caseData.rtom || null,
       ref_products: refProductsCPECollect || null,
-      ro_negotiation: caseData.ro_negotiation || null,
+      // ro_negotiation: caseData.ro_negotiation || null,
       ro_negotiation: caseData.ro_negotiation
         ? caseData.ro_negotiation.filter(
             (ronegotiation) => ronegotiation.drc_id === Number(drc_id)
           )
         : null,
-      ro_requests: caseData.ro_requests || null,
+      ro_negotiation_re_assign_ro: caseData.ro_negotiation
+        ? caseData.ro_negotiation.filter(
+            (ronegotiation) => 
+              ronegotiation.drc_id === Number(drc_id) &&
+              ronegotiation.ro_id === matchingRecoveryOfficer?.ro_id
+          )
+        : null,
+      // ro_requests: caseData.ro_requests || null,
       ro_requests: caseData.ro_requests
         ? caseData.ro_requests.filter(
             (rorequests) => rorequests.drc_id === Number(drc_id)
@@ -2364,11 +2371,15 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
           created_dtm: 1,
           settlement_status: 1,
           expire_date: 1,
+          ro_id: 1,
         }
       ).collation({ locale: "en", strength: 2 });
 
       if (settlementData) {
         responseData.settlementData = settlementData;
+        responseData.settlementData_ro_re_assign = settlementData.filter(
+          (settlemet) => settlemet.ro_id === matchingRecoveryOfficer?.ro_id
+        );
       }
     } catch (settlementError) {
       // Log error but continue
@@ -2385,7 +2396,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         {
           created_dtm: 1,
           money_transaction_amount: 1,
-          cummulative_settled_balance: 1,
+          cummulative_settled_balance: 1
         }
       ).collation({ locale: "en", strength: 2 });
 
@@ -4028,6 +4039,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       "Case Abandoned Approval",
       "Case Write-Off Approval",
       "Commission Approval",
+      "DRC Agreement"
     ];
 
     let page = Number(pages);
@@ -6390,7 +6402,7 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
       case_current_status: { $in: allowedStatuses },
     };
 
-    if (rtom) query.area = rtom;
+    if (rtom) query.rtom = rtom;
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
