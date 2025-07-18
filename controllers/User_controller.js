@@ -571,33 +571,9 @@ export const Update_User_Details = async (req, res) => {
 
 //     const mongoConnection = await db.connectMongoDB();
 
-//     const existingUser = await User.findOne({ user_id });
-
-//     if (existingUser) {
-//       const existingNumbers = existingUser.contact_num.map(
-//         (c) => c.contact_number.toString()
-//       );
-
-//       if (!existingNumbers.includes(contact_no.toString())) {
-//         existingUser.contact_num.push({ contact_number: Number(contact_no) });
-
-//         await existingUser.save();
-
-//         return res.status(200).json({
-//           status: "success",
-//           message: "Contact number added to existing user.",
-//           data: {
-//             user_id,
-//             updated_contact_numbers: existingUser.contact_num,
-//           },
-//         });
-//       } else {
-//         return res.status(200).json({
-//           status: "info",
-//           message: "Contact number already exists for this user.",
-//         });
-//       }
-//     }
+//     const formattedContactNumbers = Array.isArray(contact_no)
+//       ? contact_no.map((num) => ({ contact_number: Number(num) }))
+//       : [{ contact_number: Number(contact_no) }];
 
 //     // Generate sequence
 //     const counterResult = await mongoConnection
@@ -619,7 +595,7 @@ export const Update_User_Details = async (req, res) => {
 //       user_type,
 //       username,
 //       email,
-//       contact_num: [{ contact_number: Number(contact_no) }],
+//       contact_num: formattedContactNumbers,
 //       login_method,
 //       role,
 //       drc_id,
@@ -642,7 +618,6 @@ export const Update_User_Details = async (req, res) => {
 //           remark_by: created_by,
 //         },
 //       ],
-//       password: "default", // TODO: remove or hash
 //     });
 
 //     await newUser.save();
@@ -773,6 +748,123 @@ export const List_User_Details_By_Service = async (req, res) => {
         code: 500,
         description: error.message,
       },
+    });
+  }
+};
+
+export const Create_User = async (req, res) => {
+  const {
+    user_id,
+    user_type,
+    username,
+    email,
+    contact_no,
+    login_method,
+    role,
+    drc_id,
+    nic,
+    created_by,
+  } = req.body;
+
+  try {
+    if (!user_type || !username || !email || !contact_no || !login_method || !role) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields.",
+      });
+    }
+
+    if (user_type === "Slt") {
+      if (!user_id) {
+        return res.status(400).json({
+          status: "error",
+          message: "user_id is required for SLT users.",
+        });
+      }
+    } else if (user_type === "Drcuser") {
+      if (!drc_id || !nic) {
+        return res.status(400).json({
+          status: "error",
+          message: "drc_id and nic are required for DRC users.",
+        });
+      }
+    } else {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid user_type. Must be either 'slt' or 'drc'.",
+      });
+    }
+
+    const mongoConnection = await db.connectMongoDB();
+
+    const formattedContactNumbers = Array.isArray(contact_no)
+      ? contact_no.map((num) => ({ contact_number: Number(num) }))
+      : [{ contact_number: Number(contact_no) }];
+
+    const counterResult = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "user_sequence" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true }
+      );
+
+    const User_Sequence = counterResult.value?.seq || counterResult.seq;
+    if (!User_Sequence) {
+      throw new Error("Failed to generate User_Sequence.");
+    }
+
+    const newUser = new User({
+      User_Sequence,
+      user_type,
+      username,
+      email,
+      contact_num: formattedContactNumbers,
+      login_method,
+      role,
+      user_status: "Active",
+      User_Status_Type: "user_update",
+      User_Status_DTM: new Date(),
+      User_Status_By: created_by,
+      User_End_DTM: null,
+      User_End_By: null,
+      Created_BY: created_by,
+      Created_DTM: new Date(),
+      Approved_By: null,
+      Approved_DTM: null,
+      Remark: [
+        {
+          remark: "User Created",
+          remark_dtm: new Date(),
+          remark_by: created_by,
+        },
+      ],
+    });
+
+    if (user_type === "Slt") {
+      newUser.user_id = user_id;
+    }
+
+    if (user_type === "Drcuser") {
+      newUser.drc_id = drc_id;
+      newUser.nic = nic;
+      newUser.drcUser_id = drc_id;
+    }
+
+    await newUser.save();
+
+    return res.status(201).json({
+      status: "success",
+      message: "User registered successfully.",
+      data: { newUser },
+    });
+
+  } catch (error) {
+    console.error("Error in Create_User:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to register user.",
+      errors: { exception: error.message },
     });
   }
 };
