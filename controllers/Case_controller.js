@@ -18,6 +18,7 @@ import SystemTransaction from "../models/System_transaction.js";
 import RecoveryOfficer from "../models/Recovery_officer.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
 import CaseSettlement from "../models/Case_settlement.js";
+import drc_agreement from "../models/DRC_Agreement_details.js";
 // import CasePayments from "../models/Case_payments.js";
 import Money_transactions from "../models/Money_transactions.js";
 import Template_RO_Request from "../models/Template_RO_Request .js";
@@ -1650,7 +1651,445 @@ export const listHandlingCasesByDRC = async (req, res) => {
           status: caseData.case_current_status,
           created_dtm: caseData.last_drc.created_dtm,
           current_arreas_amount: caseData.current_arrears_amount,
-          area: caseData.area,
+          area: caseData.rtom,
+          action_type: caseData.action_type,
+          remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
+          expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
+          ro_name: caseData.last_ro ? caseData.last_ro.ro_name : null,
+          assigned_date: caseData.last_ro
+            ? caseData.last_ro.assigned_dtm
+            : null,
+        };
+      })
+    );
+
+    // Return success response
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: formattedCases,
+    });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving cases.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+export const List_Handling_Cases_By_DRC_Without_RO = async (req, res) => {
+  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } =
+    req.body;
+
+  try {
+    // Validate the DRC ID
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve DRC details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const allowedStatusTypes = [
+      "Open With Agent",
+      "RO Negotiation",
+      "Negotiation Settle Pending",
+      "Negotiation Settle Open-Pending",
+      "Negotiation Settle Active",
+      "RO Negotiation Extension Pending",
+      "RO Negotiation Extended",
+      "RO Negotiation FMB Pending",
+      "Forward to Mediation Board",
+      "MB Negotiation",
+      "MB Request Customer-Info",
+      "MB Handover Customer-Info",
+      "MB Settle Pending",
+      "MB Settle Open-Pending",
+      "MB Settle Active",
+      "MB Fail with Pending Non-Settlement",
+    ];
+
+    const pipeline = [];
+
+    // Match allowed status
+    pipeline.push({
+      $match: {
+        case_current_status: { $in: allowedStatusTypes },
+      },
+    });
+
+    // Optional filters
+    // if (rtom) {
+    //   pipeline.push({ $match: { rtom: rtom } });
+    // }
+    if (rtom) {
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $trim: { input: { $toLower: "$rtom" } } },
+              rtom.toLowerCase().trim()
+            ]
+          }
+        }
+      });
+    }
+
+    // Add a projection to get the last DRC entry
+    pipeline.push({
+      $addFields: {
+        last_drc: { $arrayElemAt: ["$drc", -1] },
+      },
+    });
+
+    pipeline.push({
+      $match: {
+        "last_drc.removed_dtm": null,
+        $expr: {
+          $gt: ["$last_drc.expire_dtm", new Date()]
+        }
+      },
+    });
+
+    
+    pipeline.push({
+      $match: {
+        "last_drc.drc_id": Number(drc_id),
+      },
+    });
+
+    if (arrears_band) {
+      pipeline.push({
+        $match: { arrears_band },
+      });
+    }
+
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endofDate = new Date(to_date);
+      endofDate.setHours(23, 59, 59, 999); //
+      dateFilter.$lte = endofDate;
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({
+        $match: { "last_drc.created_dtm": dateFilter },
+      });
+    }
+
+    pipeline.push({
+      $match: {
+        $or: [
+          { "last_drc.recovery_officers": { $exists: false } },
+          { "last_drc.recovery_officers": null },
+          { "last_drc.recovery_officers": { $size: 0 } },
+        ],
+      },
+    });
+
+    // Pagination
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // const filtered_cases = await Case_details.aggregate(pipeline);
+
+    const filtered_cases = await Case_details.aggregate(pipeline);
+
+    // Handle case where no matching cases are found
+    // if (filtered_cases.length === 0) {
+    //   return res.status(204).json({
+    //     status: "error",
+    //     message: "No matching cases found for the given criteria.",
+    //     errors: {
+    //       code: 404,
+    //       description: "No cases satisfy the provided criteria.",
+    //     },
+    //   });
+    // }
+
+    // Use Promise.all to handle asynchronous operations
+    const formattedCases = await Promise.all(
+      filtered_cases.map(async (caseData) => {
+        return {
+          case_id: caseData.case_id,
+          account_no: caseData.account_no,
+          status: caseData.case_current_status,
+          created_dtm: caseData.last_drc.created_dtm,
+          current_arreas_amount: caseData.current_arrears_amount,
+          area: caseData.rtom,
+          action_type: caseData.action_type,
+          remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
+          expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
+          ro_name: caseData.last_ro ? caseData.last_ro.ro_name : null,
+          assigned_date: caseData.last_ro
+            ? caseData.last_ro.assigned_dtm
+            : null,
+        };
+      })
+    );
+
+    // Return success response
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: formattedCases,
+    });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while retrieving cases.",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
+export const List_Handling_Cases_By_DRC_With_RO = async (req, res) => {
+  const { drc_id, rtom, ro_id, arrears_band, from_date, to_date, pages } =
+    req.body;
+
+  try {
+    // Validate the DRC ID
+    if (!drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve DRC details.",
+        errors: {
+          code: 400,
+          description: "DRC ID is required.",
+        },
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    // Ensure at least one optional parameter is provided
+    // if (!rtom && !ro_id && !arrears_band && !(from_date && to_date)) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, arrears_band, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
+
+    const allowedStatusTypes = [
+      "Open With Agent",
+      "RO Negotiation",
+      "Negotiation Settle Pending",
+      "Negotiation Settle Open-Pending",
+      "Negotiation Settle Active",
+      "RO Negotiation Extension Pending",
+      "RO Negotiation Extended",
+      "RO Negotiation FMB Pending",
+      "Forward to Mediation Board",
+      "MB Negotiation",
+      "MB Request Customer-Info",
+      "MB Handover Customer-Info",
+      "MB Settle Pending",
+      "MB Settle Open-Pending",
+      "MB Settle Active",
+      "MB Fail with Pending Non-Settlement",
+    ];
+
+    const pipeline = [];
+
+    // Match allowed status
+    pipeline.push({
+      $match: {
+        case_current_status: { $in: allowedStatusTypes },
+      },
+    });
+
+    // Optional filters
+    // if (rtom) {
+    //   pipeline.push({ $match: { rtom: rtom } });
+    // }
+    if (rtom) {
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $trim: { input: { $toLower: "$rtom" } } },
+              rtom.toLowerCase().trim()
+            ]
+          }
+        }
+      });
+    }
+
+    // Add a projection to get the last DRC entry
+    pipeline.push({
+      $addFields: {
+        last_drc: { $arrayElemAt: ["$drc", -1] },
+      },
+    });
+
+    pipeline.push({
+      $match: {
+        "last_drc.removed_dtm": null,
+        $expr: {
+          $gt: ["$last_drc.expire_dtm", new Date()]
+        }
+      },
+    });
+
+    
+    pipeline.push({
+      $match: {
+        "last_drc.drc_id": Number(drc_id),
+      },
+    });
+
+    if (arrears_band) {
+      pipeline.push({
+        $match: { arrears_band },
+      });
+    }
+
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endofDate = new Date(to_date);
+      endofDate.setHours(23, 59, 59, 999); //
+      dateFilter.$lte = endofDate;
+    }
+
+    // pipeline.push({
+    //   $addFields: {
+    //     last_mediation_board: { $arrayElemAt: ['$mediation_board', -1] }
+    //   }
+    // });
+
+    if (Object.keys(dateFilter).length > 0) {
+      pipeline.push({
+        $match: { "last_drc.created_dtm": dateFilter },
+      });
+    }
+
+    pipeline.push({
+      $match: {
+        "last_drc.recovery_officers": {
+          $type: "array"
+        },
+        $expr: {
+          $gt: [{ $size: "$last_drc.recovery_officers" }, 0]
+        }
+      }
+    });
+
+
+    pipeline.push({
+      // $addFields: {
+      //   last_ro: { $arrayElemAt: ['$last_drc.recovery_officers', -1] }
+      // }
+      $addFields: {
+        last_ro: {
+          $cond: {
+            if: {
+              $and: [
+                { $isArray: "$last_drc.recovery_officers" },
+                { $gt: [{ $size: "$last_drc.recovery_officers" }, 0] },
+              ],
+            },
+            then: { $arrayElemAt: ["$last_drc.recovery_officers", -1] },
+            else: null,
+          },
+        },
+      },
+    });
+
+    if (ro_id) {
+      pipeline.push({
+        $match: {
+          "last_ro.ro_id": Number(ro_id),
+        },
+      });
+    }
+
+    // pipeline.push({
+    //   $lookup: {
+    //     from: "Recovery_officer", // name of the recovery officer collection
+    //     localField: "last_ro.ro_id",
+    //     foreignField: "ro_id",
+    //     as: "recovery_officer",
+    //   },
+    // });
+
+    // Optionally flatten the result if you expect only one match
+    // pipeline.push({
+    //   $addFields: {
+    //     recovery_officer: { $arrayElemAt: ["$recovery_officer", 0] }
+    //   }
+    // });
+
+
+
+    // Pagination
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // const filtered_cases = await Case_details.aggregate(pipeline);
+
+    const filtered_cases = await Case_details.aggregate(pipeline);
+
+    // Handle case where no matching cases are found
+    // if (filtered_cases.length === 0) {
+    //   return res.status(204).json({
+    //     status: "error",
+    //     message: "No matching cases found for the given criteria.",
+    //     errors: {
+    //       code: 404,
+    //       description: "No cases satisfy the provided criteria.",
+    //     },
+    //   });
+    // }
+
+    // Use Promise.all to handle asynchronous operations
+    const formattedCases = await Promise.all(
+      filtered_cases.map(async (caseData) => {
+        // const lastDrc = caseData.drc[caseData.drc.length - 1]; // Get the last DRC object
+        // const lastRecoveryOfficer =
+        //   lastDrc.recovery_officers[lastDrc.recovery_officers.length - 1] || {};
+
+        // // Fetch matching recovery officer asynchronously
+        // const matchingRecoveryOfficer = await RecoveryOfficer.findOne({
+        //   ro_id: lastRecoveryOfficer.ro_id,
+        // });
+
+        return {
+          case_id: caseData.case_id,
+          account_no: caseData.account_no,
+          status: caseData.case_current_status,
+          created_dtm: caseData.last_drc.created_dtm,
+          current_arreas_amount: caseData.current_arrears_amount,
+          area: caseData.rtom,
           action_type: caseData.action_type,
           remark: caseData.remark?.[caseData.remark.length - 1]?.remark || null,
           expire_dtm: caseData.last_drc ? caseData.last_drc.expire_dtm : null,
@@ -1889,13 +2328,20 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
       last_payment_date: caseData.last_payment_date,
       rtom: caseData.rtom || null,
       ref_products: refProductsCPECollect || null,
-      ro_negotiation: caseData.ro_negotiation || null,
+      // ro_negotiation: caseData.ro_negotiation || null,
       ro_negotiation: caseData.ro_negotiation
         ? caseData.ro_negotiation.filter(
             (ronegotiation) => ronegotiation.drc_id === Number(drc_id)
           )
         : null,
-      ro_requests: caseData.ro_requests || null,
+      ro_negotiation_re_assign_ro: caseData.ro_negotiation
+        ? caseData.ro_negotiation.filter(
+            (ronegotiation) => 
+              ronegotiation.drc_id === Number(drc_id) &&
+              ronegotiation.ro_id === matchingRecoveryOfficer?.ro_id
+          )
+        : null,
+      // ro_requests: caseData.ro_requests || null,
       ro_requests: caseData.ro_requests
         ? caseData.ro_requests.filter(
             (rorequests) => rorequests.drc_id === Number(drc_id)
@@ -1925,11 +2371,15 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
           created_dtm: 1,
           settlement_status: 1,
           expire_date: 1,
+          ro_id: 1,
         }
       ).collation({ locale: "en", strength: 2 });
 
       if (settlementData) {
         responseData.settlementData = settlementData;
+        responseData.settlementData_ro_re_assign = settlementData.filter(
+          (settlemet) => settlemet.ro_id === matchingRecoveryOfficer?.ro_id
+        );
       }
     } catch (settlementError) {
       // Log error but continue
@@ -1946,7 +2396,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
         {
           created_dtm: 1,
           money_transaction_amount: 1,
-          cummulative_settled_balance: 1,
+          cummulative_settled_balance: 1
         }
       ).collation({ locale: "en", strength: 2 });
 
@@ -3589,6 +4039,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
       "Case Abandoned Approval",
       "Case Write-Off Approval",
       "Commission Approval",
+      "DRC Agreement"
     ];
 
     let page = Number(pages);
@@ -3727,7 +4178,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { approver_reference, approved_by } = req.body;
+    const { approver_reference, approved_by,approver_id } = req.body;
     if (!approver_reference) {
       await session.abortTransaction();
       session.endSession();
@@ -3741,7 +4192,6 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       session.endSession();
       return res.status(400).json({ message: "approved_by is required" });
     }
-
     const currentDate = new Date();
     // Fetch the document to get approver_type, created_on, and created_by
     const approvalDoc = await TmpForwardedApprover.findOne(
@@ -3762,258 +4212,365 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       return res
         .status(404)
         .json({ message: "No matching approver reference found" });
-    }
-    // Fetch case details to check drc array length and monitor_months
-    const caseDetails = await Case_details.findOne(
-      {
-        case_id: approver_reference,
-      },
-      {
-        monitor_months: 1,
-        drc: 1,
-        case_current_status: 1,
-      }
-    ).session(session);
-    if (!caseDetails) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ message: "No matching case found" });
-    }
-
-    // Validate drc array length and monitor_months
-    if (approvalDoc.approver_type === "DRC Re-Assign Approval") {
-      if (caseDetails.drc && caseDetails.drc.length >= 3) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "Cannot add more DRCs. Maximum limit of 3 DRCs reached.",
-        });
-      }
-
-      if (caseDetails.monitor_months >= 5) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "Cannot add DRC when monitor_months are reached to 5.",
-        });
-      }
-    }
-
-    // Assign created_by as delegate_id
-    const deligate_id = approvalDoc.created_by;
-
-    // Determine status based on approver_type
-    const statusMap = {
-      "DRC Re-Assign Approval": "Open assign agent",
-      "Case Withdrawal Approval": "Case Withdrawed",
-      "Case Abandoned Approval": "Case Abandoned",
-      "Case Write-Off Approval": "Pending Write Off",
-      "Commission Approval": "Commissioned",
     };
-
-    const newStatus = statusMap[approvalDoc.approver_type];
-
-    if (!newStatus) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: "Invalid approver_type" });
-    }
-
-    // Update approve_status and approved_by
-    const result = await TmpForwardedApprover.updateOne(
-      {
-        approver_reference: { $in: approver_reference },
-        approver_type: { $ne: "DRC Assign Approval" },
-      },
-      {
-        $push: {
-          approve_status: {
-            status: "Approve",
-            status_date: currentDate,
-            status_edit_by: approved_by,
+    if(approvalDoc.approver_type === "DRC Agreement"){
+      const start_date = new Date(approvalDoc.parameters.start_date);
+      const end_date = new Date(approvalDoc.parameters.end_date);
+      console.log(end_date);
+      const deligate_id = approvalDoc.created_by;
+      const result = await TmpForwardedApprover.updateOne(
+        {
+          approver_id,
+          approver_reference,
+          approver_type:"DRC Agreement"
+        },
+        {
+          $push: {
+            approve_status: {
+              status: "Approve",
+              status_date: currentDate,
+              status_edit_by: approved_by,
+            },
           },
         },
-      },
-      { session }
-    );
-
-    if (result.modifiedCount === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(304).json({ message: "Approval update failed" });
-    }
-    const payload = { case_status: newStatus };
-    let case_phase = "";
-    try {
-      const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
-        payload
+        { session }
       );
-
-      if (!response.data.case_phase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "case_phase not found in API response",
-        });
-      }
-      case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
-    } catch (error) {
-      console.error("Error during axios call:", error.message);
-      if (error.response) {
-        console.error("API Error Response:", error.response.data);
-      }
-      // Abort and end session on axios error
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        message: "Failed to get case_phase from external API",
-        error: error.message,
-      });
-    }
-    // Update all active DRCs to Inactive if this is a DRC Re-Assign Approval
-    if (
-      approvalDoc.approver_type === "DRC Re-Assign Approval" &&
-      caseDetails.drc &&
-      caseDetails.drc.length > 0
-    ) {
-      // Update all active DRCs to inactive
-      await Case_details.updateOne(
-        { case_id: approver_reference },
+      const agreement_result = await drc_agreement.updateOne(
+        {
+          drc_id:approver_reference,
+          approver_id
+        },
         {
           $set: {
-            "drc.$[elem].drc_status": "Inactive",
-            "drc.$[elem].removed_by": approved_by,
-            "drc.$[elem].removed_dtm": currentDate,
+            agreement_status: "Approved",
+          }
+        },
+        { session }
+      );
+      if(!agreement_result){
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "DRC agreement not updated" }); 
+      }
+      if (result.modifiedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "Approval update failed" });
+      }
+  
+      let caseResult = { modifiedCount: 0 }; 
+  
+      if (end_date > new Date()) {
+        const parameters = {
+          start_date,
+          end_date,
+          drc_id:approver_reference
+        };
+        const taskData = {
+          Template_Task_Id: 33, //python
+          task_type: "python",  //python
+          ...parameters,
+          created_by: approved_by,
+          task_status: "open",
+        };
+        await createTaskFunction(taskData, session);
+      } else {
+        caseResult = await DRC.updateOne(
+          { drc_id: approver_reference },
+          {
+            $push: {
+              status: {
+                drc_status: "Active",
+                drc_status_dtm: new Date(),
+                drc_status_by: approved_by
+              }
+            },
+            $set: {
+              "drc_agreement_details.agreement_status":"Approved"
+            }
           },
+          { session }
+        );
+      }
+  
+      // Create User Interaction Log
+      const interaction_id = 16; //python
+      const request_type = "python"; //python
+      const created_by = approved_by;
+      const dynamicParams = { start_date, end_date, drc_id:approver_reference };
+  
+      await createUserInteractionFunction({
+        Interaction_ID: interaction_id,
+        User_Interaction_Type: request_type,
+        delegate_user_id: deligate_id,
+        Created_By: created_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: new Date(),
+        session,
+        ...dynamicParams,
+      });
+  
+      await session.commitTransaction();
+      session.endSession();
+  
+      return res.status(200).json({
+        message: "Approval added successfully.",
+        updatedCount: result.modifiedCount + caseResult.modifiedCount,
+      });
+    }
+    else{
+      // Fetch case details to check drc array length and monitor_months
+      const caseDetails = await Case_details.findOne(
+        {
+          case_id: approver_reference,
         },
         {
-          arrayFilters: [{ "elem.drc_status": "Active" }],
-          session,
+          monitor_months: 1,
+          drc: 1,
+          case_current_status: 1,
         }
-      );
-    }
+      ).session(session);
+      if (!caseDetails) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "No matching case found" });
+      }
 
-    // Handle DRC Re-Assign Approval
-    let caseUpdateOperation = {
-      $push: {
-        approve: {
-          Approval_Type: approvalDoc.approver_type,
-          approved_process: newStatus,
-          decision: "Approve",
+      // Validate drc array length and monitor_months
+      if (approvalDoc.approver_type === "DRC Re-Assign Approval") {
+        if (caseDetails.drc && caseDetails.drc.length >= 3) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "Cannot add more DRCs. Maximum limit of 3 DRCs reached.",
+          });
+        }
+
+        if (caseDetails.monitor_months >= 5) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "Cannot add DRC when monitor_months are reached to 5.",
+          });
+        }
+      }
+
+      // Assign created_by as delegate_id
+      const deligate_id = approvalDoc.created_by;
+
+      // Determine status based on approver_type
+      const statusMap = {
+        "DRC Re-Assign Approval": "Open assign agent",
+        "Case Withdrawal Approval": "Case Withdrawed",
+        "Case Abandoned Approval": "Case Abandoned",
+        "Case Write-Off Approval": "Pending Write Off",
+        "Commission Approval": "Commissioned",
+      };
+
+      const newStatus = statusMap[approvalDoc.approver_type];
+
+      if (!newStatus) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "Invalid approver_type" });
+      }
+
+      // Update approve_status and approved_by
+      const result = await TmpForwardedApprover.updateOne(
+        {
+          approver_reference: { $in: approver_reference },
+          approver_type: { $ne: "DRC Assign Approval" },
+        },
+        {
+          $push: {
+            approve_status: {
+              status: "Approve",
+              status_date: currentDate,
+              status_edit_by: approved_by,
+            },
+          },
+        },
+        { session }
+      );
+
+      if (result.modifiedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(304).json({ message: "Approval update failed" });
+      }
+      const payload = { case_status: newStatus };
+      let case_phase = "";
+      try {
+        const response = await axios.post(
+          "http://124.43.177.52:6000/app2/get_case_phase",
+          payload
+        );
+
+        if (!response.data.case_phase) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: "case_phase not found in API response",
+          });
+        }
+        case_phase = response.data.case_phase;
+        console.log("case_phase:", case_phase);
+      } catch (error) {
+        console.error("Error during axios call:", error.message);
+        if (error.response) {
+          console.error("API Error Response:", error.response.data);
+        }
+        // Abort and end session on axios error
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(500).json({
+          message: "Failed to get case_phase from external API",
+          error: error.message,
+        });
+      }
+      // Update all active DRCs to Inactive if this is a DRC Re-Assign Approval
+      if (
+        approvalDoc.approver_type === "DRC Re-Assign Approval" &&
+        caseDetails.drc &&
+        caseDetails.drc.length > 0
+      ) {
+        // Update all active DRCs to inactive
+        await Case_details.updateOne(
+          { case_id: approver_reference },
+          {
+            $set: {
+              "drc.$[elem].drc_status": "Inactive",
+              "drc.$[elem].removed_by": approved_by,
+              "drc.$[elem].removed_dtm": currentDate,
+            },
+          },
+          {
+            arrayFilters: [{ "elem.drc_status": "Active" }],
+            session,
+          }
+        );
+      }
+
+      // Handle DRC Re-Assign Approval
+      let caseUpdateOperation = {
+        $push: {
+          approve: {
+            Approval_Type: approvalDoc.approver_type,
+            approved_process: newStatus,
+            decision: "Approve",
+            done_by: approved_by,
+            done_on: currentDate,
+            // approved_by: approved_by,
+            // approved_on: currentDate,
+            remark: "Approved",
+            requested_on: approvalDoc.created_on,
+            requested_by: approvalDoc.created_by,
+          },
+          case_status: {
+            case_status: newStatus,
+            status_reason: "Case Approved",
+            created_dtm: currentDate,
+            created_by: approved_by,
+            case_phase,
+          },
+        },
+        $set: {
+          case_current_status: newStatus,
+          case_current_phase: case_phase,
+        },
+      };
+
+      if (
+        approvalDoc.approver_type === "DRC Re-Assign Approval" &&
+        approvalDoc.parameters
+      ) {
+        const drcId = approvalDoc.parameters?.drc_id;
+        const drcName = approvalDoc.parameters?.drc_name;
+
+        if (drcId && drcName) {
+          caseUpdateOperation.$push.drc = {
+            order_id: null,
+            drc_id: drcId,
+            drc_name: drcName,
+            created_dtm: currentDate,
+            drc_status: "Active",
+            status_dtm: null,
+            expire_dtm: null,
+            case_removal_remark: null,
+            removed_by: null,
+            removed_dtm: null,
+            drc_selection_logic: null,
+            case_distribution_batch_id: null,
+            recovery_officers: [],
+          };
+        } else {
+          return res.status(204).json({
+            message:
+              "Can not add new DRC to drc array because 'drc_id' or 'drc_name' is missing in approval collection document ",
+          });
+        }
+      } else if (approvalDoc.approver_type === "Case Withdrawal Approval") {
+        caseUpdateOperation.$push.abnormal_stop = {
+          remark: "Approved Case Withdrawal Approval",
           done_by: approved_by,
           done_on: currentDate,
-          // approved_by: approved_by,
-          // approved_on: currentDate,
-          remark: "Approved",
-          requested_on: approvalDoc.created_on,
-          requested_by: approvalDoc.created_by,
-        },
-        case_status: {
-          case_status: newStatus,
-          status_reason: "Case Approved",
-          created_dtm: currentDate,
-          created_by: approved_by,
-          case_phase,
-        },
-      },
-      $set: {
-        case_current_status: newStatus,
-        case_current_phase: case_phase,
-      },
-    };
-
-    if (
-      approvalDoc.approver_type === "DRC Re-Assign Approval" &&
-      approvalDoc.parameters
-    ) {
-      const drcId = approvalDoc.parameters?.drc_id;
-      const drcName = approvalDoc.parameters?.drc_name;
-
-      if (drcId && drcName) {
-        caseUpdateOperation.$push.drc = {
-          order_id: null,
-          drc_id: drcId,
-          drc_name: drcName,
-          created_dtm: currentDate,
-          drc_status: "Active",
-          status_dtm: null,
-          expire_dtm: null,
-          case_removal_remark: null,
-          removed_by: null,
-          removed_dtm: null,
-          drc_selection_logic: null,
-          case_distribution_batch_id: null,
-          recovery_officers: [],
+          action: approver_reference,
+          Case_phase: case_phase,
+        };
+      } else if (approvalDoc.approver_type === "Case Abandoned Approval") {
+        caseUpdateOperation.$push.abnormal_stop = {
+          remark: "Approved Case Abandoned Approval",
+          done_by: approved_by,
+          done_on: currentDate,
+          action: approver_reference,
+          Case_phase: case_phase,
+        };
+      } else if (approvalDoc.approver_type === "Case Write-Off Approval") {
+        caseUpdateOperation.$push.abnormal_stop = {
+          remark: "Approved Case Write-Off Approval",
+          done_by: approved_by,
+          done_on: currentDate,
+          action: approver_reference,
+          Case_phase: case_phase,
         };
       } else {
         return res.status(204).json({
-          message:
-            "Can not add new DRC to drc array because 'drc_id' or 'drc_name' is missing in approval collection document ",
+          message: "approver_type is incoerrect one",
         });
       }
-    } else if (approvalDoc.approver_type === "Case Withdrawal Approval") {
-      caseUpdateOperation.$push.abnormal_stop = {
-        remark: "Approved Case Withdrawal Approval",
-        done_by: approved_by,
-        done_on: currentDate,
-        action: approver_reference,
-        Case_phase: case_phase,
-      };
-    } else if (approvalDoc.approver_type === "Case Abandoned Approval") {
-      caseUpdateOperation.$push.abnormal_stop = {
-        remark: "Approved Case Abandoned Approval",
-        done_by: approved_by,
-        done_on: currentDate,
-        action: approver_reference,
-        Case_phase: case_phase,
-      };
-    } else if (approvalDoc.approver_type === "Case Write-Off Approval") {
-      caseUpdateOperation.$push.abnormal_stop = {
-        remark: "Approved Case Write-Off Approval",
-        done_by: approved_by,
-        done_on: currentDate,
-        action: approver_reference,
-        Case_phase: case_phase,
-      };
-    } else {
-      return res.status(204).json({
-        message: "approver_type is incoerrect one",
+
+      // Update Case_details
+      const caseResult = await Case_details.updateOne(
+        { case_id: approver_reference },
+        caseUpdateOperation,
+        { session }
+      );
+
+      // --- Create User Interaction Log ---
+      const interaction_id = 16;
+      const request_type = "Approved DRC Assign Manager Approval";
+      const created_by = approved_by;
+      const dynamicParams = { approver_reference };
+
+      await createUserInteractionFunction({
+        Interaction_ID: interaction_id,
+        User_Interaction_Type: request_type,
+        delegate_user_id: deligate_id,
+        Created_By: created_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: currentDate,
+        session,
+        ...dynamicParams,
+      });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+        message: "Approval added successfully.",
+        updatedCount: result.modifiedCount + caseResult.modifiedCount,
       });
     }
-
-    // Update Case_details
-    const caseResult = await Case_details.updateOne(
-      { case_id: approver_reference },
-      caseUpdateOperation,
-      { session }
-    );
-
-    // --- Create User Interaction Log ---
-    const interaction_id = 16;
-    const request_type = "Approved DRC Assign Manager Approval";
-    const created_by = approved_by;
-    const dynamicParams = { approver_reference };
-
-    await createUserInteractionFunction({
-      Interaction_ID: interaction_id,
-      User_Interaction_Type: request_type,
-      delegate_user_id: deligate_id,
-      Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
-      session,
-      ...dynamicParams,
-    });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      message: "Approval added successfully.",
-      updatedCount: result.modifiedCount + caseResult.modifiedCount,
-    });
   } catch (error) {
     console.error("Error approving DRC Assign Manager Approvals:", error);
     await session.abortTransaction();
@@ -4061,155 +4618,225 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
 export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
-    const { approver_reference, approved_by } = req.body;
-
+    const { approver_reference, approved_by,approver_id } = req.body;
     if (!approver_reference) {
       await session.abortTransaction();
       session.endSession();
       return res
         .status(400)
         .json({ message: "Invalid input, approver_reference is required" });
-    }
-
+    };
+    if (!approver_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .json({ message: "Invalid input, approver_id is required" });
+    };
     if (!approved_by) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: "approved_by is required" });
-    }
-
+    };
     const currentDate = new Date();
-
     // Fetch only created_on and created_by from the approval document
     const approvalDocFields = await TmpForwardedApprover.findOne(
-      {
-        approver_reference: { $in: approver_reference },
-        approver_type: { $ne: "DRC Assign Approval" },
-      },
-      { created_on: 1, created_by: 1 }
+      {approver_id},
+      { created_on: 1, created_by: 1,approver_type:1 }
     ).session(session);
-
     if (!approvalDocFields) {
       await session.abortTransaction();
       session.endSession();
       return res
         .status(404)
         .json({ message: "No matching approver reference found" });
-    }
-
-    // Get the last two case status entries (most recent at the end)
-    const caseStatusFields = await Case_details.findOne(
-      { case_id: approver_reference },
-      { case_status: { $slice: -2 } }
-    ).session(session);
-
-    if (!caseStatusFields) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ message: "No matching case found" });
-    }
-
-    // Get the previous status (second-to-last element if exists, otherwise null)
-    let previousStatus = null;
-    if (
-      caseStatusFields.case_status &&
-      caseStatusFields.case_status.length > 1
-    ) {
-      // When we have at least 2 elements, index 0 is the second-to-last
-      previousStatus = caseStatusFields.case_status[0].case_status;
-    }
-
-    // If we couldn't find a previous status, return an error
-    if (previousStatus === null) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(400)
-        .json({ message: "Cannot find previous case status" });
-    }
-
-    // Assign created_by as delegate_id
-    const deligate_id = approvalDocFields.created_by;
-
-    // Update approve_status and approved_by
-    const result = await TmpForwardedApprover.updateOne(
-      {
-        approver_reference: { $in: approver_reference },
-        approver_type: { $ne: "DRC Assign Approval" },
-      },
-      {
-        $push: {
-          approve_status: {
-            status: "Reject",
-            status_date: currentDate,
-            status_edit_by: approved_by,
+    };
+    if(approvalDocFields.approver_type === "DRC Agreement"){
+      const deligate_id = approvalDocFields.created_by;
+      const result = await TmpForwardedApprover.updateOne(
+        {
+          approver_id,
+          approver_reference,
+          approver_type:"DRC Agreement"
+        },
+        {
+          $push: {
+            approve_status: {
+              status: "Rejected",
+              status_date: currentDate,
+              status_edit_by: approved_by,
+            },
           },
         },
-      },
-      { session }
-    );
-
-    if (result.modifiedCount === 0) {
-      await session.abortTransaction();
+        { session }
+      );
+      const agreement_result = await drc_agreement.updateOne(
+        {
+          drc_id:approver_reference,
+          approver_id
+        },
+        {
+          $set: {
+            agreement_status: "Rejected",
+          }
+        },
+        { session }
+      );
+      if(!agreement_result.modifiedCount === 0){
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "DRC agreement not updated" }); 
+      }
+      if (result.modifiedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "Approval update failed" });
+      };
+      const drcresult = await DRC.updateOne(
+        { drc_id: approver_reference },
+        {
+          $set: {
+            "drc_agreement_details.agreement_status":"Rejected"
+          }
+        },
+        { session }
+      );
+      if (drcresult.modifiedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "DRC update failed" });
+      };
+      const dynamicParams = {drc_id:approver_reference };
+      await createUserInteractionFunction({
+        Interaction_ID: 16, //python
+        User_Interaction_Type: "python", //python
+        delegate_user_id: deligate_id,
+        Created_By: approved_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: new Date(),
+        session,
+        ...dynamicParams,
+      });
+      await session.commitTransaction();
       session.endSession();
-      return res.status(304).json({ message: "Rejection update failed" });
-    }
+      return res.status(200).json({
+        message: "Reject added successfully.",
+      });
+    };
+    if (!["DRC Assign Approval", "DRC Agreement"].includes(approvalDocFields.approver_type)) {
+      const caseStatusFields = await Case_details.findOne(
+        { case_id: approver_reference },
+        { case_status: { $slice: -2 } }
+      ).session(session);
 
-    // Update approve array in CaseDetails with requested_on and requested_by
-    const caseResult = await Case_details.updateOne(
-      { case_id: approver_reference },
-      {
-        $push: {
-          approve: {
-            approved_process: previousStatus,
-            // rejected_by: approved_by,
-            // rejected_on: currentDate,
-            // approved_on: null,
-            decision: "Reject",
-            done_by: approved_by,
-            done_on: currentDate,
-            remark: "Approval Rejected",
-            requested_on: approvalDocFields.created_on,
-            requested_by: approvalDocFields.created_by,
-          },
-          case_status: {
-            case_status: previousStatus,
-            status_reason: "Approval Rejected",
-            created_dtm: currentDate,
-            created_by: approved_by,
-            case_phase: "Negotiation",
+      if (!caseStatusFields) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "No matching case found" });
+      }
+
+      // Get the previous status (second-to-last element if exists, otherwise null)
+      let previousStatus = null;
+      if (
+        caseStatusFields.case_status &&
+        caseStatusFields.case_status.length > 1
+      ) {
+        // When we have at least 2 elements, index 0 is the second-to-last
+        previousStatus = caseStatusFields.case_status[0].case_status;
+      }
+
+      // If we couldn't find a previous status, return an error
+      if (previousStatus === null) {
+        await session.abortTransaction();
+        session.endSession();
+        return res
+          .status(400)
+          .json({ message: "Cannot find previous case status" });
+      }
+
+      // Assign created_by as delegate_id
+      const deligate_id = approvalDocFields.created_by;
+
+      // Update approve_status and approved_by
+      const result = await TmpForwardedApprover.updateOne(
+        {
+          approver_reference: { $in: approver_reference },
+          approver_type: { $ne: "DRC Assign Approval" },
+        },
+        {
+          $push: {
+            approve_status: {
+              status: "Reject",
+              status_date: currentDate,
+              status_edit_by: approved_by,
+            },
           },
         },
-        $set: {
-          case_current_status: previousStatus,
-          case_current_phase: "Negotiation",
+        { session }
+      );
+
+      if (result.modifiedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(304).json({ message: "Rejection update failed" });
+      }
+
+      // Update approve array in CaseDetails with requested_on and requested_by
+      const caseResult = await Case_details.updateOne(
+        { case_id: approver_reference },
+        {
+          $push: {
+            approve: {
+              approved_process: previousStatus,
+              // rejected_by: approved_by,
+              // rejected_on: currentDate,
+              // approved_on: null,
+              decision: "Reject",
+              done_by: approved_by,
+              done_on: currentDate,
+              remark: "Approval Rejected",
+              requested_on: approvalDocFields.created_on,
+              requested_by: approvalDocFields.created_by,
+            },
+            case_status: {
+              case_status: previousStatus,
+              status_reason: "Approval Rejected",
+              created_dtm: currentDate,
+              created_by: approved_by,
+              case_phase: "Negotiation",
+            },
+          },
+          $set: {
+            case_current_status: previousStatus,
+            case_current_phase: "Negotiation",
+          },
         },
-      },
-      { session }
-    );
+        { session }
+      );
 
-    // --- Create User Interaction Log ---
-    const dynamicParams = { approver_reference };
+      // --- Create User Interaction Log ---
+      const dynamicParams = { approver_reference };
 
-    await createUserInteractionFunction({
-      Interaction_ID: 17,
-      User_Interaction_Type: "Rejected DRC Assign Manager Approval",
-      delegate_user_id: deligate_id,
-      Created_By: approved_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
-      session,
-      ...dynamicParams,
-    });
+      await createUserInteractionFunction({
+        Interaction_ID: 17,
+        User_Interaction_Type: "Rejected DRC Assign Manager Approval",
+        delegate_user_id: deligate_id,
+        Created_By: approved_by,
+        User_Interaction_Status: "Open",
+        User_Interaction_Status_DTM: currentDate,
+        session,
+        ...dynamicParams,
+      });
 
-    await session.commitTransaction();
-    session.endSession();
+      await session.commitTransaction();
+      session.endSession();
 
-    return res.status(200).json({
-      message: "Rejection added successfully.",
-      updatedCount: result.modifiedCount + caseResult.modifiedCount,
-    });
+      return res.status(200).json({
+        message: "Rejection added successfully.",
+        updatedCount: result.modifiedCount + caseResult.modifiedCount,
+      });
+    };
   } catch (error) {
     console.error("Error rejecting DRC Assign Manager Approvals:", error);
     await session.abortTransaction();
@@ -5775,7 +6402,7 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
       case_current_status: { $in: allowedStatuses },
     };
 
-    if (rtom) query.area = rtom;
+    if (rtom) query.rtom = rtom;
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {

@@ -128,8 +128,8 @@ const remarkSchema = new Schema({
 const companyStatusSchema = new Schema({
   drc_status: {
     type: String,
-    enum: ["Active", "Inactive", "Terminate"],
-    default: "Inactive",
+    enum: ["Active", "Inactive", "Pending", "Terminate"],
+    default: "Pending",
   },
   drc_status_dtm: {
     type: Date,
@@ -158,7 +158,7 @@ const agreementDetailsSchema = new Schema({
   agreement_status: {
     type: String,
     enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
-    required: true
+    default: null,
   },
 }, { _id: false });
 
