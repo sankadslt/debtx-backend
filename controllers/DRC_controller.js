@@ -948,7 +948,7 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       let taskCreatedResponse;
       const dynamicParams = {
         drc_id: drc_id,
-        end_dtm
+        end_dtm: terminate_dtm,
       };
 
       // Create Task for Approved Approver
