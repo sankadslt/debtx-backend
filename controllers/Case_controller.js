@@ -4216,7 +4216,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     if(approvalDoc.approver_type === "DRC Agreement"){
       const start_date = new Date(approvalDoc.parameters.start_date);
       const end_date = new Date(approvalDoc.parameters.end_date);
-      console.log(end_date);
+      console.log(start_date);
       const deligate_id = approvalDoc.created_by;
       const result = await TmpForwardedApprover.updateOne(
         {
@@ -4259,8 +4259,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       }
   
       let caseResult = { modifiedCount: 0 }; 
-  
-      if (end_date > new Date()) {
+      console.log("Start Date:", start_date > new Date());
+      if (start_date > new Date()) {
         const parameters = {
           start_date,
           end_date,
