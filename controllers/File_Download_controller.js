@@ -92,8 +92,9 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
       status: "success",
       message: "File download logs retrieved successfully.",
       data: responseData,
-     
+      
     });
+    console.log("responseData",responseData)
   } catch (error) {
     console.error("Error fetching File download logs:", error);
     return res.status(500).json({
