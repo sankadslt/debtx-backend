@@ -6,7 +6,7 @@ const contactNumberSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-});
+}, { _id: false }); // Disable _id for sub-schema
 
 // Sub-schema for remarks
 const remarkSchema = new mongoose.Schema({

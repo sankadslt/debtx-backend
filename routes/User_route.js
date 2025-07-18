@@ -12,12 +12,12 @@
 
 // user_route.mjs
 import { Router } from "express";
-import { End_User, getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID, Update_User_Details, List_User_Approval_Details, Create_User } from "../controllers/User_controller.js";
+import { End_User, getUserDetailsByRole, List_All_User_Details, List_All_User_Details_By_ID, Update_User_Details, List_User_Approval_Details, Create_User, List_All_User_Details_By_ID_for_DRC } from "../controllers/User_controller.js";
  
 const router = Router();
 
 router.post('/Obtain_User_List_Owned_By_User_Roles', getUserDetailsByRole);
-
+ 
 /**
  * @swagger
  * tags:
@@ -638,5 +638,7 @@ router.patch('/End_User', End_User);
 router.post('/Create_User', Create_User);
 
 router.post('/List_User_Approval_Details', List_User_Approval_Details);
+
+router.post('/List_All_User_Details_By_ID_for_DRC', List_All_User_Details_By_ID_for_DRC);
 
 export default router;

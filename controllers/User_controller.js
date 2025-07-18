@@ -165,7 +165,7 @@ export const List_All_User_Details = async (req, res) => {
       },
     });
   }
-};
+}; 
 
 /*
     Function: 
@@ -222,9 +222,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   try {
     const user = await User.aggregate([
       { $match: { 
-        user_id: user_id, 
-        user_type: "Slt", 
-        user_status: "Active" 
+        user_id: user_id,
       } },
       {
         $project: {
@@ -865,6 +863,70 @@ export const Create_User = async (req, res) => {
       status: "error",
       message: "Failed to register user.",
       errors: { exception: error.message },
+    });
+  }
+};
+
+export const List_All_User_Details_By_ID_for_DRC = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "User ID is required.",
+    });
+  }
+
+  try {
+    const user = await User.aggregate([
+      { $match: { 
+        user_id: user_id, 
+        user_type: "Slt", 
+        user_status: "Active" 
+      } },
+      {
+        $project: {
+          _id: 0,
+          username: 1,
+          user_type: 1,
+          email: 1,
+          contact_num: 1,
+          login_method: 1,
+          role: 1,
+          user_status: 1,
+          Created_DTM: 1,
+          Created_BY: 1,
+          Approved_DTM: 1,
+          Approved_By: 1,
+          User_End_DTM: 1,
+          Remark: 1,
+        },
+      },
+    ]);
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No user found with the given user ID.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User details retrieved successfully.",
+      data: user[0],
+    });
+
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
     });
   }
 };

@@ -467,7 +467,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
   3. Return the result in a clean, structured response.
   4. Handle all errors with appropriate logging and status codes.
 */
-
 export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
@@ -898,12 +897,10 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
   5. Handle and log any server or DB errors.
 */
 export const Terminate_Company_By_DRC_ID = async (req, res) => {
-  const session = await db.startSession(); // Start MongoDB session
-  session.startTransaction();
-
   try {
     const { drc_id, remark, terminate_by, terminate_dtm } = req.body;
 
+    // Validate input
     if (!drc_id || !remark || !terminate_dtm || !terminate_by) {
       return res.status(400).json({
         status: "error",
@@ -911,10 +908,10 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       });
     }
 
-    const company = await DRC.findOne({ drc_id }).session(session);
+    // Find the company first to verify it exists
+    const company = await DRC.findOne({ drc_id });
+
     if (!company) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(404).json({
         status: "error",
         message: `No Debt Company found with DRC_ID: ${drc_id}.`,
@@ -926,14 +923,14 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     terminateDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
-    const updateObj = {
+    const updateterminates = {
       $set: {
         drc_terminate_dtm: terminate_dtm,
         drc_terminate_by: terminate_by,
       },
       $push: {
         remark: {
-          remark,
+          remark: remark,
           remark_dtm: new Date(),
           remark_by: terminate_by,
         },
@@ -941,36 +938,38 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     };
 
     if (terminateDate.getTime() === today.getTime()) {
-      updateObj.$push.status = {
+      updateterminates.$push.status = {
         drc_status: "Terminate",
         drc_status_dtm: new Date(),
         drc_status_by: terminate_by,
       };
     } else {
-      const dynamicParams = {
-        drc_id,
-        end_dtm: terminate_dtm,
-      };
+      // let taskCreatedResponse;
+      // const dynamicParams = {
+      //   drc_id: drc_id,
+      //   end_dtm: terminate_dtm,
+      // };
 
-      const taskData = {
-        Template_Task_Id: 55,
-        task_type: "Create Task for terminate DRC",
-        ...dynamicParams,
-        Created_By: terminate_by,
-        task_status: "open",
-      };
+      // // Create Task for Approved Approver
+      // const taskData = {
+      //   Template_Task_Id: 55,
+      //   task_type: "Create Task for  terminate  DRC",
+      //   ...dynamicParams,
+      //   Created_By: terminate_by,
+      //   task_status: "open",
+      // };
 
-      await createTaskFunction(taskData, session);
+      // taskCreatedResponse = await createTaskFunction(taskData);
+
+      console.log("Terminate DRC will be processed later, no immediate status update.");
     }
 
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
-      updateObj,
-      { new: true, session }
+      updateterminates,
+      // taskCreatedResponse,
+      { new: true }
     );
-
-    await session.commitTransaction();
-    session.endSession();
 
     return res.status(200).json({
       status: "success",
@@ -978,9 +977,6 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
       data: updatedCompany,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-
     console.error("Error terminating company:", error);
     return res.status(500).json({
       status: "error",
@@ -989,7 +985,6 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
     });
   }
 };
-
 
 export const List_RTOM_Details_Owen_By_DRC_ID = async (req, res) => {
   try {
