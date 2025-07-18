@@ -212,6 +212,8 @@ export const List_All_User_Details = async (req, res) => {
 export const List_All_User_Details_By_ID = async (req, res) => {
   const { user_id } = req.body;
 
+  console.log("User ID:", user_id);
+  
   if (!user_id) {
     return res.status(400).json({
       status: "error",
@@ -460,9 +462,10 @@ export const End_User = async (req, res) => {
 */
 export const Update_User_Details = async (req, res) => {
   const session = await mongoose.startSession();
-
+  
   try {
     const { user_id, updated_by, role, user_status, remark } = req.body;
+    console.log("Request Body", req.body);
     
     // Validate User ID
     if (!user_id) {
@@ -752,7 +755,6 @@ export const List_User_Details_By_Service = async (req, res) => {
 
 export const Create_User = async (req, res) => {
   const {
-    user_id,
     user_type,
     username,
     email,
@@ -764,6 +766,8 @@ export const Create_User = async (req, res) => {
     created_by,
   } = req.body;
 
+  let session = null;
+
   try {
     if (!user_type || !username || !email || !contact_no || !login_method || !role) {
       return res.status(400).json({
@@ -772,28 +776,26 @@ export const Create_User = async (req, res) => {
       });
     }
 
-    if (user_type === "Slt") {
-      if (!user_id) {
+    if (user_type === "Drcuser") {
+      if (!drc_id) {
         return res.status(400).json({
           status: "error",
-          message: "user_id is required for SLT users.",
+          message: "DRC is required for DRC users.",
         });
       }
-    } else if (user_type === "Drcuser") {
-      if (!drc_id || !nic) {
+      if (!nic) {
         return res.status(400).json({
           status: "error",
-          message: "drc_id and nic are required for DRC users.",
+          message: "NIC is required for DRC users.",
         });
       }
-    } else {
-      return res.status(400).json({
-        status: "error",
-        message: "Invalid user_type. Must be either 'slt' or 'drc'.",
-      });
     }
 
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     const mongoConnection = await db.connectMongoDB();
+    const currentDate = new Date();
 
     const formattedContactNumbers = Array.isArray(contact_no)
       ? contact_no.map((num) => ({ contact_number: Number(num) }))
@@ -804,13 +806,11 @@ export const Create_User = async (req, res) => {
       .findOneAndUpdate(
         { _id: "user_sequence" },
         { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true }
+        { returnDocument: "after", upsert: true, session }
       );
 
     const User_Sequence = counterResult.value?.seq || counterResult.seq;
-    if (!User_Sequence) {
-      throw new Error("Failed to generate User_Sequence.");
-    }
+    if (!User_Sequence) throw new Error("Failed to generate User_Sequence.");
 
     const newUser = new User({
       User_Sequence,
@@ -822,48 +822,119 @@ export const Create_User = async (req, res) => {
       role,
       user_status: "Active",
       User_Status_Type: "user_update",
-      User_Status_DTM: new Date(),
+      User_Status_DTM: currentDate,
       User_Status_By: created_by,
       User_End_DTM: null,
       User_End_By: null,
       Created_BY: created_by,
-      Created_DTM: new Date(),
+      Created_DTM: currentDate,
       Approved_By: null,
       Approved_DTM: null,
-      Remark: [
-        {
-          remark: "User Created",
-          remark_dtm: new Date(),
-          remark_by: created_by,
-        },
-      ],
+      Remark: [{
+        remark: "User Created",
+        remark_dtm: currentDate,
+        remark_by: created_by,
+      }],
     });
 
     if (user_type === "Slt") {
-      newUser.user_id = user_id;
+      newUser.user_id = User_Sequence;
     }
 
     if (user_type === "Drcuser") {
       newUser.drc_id = drc_id;
-      newUser.nic = nic;
-      newUser.drcUser_id = drc_id;
+      newUser.user_nic = nic;
+      newUser.user_id = User_Sequence;
+      newUser.drcUser_id = User_Sequence;
     }
 
-    await newUser.save();
+    // === Check if user already exists ===
+    let conflictConditions = [{ email }];
+    if (user_type === "Slt") {
+      conflictConditions.push({ user_id: User_Sequence });
+    }
+    if (user_type === "Drcuser") {
+      conflictConditions.push({ nic, user_id: User_Sequence });
+    }
+
+    const existingUser = await User.findOne({ $or: conflictConditions }).session(session);
+
+    if (existingUser) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        status: "error",
+        message: "A user with the same email or ID already exists.",
+      });
+    }
+
+    await newUser.save({ session });
+
+    // === User Approval Logic ===
+    const approvalCounter = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "user_approver_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+    const user_approver_id = approvalCounter.value?.seq || approvalCounter.seq;
+    if (!user_approver_id) throw new Error("Failed to generate user_approver_id.");
+
+    // const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
+    const formattedUserType = user_type === "Drcuser" ? "DRC User" : "Slt";
+
+    const userApproval = new User_Approval({
+      doc_version: 1,
+      user_approver_id,
+      User_Type: formattedUserType,
+      User_id: User_Sequence,
+      DRC_id: drc_id,
+      created_by,
+      created_on: currentDate,
+      approve_status: "Open",
+      approve_status_on: currentDate,
+      approver_type: user_type === "Slt" ? "SLT_user_registration" : "DRC_user_registration",
+      approved_Deligated_by: created_by,
+      remark: "User created and pending approval.",
+      Parameters: {
+        username,
+        email,
+        contact_no,
+        login_method,
+        role,
+        user_id: User_Sequence,
+        ...(user_type === "Drcuser" && {
+          drc_id,
+          nic,
+        }),
+      },
+      existing_reference_id: null,
+    });
+
+    const userApprovalRecord = await userApproval.save({ session });
+
+    await session.commitTransaction();
 
     return res.status(201).json({
       status: "success",
-      message: "User registered successfully.",
-      data: { newUser },
+      message: "User registered successfully and sent for approval.",
+      data: {
+        user: newUser,
+        userApproval: userApprovalRecord,
+      }
     });
 
   } catch (error) {
-    console.error("Error in Create_User:", error.message);
+    if (session) await session.abortTransaction();
+    console.error("Error in Create_User:", error);
     return res.status(500).json({
       status: "error",
       message: "Failed to register user.",
       errors: { exception: error.message },
     });
+  } finally {
+    if (session) await session.endSession();
   }
 };
 
@@ -930,6 +1001,7 @@ export const List_All_User_Details_By_ID_for_DRC = async (req, res) => {
     });
   }
 };
+
 
 
 
