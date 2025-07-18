@@ -4,6 +4,7 @@ Reject_Case,
 Create_Incident, Upload_DRS_File,
 
 List_Incidents,
+New_List_Incidents,
 Create_Task_For_Incident_Details,
 
 total_F1_filtered_Incidents,
@@ -324,7 +325,8 @@ router.patch("/Reject_Case", Reject_Case);
  *                   example: "Internal server error."
  */
 router.post("/List_Incidents", List_Incidents);
-    
+router.post("/New_List_Incidents", New_List_Incidents);
+
 /**
  * @swagger
  * /api/incident/Create_Incident:
