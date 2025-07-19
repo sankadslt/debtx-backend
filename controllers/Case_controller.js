@@ -6894,6 +6894,7 @@ export const CaseDetailsforDRC = async (req, res) => {
         current_arrears_amount: 1,
         current_contact: 1,
         rtom: 1,
+        area:1,
         ref_products: 1,
         last_payment_date: 1,
         money_transactions: 1,
