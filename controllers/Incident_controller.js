@@ -516,127 +516,48 @@ export const List_Incidents = async (req, res) => {
 }; 
 
 
-// export const New_List_Incidents = async (req, res) => {
-//   try {
-//     const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
 
-//     let query = {};
-//     if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date) {
-//       const incidents = await Incident.find(query)
-//         .sort({ Incident_Id: -1 });
-//         // .limit(10);
-//       return res.status(200).json({
-//         status: "success",
-//         message: "Incidents retrieved successfully.",
-//         incidents,
-//       });
-//     }
-//     if (From_Date && To_Date) {
-//       const startDate = new Date(From_Date);
-//       const endDate = new Date(To_Date);
-//       query.Created_Dtm = {
-//         $gte: startDate,
-//         $lte: endDate,
-//       };
-//     } else if (From_Date || To_Date) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Both From_Date and To_Date must be provided together.",
-//       });
-//     }
-
-//     if (Actions) {
-//       query.Actions = Actions;
-//     }
-//     if (Incident_Status) {
-//       query.Incident_Status = Incident_Status;
-//     }
-//     if (Source_Type) {
-//       query.Source_Type = Source_Type;
-//     }
-
-//     const incidents = await Incident.find(query);
-
-//     if (incidents.length === 0) {
-//       return res.status(404).json({
-//         status: "error",
-//         message: "No incidents found matching the criteria.",
-//       });
-//     }
-
-//     return res.status(200).json({
-//       status: "success",
-//       message: "Incidents retrieved successfully.",
-//       incidents,
-//     });
-//   } catch (error) {
-//     console.error("Error in List_Incidents:", error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: "Internal server error.",
-//       errors: {
-//         exception: error.message,
-//       },
-//     });
-//   }
-// }; 
 export const New_List_Incidents = async (req, res) => {
   try {
-    const {
-      Actions,
-      Incident_Status,
-      Source_Type,
-      From_Date,
-      To_Date,
-      Account_Num,
-      pages
-    } = req.body;
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Account_Num,
+      pages } = req.body;
 
     let query = {};
-
-    // Pagination setup
-    const pageSize = 10;
-    const currentPage = pages || 1;
-    const skip = (currentPage - 1) * pageSize;
-
-    console.log("=== Backend API Called ===");
-    console.log("Request body:", req.body);
-    console.log("Current page:", currentPage);
-
-    // Date Range Filter
+    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date && !Account_Num && !pages) {
+      const incidents = await Incident.find(query)
+        .sort({ Incident_Id: -1 })
+        .limit(10);
+      return res.status(200).json({
+        status: "success",
+        message: "Incidents retrieved successfully.",
+        incidents,
+      });
+    }
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
-      endDate.setHours(23, 59, 59, 999); // Include full end day
-
       query.Created_Dtm = {
         $gte: startDate,
-        $lte: endDate
+        $lte: endDate,
       };
-
-      console.log("Date filter applied:", query.Created_Dtm);
     } else if (From_Date || To_Date) {
       return res.status(400).json({
         status: "error",
-        message: "Both From_Date and To_Date must be provided together."
+        message: "Both From_Date and To_Date must be provided together.",
       });
     }
 
-    // Other Filters
     if (Actions) {
       query.Actions = Actions;
-      console.log("Actions filter applied:", Actions);
     }
-
     if (Incident_Status) {
       query.Incident_Status = Incident_Status;
-      console.log("Incident_Status filter applied:", Incident_Status);
     }
-
     if (Source_Type) {
       query.Source_Type = Source_Type;
-      console.log("Source_Type filter applied:", Source_Type);
     }
+
+    
 
     if (Account_Num) {
       // Case-insensitive partial match using regex
@@ -644,40 +565,31 @@ export const New_List_Incidents = async (req, res) => {
       console.log("Account_Num filter applied:", Account_Num);
     }
 
-    console.log("Final MongoDB query:", query);
+    const incidents = await Incident.find(query);
 
-    // Fetch incidents with pagination
-    const incidents = await Incident.find(query)
-      .sort({ Created_Dtm: -1 }) // Recent first
-      .skip(skip)
-      .limit(pageSize);
-
-    const totalCount = await Incident.countDocuments(query);
-
-    console.log(`Found ${incidents.length} incidents, Total matching: ${totalCount}`);
+    if (incidents.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No incidents found matching the criteria.",
+      });
+    }
 
     return res.status(200).json({
       status: "success",
-      message: incidents.length === 0
-        ? "No incidents found matching the criteria."
-        : "Incidents retrieved successfully.",
+      message: "Incidents retrieved successfully.",
       incidents,
-      currentPage,
-      hasMore: incidents.length === pageSize,
-      totalFound: totalCount
     });
-
   } catch (error) {
     console.error("Error in New_List_Incidents:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
       errors: {
-        exception: error.message
-      }
+        exception: error.message,
+      },
     });
   }
-};
+}; 
 
 
 const validateTaskParameters = (parameters) => {
