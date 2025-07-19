@@ -4216,7 +4216,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     if(approvalDoc.approver_type === "DRC Agreement"){
       const start_date = new Date(approvalDoc.parameters.start_date);
       const end_date = new Date(approvalDoc.parameters.end_date);
-      console.log(end_date);
+      console.log(start_date);
       const deligate_id = approvalDoc.created_by;
       const result = await TmpForwardedApprover.updateOne(
         {
@@ -4259,8 +4259,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
       }
   
       let caseResult = { modifiedCount: 0 }; 
-  
-      if (end_date > new Date()) {
+      console.log("Start Date:", start_date > new Date());
+      if (start_date > new Date()) {
         const parameters = {
           start_date,
           end_date,
@@ -5840,7 +5840,11 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
-    if (to_date) dateFilter.$lte = new Date(to_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); // Set to end of the day
+      dateFilter.$lte = endOfDay;
+    };
 
     if (Object.keys(dateFilter).length > 0) {
       pipeline.push({
