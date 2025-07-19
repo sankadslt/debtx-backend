@@ -4184,8 +4184,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
     // Fetch the document to get approver_type, created_on, and created_by
     const approvalDoc = await TmpForwardedApprover.findOne(
       {
-        approver_reference: { $in: approver_reference },
-        approver_type: { $ne: "DRC Assign Approval" },
+        approver_id
       },
       {
         created_on: 1,
@@ -4202,9 +4201,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         .json({ message: "No matching approver reference found" });
     };
     if(approvalDoc.approver_type === "DRC Agreement"){
-      const start_date = new Date(approvalDoc.parameters.start_date);
-      const end_date = new Date(approvalDoc.parameters.end_date);
-      console.log(end_date);
+      const start_date = new Date(approvalDoc.parameters.get("start_date"));
+      const end_date = new Date(approvalDoc.parameters.get("end_date"));
       const deligate_id = approvalDoc.created_by;
       const result = await TmpForwardedApprover.updateOne(
         {
@@ -4258,7 +4256,7 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
           Template_Task_Id: 33, //python
           task_type: "python",  //python
           ...parameters,
-          created_by: approved_by,
+          Created_By: approved_by,
           task_status: "open",
         };
         await createTaskFunction(taskData, session);
