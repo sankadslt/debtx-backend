@@ -5749,23 +5749,23 @@ export const Customer_Negotiations = async (req, res) => {
         });
       }
       const payload = {
-        created_by,
-        case_phase: "Negotiation",
-        case_current_status,
-        settlement_type: "Type A",
-        settlement_amount: current_arrears_amount,
-        drc_id,
-        settlement_plan_received: [initial_amount, calender_month],
         case_id,
-        settlement_remark,
-        ro_id,
+        created_by, 
+        settlement_type: "Type A",
+        settlement_plan_received: [initial_amount, calender_month],
+        remark:settlement_remark,
       };
       try {
         const response = await axios.post(
-          "http://124.43.177.52:6000/app3/api/v1/Create_Settlement_Plan",
+          "https://debtx.slt.lk:6500/api/v1/Create_Settlement_Plan",
           payload
         );
-        console.log(response.data);
+        if(response.status === "error" || response.status === "failed"){
+          return res.status(404).json({
+            status: "error",
+            message: response.status_reason
+          });
+        };
       } catch (error) {
         await session.abortTransaction();
         return res.status(500).json({
