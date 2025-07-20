@@ -1190,15 +1190,57 @@ export const getDRCDetailsById = async (req, res) => {
   });
 };
 
+// export const getActiveDRCDetails = async (req, res) => {
+//   try {
+//     const mongoData = await DRC.aggregate([
+//       { $unwind: "$drc_status" },
+//       { $sort: { "drc_status.drc_status_dtm": -1 } },
+//       {
+//         $group: {
+//           _id: "$_id",
+//           latestStatus: { $first: "$drc_status" },
+//           drc_name: { $first: "$drc_name" },
+//           drc_id: { $first: "$drc_id" },
+//         },
+//       },
+//       { $match: { "latestStatus.drc_status": "Active" } },
+//       {
+//         $project: {
+//           _id: 0,
+//           drc_name: 1,
+//           drc_id: 1,
+//         },
+//       },
+//     ]);
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Active DRC names and IDs retrieved successfully.",
+//       data: { mongoData },
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message,
+//       errors: {
+//         code: 500,
+//         description:
+//           "Internal server error occurred while fetching DRC details.",
+//       },
+//     });
+//   }
+// };
+
+
 export const getActiveDRCDetails = async (req, res) => {
   try {
     const mongoData = await DRC.aggregate([
-      { $unwind: "$drc_status" },
-      { $sort: { "drc_status.drc_status_dtm": -1 } },
+      { $unwind: "$status" },
+      { $sort: { "status.drc_status_dtm": -1 } },
       {
         $group: {
           _id: "$_id",
-          latestStatus: { $first: "$drc_status" },
+          latestStatus: { $first: "$status" },
           drc_name: { $first: "$drc_name" },
           drc_id: { $first: "$drc_id" },
         },
@@ -1230,6 +1272,7 @@ export const getActiveDRCDetails = async (req, res) => {
     });
   }
 };
+
 
 export const getDRCWithServicesByDRCId = async (req, res) => {
   //let mysqlData = null;
