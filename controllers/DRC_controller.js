@@ -20,7 +20,7 @@ import RTOM from "../models/Rtom.js";
 import BillingCenter from "../models/DRC_Billing_Center_Log.js";
 import case_inquiry from "../models/Case_inquiry.js";
 import mongoose from "mongoose";
-import Case_details from "../models/Case_details.js";
+import { createTaskFunction } from "../services/TaskService.js";
 import CaseDetails from "../models/Case_details.js";
 
 /**
@@ -467,7 +467,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
   3. Return the result in a clean, structured response.
   4. Handle all errors with appropriate logging and status codes.
 */
-
 export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
@@ -945,12 +944,30 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
         drc_status_by: terminate_by,
       };
     } else {
-      console.log("termination will be done using python script");
+      // let taskCreatedResponse;
+      // const dynamicParams = {
+      //   drc_id: drc_id,
+      //   end_dtm: terminate_dtm,
+      // };
+
+      // // Create Task for Approved Approver
+      // const taskData = {
+      //   Template_Task_Id: 55,
+      //   task_type: "Create Task for  terminate  DRC",
+      //   ...dynamicParams,
+      //   Created_By: terminate_by,
+      //   task_status: "open",
+      // };
+
+      // taskCreatedResponse = await createTaskFunction(taskData);
+
+      console.log("Terminate DRC will be processed later, no immediate status update.");
     }
 
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       updateterminates,
+      // taskCreatedResponse,
       { new: true }
     );
 

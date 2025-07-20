@@ -7,22 +7,26 @@ const RORequestSchema = new Schema(
       type: Number, 
       required: true, 
       unique: true 
-    }, // Unique ID for request
+    }, 
     request_description: { 
       type: String, 
       maxlength: 255,
       required: true 
-    }, // Description of the request
+    },
     end_dtm: { 
       type: Date, 
       required: true 
-    }, // Request end date/time
+    },
     request_mode: { 
       type: String, 
       maxlength: 30,
       enum: ['Negotiation', 'Mediation Board'],
       required: true 
-    }, // Request mode
+    },
+    Intraction_ID: {
+      type:Number,
+      required:true,
+    }
   },
   {
     collection: 'Template_RO_Request',
