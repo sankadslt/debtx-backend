@@ -517,76 +517,120 @@ export const List_Incidents = async (req, res) => {
 
 
 
+
 export const New_List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Account_Num,
-      pages } = req.body;
+    const {
+      Actions,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Account_Num,
+      pages,
+      limit
+    } = req.body;
+
+    console.log("=== New_List_Incidents API Called ===");
+    console.log("Request body:", req.body);
+
+    // Pagination setup
+    const pageSize = limit || 10;
+    const currentPage = pages || 1;
+    const skip = (currentPage - 1) * pageSize;
 
     let query = {};
-    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date && !Account_Num && !pages) {
-      const incidents = await Incident.find(query)
-        .sort({ Incident_Id: -1 })
-        .limit(10);
-      return res.status(200).json({
-        status: "success",
-        message: "Incidents retrieved successfully.",
-        incidents,
-      });
-    }
+
+    // Date Range Filter
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
+      endDate.setHours(23, 59, 59, 999);
+
       query.Created_Dtm = {
         $gte: startDate,
-        $lte: endDate,
+        $lte: endDate
       };
+      console.log("Date filter applied:", query.Created_Dtm);
     } else if (From_Date || To_Date) {
       return res.status(400).json({
         status: "error",
-        message: "Both From_Date and To_Date must be provided together.",
+        message: "Both From_Date and To_Date must be provided together."
       });
     }
 
+    // Other Filters
     if (Actions) {
       query.Actions = Actions;
+      console.log("Actions filter applied:", Actions);
     }
+
     if (Incident_Status) {
       query.Incident_Status = Incident_Status;
+      console.log("Incident_Status filter applied:", Incident_Status);
     }
+
     if (Source_Type) {
       query.Source_Type = Source_Type;
+      console.log("Source_Type filter applied:", Source_Type);
     }
 
-    
-
+    // Account Number filter - exact match for better performance
     if (Account_Num) {
-      // Case-insensitive partial match using regex
-      query.Account_Num = { $regex: new RegExp(Account_Num, "i") };
-      console.log("Account_Num filter applied:", Account_Num);
+      query.Account_Num = Account_Num;
+      console.log("Account_Num filter applied (exact match):", Account_Num);
     }
 
-    const incidents = await Incident.find(query);
+    console.log("Final MongoDB query:", query);
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // Fetch incidents with pagination
+    const incidents = await Incident.find(query)
+      .sort({ Created_Dtm: -1 })
+      .skip(skip)
+      .limit(pageSize);
+
+    const totalCount = await Incident.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    console.log(`Found ${incidents.length} incidents, Total: ${totalCount}, Page: ${currentPage}/${totalPages}`);
+
+    // Transform data to match frontend expectations
+    const transformedIncidents = incidents.map(incident => ({
+      incidentID: incident.Incident_Id,
+      accountNo: incident.Account_Num,
+      status: incident.Incident_Status,
+      action: incident.Actions,
+      sourceType: incident.Source_Type,
+      created_dtm: incident.Created_Dtm,
+      customerName: incident.Customer_Details?.Customer_Name || "N/A",
+      arrears: incident.Arrears || 0,
+      region: incident.Region || "Unknown"
+    }));
 
     return res.status(200).json({
       status: "success",
-      message: "Incidents retrieved successfully.",
-      incidents,
+      message: transformedIncidents.length === 0
+        ? "No incidents found matching the criteria."
+        : "Incidents retrieved successfully.",
+      incidents: transformedIncidents,
+      pagination: {
+        currentPage,
+        totalPages,
+        totalCount,
+        pageSize,
+        hasMore: currentPage < totalPages,
+        hasPrevious: currentPage > 1
+      }
     });
+
   } catch (error) {
     console.error("Error in New_List_Incidents:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
       errors: {
-        exception: error.message,
-      },
+        exception: error.message
+      }
     });
   }
 }; 
