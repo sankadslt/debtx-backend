@@ -5882,7 +5882,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     if (filtered_cases.length === 0) {
-      return res.status(404).json({
+      return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
       });
