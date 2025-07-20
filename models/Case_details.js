@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 const recoveryOfficerSchema = new Schema({
   order_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  ro_name: { type: String, required: true },
   assigned_dtm: { type: Date, required: true },
   assigned_by: { type: String, maxlength: 30, required: true },
   removed_dtm: { type: Date, default: null },
@@ -330,7 +331,7 @@ const caseDetailsSchema = new Schema({
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
   area: { type: String, maxlength: 30, required: true },
-  rtom: { type: Number, maxlength: 30, required: true },
+  rtom: { type: String, maxlength: 30, required: true },
   arrears_band: {type: String, maxlength: 30, required: true},
   bss_arrears_amount: { type: Number, required: true },
   current_arrears_amount: { type: Number, required: true },
