@@ -1193,12 +1193,12 @@ export const getDRCDetailsById = async (req, res) => {
 export const getActiveDRCDetails = async (req, res) => {
   try {
     const mongoData = await DRC.aggregate([
-      { $unwind: "$drc_status" },
-      { $sort: { "drc_status.drc_status_dtm": -1 } },
+      { $unwind: "$status" },
+      { $sort: { "status.drc_status_dtm": -1 } },
       {
         $group: {
           _id: "$_id",
-          latestStatus: { $first: "$drc_status" },
+          latestStatus: { $first: "$status" },
           drc_name: { $first: "$drc_name" },
           drc_id: { $first: "$drc_id" },
         },
