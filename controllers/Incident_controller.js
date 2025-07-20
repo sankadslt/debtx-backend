@@ -27,7 +27,6 @@ const validateCreateTaskParameters = (params) => {
   const { Incident_Id, Account_Num } = params;
 
   if (!Incident_Id || !Account_Num) {
-
     throw new Error(
       "Incident_Id and Account_Num are required parameters for Create_Task."
     );
@@ -48,19 +47,26 @@ const validateCreateTaskParameters = (params) => {
  * - Created_By: String (required)
  * - Source_Type: String (required) [Pilot Suspended, Product Terminate, Special]
  * - Contact_Number: String (required only if DRC_Action is "collect CPE")
- * 
+ *
  * Success Result:
  * - Returns a success response with the created incident and associated task details.
  */
 export const Create_Incident = async (req, res) => {
-
-  const { Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type, Contact_Number } = req.body;
+  const {
+    Account_Num,
+    DRC_Action,
+    Monitor_Months,
+    Created_By,
+    Source_Type,
+    Contact_Number,
+  } = req.body;
 
   // Validate required fields
   if (!Account_Num || !DRC_Action || !Created_By || !Source_Type) {
     return res.status(400).json({
       status: "error",
-      message: "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
+      message:
+        "All fields (Account_Num, DRC_Action, Monitor_Months, Created_By, Source_Type) are required.",
     });
   }
 
@@ -70,11 +76,7 @@ export const Create_Incident = async (req, res) => {
     "collect CPE",
   ];
 
-  const validSourceTypes = [
-    "Pilot Suspended",
-    "Product Terminate",
-    "Special",
-  ];
+  const validSourceTypes = ["Pilot Suspended", "Product Terminate", "Special"];
 
   // if (DRC_Action === "collect CPE" && !Contact_Number) {
   //   return res.status(400).json({
@@ -115,11 +117,13 @@ export const Create_Incident = async (req, res) => {
     const monitorMonths = Monitor_Months || 3; // Default Monitor_Months to 3 if null
 
     const mongoConnection = mongoose.connection;
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "incident_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", session, upsert: true }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "incident_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", session, upsert: true }
+      );
 
     const Incident_Id = counterResult.seq;
 
@@ -217,7 +221,8 @@ export const Reject_Case = async (req, res) => {
     // Validate required fields
     if (!Incident_Id || !Reject_Reason || !Rejected_By) {
       return res.status(400).json({
-        message: "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
+        message:
+          "Incident_Id, Reject_Reason, and Rejected_By are required fields.",
       });
     }
 
@@ -267,17 +272,20 @@ export const Reject_Case = async (req, res) => {
       }
 
       // Delete from User_Interaction_Progress_Log
-      const progressLogDeleteResult = await User_Interaction_Progress_Log.findOneAndDelete(
-        {
-          "parameters.Incident_Id": String(Incident_Id), // Ensure type matches
-          Templete_User_Interaction_ID: 5,
-          User_Interaction_Type: "Validate Incident",
-        },
-        { session }
-      );
+      const progressLogDeleteResult =
+        await User_Interaction_Progress_Log.findOneAndDelete(
+          {
+            "parameters.Incident_Id": String(Incident_Id), // Ensure type matches
+            Templete_User_Interaction_ID: 5,
+            User_Interaction_Type: "Validate Incident",
+          },
+          { session }
+        );
 
       if (!progressLogDeleteResult) {
-        throw new Error("No matching record found in User_Interaction_Progress_Log to delete.");
+        throw new Error(
+          "No matching record found in User_Interaction_Progress_Log to delete."
+        );
       }
 
       // Commit the transaction
@@ -305,12 +313,13 @@ export const Reject_Case = async (req, res) => {
   }
 };
 
-
 // Validation function for Create_Task parameters
 const validateCreateTaskParametersForUploadDRSFile = (params) => {
   const { file_upload_seq, File_Name, File_Type } = params;
   if (!file_upload_seq || !File_Name || !File_Type) {
-    throw new Error("file_upload_seq, File_Name, File_Type are required parameters for Create_Task.");
+    throw new Error(
+      "file_upload_seq, File_Name, File_Type are required parameters for Create_Task."
+    );
   }
   return true;
 };
@@ -321,7 +330,7 @@ const validateCreateTaskParametersForUploadDRSFile = (params) => {
  * - File_Type: String (required) - The type of the file (e.g., "Incident Creation").
  * - File_Content: String (required) - The content of the file to be uploaded.
  * - Created_By: String (required) - The user who is uploading the file.
- * 
+ *
  * Success Result:
  * - Returns a success response with file details and task creation information upon successful file upload and task creation.
  */
@@ -336,15 +345,20 @@ export const Upload_DRS_File = async (req, res) => {
   }
 
   const validFileTypes = [
-    "Incident Creation", "Incident Reject", "Distribute to DRC",
-    "Validity Period Extend", "Hold", "Discard"
+    "Incident Creation",
+    "Incident Reject",
+    "Distribute to DRC",
+    "Validity Period Extend",
+    "Hold",
+    "Discard",
   ];
-
 
   if (!validFileTypes.includes(File_Type)) {
     return res.status(400).json({
       status: "error",
-      message: `Invalid File Type. Allowed values are: ${validFileTypes.join(", ")}.`,
+      message: `Invalid File Type. Allowed values are: ${validFileTypes.join(
+        ", "
+      )}.`,
     });
   }
 
@@ -354,11 +368,13 @@ export const Upload_DRS_File = async (req, res) => {
   try {
     const mongoConnection = await db.connectMongoDB();
     // Increment the counter for file_upload_seq
-    const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-      { _id: "file_upload_seq" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true, session }
-    );
+    const counterResult = await mongoConnection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "file_upload_seq" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
 
     const file_upload_seq = counterResult.seq;
 
@@ -446,16 +462,23 @@ export const Upload_DRS_File = async (req, res) => {
  * - Source_Type: String (optional)
  * - From_Date: String (optional, ISO Date format)
  * - To_Date: String (optional, ISO Date format)
- * 
+ *
  * Success Result:
  * - Returns a success response with the list of incidents matching the provided filters.
  */
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } = req.body;
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } =
+      req.body;
 
     let query = {};
-    if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date) {
+    if (
+      !Actions &&
+      !Incident_Status &&
+      !Source_Type &&
+      !From_Date &&
+      !To_Date
+    ) {
       const incidents = await Incident_log.find(query)
         .sort({ Incident_Id: -1 })
         .limit(10);
@@ -513,10 +536,124 @@ export const List_Incidents = async (req, res) => {
       },
     });
   }
-}; 
+};
 
+// export const New_List_Incidents = async (req, res) => {
+//   try {
+//     const {
+//       Actions,
+//       Incident_Status,
+//       Source_Type,
+//       From_Date,
+//       To_Date,
+//       Account_Num,
+//       pages,
+//       limit
+//     } = req.body;
 
+//     console.log("=== New_List_Incidents API Called ===");
+//     console.log("Request body:", req.body);
 
+//     // Pagination setup
+//     const pageSize = limit || 10;
+//     const currentPage = pages || 1;
+//     const skip = (currentPage - 1) * pageSize;
+
+//     let query = {};
+
+//     // Date Range Filter
+//     if (From_Date && To_Date) {
+//       const startDate = new Date(From_Date);
+//       const endDate = new Date(To_Date);
+//       endDate.setHours(23, 59, 59, 999);
+
+//       query.Created_Dtm = {
+//         $gte: startDate,
+//         $lte: endDate
+//       };
+//       console.log("Date filter applied:", query.Created_Dtm);
+//     } else if (From_Date || To_Date) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "Both From_Date and To_Date must be provided together."
+//       });
+//     }
+
+//     // Other Filters
+//     if (Actions) {
+//       query.Actions = Actions;
+//       console.log("Actions filter applied:", Actions);
+//     }
+
+//     if (Incident_Status) {
+//       query.Incident_Status = Incident_Status;
+//       console.log("Incident_Status filter applied:", Incident_Status);
+//     }
+
+//     if (Source_Type) {
+//       query.Source_Type = Source_Type;
+//       console.log("Source_Type filter applied:", Source_Type);
+//     }
+
+//     // Account Number filter - exact match for better performance
+//     if (Account_Num) {
+//       query.Account_Num = Account_Num;
+//       console.log("Account_Num filter applied (exact match):", Account_Num);
+//     }
+
+//     console.log("Final MongoDB query:", query);
+
+//     // Fetch incidents with pagination
+//     const incidents = await Incident.find(query)
+//       .sort({ Created_Dtm: -1 })
+//       .skip(skip)
+//       .limit(pageSize);
+
+//     const totalCount = await Incident.countDocuments(query);
+//     const totalPages = Math.ceil(totalCount / pageSize);
+
+//     console.log(`Found ${incidents.length} incidents, Total: ${totalCount}, Page: ${currentPage}/${totalPages}`);
+
+//     // Transform data to match frontend expectations
+//     const transformedIncidents = incidents.map(incident => ({
+//       incidentID: incident.Incident_Id,
+//       accountNo: incident.Account_Num,
+//       status: incident.Incident_Status,
+//       action: incident.Actions,
+//       sourceType: incident.Source_Type,
+//       created_dtm: incident.Created_Dtm,
+//       customerName: incident.Customer_Details?.Customer_Name || "N/A",
+//       arrears: incident.Arrears || 0,
+//       region: incident.Region || "Unknown"
+//     }));
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: transformedIncidents.length === 0
+//         ? "No incidents found matching the criteria."
+//         : "Incidents retrieved successfully.",
+//       incidents: transformedIncidents,
+//       pagination: {
+//         currentPage,
+//         totalPages,
+//         totalCount,
+//         pageSize,
+//         hasMore: currentPage < totalPages,
+//         hasPrevious: currentPage > 1
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error in New_List_Incidents:", error);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error.",
+//       errors: {
+//         exception: error.message
+//       }
+//     });
+//   }
+// };
 
 export const New_List_Incidents = async (req, res) => {
   try {
@@ -528,123 +665,93 @@ export const New_List_Incidents = async (req, res) => {
       To_Date,
       Account_Num,
       pages,
-      limit
     } = req.body;
-
-    console.log("=== New_List_Incidents API Called ===");
-    console.log("Request body:", req.body);
-
-    // Pagination setup
-    const pageSize = limit || 10;
-    const currentPage = pages || 1;
-    const skip = (currentPage - 1) * pageSize;
 
     let query = {};
 
-    // Date Range Filter
+    // if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date && !Account_Num && !pages) {
+
+    // const incidents = await Incident.find(query)
+    //   .sort({ Incident_Id: -1 })
+    //   .limit(10);
+    // return res.status(200).json({
+    //   status: "success",
+    //   message: "Incidents retrieved successfully.",
+    //   incidents,
+    // });
+    // }
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
-      endDate.setHours(23, 59, 59, 999);
-
       query.Created_Dtm = {
         $gte: startDate,
-        $lte: endDate
+        $lte: endDate,
       };
-      console.log("Date filter applied:", query.Created_Dtm);
     } else if (From_Date || To_Date) {
       return res.status(400).json({
         status: "error",
-        message: "Both From_Date and To_Date must be provided together."
+        message: "Both From_Date and To_Date must be provided together.",
       });
     }
 
-    // Other Filters
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     if (Actions) {
       query.Actions = Actions;
-      console.log("Actions filter applied:", Actions);
     }
-
     if (Incident_Status) {
       query.Incident_Status = Incident_Status;
-      console.log("Incident_Status filter applied:", Incident_Status);
     }
-
     if (Source_Type) {
       query.Source_Type = Source_Type;
-      console.log("Source_Type filter applied:", Source_Type);
     }
 
-    // Account Number filter - exact match for better performance
     if (Account_Num) {
-      query.Account_Num = Account_Num;
-      console.log("Account_Num filter applied (exact match):", Account_Num);
+      // Case-insensitive partial match using regex
+      query.Account_Num = { $regex: new RegExp(Account_Num, "i") };
+      console.log("Account_Num filter applied:", Account_Num);
     }
 
-    console.log("Final MongoDB query:", query);
-
-    // Fetch incidents with pagination
     const incidents = await Incident.find(query)
-      .sort({ Created_Dtm: -1 })
-      .skip(skip)
-      .limit(pageSize);
-
-    const totalCount = await Incident.countDocuments(query);
-    const totalPages = Math.ceil(totalCount / pageSize);
-
-    console.log(`Found ${incidents.length} incidents, Total: ${totalCount}, Page: ${currentPage}/${totalPages}`);
-
-    // Transform data to match frontend expectations
-    const transformedIncidents = incidents.map(incident => ({
-      incidentID: incident.Incident_Id,
-      accountNo: incident.Account_Num,
-      status: incident.Incident_Status,
-      action: incident.Actions,
-      sourceType: incident.Source_Type,
-      created_dtm: incident.Created_Dtm,
-      customerName: incident.Customer_Details?.Customer_Name || "N/A",
-      arrears: incident.Arrears || 0,
-      region: incident.Region || "Unknown"
-    }));
+      .sort({ Incident_Id: -1 })
+      .limit(limit)
+      .skip(skip);
 
     return res.status(200).json({
       status: "success",
-      message: transformedIncidents.length === 0
-        ? "No incidents found matching the criteria."
-        : "Incidents retrieved successfully.",
-      incidents: transformedIncidents,
-      pagination: {
-        currentPage,
-        totalPages,
-        totalCount,
-        pageSize,
-        hasMore: currentPage < totalPages,
-        hasPrevious: currentPage > 1
-      }
+      message: "Incidents retrieved successfully.",
+      incidents,
     });
 
+    if (incidents.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No incidents found matching the criteria.",
+      });
+    }
   } catch (error) {
     console.error("Error in New_List_Incidents:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
       errors: {
-        exception: error.message
-      }
+        exception: error.message,
+      },
     });
   }
-}; 
-
+};
 
 const validateTaskParameters = (parameters) => {
   const { Incident_Status, StartDTM, EndDTM, Actions } = parameters;
-
 
   if (!Incident_Status || typeof Incident_Status !== "string") {
     throw new Error("Incident_Status is required and must be a string.");
   }
 
-  
   if (StartDTM && isNaN(new Date(StartDTM).getTime())) {
     throw new Error("StartDTM must be a valid date string.");
   }
@@ -661,23 +768,23 @@ const validateTaskParameters = (parameters) => {
 };
 
 export const Create_Task_For_Incident_Details = async (req, res) => {
-  const session = await mongoose.startSession(); // Start session 
+  const session = await mongoose.startSession(); // Start session
   session.startTransaction(); // Start transaction
 
   try {
-    const { Incident_Status, From_Date, To_Date, Actions, Created_By } = req.body;
+    const { Incident_Status, From_Date, To_Date, Actions, Created_By } =
+      req.body;
 
     // Validate paras
     if (!Created_By) {
-      await session.abortTransaction(); // Rollback 
-      session.endSession(); // End 
+      await session.abortTransaction(); // Rollback
+      session.endSession(); // End
       return res.status(400).json({
         status: "error",
         message: "Created_By is a required parameter.",
       });
     }
 
-    
     const parameters = {
       Incident_Status,
       StartDTM: From_Date ? new Date(From_Date).toISOString() : null,
@@ -688,7 +795,6 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
     // Validate paras
     validateTaskParameters(parameters);
 
-   
     const taskData = {
       Template_Task_Id: 12,
       task_type: "List Incident Details",
@@ -701,7 +807,7 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
     await createTaskFunction(taskData, session);
 
     await session.commitTransaction(); // Commit transaction
-    session.endSession(); // End 
+    session.endSession(); // End
 
     return res.status(201).json({
       status: "success",
@@ -711,7 +817,7 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
   } catch (error) {
     console.error("Error in Create_Task_For_Incident_Details:", error);
     await session.abortTransaction(); // Rollback error
-    session.endSession(); // End 
+    session.endSession(); // End
     return res.status(500).json({
       status: "error",
       message: error.message || "Internal server error.",
@@ -725,18 +831,19 @@ export const Create_Task_For_Incident_Details = async (req, res) => {
 /**
  * Inputs:
  * - None (uses no request body or parameters)
- * 
+ *
  * Success Result:
  * - Returns a success response with the total count of incidents where Incident_Status is "Reject Pending" and Proceed_Dtm is null.
  */
 export const total_F1_filtered_Incidents = async (req, res) => {
   try {
-    const details = (await Incident.find({
-     
-      Incident_Status: { $in: ["Reject Pending"] },
-      Proceed_Dtm: { $eq: null }, 
-    })).length
-  
+    const details = (
+      await Incident.find({
+        Incident_Status: { $in: ["Reject Pending"] },
+        Proceed_Dtm: { $eq: null },
+      })
+    ).length;
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved the total of F1 filtered incidents.`,
@@ -757,17 +864,19 @@ export const total_F1_filtered_Incidents = async (req, res) => {
 /**
  * Inputs:
  * - None (uses no request body or parameters)
- * 
+ *
  * Success Result:
  * - Returns a success response with the total count of incidents where Incident_Status is "Open No Agent" and Proceed_Dtm is null.
  */
 export const total_distribution_ready_incidents = async (req, res) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status: { $in: ["Open No Agent"] },
-      Proceed_Dtm: { $eq: null }, 
-    })).length
-  
+    const details = (
+      await Incident.find({
+        Incident_Status: { $in: ["Open No Agent"] },
+        Proceed_Dtm: { $eq: null },
+      })
+    ).length;
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved the total of F1 filtered incidents.`,
@@ -876,31 +985,35 @@ export const List_All_Incident_Case_Pending = async (req, res) => {
  * - Source_Type: String (optional)
  * - From_Date: String (optional, ISO Date format)
  * - To_Date: String (optional, ISO Date format)
- * 
+ *
  * Success Result:
  * - Returns a success response with the list of 'Open CPE Collect' incidents matching the provided filters.
  */
 export const List_Incidents_CPE_Collect = async (req, res) => {
   try {
-    const {Source_Type, FromDate, ToDate}= req.body;
-    
+    const { Source_Type, FromDate, ToDate } = req.body;
+
     const OpencpeStatuses = ["Open CPE Collect"];
     let incidents;
-    
-    if(!Source_Type && !FromDate && !ToDate){
+
+    if (!Source_Type && !FromDate && !ToDate) {
       incidents = await Incident.find({
         Incident_Status: { $in: OpencpeStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
-      }).sort({ Created_Dtm: -1 }) 
-      .limit(10); 
-    }else{
-      const query = { Incident_Status: { $in: OpencpeStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+      })
+        .sort({ Created_Dtm: -1 })
+        .limit(10);
+    } else {
+      const query = {
+        Incident_Status: { $in: OpencpeStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+      };
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -927,33 +1040,36 @@ export const List_Incidents_CPE_Collect = async (req, res) => {
  * - Source_Type: String (optional)
  * - FromDate: String (optional, ISO Date format)
  * - ToDate: String (optional, ISO Date format)
- * 
+ *
  * Success Result:
  * - Returns a success response with the list of "Direct LOD" incidents filtered by status, source type, and date range.
  */
 export const List_incidents_Direct_LOD = async (req, res) => {
-
   try {
-    const {Source_Type, FromDate, ToDate}= req.body;
-    
+    const { Source_Type, FromDate, ToDate } = req.body;
+
     const directLODStatuses = ["Direct LOD"];
     let incidents;
-    
-    if(!Source_Type && !FromDate && !ToDate){
+
+    if (!Source_Type && !FromDate && !ToDate) {
       incidents = await Incident.find({
         Incident_Status: { $in: directLODStatuses },
-        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }]
-      }).sort({ Created_Dtm: -1 }) 
-      .limit(10); 
-    }else{
-      const query = { Incident_Status: { $in: directLODStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+      })
+        .sort({ Created_Dtm: -1 })
+        .limit(10);
+    } else {
+      const query = {
+        Incident_Status: { $in: directLODStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+      };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -980,34 +1096,38 @@ export const List_incidents_Direct_LOD = async (req, res) => {
  * - Source_Type: String (optional)
  * - FromDate: String (optional, ISO Date format)
  * - ToDate: String (optional, ISO Date format)
- * 
+ *
  * Success Result:
  * - Returns a success response with a list of 'Reject Pending' incidents filtered by source type and/or date range.
  */
 export const List_F1_filted_Incidents = async (req, res) => {
   try {
-    const {Source_Type, FromDate, ToDate}= req.body;
+    const { Source_Type, FromDate, ToDate } = req.body;
     const rejectpendingStatuses = ["Reject Pending"];
     let incidents;
-    
-    if(!Source_Type && !FromDate && !ToDate){
+
+    if (!Source_Type && !FromDate && !ToDate) {
       incidents = await Incident.find({
-         Incident_Status: { $in: rejectpendingStatuses },
-         $and: [
+        Incident_Status: { $in: rejectpendingStatuses },
+        $and: [
           { Proceed_Dtm: { $exists: true } },
-          { Proceed_Dtm: { $in: [null, ""] } }
-        ]
-      }).sort({ Created_Dtm: -1 }) 
-      .limit(10); 
-    }else{
-      const query = { Incident_Status: { $in: rejectpendingStatuses },  $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }] };
+          { Proceed_Dtm: { $in: [null, ""] } },
+        ],
+      })
+        .sort({ Created_Dtm: -1 })
+        .limit(10);
+    } else {
+      const query = {
+        Incident_Status: { $in: rejectpendingStatuses },
+        $or: [{ Proceed_Dtm: null }, { Proceed_Dtm: "" }],
+      };
 
       if (Source_Type) {
         query.Source_Type = Source_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -1015,7 +1135,7 @@ export const List_F1_filted_Incidents = async (req, res) => {
       }
       incidents = await Incident.find(query);
     }
-   
+
     return res.status(200).json({
       status: "success",
       message: "F1 filtered incidents retrieved successfully.",
@@ -1033,20 +1153,18 @@ export const List_F1_filted_Incidents = async (req, res) => {
 /**
  * Inputs:
  * - No inputs
- * 
+ *
  * Success Result:
  * - Returns a success response with the latest 10 incidents where status is "Open No Agent" and Proceed_Dtm is null.
  */
 export const List_distribution_ready_incidents = async (req, res) => {
-  
   try {
     const openNoAgentStatuses = ["Open No Agent"];
 
     const incidents = await Incident.find({
       Incident_Status: { $in: openNoAgentStatuses },
-      Proceed_Dtm: { $eq: null }, 
-    })
-      .sort({ Created_Dtm: -1 });
+      Proceed_Dtm: { $eq: null },
+    }).sort({ Created_Dtm: -1 });
 
     return res.status(200).json({
       status: "success",
@@ -1064,74 +1182,79 @@ export const List_distribution_ready_incidents = async (req, res) => {
 
 export const F1_filtered_Incidents_group_by_arrears_band = async (req, res) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Reject Pending"
-    }))
+    const details = await Incident.find({
+      Incident_Status: "Reject Pending",
+    });
 
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
-      counts[band] = (counts[band] || 0) + 1; 
+      counts[band] = (counts[band] || 0) + 1;
       return counts;
     }, {});
-  
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved F1 filtered incident counts by arrears bands.`,
-      data: {F1_Filtered_incidents_by_AB: arrearsBandCounts}
-    })
+      data: { F1_Filtered_incidents_by_AB: arrearsBandCounts },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve F1 filtered incident counts by arrears bands",
+      message:
+        "Failed to retrieve F1 filtered incident counts by arrears bands",
       errors: {
         code: 500,
         description: error.message,
       },
     });
   }
-}
+};
 
 /**
  * Inputs:
  * - No request body input required.
- * 
+ *
  * Success Result:
  * - Returns a success response with incident counts grouped by arrears bands where status is "Open No Agent" and Proceed_Dtm is null.
  */
-export const distribution_ready_incidents_group_by_arrears_band = async (req, res) => {
+export const distribution_ready_incidents_group_by_arrears_band = async (
+  req,
+  res
+) => {
   try {
-    const details = (await Incident.find({
-      Incident_Status:"Open No Agent",
-      Proceed_Dtm: { $eq: null }, 
-    }))
-    
+    const details = await Incident.find({
+      Incident_Status: "Open No Agent",
+      Proceed_Dtm: { $eq: null },
+    });
+
     const arrearsBandCounts = details.reduce((counts, detail) => {
       const band = detail.Arrears_Band;
-      counts[band] = (counts[band] || 0) + 1; 
+      counts[band] = (counts[band] || 0) + 1;
       return counts;
     }, {});
-  
+
     return res.status(200).json({
       status: "success",
       message: `Successfully retrieved distribution ready incident counts by arrears bands.`,
-      data: {Distribution_ready_incidents_by_AB: arrearsBandCounts}
-    })
+      data: { Distribution_ready_incidents_by_AB: arrearsBandCounts },
+    });
   } catch (error) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve distribution ready incident counts by arrears bands",
+      message:
+        "Failed to retrieve distribution ready incident counts by arrears bands",
       errors: {
         code: 500,
         description: error.message,
       },
     });
   }
-}
+};
 
 /**
  * Inputs:
  * - None (uses no request body or parameters)
- * 
+ *
  * Success Result:
  * - Returns a success response with the total count of incidents where Incident_Status is "Open CPE Collect" and Proceed_Dtm is null.
  */
@@ -1140,8 +1263,7 @@ export const total_incidents_CPE_Collect = async (req, res) => {
     const details = (
       await Incident.find({
         Incident_Status: { $in: ["Open CPE Collect"] },
-        Proceed_Dtm: { $eq: null }, 
-       
+        Proceed_Dtm: { $eq: null },
       })
     ).length;
 
@@ -1165,7 +1287,7 @@ export const total_incidents_CPE_Collect = async (req, res) => {
 /**
  * Inputs:
  * - None (uses no request body or parameters)
- * 
+ *
  * Success Result:
  * - Returns a success response with the total count of incidents where Incident_Status is "Direct LOD" and Proceed_Dtm is null.
  */
@@ -1173,9 +1295,8 @@ export const total_incidents_Direct_LOD = async (req, res) => {
   try {
     const details = (
       await Incident.find({
-      
         Incident_Status: { $in: ["Direct LOD"] },
-        Proceed_Dtm: { $eq: null }, 
+        Proceed_Dtm: { $eq: null },
       })
     ).length;
 
@@ -1193,25 +1314,24 @@ export const total_incidents_Direct_LOD = async (req, res) => {
         description: error.message,
       },
     });
-
   }
 };
 /**
  * Inputs:
  * - Incident_Id: number (required)
  * - user: String (required)
- * 
+ *
  * Success Result:
  * - Returns a success response confirming the F1 filtered incident has been rejected.
  */
 export const Reject_F1_filtered_Incident = async (req, res) => {
-  try{
+  try {
     const { Incident_Id, user } = req.body;
 
     if (!Incident_Id) {
       return res.status(400).json({
-        status:"error",
-        message:"Incident_Id is a required field.",
+        status: "error",
+        message: "Incident_Id is a required field.",
         errors: {
           code: 400,
           description: "Incident_Id is a required field.",
@@ -1219,36 +1339,35 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
       });
     }
 
-    const incident = await Incident.findOne({ Incident_Id: Incident_Id});
+    const incident = await Incident.findOne({ Incident_Id: Incident_Id });
 
     if (!incident) {
-        return res.status(404).json({
-           status:"error",
-           message: 'Incident not found',
-           errors: {
-            code: 404,
-            description: 'Incident not found',
-          }
+      return res.status(404).json({
+        status: "error",
+        message: "Incident not found",
+        errors: {
+          code: 404,
+          description: "Incident not found",
+        },
       });
     }
     await Incident.updateOne(
-      { Incident_Id: Incident_Id},
+      { Incident_Id: Incident_Id },
       {
-          $set: {
-              Incident_Status: 'Incident Reject',
-              Incident_Status_Dtm: new Date(),
-              Proceed_Dtm: new Date(),
-              Proceed_By: user
-          },
-      },
-      
+        $set: {
+          Incident_Status: "Incident Reject",
+          Incident_Status_Dtm: new Date(),
+          Proceed_Dtm: new Date(),
+          Proceed_By: user,
+        },
+      }
     );
     return res.status(200).json({
       status: "success",
-      message: `Successfully rejected the F1 filtered incident.`
+      message: `Successfully rejected the F1 filtered incident.`,
     });
-  }catch(error){
-    console.log(error)
+  } catch (error) {
+    console.log(error);
     return res.status(500).json({
       status: "error",
       message: "Failed to rejected the F1 filtered incident.",
@@ -1263,49 +1382,50 @@ export const Reject_F1_filtered_Incident = async (req, res) => {
 /**
  * Inputs:
  * - Incident_Id: number (required)
- * 
+ *
  * Success Result:
  * - Returns a success response indicating the F1 filtered incident was successfully forwarded and status updated.
  */
 export const Forward_F1_filtered_incident = async (req, res) => {
-
   const session = await mongoose.startSession();
   session.startTransaction();
-  
+
   try {
-  const { Incident_Id, Incident_Forwarded_By } = req.body;
-  if (!Incident_Id) {
-    const error = new Error("Incident_Id is required.");
-    error.statusCode = 400;
-    throw error;
-  }
+    const { Incident_Id, Incident_Forwarded_By } = req.body;
+    if (!Incident_Id) {
+      const error = new Error("Incident_Id is required.");
+      error.statusCode = 400;
+      throw error;
+    }
 
-  const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+    const incidentData = await Incident.findOne({ Incident_Id }).session(
+      session
+    );
 
-  if (!incidentData) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(404).json({ 
-      status: "error",
-      message: "Incident not found",
-      errors: {
-        code: 404,
-        description: "No matching incident found.",
-      },
-    });
-  }
-  let incidentStatus;
+    if (!incidentData) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        status: "error",
+        message: "Incident not found",
+        errors: {
+          code: 404,
+          description: "No matching incident found.",
+        },
+      });
+    }
+    let incidentStatus;
 
-  if(incidentData.Arrears>=5000){
-    incidentStatus="Open No Agent"
-  }else if(incidentData.Arrears>=1000 && incidentData.Arrears <5000){
-     incidentStatus="Direct LOD"
-  }else if( incidentData.Arrears<1000){
-    incidentStatus="Open CPE Collect"
-  }
+    if (incidentData.Arrears >= 5000) {
+      incidentStatus = "Open No Agent";
+    } else if (incidentData.Arrears >= 1000 && incidentData.Arrears < 5000) {
+      incidentStatus = "Direct LOD";
+    } else if (incidentData.Arrears < 1000) {
+      incidentStatus = "Open CPE Collect";
+    }
 
-  await Incident.updateOne(
-    { Incident_Id},
+    await Incident.updateOne(
+      { Incident_Id },
       {
         $set: {
           Incident_Status: incidentStatus,
@@ -1314,52 +1434,54 @@ export const Forward_F1_filtered_incident = async (req, res) => {
           Incident_Forwarded_On: new Date(),
         },
       },
-      {session}
-  );
-  await session.commitTransaction();
-  session.endSession();
+      { session }
+    );
+    await session.commitTransaction();
+    session.endSession();
 
-  return res.status(201).json({ 
-    status: "success",
-    message: "F1 filtered incident successfully forwarded" 
-  });
+    return res.status(201).json({
+      status: "success",
+      message: "F1 filtered incident successfully forwarded",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
 
-} catch (error) {
-  await session.abortTransaction();
-  session.endSession();
-  
-  console.error("Error forwarding F1 filtered incident: ", error);
-  return res.status(error.statusCode || 500).json({
-    status: "error",
-    message: error.message || "Internal server error",
-    errors: {
-      code: error.statusCode || 500,
-      description: error.message || "An unexpected error occurred.",
-    },
-  });
-}
+    console.error("Error forwarding F1 filtered incident: ", error);
+    return res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Internal server error",
+      errors: {
+        code: error.statusCode || 500,
+        description: error.message || "An unexpected error occurred.",
+      },
+    });
+  }
 };
 
 const generateCaseId = async (session) => {
   const mongoConnection = mongoose.connection;
-  const counterResult = await mongoConnection.collection("counters").findOneAndUpdate(
-    { _id: "case_id" },
-    { $inc: { seq: 1 } },
-    { returnDocument: "after", session, upsert: true }
-  );
+  const counterResult = await mongoConnection
+    .collection("counters")
+    .findOneAndUpdate(
+      { _id: "case_id" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", session, upsert: true }
+    );
   return counterResult.seq;
 };
 
 //should be check again
-export const Create_Case_for_incident= async (req, res) => {
+export const Create_Case_for_incident = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { Incident_Ids ,Proceed_By} = req.body;
+    const { Incident_Ids, Proceed_By } = req.body;
 
-    
     if (!Array.isArray(Incident_Ids) || Incident_Ids.length === 0) {
-      return res.status(400).json({ error: 'Incident_Ids array is required with at least one element' });
+      return res.status(400).json({
+        error: "Incident_Ids array is required with at least one element",
+      });
     }
 
     if (!Proceed_By) {
@@ -1368,8 +1490,8 @@ export const Create_Case_for_incident= async (req, res) => {
       throw error;
     }
     const createdCases = [];
-    
-    //10 
+
+    //10
     const maxRounds = Math.min(Incident_Ids.length, 5);
 
     for (let i = 0; i < maxRounds; i++) {
@@ -1377,13 +1499,13 @@ export const Create_Case_for_incident= async (req, res) => {
 
       const incidentData = await Incident.findOne({ Incident_Id: incidentId });
       if (!incidentData) {
-        continue; 
+        continue;
       }
 
       incidentData.Proceed_By = Proceed_By;
       incidentData.Proceed_Dtm = new Date();
       await incidentData.save({ session });
-     
+
       const caseId = await generateCaseId(session);
 
       const caseData = {
@@ -1395,40 +1517,46 @@ export const Create_Case_for_incident= async (req, res) => {
         implemented_dtm: incidentData.Created_Dtm || new Date(),
         area: incidentData.Region || "Unknown",
         rtom: incidentData.Product_Details[0]?.Service_Type || "Unknown",
-        current_arrears_band: incidentData.current_arrears_band || "Default Band",  
+        current_arrears_band:
+          incidentData.current_arrears_band || "Default Band",
         arrears_band: incidentData.Arrears_Band || "Default Band",
         bss_arrears_amount: incidentData.Arrears || 0,
         current_arrears_amount: incidentData.Arrears || 0,
         action_type: "New Case",
-        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",  
-        last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+        last_payment_date:
+          incidentData.Last_Actions?.Payment_Created || new Date(),
         monitor_months: 6,
-        last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+        last_bss_reading_date:
+          incidentData.Last_Actions?.Billed_Created || new Date(),
         commission: 0,
         Proceed_By: incidentData.Proceed_By || "user",
-       
+
         case_current_status: "Open No Agent",
         filtered_reason: incidentData.Filtered_Reason || null,
-        ref_products: incidentData.Product_Details.length > 0
-          ? incidentData.Product_Details.map(product => ({
-              service: product.Service_Type || "Unknown",
-              product_label: product.Product_Label || "N/A",
-              product_status: product.product_status || "Active",
-              status_Dtm: product.Effective_Dtm || new Date(),
-              rtom: product.Region || "N/A",
-              product_ownership: product.Equipment_Ownership || "Unknown",
-              service_address: product.Service_Address || "N/A",
-            }))
-          : [{
-              service: "Default Service",
-              product_label: "Default Product",
-              product_status: "Active",
-              status_Dtm: new Date(),
-              rtom: "Default RTOM",
-              product_ownership: "Unknown",
-              service_address: "Default Address",
-            }],
-      };      
+        ref_products:
+          incidentData.Product_Details.length > 0
+            ? incidentData.Product_Details.map((product) => ({
+                service: product.Service_Type || "Unknown",
+                product_label: product.Product_Label || "N/A",
+                product_status: product.product_status || "Active",
+                status_Dtm: product.Effective_Dtm || new Date(),
+                rtom: product.Region || "N/A",
+                product_ownership: product.Equipment_Ownership || "Unknown",
+                service_address: product.Service_Address || "N/A",
+              }))
+            : [
+                {
+                  service: "Default Service",
+                  product_label: "Default Product",
+                  product_status: "Active",
+                  status_Dtm: new Date(),
+                  rtom: "Default RTOM",
+                  product_ownership: "Unknown",
+                  service_address: "Default Address",
+                },
+              ],
+      };
 
       try {
         const newCase = new Case_details(caseData);
@@ -1436,57 +1564,60 @@ export const Create_Case_for_incident= async (req, res) => {
         createdCases.push(newCase);
       } catch (validationError) {
         await session.abortTransaction();
-        return res.status(400).json({status: "error", error: "Validation failed", message: "There is an error while inserting to the case details document"});
+        return res.status(400).json({
+          status: "error",
+          error: "Validation failed",
+          message:
+            "There is an error while inserting to the case details document",
+        });
       }
-      
+
       const newCaseStatus = {
-        case_status: "Open No Agent", 
-        status_reason: "Incident forward to case",  
-        created_dtm: new Date(),  
-        created_by: Proceed_By,   
+        case_status: "Open No Agent",
+        status_reason: "Incident forward to case",
+        created_dtm: new Date(),
+        created_by: Proceed_By,
       };
-      newCase.case_status.push(newCaseStatus); 
+      newCase.case_status.push(newCaseStatus);
       await newCase.save({ session });
       createdCases.push(newCase);
     }
-  
+
     await session.commitTransaction();
     res.status(201).json({
-      status:"success",
+      status: "success",
       message: `Successfully created ${createdCases.length} cases.`,
       cases: createdCases,
     });
   } catch (error) {
     await session.abortTransaction();
-    console.error('Error creating cases:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error creating cases:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   } finally {
     session.endSession();
   }
 };
 
-
-
-
 export const Forward_Direct_LOD = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    
-    try {
+  try {
     const { Incident_Id, user } = req.body;
     if (!Incident_Id) {
       const error = new Error("Incident_Id is required.");
       error.statusCode = 400;
       throw error;
     }
-  
-    const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+
+    const incidentData = await Incident.findOne({ Incident_Id }).session(
+      session
+    );
 
     if (!incidentData) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ 
+      return res.status(404).json({
         status: "error",
         message: "Incident not found",
         errors: {
@@ -1496,18 +1627,20 @@ export const Forward_Direct_LOD = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
-      { _id: "case_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", session, upsert: true }
-    );
+    const counterResult = await mongoose.connection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "case_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", session, upsert: true }
+      );
 
     const Case_Id = counterResult.seq;
-   
+
     const caseData = {
       case_id: Case_Id,
       incident_id: incidentData.Incident_Id,
-      account_no: incidentData.Account_Num || "Unknown", 
+      account_no: incidentData.Account_Num || "Unknown",
       customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
       created_dtm: new Date(),
       implemented_dtm: incidentData.Created_Dtm || new Date(),
@@ -1519,51 +1652,55 @@ export const Forward_Direct_LOD = async (req, res) => {
       current_arrears_band: incidentData.current_arrears_band || "Default Band",
       action_type: "Forward to CPE Collect",
       drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
-      last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+      last_payment_date:
+        incidentData.Last_Actions?.Payment_Created || new Date(),
       monitor_months: 6,
-      last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+      last_bss_reading_date:
+        incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
-     // case_current_status: incidentData.Incident_Status,
+      // case_current_status: incidentData.Incident_Status,
       case_current_status: "LIT",
       filtered_reason: incidentData.Filtered_Reason || null,
-      ref_products: incidentData.Product_Details.map(product => ({
-        service: product.Service_Type || "Unknown",
-        product_label: product.Product_Label || "N/A",
-        product_status: product.Product_Status || "Active",
-        status_Dtm: product.Effective_Dtm || new Date(),
-        rtom: product.Region || "N/A",
-        product_ownership: product.Equipment_Ownership || "Unknown",
-        service_address: product.Service_Address || "N/A",
-      })) || [],
+      ref_products:
+        incidentData.Product_Details.map((product) => ({
+          service: product.Service_Type || "Unknown",
+          product_label: product.Product_Label || "N/A",
+          product_status: product.Product_Status || "Active",
+          status_Dtm: product.Effective_Dtm || new Date(),
+          rtom: product.Region || "N/A",
+          product_ownership: product.Equipment_Ownership || "Unknown",
+          service_address: product.Service_Address || "N/A",
+        })) || [],
       case_status: {
         case_status: "LIT",
         status_reason: "Forward Direct LOD",
         created_dtm: new Date(),
-        created_by: user
-      }
+        created_by: user,
+      },
     };
-    
+
     try {
       const newCase = new Case_details(caseData);
       await newCase.save({ session });
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: "error",
-        message: "There is an error while inserting to the case details document" 
+        message:
+          "There is an error while inserting to the case details document",
       });
     }
     await Incident.updateOne(
       { Incident_Id },
-      { $set:{ Proceed_Dtm: new Date(), Proceed_By: user } },
+      { $set: { Proceed_Dtm: new Date(), Proceed_By: user } },
       { session }
     );
     await session.commitTransaction();
     session.endSession();
-    return res.status(201).json({ 
+    return res.status(201).json({
       status: "success",
-      message: "Direct LOD incident successfully forwarded" 
+      message: "Direct LOD incident successfully forwarded",
     });
   } catch (error) {
     await session.abortTransaction();
@@ -1584,7 +1721,7 @@ export const Forward_Direct_LOD = async (req, res) => {
  * Inputs:
  * - Incident_Id: number (required)
  * - Proceed_By: String (required)
- * 
+ *
  * Success Result:
  * - Returns a success response after forwarding the incident to CPE Collect and creating a related case entry.
  */
@@ -1592,10 +1729,10 @@ export const Forward_CPE_Collect = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { Incident_Id,Proceed_By } = req.body;
+    const { Incident_Id, Proceed_By } = req.body;
     if (!Incident_Id) {
       const error = new Error("Incident_Id is required.");
-      error.statusCode = 400; 
+      error.statusCode = 400;
       throw error;
     }
 
@@ -1604,12 +1741,14 @@ export const Forward_CPE_Collect = async (req, res) => {
       error.statusCode = 400;
       throw error;
     }
-    const incidentData = await Incident.findOne({ Incident_Id }).session(session);
+    const incidentData = await Incident.findOne({ Incident_Id }).session(
+      session
+    );
 
     if (!incidentData) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ 
+      return res.status(404).json({
         status: "error",
         message: "Incident not found",
         errors: {
@@ -1619,16 +1758,18 @@ export const Forward_CPE_Collect = async (req, res) => {
       });
     }
 
-    const counterResult = await mongoose.connection.collection("counters").findOneAndUpdate(
-      { _id: "case_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", session, upsert: true }
-    );
+    const counterResult = await mongoose.connection
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "case_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", session, upsert: true }
+      );
     const Case_Id = counterResult.seq;
     const caseData = {
       case_id: Case_Id,
       incident_id: incidentData.Incident_Id,
-      account_no: incidentData.Account_Num || "Unknown", 
+      account_no: incidentData.Account_Num || "Unknown",
       customer_ref: incidentData.Customer_Details?.Customer_Name || "N/A",
       created_dtm: new Date(),
       implemented_dtm: incidentData.Created_Dtm || new Date(),
@@ -1640,28 +1781,31 @@ export const Forward_CPE_Collect = async (req, res) => {
       current_arrears_band: incidentData.current_arrears_band || "Default Band",
       action_type: "Forward to CPE Collect",
       drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
-      last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
+      last_payment_date:
+        incidentData.Last_Actions?.Payment_Created || new Date(),
       monitor_months: 6,
       Proceed_By: incidentData.Proceed_By || "user",
-      last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
+      last_bss_reading_date:
+        incidentData.Last_Actions?.Billed_Created || new Date(),
       commission: 0,
       case_current_status: "Open No Agent",
       filtered_reason: incidentData.Filtered_Reason || null,
-      ref_products: incidentData.Product_Details.map(product => ({
-        service: product.Service_Type || "Unknown",
-        product_label: product.Product_Label || "N/A",
-        product_status: product.Product_Status || "Active",
-        status_Dtm: product.Effective_Dtm || new Date(),
-        rtom: product.Region || "N/A",
-        product_ownership: product.Equipment_Ownership || "Unknown",
-        service_address: product.Service_Address || "N/A",
-      })) || [],
+      ref_products:
+        incidentData.Product_Details.map((product) => ({
+          service: product.Service_Type || "Unknown",
+          product_label: product.Product_Label || "N/A",
+          product_status: product.Product_Status || "Active",
+          status_Dtm: product.Effective_Dtm || new Date(),
+          rtom: product.Region || "N/A",
+          product_ownership: product.Equipment_Ownership || "Unknown",
+          service_address: product.Service_Address || "N/A",
+        })) || [],
       case_status: {
-        case_status: "Open No Agent", 
-        status_reason: "Incident forwarded to CPE Collect",  
+        case_status: "Open No Agent",
+        status_reason: "Incident forwarded to CPE Collect",
         created_dtm: new Date(),
-        created_by: Proceed_By
-      }
+        created_by: Proceed_By,
+      },
     };
     try {
       const newCase = new Case_details(caseData);
@@ -1669,23 +1813,24 @@ export const Forward_CPE_Collect = async (req, res) => {
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ 
+      return res.status(400).json({
         status: "error",
-        message: "There is an error while inserting to the case details document" 
+        message:
+          "There is an error while inserting to the case details document",
       });
     }
     await Incident.updateOne(
       { Incident_Id },
-      { $set:{ Proceed_Dtm: new Date(), Proceed_By: Proceed_By } },
+      { $set: { Proceed_Dtm: new Date(), Proceed_By: Proceed_By } },
       { session }
     );
     await session.commitTransaction();
     session.endSession();
-    return res.status(201).json({ 
+    return res.status(201).json({
       status: "success",
-      message: "CPE Collect incident successfully forwarded"
+      message: "CPE Collect incident successfully forwarded",
     });
-  }catch (error) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("Error forwarding CPE Collect incident:", error);
@@ -1694,8 +1839,8 @@ export const Forward_CPE_Collect = async (req, res) => {
       message: error.message || "Internal server error",
       errors: {
         code: error.statusCode || 500,
-        description: error.message || "An unexpected error occurred."
-      }
+        description: error.message || "An unexpected error occurred.",
+      },
     });
   }
 };
@@ -1705,32 +1850,32 @@ export const Forward_CPE_Collect = async (req, res) => {
  * - Action_Type: String (optional)
  * - FromDate: String (optional, ISO Date format)
  * - ToDate: String (optional, ISO Date format)
- * 
+ *
  * Success Result:
  * - Returns a success response with the list of rejected incidents matching the provided filters.
  */
 export const List_Reject_Incident = async (req, res) => {
-
   try {
-    const {Action_Type, FromDate, ToDate}= req.body;
-    
+    const { Action_Type, FromDate, ToDate } = req.body;
+
     const rejectIncidentStatuses = ["Incident Reject"];
     let incidents;
-    
-    if(!Action_Type && !FromDate && !ToDate){
+
+    if (!Action_Type && !FromDate && !ToDate) {
       incidents = await Incident.find({
-        Incident_Status: { $in: rejectIncidentStatuses }
-      }).sort({ Created_Dtm: -1 }) 
-      .limit(10); 
-    }else{
-      const query = { Incident_Status: { $in: rejectIncidentStatuses }};
+        Incident_Status: { $in: rejectIncidentStatuses },
+      })
+        .sort({ Created_Dtm: -1 })
+        .limit(10);
+    } else {
+      const query = { Incident_Status: { $in: rejectIncidentStatuses } };
 
       if (Action_Type) {
         query.Actions = Action_Type;
       }
       if (FromDate && ToDate) {
-        const from = new Date(FromDate)
-        const to = new Date(ToDate)
+        const from = new Date(FromDate);
+        const to = new Date(ToDate);
         query.Created_Dtm = {
           $gte: from,
           $lte: to,
@@ -1750,23 +1895,32 @@ export const List_Reject_Incident = async (req, res) => {
       message: error.message || "An unexpected error occurred.",
     });
   }
-}
-
+};
 
 export const getOpenTaskCountforCPECollect = async (req, res) => {
-  
   const Template_Task_Id = 17;
   const task_type = "Create Case from Incident Open CPE Collect";
 
   try {
     // Check existence in both models
     const taskExists = await Task.exists({ Template_Task_Id, task_type });
-    const taskInProgressExists = await Task_Inprogress.exists({ Template_Task_Id, task_type });
+    const taskInProgressExists = await Task_Inprogress.exists({
+      Template_Task_Id,
+      task_type,
+    });
 
     if (taskExists && taskInProgressExists) {
       // Count tasks with task_status 'open' in both models
-      const countInTask = await Task.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
-      const countInTaskInProgress = await Task_Inprogress.countDocuments({ Template_Task_Id, task_type, task_status: 'open' });
+      const countInTask = await Task.countDocuments({
+        Template_Task_Id,
+        task_type,
+        task_status: "open",
+      });
+      const countInTaskInProgress = await Task_Inprogress.countDocuments({
+        Template_Task_Id,
+        task_type,
+        task_status: "open",
+      });
 
       // Total count from both models
       const totalCount = countInTask + countInTaskInProgress;
@@ -1775,21 +1929,21 @@ export const getOpenTaskCountforCPECollect = async (req, res) => {
     }
 
     // If records are not present in both models
-    return res.status(404).json({ message: 'Records not found in both models' });
+    return res
+      .status(404)
+      .json({ message: "Records not found in both models" });
   } catch (error) {
-    console.error('Error fetching open task count:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching open task count:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
 
 /**
  * Inputs:
  * - From_Date: String (optional, ISO Date format)
  * - To_Date: String (optional, ISO Date format)
  * - status: String (optional)
- * 
+ *
  * Success Result:
  * - Returns a success response with the list of file upload logs matching the provided filters, or the most recent 10 logs if no filters are applied.
  */
@@ -1802,10 +1956,10 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
 
     if (From_Date || To_Date || status) {
       isFiltered = true;
-      
+
       if (From_Date || To_Date) {
         query.Uploaded_Dtm = {};
-        
+
         if (From_Date) {
           const fromDate = new Date(From_Date);
           fromDate.setHours(0, 0, 0, 0);
@@ -1813,7 +1967,7 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
             query.Uploaded_Dtm.$gte = fromDate;
           }
         }
-        
+
         if (To_Date) {
           const toDate = new Date(To_Date);
           toDate.setHours(23, 59, 59, 999);
@@ -1828,30 +1982,27 @@ export const List_Transaction_Logs_Upload_Files = async (req, res) => {
       }
     }
 
-   
     let logs;
     if (isFiltered) {
-      logs = await FileUploadLog.find(query)
-        .sort({ Uploaded_Dtm: -1 });
+      logs = await FileUploadLog.find(query).sort({ Uploaded_Dtm: -1 });
     } else {
-      
       logs = await FileUploadLog.find(query)
         .sort({ Uploaded_Dtm: -1 })
         .limit(10);
     }
 
     if (logs.length === 0) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         status: "success",
         message: "No file upload logs found for the given criteria.",
-        data: []
+        data: [],
       });
     }
 
     return res.status(200).json({
       status: "success",
       message: "File upload logs retrieved successfully",
-      data: logs
+      data: logs,
     });
   } catch (error) {
     console.error("Error retrieving file upload logs:", error);
@@ -1870,19 +2021,30 @@ export const Task_for_Download_Incidents = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { DRC_Action, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
-    if (!From_Date || !To_Date || !Created_By ) {
-      return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
+    const {
+      DRC_Action,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Created_By,
+      Account_Num,
+    } = req.body;
+    if (!From_Date || !To_Date || !Created_By) {
+      return res.status(400).json({
+        error: "Missing required parameters: From Date, To Date, Created By",
+      });
     }
     const taskData = {
       Template_Task_Id: 20, // Placeholder, adjust if needed
       task_type: "Create Incident list for download",
       parameters: {
-          DRC_Action,
-          Incident_Status,
-          Source_Type,
-          From_Date,
-          To_Date,
+        DRC_Action,
+        Incident_Status,
+        Source_Type,
+        // Account_Num,
+        From_Date,
+        To_Date,
       },
       Created_By,
       Execute_By: "SYS",
@@ -1895,7 +2057,7 @@ export const Task_for_Download_Incidents = async (req, res) => {
     session.endSession();
     return res.status(201).json({
       message: "Task created successfully",
-       ResponseData,
+      ResponseData,
     });
   } catch (error) {
     console.error("Error creating the task:", error);
@@ -1905,7 +2067,7 @@ export const Task_for_Download_Incidents = async (req, res) => {
       message: "Error creating the task",
       error: error.message || "Internal server error.",
     });
-  }finally {
+  } finally {
     session.endSession();
   }
 };
