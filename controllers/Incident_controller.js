@@ -2081,3 +2081,58 @@ export const Task_for_Download_Incidents = async (req, res) => {
     session.endSession();
   }
 };
+
+export const Task_for_Download_Incidents_Full_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const {
+      Actions,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Created_By,
+      Account_Num,
+    } = req.body;
+    if (!From_Date || !To_Date || !Created_By) {
+      return res.status(400).json({
+        error: "Missing required parameters: From Date, To Date, Created By",
+      });
+    }
+    const taskData = {
+      Template_Task_Id: 21, // Placeholder, adjust if needed
+      task_type: "Create incident distribution download",
+      parameters: {
+        Actions,
+        Incident_Status,
+        Source_Type,
+        // Account_Num,
+        From_Date,
+        To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+      ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  } finally {
+    session.endSession();
+  }
+};
