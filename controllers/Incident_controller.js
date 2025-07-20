@@ -24,9 +24,9 @@ const __dirname = dirname(__filename);
 
 // Validation function for Create_Task parameters
 const validateCreateTaskParameters = (params) => {
-  const { Incident_Id, Account_Num } = params;
+  const { Incident_Log_Id, Account_Num } = params;
 
-  if (!Incident_Id || !Account_Num) {
+  if (!Incident_Log_Id || !Account_Num) {
     throw new Error(
       "Incident_Id and Account_Num are required parameters for Create_Task."
     );
@@ -118,19 +118,20 @@ export const Create_Incident = async (req, res) => {
 
     const mongoConnection = mongoose.connection;
     const counterResult = await mongoConnection
-      .collection("counters")
+      .collection("collection_sequence")
       .findOneAndUpdate(
-        { _id: "incident_id" },
+        { _id: "Incident_Log_Id" },
         { $inc: { seq: 1 } },
         { returnDocument: "after", session, upsert: true }
       );
 
-    const Incident_Id = counterResult.seq;
+    const Incident_Log_Id = counterResult.seq;
 
     const newIncidentData = {
-      Incident_Id,
+      Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
+      Incident_Status_Dtm: new Date(),
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
@@ -164,7 +165,7 @@ export const Create_Incident = async (req, res) => {
         Template_Task_Id: 9,
         task_type: "Extract data from data lake",
         Created_By,
-        Incident_Id,
+        Incident_Log_Id,
         Account_Num,
         task_status: "open",
       };
@@ -190,7 +191,7 @@ export const Create_Incident = async (req, res) => {
       status: "success",
       message: "Incident and task created successfully.",
       data: {
-        Incident_Id,
+        Incident_Log_Id,
         Account_Num,
         DRC_Action,
         Monitor_Months: monitorMonths,
@@ -468,8 +469,14 @@ export const Upload_DRS_File = async (req, res) => {
  */
 export const List_Incidents = async (req, res) => {
   try {
-    const { Actions, Incident_Status, Source_Type, From_Date, To_Date } =
+    const { Actions, Incident_Status, Source_Type, From_Date, To_Date, pages } =
       req.body;
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     let query = {};
     if (
@@ -480,8 +487,9 @@ export const List_Incidents = async (req, res) => {
       !To_Date
     ) {
       const incidents = await Incident_log.find(query)
-        .sort({ Incident_Id: -1 })
-        .limit(10);
+        .sort({ Incident_Log_Id: -1 })
+        .skip(skip)
+        .limit(limit);
       return res.status(200).json({
         status: "success",
         message: "Incidents retrieved successfully.",
@@ -491,6 +499,7 @@ export const List_Incidents = async (req, res) => {
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
+      endDate.setHours(23, 59, 59, 999); // Set end of day
       query.Created_Dtm = {
         $gte: startDate,
         $lte: endDate,
@@ -514,12 +523,12 @@ export const List_Incidents = async (req, res) => {
 
     const incidents = await Incident_log.find(query);
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // if (incidents.length === 0) {
+    //   return res.status(204).json({
+    //     status: "error",
+    //     message: "No incidents found matching the criteria.",
+    //   });
+    // }
 
     return res.status(200).json({
       status: "success",
@@ -683,6 +692,7 @@ export const New_List_Incidents = async (req, res) => {
     if (From_Date && To_Date) {
       const startDate = new Date(From_Date);
       const endDate = new Date(To_Date);
+      endDate.setHours(23, 59, 59, 999); // Set end of day
       query.Created_Dtm = {
         $gte: startDate,
         $lte: endDate,
@@ -727,12 +737,12 @@ export const New_List_Incidents = async (req, res) => {
       incidents,
     });
 
-    if (incidents.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "No incidents found matching the criteria.",
-      });
-    }
+    // if (incidents.length === 0) {
+    //   return res.status(404).json({
+    //     status: "error",
+    //     message: "No incidents found matching the criteria.",
+    //   });
+    // }
   } catch (error) {
     console.error("Error in New_List_Incidents:", error);
     return res.status(500).json({
@@ -2040,6 +2050,61 @@ export const Task_for_Download_Incidents = async (req, res) => {
       task_type: "Create Incident list for download",
       parameters: {
         DRC_Action,
+        Incident_Status,
+        Source_Type,
+        // Account_Num,
+        From_Date,
+        To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+      ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const Task_for_Download_Incidents_Full_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const {
+      Actions,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Created_By,
+      Account_Num,
+    } = req.body;
+    if (!From_Date || !To_Date || !Created_By) {
+      return res.status(400).json({
+        error: "Missing required parameters: From Date, To Date, Created By",
+      });
+    }
+    const taskData = {
+      Template_Task_Id: 21, // Placeholder, adjust if needed
+      task_type: "Create incident distribution download",
+      parameters: {
+        Actions,
         Incident_Status,
         Source_Type,
         // Account_Num,
