@@ -4,6 +4,7 @@ Reject_Case,
 Create_Incident, Upload_DRS_File,
 
 List_Incidents,
+New_List_Incidents,
 Create_Task_For_Incident_Details,
 
 total_F1_filtered_Incidents,
@@ -36,7 +37,8 @@ List_Transaction_Logs_Upload_Files,
 
 getOpenTaskCountforCPECollect,
 List_Reject_Incident,
-Task_for_Download_Incidents
+Task_for_Download_Incidents,
+Task_for_Download_Incidents_Full_List
 
 } from "../controllers/Incident_controller.js";
 const router = Router();
@@ -324,7 +326,8 @@ router.patch("/Reject_Case", Reject_Case);
  *                   example: "Internal server error."
  */
 router.post("/List_Incidents", List_Incidents);
-    
+router.post("/New_List_Incidents", New_List_Incidents);
+
 /**
  * @swagger
  * /api/incident/Create_Incident:
@@ -1942,4 +1945,6 @@ router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
  *                   example: Failed to create task
  */
 router.post('/Task_for_Download_Incidents', Task_for_Download_Incidents);
+
+router.post('/Task_for_Download_Incidents_Full_List', Task_for_Download_Incidents_Full_List);
 export default router;
