@@ -5807,7 +5807,6 @@ export const Customer_Negotiations = async (req, res) => {
 };
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
-
   const { drc_id, case_id, account_no, from_date, to_date, pages } = req.body;
 
   try {
@@ -5837,7 +5836,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       pipeline.push({ $match: { account_no } });
     }
 
-
     pipeline.push({
       $addFields: {
         last_drc: { $arrayElemAt: ["$drc", -1] },
@@ -5859,7 +5857,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       endOfDay.setHours(23, 59, 59, 999); // Set to end of the day
       dateFilter.$lte = endOfDay;
     };
-
 
     if (Object.keys(dateFilter).length > 0) {
       pipeline.push({
@@ -5888,7 +5885,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
-
       });
     }
 
