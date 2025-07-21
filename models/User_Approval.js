@@ -16,7 +16,7 @@ const userApprovalSchema = new Schema(
     User_Type: { 
       type: String, 
       required: true, 
-      enum: [ "DRC","DRC User","RO"] 
+      enum: [ "Slt", "DRC", "DRC User", "RO"] 
     },
     User_id: { 
       type: String,
@@ -27,7 +27,7 @@ const userApprovalSchema = new Schema(
     },
     created_on: { 
       type: Date, 
-      default: Date() 
+      default: () => new Date() 
     },
     created_by: { 
       type: String,
@@ -41,13 +41,13 @@ const userApprovalSchema = new Schema(
     },
     approve_status_on: {
       type: Date, 
-      default: Date() 
+      default: () => new Date() 
     },
     approver_type: {
       type: String, 
       maxlength: 30,
       required: true, 
-      enum: [ "DRC_Agreement","DRC_user_registration","DRC_user_details_update"] 
+      enum: [ "DRC_Agreement","DRC_user_registration","DRC_user_details_update", "SLT_user_registration"] 
     },
     approved_Deligated_by: { 
       type: String,

@@ -6,7 +6,7 @@ const contactNumberSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-});
+}, { _id: false }); // Disable _id for sub-schema
 
 // Sub-schema for remarks
 const remarkSchema = new mongoose.Schema({
@@ -59,7 +59,9 @@ const userSchema = new mongoose.Schema(
     user_nic: {
       type: String,
       maxlength: 30,
-      required: true,
+      required: function () {
+        return this.user_type === "Drcuser";
+      }
     },
     email: {
       type: String,
@@ -95,7 +97,9 @@ const userSchema = new mongoose.Schema(
     },
     drc_id: {
       type: Number,
-      required: true,
+      required: function () {
+        return this.user_type === "Drcuser";
+      }
     },
     ro_id: {
       type: Number,
@@ -103,7 +107,9 @@ const userSchema = new mongoose.Schema(
     },
     drcUser_id: {
       type: Number,
-      required: true,
+      required: function () {
+        return this.user_type === "Drcuser";
+      }
     },
     User_Status_Type: {
       type: String,
@@ -157,10 +163,25 @@ const userSchema = new mongoose.Schema(
       type: [remarkSchema],
       required: true,
     },
+    // user_nic: {
+    //   type: String,
+    //   maxlength: 30,
+    //   // required: true,
+    // },
+    //   user_nic: {
+    //   type: String,
+    //   maxlength: 30,
+    //   required: true,
+    // },
+    Grade: {
+      type: String,
+      maxlength: 30,
+       default: null,
+    },
     password: {
       type: String,
       maxlength: 30,
-      required: true,
+      // required: true,
     }, //need to be remove
   },
   {

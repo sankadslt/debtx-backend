@@ -15,7 +15,6 @@ const coordinatorSchema = new Schema({
     type: String,
     maxlength: 255,
     required: true,
-    maxlength: 30,
   },
   coordinator_create_dtm: {
     type: Date,
@@ -39,7 +38,7 @@ const coordinatorSchema = new Schema({
 
 const serviceSchema = new Schema({
   service_id: {
-    type: String,
+    type: Number,
     maxlength: 255,
     required: true,
   },
@@ -101,14 +100,9 @@ const rtomSchema = new Schema({
     required: true,
     enum: ["CPE", "Arrears", "All-Type"]
   },
-  status_update_by: {
-    type: String,
-    maxlength: 255,
-    required: true
-  },
-  status_update_dtm: {
+  last_update_dtm: {
     type: Date,
-    required: true
+    required: true,
   },
 }, { _id: false });
 
@@ -134,8 +128,8 @@ const remarkSchema = new Schema({
 const companyStatusSchema = new Schema({
   drc_status: {
     type: String,
-    enum: ["Active", "Inactive", "Terminate"],
-    default: "Inactive",
+    enum: ["Active", "Inactive", "Pending", "Terminate"],
+    default: "Pending",
   },
   drc_status_dtm: {
     type: Date,
@@ -159,6 +153,11 @@ const agreementDetailsSchema = new Schema({
   agreement_remark: {
     type: String,
     maxlength: 255,
+    default: null,
+  },
+  agreement_status: {
+    type: String,
+    enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
     default: null,
   },
 }, { _id: false });

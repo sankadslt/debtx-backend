@@ -11,6 +11,9 @@ const drcAgreementDetailsSchema = new Schema({
         required: true,
         unique: true
     },
+    approver_id: {
+        type: Number,
+    },
     drc_id: {
         type: Number,
         required: true
@@ -22,6 +25,11 @@ const drcAgreementDetailsSchema = new Schema({
     agreement_end_dtm: {
         type: Date,
         default: null,
+    },
+    agreement_status: {
+        type: String,
+        enum: ['Approved', 'Rejected', 'Pending', 'Expired', 'Terminate'],
+        required: true
     },
     agreement_remark: {
         type: String,
@@ -37,8 +45,12 @@ const drcAgreementDetailsSchema = new Schema({
         type: Date,
         required: true
     },
+    agreement_create_dtm: {
+        type: Date,
+        required: true
+    },
 }, {
-    collection: 'DRC_Agreement_Details', // Specify the collection name
+    collection: 'DRC_Agreement_Details', 
     timestamps: true
 });
 
