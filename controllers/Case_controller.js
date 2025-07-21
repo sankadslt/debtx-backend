@@ -5249,7 +5249,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     }).skip(skip).limit(limit).lean();
 
     if (!caseDetails || caseDetails.length === 0) {
-      return res.status(204).json({
+      return res.status(200).json({
         status: "success",
         message: "No Case Details Found.",
         data: [],
