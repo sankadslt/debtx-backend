@@ -382,7 +382,7 @@ export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
     const response = {
       settlement_id: SettlementDetails.settlement_id,
       case_id: SettlementDetails.case_id,
-      account_no: SettlementDetails.account_no, 
+      account_num: SettlementDetails.account_num, 
       arrears_amount: caseDetails.current_arrears_amount,
       last_monitoring_dtm: SettlementDetails.last_monitoring_dtm,
       settlement_status: SettlementDetails.settlement_status,
