@@ -387,15 +387,19 @@ export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
       last_monitoring_dtm: SettlementDetails.last_monitoring_dtm,
       settlement_status: SettlementDetails.settlement_status,
       status_dtm: SettlementDetails.status_dtm,
-      status_reason: SettlementDetails.status_reason,
-      settlement_phase: SettlementDetails.settlement_phase,
+      settlement_status_reason: SettlementDetails.settlement_status_reason,
+      case_phase: SettlementDetails.case_phase,
       settlement_type: SettlementDetails.settlement_type,
       created_by: SettlementDetails.created_by,
-      created_dtm: SettlementDetails.created_dtm,
+      settlement_status_dtm: SettlementDetails.settlement_status_dtm,
       drc_id: SettlementDetails.drc_id,
       ro_id: SettlementDetails.ro_id,
       settlement_plans: SettlementDetails.settlement_plan,
       settlement_plan_received: SettlementDetails.settlement_plan_received,
+      cumulative_Settle_Amount:SettlementDetails.cumulative_Settle_Amount,
+      installment_seq: SettlementDetails.installment_seq,
+      Installment_Settle_Amount:SettlementDetails.Installment_Settle_Amount,
+      Plan_Date: SettlementDetails.Plan_Date,
     };
 
     return res.status(200).json({
