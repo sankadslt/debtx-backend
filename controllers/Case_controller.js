@@ -3852,22 +3852,22 @@ export const Approve_Batch = async (req, res) => {
     const delegate_id = approverDoc.created_by;
 
     // Update approve_status for the matching document
-    // const result = await TmpForwardedApprover.updateOne(
-    //   {
-    //     approver_reference: approver_reference,
-    //     approver_type: "DRC Assign Approval",
-    //   },
-    //   {
-    //     $push: {
-    //       approve_status: {
-    //         status: statusTempForwardedApprover,
-    //         status_date: currentDate,
-    //         status_edit_by: approved_by,
-    //       },
-    //     },
-    //   },
-    //   { session }
-    // );
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        approver_reference: approver_reference,
+        approver_type: "DRC Assign Approval",
+      },
+      {
+        $push: {
+          approve_status: {
+            status: statusTempForwardedApprover,
+            status_date: currentDate,
+            status_edit_by: approved_by,
+          },
+        },
+      },
+      { session }
+    );
 
     console.log("Approve By", approved_by);
     console.log("current Date", currentDate);
