@@ -2833,6 +2833,11 @@ export const Create_Task_For_case_distribution = async (req, res) => {
  */
 export const List_all_transaction_seq_of_batch_id = async (req, res) => {
   try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+
     const { case_distribution_batch_id } = req.body;
 
     if (!case_distribution_batch_id) {
@@ -2841,6 +2846,10 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
         message: "case_distribution_batch_id is a required parameter.",
       });
     }
+
+    const arrearsBandDoc = await mongoConnection
+      .collection("Arrears_bands")
+      .findOne({});
 
     const transactions_data = await Case_distribution_drc_transactions.find(
       { case_distribution_batch_id },
@@ -2854,7 +2863,14 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
       }
     );
 
-    if (transactions_data.length === 0) {
+    // 🧠 Map readable arrears bands
+    const enriched_data = transactions_data.map((tx) => ({
+      ...tx.toObject(),
+      current_arrears_band: arrearsBandDoc?.[tx.current_arrears_band] || tx.current_arrears_band,
+    }));
+
+
+    if (enriched_data.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No data found for this batch ID.",
@@ -2863,8 +2879,8 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 
     return res.status(200).json({
       status: "success",
-      message: `Successfully retrieved ${transactions_data.length} records`,
-      data: transactions_data,
+      message: `Successfully retrieved ${enriched_data.length} records`,
+      data: enriched_data,
     });
   } catch (error) {
     console.error("Error fetching batch data:", error);
