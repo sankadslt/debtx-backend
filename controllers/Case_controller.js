@@ -5381,9 +5381,9 @@ export const Mediation_Board = async (req, res) => {
       agree_to_settle: settle,
       customer_response: settle === "no" ? fail_reason : null,
       handed_over_non_settlemet_on:
-        handed_over_non_settlemet === "yes" ? new Date() : null,
+      handed_over_non_settlemet === "yes" ? new Date() : null,
       non_settlement_comment:
-        handed_over_non_settlemet === "yes" ? comment : null,
+      handed_over_non_settlemet === "yes" ? comment : null,
     };
     if (request_id !== "") {
       if (!request_id || !request_type || !intraction_id) {
@@ -6938,34 +6938,61 @@ export const CaseDetailsforDRC = async (req, res) => {
         ref_products: 1,
         last_payment_date: 1,
         money_transactions: 1,
-        drc: "$last_drc",
+        drc: "$last_drc",      
         mediation_board: {
-          $filter: {
-            input: "$mediation_board",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)], // Only matches if provided
-            },
+            $filter: {
+              input: "$mediation_board",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_negotiation: {
-          $filter: {
-            input: "$ro_negotiation",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_negotiation: {
+            $filter: {
+              input: "$ro_negotiation",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_requests: {
-          $filter: {
-            input: "$ro_requests",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_requests: {
+            $filter: {
+              input: "$ro_requests",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, // if ro_id is present
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } // if not present, match null
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
       },
     });
 
