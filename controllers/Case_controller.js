@@ -7319,6 +7319,7 @@ export const AssignDRCToCaseDetails = async (req, res) => {
 };
 
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -7340,15 +7341,14 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const payload = { case_status };
+    const payload = {case_status};
     let case_phase = "";
     try {
       const response = await axios.post(
-        // "http://124.43.177.52:6000/app2/get_case_phase",
         "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-
+      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7363,7 +7363,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       if (error.response) {
         console.error("API Error Response:", error.response.data);
       }
-      // Abort and end session on axios error
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({
