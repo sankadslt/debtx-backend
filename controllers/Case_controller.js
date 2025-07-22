@@ -7344,7 +7344,8 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     let case_phase = "";
     try {
       const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
+        // "http://124.43.177.52:6000/app2/get_case_phase",
+        "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
 
