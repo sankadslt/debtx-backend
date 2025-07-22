@@ -55,12 +55,12 @@ import mongoose from "mongoose";
 */
 export const ListAllSettlementCases = async (req, res) => {
   try {
-    const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
+    const { account_no, case_id, case_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    // if (!case_id && !case_phase && !settlement_status && !from_date && !to_date && !account_no) {
     //   return res.status(400).json({
     //     status: "error",
-    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
+    //     message: "At least one of case_id, case_phase, settlement_status, account_no, from_date or to_date is required."
     //   });
     // }
 
@@ -73,7 +73,7 @@ export const ListAllSettlementCases = async (req, res) => {
 
     if (account_no) query.account_no = account_no;
     if (case_id) query.case_id = case_id;
-    if (settlement_phase) query.settlement_phase = settlement_phase;
+    if (case_phase) query.case_phase = case_phase;
     if (settlement_status) query.settlement_status = settlement_status;
 
     const dateFilter = {};
@@ -98,7 +98,7 @@ export const ListAllSettlementCases = async (req, res) => {
         account_no: caseData.account_no,
         settlement_status: caseData.settlement_status,
         created_dtm: caseData.created_dtm,
-        settlement_phase: caseData.settlement_phase,
+        case_phase: caseData.case_phase,
         settlement_id: caseData.settlement_id,
       };
     })

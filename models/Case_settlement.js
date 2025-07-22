@@ -22,7 +22,7 @@ const casesettlementSchema = new Schema({
   case_id: { type: Number, required: true },
   created_by: { type: String, maxlength: 30, required: true },
   created_dtm: { type: Date, default: Date.now },
-  settlement_phase: {
+case_phase: {
     type: String,
     maxlength: 30,
     enum: ["Negotiation", "Mediation Board", "LOD", "Litigation", "WRIT", "Dispute"]
