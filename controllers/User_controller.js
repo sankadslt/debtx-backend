@@ -755,6 +755,7 @@ export const List_User_Details_By_Service = async (req, res) => {
 
 export const Create_User = async (req, res) => {
   const {
+    user_id,
     user_type,
     username,
     email,
@@ -808,7 +809,7 @@ export const Create_User = async (req, res) => {
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
       );
-
+ 
     const User_Sequence = counterResult.value?.seq || counterResult.seq;
     if (!User_Sequence) throw new Error("Failed to generate User_Sequence.");
 
@@ -838,14 +839,25 @@ export const Create_User = async (req, res) => {
     });
 
     if (user_type === "Slt") {
-      newUser.user_id = User_Sequence;
+      newUser.user_id = user_id;
     }
 
     if (user_type === "Drcuser") {
+      const DRCUserCounterResult = await mongoConnection
+        .collection("collection_sequence")
+        .findOneAndUpdate(
+          { _id: "drcUser_id" },
+          { $inc: { seq: 1 } },
+          { returnDocument: "after", upsert: true, session }
+        );
+
+      const DRCUser_Sequence = DRCUserCounterResult.value?.seq || DRCUserCounterResult.seq;
+      if (!DRCUser_Sequence) throw new Error("Failed to generate DRCUser_Sequence.");
+
       newUser.drc_id = drc_id;
       newUser.user_nic = nic;
-      newUser.user_id = User_Sequence;
-      newUser.drcUser_id = User_Sequence;
+      newUser.user_id = user_id;
+      newUser.drcUser_id = DRCUser_Sequence;
     }
 
     // === Check if user already exists ===
