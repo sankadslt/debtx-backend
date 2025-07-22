@@ -4122,16 +4122,22 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
         },
       },
 
+      {
+        $match: {
+          "lastApproveStatus.status": "Open",
+        },
+      },
+
       // Filter based on approve_status if provided
-      ...(approve_status
-        ? [
-            {
-              $match: {
-                "lastApproveStatus.status": approve_status,
-              },
-            },
-          ]
-        : []),
+      // ...(approve_status
+      //   ? [
+      //       {
+      //         $match: {
+      //           "lastApproveStatus.status": approve_status,
+      //         },
+      //       },
+      //     ]
+      //   : []),
 
       // Replace the approve_status array with an array containing only the last status
       {
