@@ -3340,8 +3340,9 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
 
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
+     const { request_mode} = req.body;
     // Fetch all RO details from MongoDB
-    const ro_requests = await Template_RO_Request.find();
+    const ro_requests = await Template_RO_Request.find({request_mode});
 
     // Check if any data is found in databases
     if (ro_requests.length === 0) {
