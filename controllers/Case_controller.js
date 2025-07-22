@@ -7724,7 +7724,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
       drc_id,
       date_from,
       date_to,
+      pages,
     } = req.body;
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     if (!delegate_user_id) {
       return res.status(400).json({
@@ -7949,7 +7955,41 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         },
       },
 
+      // {
+      //   $sort: { CreateDTM: -1 }, // Sort by CreateDTM in descending order
+      // },
+
+      // { $skip: skip }, // Skip records for pagination
+
+      // { $limit: limit }, // Limit to the specified number of records
+
       // Stage 15: Final projection
+      // {
+      //   $project: {
+      //     _id: 0,
+      //     case_id: "$case_details.case_id",
+      //     case_current_status: "$case_details.case_current_status",
+      //     Interaction_Log_ID: "$Interaction_Log_ID",
+      //     Interaction_ID: "$Interaction_ID",
+      //     User_Interaction_Status: {
+      //       $ifNull: ["$last_status.User_Interaction_Status", "N/A"],
+      //     },
+      //     current_arrears_amount: "$case_details.current_arrears_amount",
+      //     Validity_Period: "$validity_period",
+      //     drc_id: "$case_details.ro_requests.drc_id",
+      //     drc_name: "$drc_details.drc_name",
+      //     User_Interaction_Type: "$User_Interaction_Type",
+      //     CreateDTM: "$CreateDTM",
+      //     // Request_Accept: "$request_docs.parameters.Request_Accept"
+      //   },
+      // },
+    ];
+
+    const DataPipeline = [
+      ...pipeline,
+      { $sort: { CreateDTM: -1 } }, // Sort by CreateDT
+      { $skip: skip }, // Skip records for pagination
+      { $limit: limit }, // Limit to the specified number of records
       {
         $project: {
           _id: 0,
@@ -7969,10 +8009,19 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
           // Request_Accept: "$request_docs.parameters.Request_Accept"
         },
       },
-    ];
+    ]
 
     // Execute the aggregation pipeline
-    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+    const results = await User_Interaction_Progress_Log.aggregate(DataPipeline);
+
+    let totalCount = 0;
+
+    if (Number(pages) === 1) {
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await User_Interaction_Progress_Log.aggregate(countPipeline);
+      totalCount = countResult[0]?.total || 0;
+    }
+
 
     if (!results || results.length === 0) {
       return res.status(204).json({
@@ -7982,7 +8031,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: results.length,
+      count: totalCount,
       data: results,
     });
   } catch (error) {
