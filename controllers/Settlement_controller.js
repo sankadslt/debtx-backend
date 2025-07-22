@@ -84,7 +84,7 @@ export const ListAllSettlementCases = async (req, res) => {
       dateFilter.$lte = endOfDay;
     }
     if (Object.keys(dateFilter).length > 0) {
-      query.created_dtm = dateFilter;
+      query.settlement_status_dtm = dateFilter;
     }
 
     const filtered_cases = await CaseSettlement.find(query)
@@ -97,7 +97,7 @@ export const ListAllSettlementCases = async (req, res) => {
         case_id: caseData.case_id,
         account_no: caseData.account_no,
         settlement_status: caseData.settlement_status,
-        created_dtm: caseData.created_dtm,
+        settlement_status_dtm: caseData.settlement_status_dtm,
         case_phase: caseData.case_phase,
         settlement_id: caseData.settlement_id,
       };

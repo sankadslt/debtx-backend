@@ -21,7 +21,7 @@ const casesettlementSchema = new Schema({
   account_no: { type: String, maxlength: 30, required: true },
   case_id: { type: Number, required: true },
   created_by: { type: String, maxlength: 30, required: true },
-  created_dtm: { type: Date, default: Date.now },
+  settlement_status_dtm: { type: Date, default: Date.now },
 case_phase: {
     type: String,
     maxlength: 30,
