@@ -4211,7 +4211,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
  * - 500 for general errors.
  */
 
-export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
+export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
