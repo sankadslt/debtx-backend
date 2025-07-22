@@ -5347,7 +5347,9 @@ export const Mediation_Board = async (req, res) => {
       settle,
       initial_amount,
       calendar_month,
+      fail_reason_comment,
       case_current_status,
+      non_settlement_comment,
       remark,
       fail_reason,
       created_by,
@@ -5377,13 +5379,11 @@ export const Mediation_Board = async (req, res) => {
       created_dtm: new Date(),
       mediation_board_calling_dtm: next_calling_date,
       customer_available: customer_available,
-      comment: fail_reason === "" ? null : comment,
+      comment: customer_available === "no" ? comment : null,
       agree_to_settle: settle,
       customer_response: settle === "no" ? fail_reason : null,
-      handed_over_non_settlemet_on:
-        handed_over_non_settlemet === "yes" ? new Date() : null,
-      non_settlement_comment:
-        handed_over_non_settlemet === "yes" ? comment : null,
+      handed_over_non_settlemet_on:handed_over_non_settlemet === "yes" ? new Date() : null,
+      non_settlement_comment,
     };
     if (request_id !== "") {
       if (!request_id || !request_type || !intraction_id) {
@@ -6938,34 +6938,61 @@ export const CaseDetailsforDRC = async (req, res) => {
         ref_products: 1,
         last_payment_date: 1,
         money_transactions: 1,
-        drc: "$last_drc",
+        drc: "$last_drc",      
         mediation_board: {
-          $filter: {
-            input: "$mediation_board",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)], // Only matches if provided
-            },
+            $filter: {
+              input: "$mediation_board",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_negotiation: {
-          $filter: {
-            input: "$ro_negotiation",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_negotiation: {
+            $filter: {
+              input: "$ro_negotiation",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_requests: {
-          $filter: {
-            input: "$ro_requests",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_requests: {
+            $filter: {
+              input: "$ro_requests",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, // if ro_id is present
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } // if not present, match null
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
       },
     });
 
