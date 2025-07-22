@@ -3852,22 +3852,22 @@ export const Approve_Batch = async (req, res) => {
     const delegate_id = approverDoc.created_by;
 
     // Update approve_status for the matching document
-    // const result = await TmpForwardedApprover.updateOne(
-    //   {
-    //     approver_reference: approver_reference,
-    //     approver_type: "DRC Assign Approval",
-    //   },
-    //   {
-    //     $push: {
-    //       approve_status: {
-    //         status: statusTempForwardedApprover,
-    //         status_date: currentDate,
-    //         status_edit_by: approved_by,
-    //       },
-    //     },
-    //   },
-    //   { session }
-    // );
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        approver_reference: approver_reference,
+        approver_type: "DRC Assign Approval",
+      },
+      {
+        $push: {
+          approve_status: {
+            status: statusTempForwardedApprover,
+            status_date: currentDate,
+            status_edit_by: approved_by,
+          },
+        },
+      },
+      { session }
+    );
 
     console.log("Approve By", approved_by);
     console.log("current Date", currentDate);
@@ -5581,6 +5581,7 @@ export const Customer_Negotiations = async (req, res) => {
       expire_dtm,
       created_dtm,
       field_reason,
+      Field_reason_ID,
       field_reason_remark,
       credit_class_no,
       credit_class_name,
@@ -5616,7 +5617,8 @@ export const Customer_Negotiations = async (req, res) => {
       ro_name,
       created_dtm: new Date(),
       field_reason,
-      remark: field_reason_remark,
+      Field_reason_ID,
+      negotiation_remark: field_reason_remark,
     };
     const start = new Date(created_dtm);
     const end = new Date(expire_dtm);
@@ -5668,10 +5670,11 @@ export const Customer_Negotiations = async (req, res) => {
         request_comment,
         intraction_id,
       };
+
       const result = await createUserInteractionFunction({
         Interaction_ID: intraction_id,
         User_Interaction_Type: request_type,
-        delegate_user_id: 1,
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams,
@@ -5807,7 +5810,6 @@ export const Customer_Negotiations = async (req, res) => {
 };
 
 export const List_CasesOwened_By_DRC = async (req, res) => {
-
   const { drc_id, case_id, account_no, from_date, to_date, pages } = req.body;
 
   try {
@@ -5837,7 +5839,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       pipeline.push({ $match: { account_no } });
     }
 
-
     pipeline.push({
       $addFields: {
         last_drc: { $arrayElemAt: ["$drc", -1] },
@@ -5859,7 +5860,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       endOfDay.setHours(23, 59, 59, 999); // Set to end of the day
       dateFilter.$lte = endOfDay;
     };
-
 
     if (Object.keys(dateFilter).length > 0) {
       pipeline.push({
@@ -5888,7 +5888,6 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
       return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
-
       });
     }
 
@@ -7323,6 +7322,7 @@ export const AssignDRCToCaseDetails = async (req, res) => {
 };
 
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -7344,14 +7344,14 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const payload = { case_status };
+    const payload = {case_status};
     let case_phase = "";
     try {
       const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
+        "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-
+      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7366,7 +7366,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       if (error.response) {
         console.error("API Error Response:", error.response.data);
       }
-      // Abort and end session on axios error
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({
