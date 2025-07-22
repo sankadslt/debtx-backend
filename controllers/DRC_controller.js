@@ -20,7 +20,7 @@ import RTOM from "../models/Rtom.js";
 import BillingCenter from "../models/DRC_Billing_Center_Log.js";
 import case_inquiry from "../models/Case_inquiry.js";
 import mongoose from "mongoose";
-import Case_details from "../models/Case_details.js";
+import { createTaskFunction } from "../services/TaskService.js";
 import CaseDetails from "../models/Case_details.js";
 
 /**
@@ -467,7 +467,6 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
   3. Return the result in a clean, structured response.
   4. Handle all errors with appropriate logging and status codes.
 */
-
 export const List_DRC_Details_By_DRC_ID = async (req, res) => {
   try {
     const { drc_id } = req.body;
@@ -945,12 +944,30 @@ export const Terminate_Company_By_DRC_ID = async (req, res) => {
         drc_status_by: terminate_by,
       };
     } else {
-      console.log("termination will be done using python script");
+      // let taskCreatedResponse;
+      // const dynamicParams = {
+      //   drc_id: drc_id,
+      //   end_dtm: terminate_dtm,
+      // };
+
+      // // Create Task for Approved Approver
+      // const taskData = {
+      //   Template_Task_Id: 55,
+      //   task_type: "Create Task for  terminate  DRC",
+      //   ...dynamicParams,
+      //   Created_By: terminate_by,
+      //   task_status: "open",
+      // };
+
+      // taskCreatedResponse = await createTaskFunction(taskData);
+
+      console.log("Terminate DRC will be processed later, no immediate status update.");
     }
 
     const updatedCompany = await DRC.findOneAndUpdate(
       { drc_id },
       updateterminates,
+      // taskCreatedResponse,
       { new: true }
     );
 
@@ -1190,15 +1207,57 @@ export const getDRCDetailsById = async (req, res) => {
   });
 };
 
+// export const getActiveDRCDetails = async (req, res) => {
+//   try {
+//     const mongoData = await DRC.aggregate([
+//       { $unwind: "$drc_status" },
+//       { $sort: { "drc_status.drc_status_dtm": -1 } },
+//       {
+//         $group: {
+//           _id: "$_id",
+//           latestStatus: { $first: "$drc_status" },
+//           drc_name: { $first: "$drc_name" },
+//           drc_id: { $first: "$drc_id" },
+//         },
+//       },
+//       { $match: { "latestStatus.drc_status": "Active" } },
+//       {
+//         $project: {
+//           _id: 0,
+//           drc_name: 1,
+//           drc_id: 1,
+//         },
+//       },
+//     ]);
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Active DRC names and IDs retrieved successfully.",
+//       data: { mongoData },
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message,
+//       errors: {
+//         code: 500,
+//         description:
+//           "Internal server error occurred while fetching DRC details.",
+//       },
+//     });
+//   }
+// };
+
+
 export const getActiveDRCDetails = async (req, res) => {
   try {
     const mongoData = await DRC.aggregate([
-      { $unwind: "$drc_status" },
-      { $sort: { "drc_status.drc_status_dtm": -1 } },
+      { $unwind: "$status" },
+      { $sort: { "status.drc_status_dtm": -1 } },
       {
         $group: {
           _id: "$_id",
-          latestStatus: { $first: "$drc_status" },
+          latestStatus: { $first: "$status" },
           drc_name: { $first: "$drc_name" },
           drc_id: { $first: "$drc_id" },
         },
@@ -1230,6 +1289,7 @@ export const getActiveDRCDetails = async (req, res) => {
     });
   }
 };
+
 
 export const getDRCWithServicesByDRCId = async (req, res) => {
   //let mysqlData = null;

@@ -3682,7 +3682,12 @@ export const Case_Distribution_Details_With_Drc_Rtom_ByBatchId = async (
 
 export const List_All_Batch_Details = async (req, res) => {
   try {
-    const { approved_deligated_by } = req.body;
+    const { approved_deligated_by, pages } = req.body;
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     if (!approved_deligated_by) {
       return res
@@ -3726,6 +3731,15 @@ export const List_All_Batch_Details = async (req, res) => {
           path: "$case_distribution_details",
           preserveNullAndEmptyArrays: true, // Keep documents even if no matching case distribution
         },
+      },
+      {
+        $sort: { "created_on": -1 }, // Sort by created_on date in descending order
+      },
+      {
+        $skip: skip, // Skip documents for pagination
+      },
+      {
+        $limit: limit, // Limit the number of documents returned
       },
       // Stage 6: Project only the fields we need
       {
@@ -3838,22 +3852,22 @@ export const Approve_Batch = async (req, res) => {
     const delegate_id = approverDoc.created_by;
 
     // Update approve_status for the matching document
-    // const result = await TmpForwardedApprover.updateOne(
-    //   {
-    //     approver_reference: approver_reference,
-    //     approver_type: "DRC Assign Approval",
-    //   },
-    //   {
-    //     $push: {
-    //       approve_status: {
-    //         status: statusTempForwardedApprover,
-    //         status_date: currentDate,
-    //         status_edit_by: approved_by,
-    //       },
-    //     },
-    //   },
-    //   { session }
-    // );
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        approver_reference: approver_reference,
+        approver_type: "DRC Assign Approval",
+      },
+      {
+        $push: {
+          approve_status: {
+            status: statusTempForwardedApprover,
+            status_date: currentDate,
+            status_edit_by: approved_by,
+          },
+        },
+      },
+      { session }
+    );
 
     console.log("Approve By", approved_by);
     console.log("current Date", currentDate);
@@ -5868,7 +5882,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     if (filtered_cases.length === 0) {
-      return res.status(404).json({
+      return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
       });
