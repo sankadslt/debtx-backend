@@ -5670,10 +5670,11 @@ export const Customer_Negotiations = async (req, res) => {
         request_comment,
         intraction_id,
       };
+
       const result = await createUserInteractionFunction({
         Interaction_ID: intraction_id,
         User_Interaction_Type: request_type,
-        delegate_user_id: 1,
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams,
