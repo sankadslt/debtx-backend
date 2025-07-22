@@ -863,10 +863,10 @@ export const Create_User = async (req, res) => {
     // === Check if user already exists ===
     let conflictConditions = [{ email }];
     if (user_type === "Slt") {
-      conflictConditions.push({ user_id: User_Sequence });
+      conflictConditions.push({ user_id: user_id });
     }
     if (user_type === "Drcuser") {
-      conflictConditions.push({ nic, user_id: User_Sequence });
+      conflictConditions.push({ nic, user_id: user_id });
     }
 
     const existingUser = await User.findOne({ $or: conflictConditions }).session(session);
