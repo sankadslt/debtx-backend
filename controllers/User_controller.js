@@ -224,7 +224,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   try {
     const user = await User.aggregate([
       { $match: { 
-        user_id: user_id,
+        user_id: user_id + "@intranet.slt.com.lk",
       } },
       {
         $project: {
@@ -755,6 +755,7 @@ export const List_User_Details_By_Service = async (req, res) => {
 
 export const Create_User = async (req, res) => {
   const {
+    user_id,
     user_type,
     username,
     email,
@@ -808,7 +809,7 @@ export const Create_User = async (req, res) => {
         { $inc: { seq: 1 } },
         { returnDocument: "after", upsert: true, session }
       );
-
+ 
     const User_Sequence = counterResult.value?.seq || counterResult.seq;
     if (!User_Sequence) throw new Error("Failed to generate User_Sequence.");
 
@@ -820,7 +821,7 @@ export const Create_User = async (req, res) => {
       contact_num: formattedContactNumbers,
       login_method,
       role,
-      user_status: "Active",
+      user_status: "Inactive",
       User_Status_Type: "user_update",
       User_Status_DTM: currentDate,
       User_Status_By: created_by,
@@ -838,23 +839,34 @@ export const Create_User = async (req, res) => {
     });
 
     if (user_type === "Slt") {
-      newUser.user_id = User_Sequence;
+      newUser.user_id = user_id;
     }
 
     if (user_type === "Drcuser") {
+      const DRCUserCounterResult = await mongoConnection
+        .collection("collection_sequence")
+        .findOneAndUpdate(
+          { _id: "drcUser_id" },
+          { $inc: { seq: 1 } },
+          { returnDocument: "after", upsert: true, session }
+        );
+
+      const DRCUser_Sequence = DRCUserCounterResult.value?.seq || DRCUserCounterResult.seq;
+      if (!DRCUser_Sequence) throw new Error("Failed to generate DRCUser_Sequence.");
+
       newUser.drc_id = drc_id;
       newUser.user_nic = nic;
-      newUser.user_id = User_Sequence;
-      newUser.drcUser_id = User_Sequence;
+      newUser.user_id = user_id;
+      newUser.drcUser_id = DRCUser_Sequence;
     }
 
     // === Check if user already exists ===
     let conflictConditions = [{ email }];
     if (user_type === "Slt") {
-      conflictConditions.push({ user_id: User_Sequence });
+      conflictConditions.push({ user_id: user_id });
     }
     if (user_type === "Drcuser") {
-      conflictConditions.push({ nic, user_id: User_Sequence });
+      conflictConditions.push({ nic, user_id: user_id });
     }
 
     const existingUser = await User.findOne({ $or: conflictConditions }).session(session);
@@ -888,7 +900,7 @@ export const Create_User = async (req, res) => {
       doc_version: 1,
       user_approver_id,
       User_Type: formattedUserType,
-      User_id: User_Sequence,
+      User_id: user_id,
       DRC_id: drc_id,
       created_by,
       created_on: currentDate,

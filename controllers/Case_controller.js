@@ -5603,6 +5603,7 @@ export const Customer_Negotiations = async (req, res) => {
       expire_dtm,
       created_dtm,
       field_reason,
+      Field_reason_ID,
       field_reason_remark,
       credit_class_no,
       credit_class_name,
@@ -5638,7 +5639,8 @@ export const Customer_Negotiations = async (req, res) => {
       ro_name,
       created_dtm: new Date(),
       field_reason,
-      remark: field_reason_remark,
+      Field_reason_ID,
+      negotiation_remark: field_reason_remark,
     };
     const start = new Date(created_dtm);
     const end = new Date(expire_dtm);
@@ -5690,10 +5692,11 @@ export const Customer_Negotiations = async (req, res) => {
         request_comment,
         intraction_id,
       };
+
       const result = await createUserInteractionFunction({
         Interaction_ID: intraction_id,
         User_Interaction_Type: request_type,
-        delegate_user_id: 1,
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
         User_Interaction_Status: "Open",
         ...dynamicParams,
@@ -7341,6 +7344,7 @@ export const AssignDRCToCaseDetails = async (req, res) => {
 };
 
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -7362,14 +7366,14 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const payload = { case_status };
+    const payload = {case_status};
     let case_phase = "";
     try {
       const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
+        "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-
+      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7384,7 +7388,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       if (error.response) {
         console.error("API Error Response:", error.response.data);
       }
-      // Abort and end session on axios error
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({
