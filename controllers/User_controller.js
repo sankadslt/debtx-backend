@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import db from '../config/db.js';
 import User_Approval from '../models/User_Approval.js';
+import RecoveryOfficer from "../models/Recovery_officer.js";
 
 // Function to Get user details by user roles
 export const getUserDetailsByRole = async (req, res) => {
@@ -642,67 +643,145 @@ export const Update_User_Details = async (req, res) => {
 //   }
 // };
 
+// export const List_User_Approval_Details = async (req, res) => {
+//   try {
+//     const { user_type, from_date, to_date, page } = req.body;
+
+//     console.log("Payload:" ,req.body);
+    
+//     // Pagination logic
+//     let currentPage = Number(page);
+//     if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+//     const limit = currentPage === 1 ? 10 : 30;
+//     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+
+//     const query = {};
+
+//     if (user_type) {
+//       query.user_type = user_type;
+//     }
+
+//     if (from_date || to_date) {
+//       const dateFilter = {};
+//       if (from_date) dateFilter.$gte = new Date(from_date);
+//       if (to_date) {
+//         const endOfDay = new Date(to_date);
+//         endOfDay.setHours(23, 59, 59, 999);
+//         dateFilter.$lte = endOfDay;
+//       }
+//       query.created_dtm = dateFilter;
+//     }
+
+//     const result = await User_Approval.aggregate([
+//       { $match: query },
+//       { $sort: { created_dtm: -1 } },
+//       { $skip: skip },
+//       { $limit: limit },
+//       {
+//         $project: {
+//           _id: 0,
+//           approval_id: 1,
+//           user_name: 1,
+//           user_type: 1,
+//           login_email: 1,
+//           login_method: "$parameters.login_method",
+//           created_dtm: 1
+//         }
+//       }
+//     ]);
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "User approval details retrieved successfully.",
+//       data: result
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching User Approval Details:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "There was an error retrieving user approval details."
+//     });
+//   }
+// };
+
+
 export const List_User_Approval_Details = async (req, res) => {
   try {
-    const { user_type, from_date, to_date, page } = req.body;
+    let { userType, dateFrom, dateTo, pages } = req.body;
 
-    console.log("Payload:" ,req.body);
-    
-    // Pagination logic
-    let currentPage = Number(page);
-    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
-    const limit = currentPage === 1 ? 10 : 30;
-    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
 
-    const query = {};
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    if (user_type) {
-      query.user_type = user_type;
+    // Build query filter
+    let filter = {};
+    if (userType) {
+      // Your backend stores as 'RO' or 'DRC User'
+      filter.User_Type = userType;
+    }
+    if (dateFrom || dateTo) {
+      filter.created_on = {};
+      if (dateFrom) filter.created_on.$gte = new Date(dateFrom);
+      if (dateTo) filter.created_on.$lte = new Date(dateTo);
     }
 
-    if (from_date || to_date) {
-      const dateFilter = {};
-      if (from_date) dateFilter.$gte = new Date(from_date);
-      if (to_date) {
-        const endOfDay = new Date(to_date);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateFilter.$lte = endOfDay;
-      }
-      query.created_dtm = dateFilter;
-    }
+    // Get total count without pagination
+    const totalCount = await User_Approval.countDocuments(filter);
 
-    const result = await User_Approval.aggregate([
-      { $match: query },
-      { $sort: { created_dtm: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 0,
-          approval_id: 1,
-          user_name: 1,
-          user_type: 1,
-          login_email: 1,
-          login_method: "$parameters.login_method",
-          created_dtm: 1
-        }
+    // Query and paginate from User_Approval
+    const approvals = await User_Approval.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ created_on: -1 });
+
+    // Enrich each approval with user info from Recovery_officer
+    const approvalData = await Promise.all(approvals.map(async (approval) => {
+      // Find the relevant officer (RO or DRC User)
+      let officerQuery = {};
+      if (approval.User_Type === "RO") {
+        officerQuery.ro_id = Number(approval.User_id);
+      } else if (approval.User_Type === "DRC User") {
+        officerQuery.drcUser_id = Number(approval.User_id);
       }
-    ]);
+      let officer = await RecoveryOfficer.findOne(officerQuery);
+
+      // Flatten parameters if any
+      const params = approval.Parameters || {};
+
+      return {
+        User_Type: approval.User_Type,
+        User_id: approval.User_id,
+        approve_status: approval.approve_status,
+        approver_type: approval.approver_type,
+        username: officer ? officer.ro_name : '',
+        user_mail: officer ? officer.login_email : '',
+        created_date: approval.created_on,
+        parameters: params,
+        phone: params.login_contact_no || (officer ? officer.login_contact_no : ""),
+        drcUser_status: params.drcUser_status || (officer ? officer.drcUser_status : ""),
+        DRC_id: approval.DRC_id
+      };
+    }));
 
     return res.status(200).json({
-      status: "success",
-      message: "User approval details retrieved successfully.",
-      data: result
+      status: true,
+      message: "User approvals retrieved successfully.",
+      data: approvalData,
+      total_approvals: totalCount
     });
 
   } catch (error) {
-    console.error("Error fetching User Approval Details:", error.message);
+    console.error(error);
     return res.status(500).json({
-      status: "error",
-      message: "There was an error retrieving user approval details."
+      status: false,
+      message: error.message || "Server error"
     });
   }
 };
+
 
 export const List_User_Details_By_Service = async (req, res) => {
   const { user_id } = req.body;
