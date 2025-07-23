@@ -52,7 +52,7 @@ import {
   Approve_Batch,
   Create_task_for_batch_approval,
   List_DRC_Assign_Manager_Approval,
-  Approve_DRC_Assign_Manager_Approval,
+  Aprove_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
   Assign_DRC_To_Case,
@@ -5308,7 +5308,7 @@ router.post(
 
 /**
  * @swagger
- * /api/case/Approve_DRC_Assign_Manager_Approval:
+ * /api/case/Aprove_DRC_Assign_Manager_Approval:
  *   post:
  *     summary: C-2P76 Approve DRC Assign Manager Approval
  *     description: |
@@ -5396,8 +5396,8 @@ router.post(
  *                   example: "Internal server error."
  */
 router.post(
-  "/Approve_DRC_Assign_Manager_Approval",
-  Approve_DRC_Assign_Manager_Approval
+  "/Aprove_DRC_Assign_Manager_Approval",
+  Aprove_DRC_Assign_Manager_Approval
 );
 
 /**
