@@ -5715,11 +5715,11 @@ export const Customer_Negotiations = async (req, res) => {
       const statusMap = {
         "Mediation board forward request letter": "RO Negotiation FMB Pending",
         "Negotiation Settlement plan Request": "RO Negotiation",
-        "Negotiation period extend Request": "RO Negotiation extension Pending",
+        "Negotiation period extend Request": "RO Negotiation Extension Pending",
         "Negotiation customer further information Request": "RO Negotiation",
         "Negotiation Customer request service": "RO Negotiation",
       };
-      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
+      case_status_with_request = statusMap[request_type] || "MB Negotiation";
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id },
         {
