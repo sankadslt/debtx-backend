@@ -1151,7 +1151,7 @@ export const Assign_DRC_To_Agreement = async (req, res) => {
 
     // Get delegated approver
     const approval_type = "DRC_Agreement";
-    const approved_Deligated_by = await getApprovalUserIdService(approval_type);
+    const approved_Deligated_by = await getApprovalUserIdService({ approval_type });
 
     if (approved_Deligated_by === null || approved_Deligated_by === undefined) {
       await session.abortTransaction();
