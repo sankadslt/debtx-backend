@@ -296,14 +296,10 @@ const userStatusSchema = new mongoose.Schema(
 // Sub-schema for last user reference
 const lastUserRefSchema = new mongoose.Schema(
   {
-    User_1_id: {
+    User_id: {
       type: String,
       default: null,
-    },
-    User_2_id: {
-      type: String,
-      default: null,
-    },
+    }
   },
   { _id: false }
 );
@@ -324,11 +320,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       maxlength: 30,
       required: true,
-      enum: ["slt", "drcuser", "ro"],
+      enum: ["slt", "drc_officer", "ro"],
     },
     last_user_ref: {
       type: lastUserRefSchema,
-      default: () => ({}),
+       default: [],
     },
     user_login: {
       type: [userLoginSchema],
