@@ -3212,8 +3212,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       User_Interaction_Type: "Pending Approval Agent Destribution",
       delegate_user_id: delegate_id,
       Created_By: Proceed_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -3946,11 +3944,8 @@ export const Approve_Batch = async (req, res) => {
         User_Interaction_Type: "Agent Distribution Batch Approved",
         delegate_user_id: delegate_id,
         Created_By: approved_by,
-        User_Interaction_Status_DTM: currentDate,
-        User_Interaction_Status: "Open",
-        session,
-        ...dynamicParams,
-        approver_reference: approver_reference,
+         ...dynamicParams,
+        session,   
       });
     }
 
@@ -4339,10 +4334,8 @@ export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,  
       });
   
       await session.commitTransaction();
@@ -4592,10 +4585,9 @@ export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,
+        
       });
 
       await session.commitTransaction();
@@ -4748,10 +4740,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "python", //python
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,   
       });
       await session.commitTransaction();
       session.endSession();
@@ -4858,10 +4848,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "Rejected DRC Assign Manager Approval",
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,       
       });
 
       await session.commitTransaction();
@@ -4999,6 +4987,43 @@ export const Assign_DRC_To_Case = async (req, res) => {
     if (!approver_id) {
       throw new Error("Failed to generate Task_Id.");
     }
+    const dynamicParams = {
+      case_id,
+      drc_id,
+      drc_name,
+    };
+    const payload = { case_status: case_current_status };
+    let case_phase = "";
+    try {
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/get_case_phase",
+        payload
+      );
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+    } catch (error) {
+      console.error("Error during axios call:", error.message);
+      if (error.response) {
+        console.error("API Error Response:", error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
+    const delegate_id = await getApprovalUserIdService({
+      case_phase,
+      approval_type: "DRC Re-Assign Approval",
+    });
 
     const drcAssignAproveRecode = {
       approver_id,
@@ -5021,57 +5046,18 @@ export const Assign_DRC_To_Case = async (req, res) => {
         remark_date: new Date(),
         remark_edit_by: assigned_by,
       },
+      approved_deligated_by:delegate_id,
     };
     const TmpForwardedApproverRespons = new TmpForwardedApprover(
       drcAssignAproveRecode
     );
     await TmpForwardedApproverRespons.save({ session });
 
-    const dynamicParams = {
-      case_id,
-      drc_id,
-      drc_name,
-    };
-    const payload = { case_status: case_current_status };
-    let case_phase = "";
-    try {
-      const response = await axios.post(
-        "https://debtx.slt.lk:6500/get_case_phase",
-        payload
-      );
-      console.log(response);
-      if (!response.data.case_phase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "case_phase not found in API response",
-        });
-      }
-      case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
-    } catch (error) {
-      console.error("Error during axios call:", error.message);
-      if (error.response) {
-        console.error("API Error Response:", error.response.data);
-      }
-      // Abort and end session on axios error
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        message: "Failed to get case_phase from external API",
-        error: error.message,
-      });
-    }
-    const delegate_id = await getApprovalUserIdService({
-      case_phase,
-      approval_type: "DRC Re-Assign Approval",
-    });
     const result = await createUserInteractionFunction({
       Interaction_ID: 22,
       User_Interaction_Type: "Pending approval for DRC Re Assign Approval",
       delegate_user_id: delegate_id,
       Created_By: assigned_by,
-      User_Interaction_Status: "Open",
       ...dynamicParams,
       session,
     });
@@ -5417,7 +5403,6 @@ export const Mediation_Board = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -5699,7 +5684,6 @@ export const Customer_Negotiations = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -5855,7 +5839,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     const pipeline = [];
 
     if (case_id) {
-      pipeline.push({ $match: { case_id } });
+      pipeline.push({ $match: { case_id: Number(case_id) } });
     }
 
     if (account_no) {
@@ -5905,6 +5889,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         current_arrears_amount: 1,
       },
     });
+    
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     if (filtered_cases.length === 0) {
@@ -7401,7 +7386,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7410,7 +7394,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         });
       }
       case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
     } catch (error) {
       console.error("Error during axios call:", error.message);
       if (error.response) {
@@ -7423,12 +7406,10 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         error: error.message,
       });
     }
-
     const delegate_id = await getApprovalUserIdService({
       case_phase,
       approval_type: "DRC Assign Approval",
     });
-
     // Generate a new approver_id using the collection_sequence
     const counterResult = await mongoConnection
       .collection("collection_sequence")
@@ -7499,8 +7480,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       User_Interaction_Type: "Pending approval for Case Withdraw",
       delegate_user_id: delegate_id,
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -9294,10 +9273,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      session: session,
-      // User_Interaction_Status: "Open",
-      // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
+      session: session,    
     });
 
     // Delete the User Interaction Progress Log entry
@@ -9450,8 +9427,6 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: request_type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
     });
 
