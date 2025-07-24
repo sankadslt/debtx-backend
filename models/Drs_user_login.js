@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
   doc_version: {
     type: Number,
     required: true,
-    default: 1,
+    default: 2,
   },
   user_login_id: {
     type: String,
@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     maxlength: 30,
+    unique: true,
   },
   login_details: {
     type: loginDetailsSchema,

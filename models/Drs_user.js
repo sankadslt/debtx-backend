@@ -313,7 +313,7 @@ const userSchema = new mongoose.Schema(
   {
     doc_version: {
       type: Number,
-      default: 1,
+      default: 2,
     },
     user_id: {
       type: Number,
@@ -324,7 +324,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       maxlength: 30,
       required: true,
-      enum: ["internal","external"],
+      enum: ["slt", "drcuser", "ro"],
     },
     last_user_ref: {
       type: lastUserRefSchema,
