@@ -10224,22 +10224,38 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
       caseInfo: {
         caseId: cleanedCaseDetails.case_id,
         createdDtm: cleanedCaseDetails.created_dtm,
+        currentArrearsBand: cleanedCaseDetails.current_arrears_band,
+        proceedDtm: cleanedCaseDetails.proceed_dtm,
+        proceedBy: cleanedCaseDetails.Proceed_By,
+        currentStatus: cleanedCaseDetails.case_current_status,
+        caseCurrentPhase: cleanedCaseDetails.case_current_phase,
         daysCount: Math.floor(
           (new Date() - new Date(cleanedCaseDetails.created_dtm)) /
-            (1000 * 60 * 60 * 24)
+          (1000 * 60 * 60 * 24)
         ),
       },
       basicInfo: {
         accountNo: cleanedCaseDetails.account_no,
         customerName: cleanedCaseDetails.customer_name,
         customerRef: cleanedCaseDetails.customer_ref,
+        customerType: cleanedCaseDetails.customer_type_name,
+        implementedDtm: cleanedCaseDetails.implemented_dtm,
+        accountManagerCode: cleanedCaseDetails.account_manager_code,
         area: cleanedCaseDetails.area,
         rtom: cleanedCaseDetails.rtom,
+        region: cleanedCaseDetails.region,
+        arrearsBand: cleanedCaseDetails.arrears_band,
+        bssArrearsAmount: cleanedCaseDetails.bss_arrears_amount,
         arrearsAmount: cleanedCaseDetails.current_arrears_amount,
+        incidentId: cleanedCaseDetails.incident_id,
         actionType: cleanedCaseDetails.action_type,
-        currentStatus: cleanedCaseDetails.case_current_status,
+        drcCommissionRule: cleanedCaseDetails.drc_commision_rule,
         lastPaymentDate: cleanedCaseDetails.last_payment_date,
         lastBssReadingDate: cleanedCaseDetails.last_bss_reading_date,
+        monitorMonths: cleanedCaseDetails.monitor_months,
+        commission: cleanedCaseDetails.commission,
+        caseDistributionBatchId: cleanedCaseDetails.case_distribution_batch_id,
+        filteredReason: cleanedCaseDetails.filtered_reason,
         remark: cleanedCaseDetails.remark?.[0]?.remark || null,
       },
     };
