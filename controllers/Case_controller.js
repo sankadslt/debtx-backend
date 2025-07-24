@@ -9706,29 +9706,40 @@ export const RO_CPE_Collection = async (req, res) => {
 
 export const List_Request_Response_log = async (req, res) => {
   try {
-    const { case_current_status, date_from, date_to } = req.body;
+    const { case_current_status, date_from, date_to, pages } = req.body;
+    console.log("Request body:", req.body);
 
-    if (!date_from || !date_to || !case_current_status) {
-      return res.status(400).json({
-        message:
-          "Missing required fields: case_current_status, date_from, and date_to are required.",
+    // if (!date_from || !date_to || !case_current_status) {
+    //   return res.status(400).json({
+    //     message:
+    //       "Missing required fields: case_current_status, date_from, and date_to are required.",
+    //   });
+    // }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const pipeline = [];
+
+    // const startDate = new Date(date_from);
+    // const endDate = new Date(date_to);
+    // endDate.setHours(23, 59, 59, 999);
+
+    if (date_from && date_to) {
+      const startDate = new Date(date_from);
+      const endDate = new Date(date_to);
+      endDate.setHours(23, 59, 59, 999);
+
+      pipeline.push({
+        $match: {
+          created_dtm: { $gte: startDate, $lte: endDate }
+        }
       });
     }
 
-    const startDate = new Date(date_from);
-    const endDate = new Date(date_to);
-    endDate.setHours(23, 59, 59, 999);
-
-    // Aggregation pipeline
-    const pipeline = [
-      // Stage 1: Match requests within date range
-      {
-        $match: {
-          created_dtm: { $gte: startDate, $lte: endDate },
-        },
-      },
-
-      // Stage 2: Lookup Case_details collection
+    pipeline.push(
       {
         $lookup: {
           from: "Case_details",
@@ -9738,20 +9749,56 @@ export const List_Request_Response_log = async (req, res) => {
         },
       },
 
-      // Stage 3: Unwind case_details array
       {
         $unwind: {
           path: "$case_details",
           preserveNullAndEmptyArrays: true,
         },
       },
+    );
+
+    if (case_current_status) {
+      pipeline.push({
+        $match: {
+          Request_Description: case_current_status,
+        },
+      });
+    };
+
+    // Aggregation pipeline
+    pipeline.push(
+      // ...pipeline,
+      // Stage 1: Match requests within date range
+      // {
+      //   $match: {
+      //     created_dtm: { $gte: startDate, $lte: endDate },
+      //   },
+      // },
+
+      // Stage 2: Lookup Case_details collection
+      // {
+      //   $lookup: {
+      //     from: "Case_details",
+      //     localField: "case_id",
+      //     foreignField: "case_id",
+      //     as: "case_details",
+      //   },
+      // },
+
+      // Stage 3: Unwind case_details array
+      // {
+      //   $unwind: {
+      //     path: "$case_details",
+      //     preserveNullAndEmptyArrays: true,
+      //   },
+      // },
 
       // Stage 4: Filter by case_current_status
-      {
-        $match: {
-          "case_details.case_current_status": case_current_status,
-        },
-      },
+      // {
+      //   $match: {
+      //     "case_details.case_current_status": case_current_status,
+      //   },
+      // },
 
       // Stage 5: Unwind ro_requests array to find matching interaction_log_id
       {
@@ -9825,7 +9872,7 @@ export const List_Request_Response_log = async (req, res) => {
                 $concat: [
                   {
                     $dateToString: {
-                      date: "$case_details.created_dtm",
+                      date: { $toDate: "$case_details.created_dtm" },
                       format: "%Y-%m-%d",
                     },
                   },
@@ -9834,7 +9881,7 @@ export const List_Request_Response_log = async (req, res) => {
                     $dateToString: {
                       date: {
                         $dateAdd: {
-                          startDate: "$case_details.created_dtm",
+                          startDate: { $toDate: "$case_details.created_dtm" },
                           unit: "month",
                           amount: "$case_details.monitor_months",
                         },
@@ -9846,7 +9893,7 @@ export const List_Request_Response_log = async (req, res) => {
               },
               else: {
                 $dateToString: {
-                  date: "$case_details.created_dtm",
+                  date: { $toDate: "$case_details.created_dtm" },
                   format: "%Y-%m-%d",
                 },
               },
@@ -9857,10 +9904,10 @@ export const List_Request_Response_log = async (req, res) => {
           last_user_interaction_status: {
             $cond: {
               if: {
-                $gt: [
-                  { $size: "$user_interaction_log.User_Interaction_Status" },
-                  0,
-                ],
+                $and: [
+                  { $isArray: "$user_interaction_log.User_Interaction_Status" },
+                  { $gt: [{ $size: "$user_interaction_log.User_Interaction_Status" }, 0] },
+              ],
               },
               then: {
                 $arrayElemAt: [
@@ -9885,6 +9932,10 @@ export const List_Request_Response_log = async (req, res) => {
           remark: {
             $ifNull: ["$parameters.Reamrk", null],
           },
+
+          acceptance: {
+            $ifNull: ["$parameters.Request_Accept", null],
+          },
         },
       },
 
@@ -9894,7 +9945,7 @@ export const List_Request_Response_log = async (req, res) => {
           _id: 0,
           case_id: "$case_id",
           case_current_status: "$case_details.case_current_status",
-          User_Interaction_Status: "$last_user_interaction_status",
+          User_Interaction_Status: "$acceptance",
           Validity_Period: "$validity_period",
           drc_id: "$case_details.ro_requests.drc_id",
           drc_name: "$drc_details.drc_name",
@@ -9905,7 +9956,19 @@ export const List_Request_Response_log = async (req, res) => {
           Remark: "$remark",
         },
       },
-    ];
+
+      {
+        $sort: { created_dtm: -1 }, // Sort by created_dtm in descending order
+      },
+
+      {
+        $skip: skip, // Skip documents for pagination
+      },
+
+      {
+        $limit: limit, // Limit the number of documents returned
+      }
+    );
 
     // Execute the aggregation pipeline
     const results = await Request.aggregate(pipeline);
@@ -9918,7 +9981,6 @@ export const List_Request_Response_log = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: results.length,
       data: results,
     });
   } catch (error) {
@@ -9972,7 +10034,7 @@ export const Create_Task_For_Request_Responce_Log_Download = async (
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -9980,7 +10042,7 @@ export const Create_Task_For_Request_Responce_Log_Download = async (
     return res.status(201).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     console.error("Error in Create_Task_For_case_distribution:", error);
