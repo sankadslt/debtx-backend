@@ -5855,7 +5855,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     const pipeline = [];
 
     if (case_id) {
-      pipeline.push({ $match: { case_id } });
+      pipeline.push({ $match: { case_id: Number(case_id) } });
     }
 
     if (account_no) {
@@ -5905,6 +5905,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         current_arrears_amount: 1,
       },
     });
+    
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     if (filtered_cases.length === 0) {
