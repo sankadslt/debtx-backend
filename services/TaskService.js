@@ -475,6 +475,9 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
         }
       },
 
+      {
+        $sort: { "CreateDTM": -1 }
+      },
       
       // Final projection
       {

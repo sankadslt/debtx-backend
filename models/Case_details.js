@@ -128,10 +128,12 @@ const RoCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  drc: { type: String, maxlength: 255, default:"" },
+  ro_name: { type: String, maxlength: 255, default:"" },
   created_dtm: { type: Date, required: true },
-  field_reason: { type: String, maxlength: 255, default:true },
-  Feild_reason_ID: { type: Number, default:true },
-  negotiation_remark: { type: String, maxlength: 255, default:true },
+  field_reason: { type: String, maxlength: 255, default:"" },
+  Field_reason_ID: { type: Number, default:null },
+  negotiation_remark: { type: String, maxlength: 255, default:"" },
 });
 
 const roRequestsSchema = new mongoose.Schema({
