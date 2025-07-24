@@ -7401,7 +7401,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-      console.log(response);
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7410,7 +7409,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         });
       }
       case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
     } catch (error) {
       console.error("Error during axios call:", error.message);
       if (error.response) {
@@ -7423,12 +7421,10 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         error: error.message,
       });
     }
-
     const delegate_id = await getApprovalUserIdService({
       case_phase,
       approval_type: "DRC Assign Approval",
     });
-
     // Generate a new approver_id using the collection_sequence
     const counterResult = await mongoConnection
       .collection("collection_sequence")
