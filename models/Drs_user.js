@@ -304,6 +304,25 @@ const lastUserRefSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Sub-schema for user Remark
+const userRemarkSchema = new mongoose.Schema(
+  {
+    remark: {
+      type: String
+    },
+    remark_dtm: {
+      type: Date,
+      default: Date.now,
+    },
+    remark_by: {
+      type: String,
+      maxlength: 30,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 // Main User Schema
 const userSchema = new mongoose.Schema(
   {
@@ -351,8 +370,8 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
     user_remark: {
-      type: String,
-      default: null,
+      type: userRemarkSchema,
+      default: [],
     },
     create_by: {
       type: String,
