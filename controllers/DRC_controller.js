@@ -1257,7 +1257,7 @@ export const getActiveDRCDetails = async (req, res) => {
       {
         $group: {
           _id: "$_id",
-          latestStatus: { $first: "$status" },
+          latestStatus: { $first: "$status" }, 
           drc_name: { $first: "$drc_name" },
           drc_id: { $first: "$drc_id" },
         },

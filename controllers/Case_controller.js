@@ -4999,6 +4999,43 @@ export const Assign_DRC_To_Case = async (req, res) => {
     if (!approver_id) {
       throw new Error("Failed to generate Task_Id.");
     }
+    const dynamicParams = {
+      case_id,
+      drc_id,
+      drc_name,
+    };
+    const payload = { case_status: case_current_status };
+    let case_phase = "";
+    try {
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/get_case_phase",
+        payload
+      );
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+    } catch (error) {
+      console.error("Error during axios call:", error.message);
+      if (error.response) {
+        console.error("API Error Response:", error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
+    const delegate_id = await getApprovalUserIdService({
+      case_phase,
+      approval_type: "DRC Re-Assign Approval",
+    });
 
     const drcAssignAproveRecode = {
       approver_id,
@@ -5021,51 +5058,13 @@ export const Assign_DRC_To_Case = async (req, res) => {
         remark_date: new Date(),
         remark_edit_by: assigned_by,
       },
+      approved_deligated_by:delegate_id,
     };
     const TmpForwardedApproverRespons = new TmpForwardedApprover(
       drcAssignAproveRecode
     );
     await TmpForwardedApproverRespons.save({ session });
 
-    const dynamicParams = {
-      case_id,
-      drc_id,
-      drc_name,
-    };
-    const payload = { case_status: case_current_status };
-    let case_phase = "";
-    try {
-      const response = await axios.post(
-        "https://debtx.slt.lk:6500/get_case_phase",
-        payload
-      );
-      console.log(response);
-      if (!response.data.case_phase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "case_phase not found in API response",
-        });
-      }
-      case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
-    } catch (error) {
-      console.error("Error during axios call:", error.message);
-      if (error.response) {
-        console.error("API Error Response:", error.response.data);
-      }
-      // Abort and end session on axios error
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        message: "Failed to get case_phase from external API",
-        error: error.message,
-      });
-    }
-    const delegate_id = await getApprovalUserIdService({
-      case_phase,
-      approval_type: "DRC Re-Assign Approval",
-    });
     const result = await createUserInteractionFunction({
       Interaction_ID: 22,
       User_Interaction_Type: "Pending approval for DRC Re Assign Approval",
