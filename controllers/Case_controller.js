@@ -9033,6 +9033,18 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  const requestMapping = {
+    "Mediation board forward request letter": "RO Negotiation FMB Pending",
+    "Negotiation Settlement plan Request": "RO Negotiation",
+    "Negotiation period extend Request": "RO Negotiation",
+    "Negotiation customer further information Request": "RO Negotiation",
+    "Negotiation Customer request service": "RO Negotiation",
+    "Mediation Board Settlement plan Request": "MB Negotiation",
+    "Mediation Board period extend Request": "MB Negotiation",
+    "Mediation Board customer further information request": "MB Negotiation",
+    "Mediation Board Customer request service": "MB Negotiation",
+  };
+
   // Define the status mapping based on User_Interaction_Type and Request Accept
   const statusMapping = {
     "Mediation board forward request letter": {
@@ -9117,12 +9129,50 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
     // Decide the new case status based on User_Interaction_Type and Request Accept
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
 
-    if (!caseStatus) {
+    const requestedCaseStatus = requestMapping[User_Interaction_Type];
+
+    console.log("Requested Case Status:", requestedCaseStatus);
+    console.log("Case Status:", caseStatus);
+
+    if (!caseStatus || !requestedCaseStatus) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
         message: `Invalid User_Interaction_Type or Request Accept value provided.`,
       });
+    }
+
+    const existingCase = await Case_details.findOne(
+      { case_id: case_id },
+      { drc: 1, case_current_status: 1 }
+    ).session(session);
+
+    if (!existingCase) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(404)
+        .json({ message: `Case with case_id ${case_id} not found.` });
+    }
+
+    // if (existingCase.case_current_status != requestedCaseStatus) {
+    //   await session.abortTransaction();
+    //   session.endSession();
+    //   return res.status(409).json({
+    //     message: `Cannot submit ${User_Interaction_Type} when case is not in ${requestedCaseStatus} status.`,
+    //   });
+    // };
+
+    const approvalDoc = await User_Interaction_Log.findOne({
+      Interaction_Log_ID,
+    }).session(session);
+
+    if (!approvalDoc) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(404)
+        .json({ message: "No matching Interaction_Log_ID found" });
     }
 
     // Create a new request document
@@ -9140,22 +9190,11 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
         Reamrk: Reamrk,
         No_of_Calendar_Month: No_of_Calendar_Month,
         Letter_Send: Letter_Send,
+        Request_CreatedDTM: approvalDoc.CreateDTM,
       },
     });
 
     const savedRequest = await newRequest.save({ session });
-
-    const existingCase = await Case_details.findOne(
-      { case_id: case_id },
-      { drc: 1, case_current_status: 1 }
-    ).session(session);
-    if (!existingCase) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(204)
-        .json({ message: `Case with case_id ${case_id} not found.` });
-    }
 
     // Update the DRC expire_dtm if No_of_Calendar_Month is provided
     if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
@@ -9200,7 +9239,7 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
     }
 
     // Update the case status and current phase if it has changed
-    if (existingCase.case_current_status != caseStatus) {
+    if (existingCase.case_current_status != caseStatus && existingCase.case_current_status === requestedCaseStatus) {
       const newCaseStatus = {
         case_status: caseStatus,
         status_reason: Reamrk || null,
@@ -9231,17 +9270,6 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       { $set: { "ro_requests.$.completed_dtm": completedDate } },
       { session }
     );
-
-    const approvalDoc = await User_Interaction_Log.findOne({
-      Interaction_Log_ID,
-    }).session(session);
-    if (!approvalDoc) {
-      await session.abortTransaction();
-      session.endSession();
-      return res
-        .status(404)
-        .json({ message: "No matching Interaction_Log_ID found" });
-    }
 
     // Update the User Interaction Log with new status
     const newUserInteractionStatus = {
@@ -9911,6 +9939,10 @@ export const List_Request_Response_log = async (req, res) => {
           acceptance: {
             $ifNull: ["$parameters.Request_Accept", null],
           },
+
+          request_created_dtm: {
+            $ifNull: ["$parameters.Request_CreatedDTM", null],
+          },
         },
       },
 
@@ -9929,6 +9961,7 @@ export const List_Request_Response_log = async (req, res) => {
           created_dtm: "$created_dtm",
           created_by: "$created_by",
           Remark: "$remark",
+          request_created_dtm: "$request_created_dtm",
         },
       },
 
