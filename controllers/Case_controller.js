@@ -3212,8 +3212,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       User_Interaction_Type: "Pending Approval Agent Destribution",
       delegate_user_id: delegate_id,
       Created_By: Proceed_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -3946,11 +3944,8 @@ export const Approve_Batch = async (req, res) => {
         User_Interaction_Type: "Agent Distribution Batch Approved",
         delegate_user_id: delegate_id,
         Created_By: approved_by,
-        User_Interaction_Status_DTM: currentDate,
-        User_Interaction_Status: "Open",
-        session,
-        ...dynamicParams,
-        approver_reference: approver_reference,
+         ...dynamicParams,
+        session,   
       });
     }
 
@@ -4339,10 +4334,8 @@ export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,  
       });
   
       await session.commitTransaction();
@@ -4592,10 +4585,9 @@ export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,
+        
       });
 
       await session.commitTransaction();
@@ -4748,10 +4740,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "python", //python
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,   
       });
       await session.commitTransaction();
       session.endSession();
@@ -4858,10 +4848,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "Rejected DRC Assign Manager Approval",
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,       
       });
 
       await session.commitTransaction();
@@ -5070,7 +5058,6 @@ export const Assign_DRC_To_Case = async (req, res) => {
       User_Interaction_Type: "Pending approval for DRC Re Assign Approval",
       delegate_user_id: delegate_id,
       Created_By: assigned_by,
-      User_Interaction_Status: "Open",
       ...dynamicParams,
       session,
     });
@@ -5416,7 +5403,6 @@ export const Mediation_Board = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -5698,7 +5684,6 @@ export const Customer_Negotiations = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -7495,8 +7480,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       User_Interaction_Type: "Pending approval for Case Withdraw",
       delegate_user_id: delegate_id,
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -9290,10 +9273,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      session: session,
-      // User_Interaction_Status: "Open",
-      // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
+      session: session,    
     });
 
     // Delete the User Interaction Progress Log entry
@@ -9446,8 +9427,6 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: request_type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
     });
 
