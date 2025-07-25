@@ -390,16 +390,18 @@ export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
     const response = {
       settlement_id: SettlementDetails.settlement_id,
       case_id: SettlementDetails.case_id,
-      account_no: SettlementDetails.account_no, 
+      account_no: SettlementDetails.account_num, 
       arrears_amount: caseDetails.current_arrears_amount,
+      bss_arrears_amount: caseDetails.bss_arrears_amount,
       last_monitoring_dtm: SettlementDetails.last_monitoring_dtm,
       settlement_status: SettlementDetails.settlement_status,
-      status_dtm: SettlementDetails.status_dtm,
-      status_reason: SettlementDetails.status_reason,
-      settlement_phase: SettlementDetails.settlement_phase,
+      status_dtm: SettlementDetails.settlement_status_dtm,
+      status_reason: SettlementDetails.settlement_status_reason,
+      settlement_phase: SettlementDetails.case_phase,
       settlement_type: SettlementDetails.settlement_type,
       created_by: SettlementDetails.created_by,
-      created_dtm: SettlementDetails.created_dtm,
+      created_dtm: SettlementDetails.created_on,
+      expire_date: SettlementDetails.expire_date,
       drc_id: SettlementDetails.drc_id,
       ro_id: SettlementDetails.ro_id,
       settlement_plans: SettlementDetails.settlement_plan,
@@ -466,7 +468,7 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -474,7 +476,7 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     await session.abortTransaction();
