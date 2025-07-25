@@ -14,6 +14,7 @@ import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
+import {Check_valid_approval} from "../services/ApprovalService.js"
 import SystemTransaction from "../models/System_transaction.js";
 import RecoveryOfficer from "../models/Recovery_officer.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
@@ -4960,6 +4961,16 @@ export const Assign_DRC_To_Case = async (req, res) => {
       drc_name,
       case_current_status,
     } = req.body;
+    
+    const approver_type = "DRC Re-Assign Approval";
+    const approver_reference = case_id;
+    const recode = await Check_valid_approval({ approver_reference, approver_type });
+    if (recode !== "success") {
+      return res.status(404).json({
+        status: "error",
+        message: recode,
+      });
+    };
 
     if (!case_id || !drc_id || !assigned_by || !drc_name) {
       await session.abortTransaction();
@@ -5061,7 +5072,25 @@ export const Assign_DRC_To_Case = async (req, res) => {
       ...dynamicParams,
       session,
     });
-
+    const caseResult = await Case_details.updateOne(
+      { case_id: approver_reference },
+      {
+        $push: {
+          case_status: {
+            case_status: "Pending Re-Assign agent approval",
+            status_reason: "Case send for DRC Re Assign Approval",
+            created_dtm: new Date(),
+            created_by: assigned_by,
+            case_phase,
+          },
+        },
+        $set: {
+          case_current_status: "Pending Re-Assign agent approval",
+          case_current_phase: case_phase,
+        },
+      },
+      { session }
+    );
     if (!result || result.status === "error") {
       await session.abortTransaction();
       return res.status(404).json({
