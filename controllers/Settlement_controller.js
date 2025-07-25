@@ -63,6 +63,7 @@ export const ListAllSettlementCases = async (req, res) => {
     //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
     //   });
     // }
+    console.log("Request body:", req.body);
 
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
@@ -71,9 +72,9 @@ export const ListAllSettlementCases = async (req, res) => {
 
     const query = {};
 
-    if (account_no) query.account_no = account_no;
+    if (account_no) query.account_num = account_no;
     if (case_id) query.case_id = case_id;
-    if (settlement_phase) query.settlement_phase = settlement_phase;
+    if (settlement_phase) query.case_phase = settlement_phase;
     if (settlement_status) query.settlement_status = settlement_status;
 
     const dateFilter = {};
@@ -84,7 +85,7 @@ export const ListAllSettlementCases = async (req, res) => {
       dateFilter.$lte = endOfDay;
     }
     if (Object.keys(dateFilter).length > 0) {
-      query.created_dtm = dateFilter;
+      query.created_on = dateFilter;
     }
 
     const filtered_cases = await CaseSettlement.find(query)
@@ -95,13 +96,20 @@ export const ListAllSettlementCases = async (req, res) => {
     const responseData = filtered_cases.map((caseData) => {
       return {
         case_id: caseData.case_id,
-        account_no: caseData.account_no,
+        account_no: caseData.account_num,
         settlement_status: caseData.settlement_status,
-        created_dtm: caseData.created_dtm,
-        settlement_phase: caseData.settlement_phase,
+        created_dtm: caseData.created_on,
+        settlement_phase: caseData.case_phase,
         settlement_id: caseData.settlement_id,
       };
     })
+
+    if (responseData.length === 0) {
+      return res.status(204).json({
+        status: "error",
+        message: "No matching Settlement Cases found."
+      });
+    }
 
     return res.status(200).json({
       status: "success",
@@ -327,7 +335,7 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -335,7 +343,7 @@ export const Create_Task_For_Downloard_Settlement_List = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     await session.abortTransaction();
