@@ -14,6 +14,7 @@ import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import Case_transactions from "../models/Case_transactions.js";
 import System_Case_User_Interaction from "../models/User_Interaction.js";
+import {Check_valid_approval} from "../services/ApprovalService.js"
 import SystemTransaction from "../models/System_transaction.js";
 import RecoveryOfficer from "../models/Recovery_officer.js";
 import CaseDistribution from "../models/Case_distribution_drc_transactions.js";
@@ -2833,6 +2834,11 @@ export const Create_Task_For_case_distribution = async (req, res) => {
  */
 export const List_all_transaction_seq_of_batch_id = async (req, res) => {
   try {
+    const mongoConnection = await db.connectMongoDB();
+    if (!mongoConnection) {
+      throw new Error("MongoDB connection failed");
+    }
+
     const { case_distribution_batch_id } = req.body;
 
     if (!case_distribution_batch_id) {
@@ -2841,6 +2847,10 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
         message: "case_distribution_batch_id is a required parameter.",
       });
     }
+
+    const arrearsBandDoc = await mongoConnection
+      .collection("Arrears_bands")
+      .findOne({});
 
     const transactions_data = await Case_distribution_drc_transactions.find(
       { case_distribution_batch_id },
@@ -2854,7 +2864,14 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
       }
     );
 
-    if (transactions_data.length === 0) {
+    // 🧠 Map readable arrears bands
+    const enriched_data = transactions_data.map((tx) => ({
+      ...tx.toObject(),
+      current_arrears_band: arrearsBandDoc?.[tx.current_arrears_band] || tx.current_arrears_band,
+    }));
+
+
+    if (enriched_data.length === 0) {
       return res.status(404).json({
         status: "error",
         message: "No data found for this batch ID.",
@@ -2863,8 +2880,8 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
 
     return res.status(200).json({
       status: "success",
-      message: `Successfully retrieved ${transactions_data.length} records`,
-      data: transactions_data,
+      message: `Successfully retrieved ${enriched_data.length} records`,
+      data: enriched_data,
     });
   } catch (error) {
     console.error("Error fetching batch data:", error);
@@ -3196,8 +3213,6 @@ export const Batch_Forward_for_Proceed = async (req, res) => {
       User_Interaction_Type: "Pending Approval Agent Destribution",
       delegate_user_id: delegate_id,
       Created_By: Proceed_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -3340,8 +3355,9 @@ export const list_distribution_array_of_a_transaction = async (req, res) => {
 
 export const ListActiveRORequestsMediation = async (req, res) => {
   try {
+     const { request_mode} = req.body;
     // Fetch all RO details from MongoDB
-    const ro_requests = await Template_RO_Request.find();
+    const ro_requests = await Template_RO_Request.find({request_mode});
 
     // Check if any data is found in databases
     if (ro_requests.length === 0) {
@@ -3852,22 +3868,22 @@ export const Approve_Batch = async (req, res) => {
     const delegate_id = approverDoc.created_by;
 
     // Update approve_status for the matching document
-    // const result = await TmpForwardedApprover.updateOne(
-    //   {
-    //     approver_reference: approver_reference,
-    //     approver_type: "DRC Assign Approval",
-    //   },
-    //   {
-    //     $push: {
-    //       approve_status: {
-    //         status: statusTempForwardedApprover,
-    //         status_date: currentDate,
-    //         status_edit_by: approved_by,
-    //       },
-    //     },
-    //   },
-    //   { session }
-    // );
+    const result = await TmpForwardedApprover.updateOne(
+      {
+        approver_reference: approver_reference,
+        approver_type: "DRC Assign Approval",
+      },
+      {
+        $push: {
+          approve_status: {
+            status: statusTempForwardedApprover,
+            status_date: currentDate,
+            status_edit_by: approved_by,
+          },
+        },
+      },
+      { session }
+    );
 
     console.log("Approve By", approved_by);
     console.log("current Date", currentDate);
@@ -3929,11 +3945,8 @@ export const Approve_Batch = async (req, res) => {
         User_Interaction_Type: "Agent Distribution Batch Approved",
         delegate_user_id: delegate_id,
         Created_By: approved_by,
-        User_Interaction_Status_DTM: currentDate,
-        User_Interaction_Status: "Open",
-        session,
-        ...dynamicParams,
-        approver_reference: approver_reference,
+         ...dynamicParams,
+        session,   
       });
     }
 
@@ -4106,16 +4119,22 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
         },
       },
 
+      {
+        $match: {
+          "lastApproveStatus.status": "Open",
+        },
+      },
+
       // Filter based on approve_status if provided
-      ...(approve_status
-        ? [
-            {
-              $match: {
-                "lastApproveStatus.status": approve_status,
-              },
-            },
-          ]
-        : []),
+      // ...(approve_status
+      //   ? [
+      //       {
+      //         $match: {
+      //           "lastApproveStatus.status": approve_status,
+      //         },
+      //       },
+      //     ]
+      //   : []),
 
       // Replace the approve_status array with an array containing only the last status
       {
@@ -4188,7 +4207,7 @@ export const List_DRC_Assign_Manager_Approval = async (req, res) => {
  * - 500 for general errors.
  */
 
-export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
+export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -4316,10 +4335,8 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,  
       });
   
       await session.commitTransaction();
@@ -4569,10 +4586,9 @@ export const Approve_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: deligate_id,
         Created_By: created_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,
+        
       });
 
       await session.commitTransaction();
@@ -4725,10 +4741,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "python", //python
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: new Date(),
-        session,
         ...dynamicParams,
+        session,   
       });
       await session.commitTransaction();
       session.endSession();
@@ -4835,10 +4849,8 @@ export const Reject_DRC_Assign_Manager_Approval = async (req, res) => {
         User_Interaction_Type: "Rejected DRC Assign Manager Approval",
         delegate_user_id: deligate_id,
         Created_By: approved_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        session,
         ...dynamicParams,
+        session,       
       });
 
       await session.commitTransaction();
@@ -4949,6 +4961,16 @@ export const Assign_DRC_To_Case = async (req, res) => {
       drc_name,
       case_current_status,
     } = req.body;
+    
+    const approver_type = "DRC Re-Assign Approval";
+    const approver_reference = case_id;
+    const recode = await Check_valid_approval({ approver_reference, approver_type });
+    if (recode !== "success") {
+      return res.status(404).json({
+        status: "error",
+        message: recode,
+      });
+    };
 
     if (!case_id || !drc_id || !assigned_by || !drc_name) {
       await session.abortTransaction();
@@ -4976,6 +4998,43 @@ export const Assign_DRC_To_Case = async (req, res) => {
     if (!approver_id) {
       throw new Error("Failed to generate Task_Id.");
     }
+    const dynamicParams = {
+      case_id,
+      drc_id,
+      drc_name,
+    };
+    const payload = { case_status: case_current_status };
+    let case_phase = "";
+    try {
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/get_case_phase",
+        payload
+      );
+      if (!response.data.case_phase) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "case_phase not found in API response",
+        });
+      }
+      case_phase = response.data.case_phase;
+    } catch (error) {
+      console.error("Error during axios call:", error.message);
+      if (error.response) {
+        console.error("API Error Response:", error.response.data);
+      }
+      // Abort and end session on axios error
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        message: "Failed to get case_phase from external API",
+        error: error.message,
+      });
+    }
+    const delegate_id = await getApprovalUserIdService({
+      case_phase,
+      approval_type: "DRC Re-Assign Approval",
+    });
 
     const drcAssignAproveRecode = {
       approver_id,
@@ -4998,61 +5057,40 @@ export const Assign_DRC_To_Case = async (req, res) => {
         remark_date: new Date(),
         remark_edit_by: assigned_by,
       },
+      approved_deligated_by:delegate_id,
     };
     const TmpForwardedApproverRespons = new TmpForwardedApprover(
       drcAssignAproveRecode
     );
     await TmpForwardedApproverRespons.save({ session });
 
-    const dynamicParams = {
-      case_id,
-      drc_id,
-      drc_name,
-    };
-    const payload = { case_status: case_current_status };
-    let case_phase = "";
-    try {
-      const response = await axios.post(
-        "https://debtx.slt.lk:6500/get_case_phase",
-        payload
-      );
-      console.log(response);
-      if (!response.data.case_phase) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: "case_phase not found in API response",
-        });
-      }
-      case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
-    } catch (error) {
-      console.error("Error during axios call:", error.message);
-      if (error.response) {
-        console.error("API Error Response:", error.response.data);
-      }
-      // Abort and end session on axios error
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        message: "Failed to get case_phase from external API",
-        error: error.message,
-      });
-    }
-    const delegate_id = await getApprovalUserIdService({
-      case_phase,
-      approval_type: "DRC Re-Assign Approval",
-    });
     const result = await createUserInteractionFunction({
       Interaction_ID: 22,
       User_Interaction_Type: "Pending approval for DRC Re Assign Approval",
       delegate_user_id: delegate_id,
       Created_By: assigned_by,
-      User_Interaction_Status: "Open",
       ...dynamicParams,
       session,
     });
-
+    const caseResult = await Case_details.updateOne(
+      { case_id: approver_reference },
+      {
+        $push: {
+          case_status: {
+            case_status: "Pending Re-Assign agent approval",
+            status_reason: "Case send for DRC Re Assign Approval",
+            created_dtm: new Date(),
+            created_by: assigned_by,
+            case_phase,
+          },
+        },
+        $set: {
+          case_current_status: "Pending Re-Assign agent approval",
+          case_current_phase: case_phase,
+        },
+      },
+      { session }
+    );
     if (!result || result.status === "error") {
       await session.abortTransaction();
       return res.status(404).json({
@@ -5324,7 +5362,9 @@ export const Mediation_Board = async (req, res) => {
       settle,
       initial_amount,
       calendar_month,
+      fail_reason_comment,
       case_current_status,
+      non_settlement_comment,
       remark,
       fail_reason,
       created_by,
@@ -5354,13 +5394,11 @@ export const Mediation_Board = async (req, res) => {
       created_dtm: new Date(),
       mediation_board_calling_dtm: next_calling_date,
       customer_available: customer_available,
-      comment: fail_reason === "" ? null : comment,
+      comment: customer_available === "no" ? comment : null,
       agree_to_settle: settle,
       customer_response: settle === "no" ? fail_reason : null,
-      handed_over_non_settlemet_on:
-        handed_over_non_settlemet === "yes" ? new Date() : null,
-      non_settlement_comment:
-        handed_over_non_settlemet === "yes" ? comment : null,
+      handed_over_non_settlemet_on:handed_over_non_settlemet === "yes" ? new Date() : null,
+      non_settlement_comment,
     };
     if (request_id !== "") {
       if (!request_id || !request_type || !intraction_id) {
@@ -5394,7 +5432,6 @@ export const Mediation_Board = async (req, res) => {
         User_Interaction_Type: request_type,
         delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -5581,6 +5618,7 @@ export const Customer_Negotiations = async (req, res) => {
       expire_dtm,
       created_dtm,
       field_reason,
+      Field_reason_ID,
       field_reason_remark,
       credit_class_no,
       credit_class_name,
@@ -5616,7 +5654,8 @@ export const Customer_Negotiations = async (req, res) => {
       ro_name,
       created_dtm: new Date(),
       field_reason,
-      remark: field_reason_remark,
+      Field_reason_ID,
+      negotiation_remark: field_reason_remark,
     };
     const start = new Date(created_dtm);
     const end = new Date(expire_dtm);
@@ -5668,12 +5707,12 @@ export const Customer_Negotiations = async (req, res) => {
         request_comment,
         intraction_id,
       };
+
       const result = await createUserInteractionFunction({
         Interaction_ID: intraction_id,
         User_Interaction_Type: request_type,
-        delegate_user_id: 1,
+        delegate_user_id: await getUserIdOwnedByDRCId(drc_id),
         Created_By: created_by,
-        User_Interaction_Status: "Open",
         ...dynamicParams,
       });
 
@@ -5689,11 +5728,11 @@ export const Customer_Negotiations = async (req, res) => {
       const statusMap = {
         "Mediation board forward request letter": "RO Negotiation FMB Pending",
         "Negotiation Settlement plan Request": "RO Negotiation",
-        "Negotiation period extend Request": "RO Negotiation extension Pending",
+        "Negotiation period extend Request": "RO Negotiation Extension Pending",
         "Negotiation customer further information Request": "RO Negotiation",
         "Negotiation Customer request service": "RO Negotiation",
       };
-      case_status_with_request = statusMap[request_type] || "MB Negotiaion";
+      case_status_with_request = statusMap[request_type] || "MB Negotiation";
       const updatedCase = await Case_details.findOneAndUpdate(
         { case_id },
         {
@@ -5829,7 +5868,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
     const pipeline = [];
 
     if (case_id) {
-      pipeline.push({ $match: { case_id } });
+      pipeline.push({ $match: { case_id: Number(case_id) } });
     }
 
     if (account_no) {
@@ -5879,6 +5918,7 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
         current_arrears_amount: 1,
       },
     });
+    
     const filtered_cases = await Case_details.aggregate(pipeline);
 
     if (filtered_cases.length === 0) {
@@ -6912,34 +6952,61 @@ export const CaseDetailsforDRC = async (req, res) => {
         ref_products: 1,
         last_payment_date: 1,
         money_transactions: 1,
-        drc: "$last_drc",
+        drc: "$last_drc",      
         mediation_board: {
-          $filter: {
-            input: "$mediation_board",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)], // Only matches if provided
-            },
+            $filter: {
+              input: "$mediation_board",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_negotiation: {
-          $filter: {
-            input: "$ro_negotiation",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_negotiation: {
+            $filter: {
+              input: "$ro_negotiation",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, 
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } 
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
-        ro_requests: {
-          $filter: {
-            input: "$ro_requests",
-            as: "item",
-            cond: {
-              $eq: ["$$item.ro_id", Number(ro_id || 0)],
-            },
+          ro_requests: {
+            $filter: {
+              input: "$ro_requests",
+              as: "item",
+              cond: {
+                $and: [
+                  { $eq: ["$$item.drc_id", Number(drc_id)] },
+                  {
+                    $cond: [
+                      { $ifNull: [ro_id, false] }, // if ro_id is present
+                      { $eq: ["$$item.ro_id", Number(ro_id)] },
+                      { $eq: ["$$item.ro_id", null] } // if not present, match null
+                    ]
+                  }
+                ]
+              }
+            }
           },
-        },
       },
     });
 
@@ -7319,6 +7386,7 @@ export const AssignDRCToCaseDetails = async (req, res) => {
 };
 
 export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
+  const mongoConnection = mongoose.connection;
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -7340,14 +7408,13 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
     }
 
     const currentDate = new Date();
-    const payload = { case_status };
+    const payload = {case_status};
     let case_phase = "";
     try {
       const response = await axios.post(
-        "http://124.43.177.52:6000/app2/get_case_phase",
+        "https://debtx.slt.lk:6500/get_case_phase",
         payload
       );
-
       if (!response.data.case_phase) {
         await session.abortTransaction();
         session.endSession();
@@ -7356,13 +7423,11 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         });
       }
       case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
     } catch (error) {
       console.error("Error during axios call:", error.message);
       if (error.response) {
         console.error("API Error Response:", error.response.data);
       }
-      // Abort and end session on axios error
       await session.abortTransaction();
       session.endSession();
       return res.status(500).json({
@@ -7370,12 +7435,10 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
         error: error.message,
       });
     }
-
     const delegate_id = await getApprovalUserIdService({
       case_phase,
       approval_type: "DRC Assign Approval",
     });
-
     // Generate a new approver_id using the collection_sequence
     const counterResult = await mongoConnection
       .collection("collection_sequence")
@@ -7446,8 +7509,6 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       User_Interaction_Type: "Pending approval for Case Withdraw",
       delegate_user_id: delegate_id,
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session,
     });
@@ -7702,7 +7763,13 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
       drc_id,
       date_from,
       date_to,
+      pages,
     } = req.body;
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     if (!delegate_user_id) {
       return res.status(400).json({
@@ -7927,7 +7994,41 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         },
       },
 
+      // {
+      //   $sort: { CreateDTM: -1 }, // Sort by CreateDTM in descending order
+      // },
+
+      // { $skip: skip }, // Skip records for pagination
+
+      // { $limit: limit }, // Limit to the specified number of records
+
       // Stage 15: Final projection
+      // {
+      //   $project: {
+      //     _id: 0,
+      //     case_id: "$case_details.case_id",
+      //     case_current_status: "$case_details.case_current_status",
+      //     Interaction_Log_ID: "$Interaction_Log_ID",
+      //     Interaction_ID: "$Interaction_ID",
+      //     User_Interaction_Status: {
+      //       $ifNull: ["$last_status.User_Interaction_Status", "N/A"],
+      //     },
+      //     current_arrears_amount: "$case_details.current_arrears_amount",
+      //     Validity_Period: "$validity_period",
+      //     drc_id: "$case_details.ro_requests.drc_id",
+      //     drc_name: "$drc_details.drc_name",
+      //     User_Interaction_Type: "$User_Interaction_Type",
+      //     CreateDTM: "$CreateDTM",
+      //     // Request_Accept: "$request_docs.parameters.Request_Accept"
+      //   },
+      // },
+    ];
+
+    const DataPipeline = [
+      ...pipeline,
+      { $sort: { CreateDTM: -1 } }, // Sort by CreateDT
+      { $skip: skip }, // Skip records for pagination
+      { $limit: limit }, // Limit to the specified number of records
       {
         $project: {
           _id: 0,
@@ -7947,10 +8048,19 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
           // Request_Accept: "$request_docs.parameters.Request_Accept"
         },
       },
-    ];
+    ]
 
     // Execute the aggregation pipeline
-    const results = await User_Interaction_Progress_Log.aggregate(pipeline);
+    const results = await User_Interaction_Progress_Log.aggregate(DataPipeline);
+
+    let totalCount = 0;
+
+    if (Number(pages) === 1) {
+      const countPipeline = [...pipeline, { $count: "total" }];
+      const countResult = await User_Interaction_Progress_Log.aggregate(countPipeline);
+      totalCount = countResult[0]?.total || 0;
+    }
+
 
     if (!results || results.length === 0) {
       return res.status(204).json({
@@ -7960,7 +8070,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: results.length,
+      count: totalCount,
       data: results,
     });
   } catch (error) {
@@ -9192,10 +9302,8 @@ export const Submit_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      session: session,
-      // User_Interaction_Status: "Open",
-      // User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
+      session: session,    
     });
 
     // Delete the User Interaction Progress Log entry
@@ -9348,8 +9456,6 @@ export const Withdraw_Mediation_Board_Acceptance = async (req, res) => {
       User_Interaction_Type: request_type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: new Date(),
       ...dynamicParams,
     });
 
