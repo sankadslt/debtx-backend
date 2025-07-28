@@ -2311,7 +2311,7 @@ export const listBehaviorsOfCaseDuringDRC = async (req, res) => {
     const refProductsCPECollect = (caseData.ref_products || []).map(
       (product) => {
         const negotiation = relevantNegotiations.filter(
-          (roneg) => roneg.product_label === product.product_label
+          (roneg) => roneg.Product_Label === product.Product_Label
         );
         return {
           ...(product.toObject?.() || product), // Convert Mongoose subdoc if needed
