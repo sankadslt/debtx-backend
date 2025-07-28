@@ -451,7 +451,7 @@ export const Create_Task_For_Downloard_Settlement_Details_By_Case_ID = async (re
     // Pass parameters directly (without nesting it inside another object)
     const taskData = {
       Template_Task_Id: 43,
-      task_type: "Create task for Download Settlement Details By  Settlement_Id and Case_Id",
+      task_type: "Create task for Download Settlement Details By Settlement_Id and Case_Id",
       ...parameters,
       Created_By,
       task_status: "open",
