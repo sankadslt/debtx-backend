@@ -8033,6 +8033,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
         $project: {
           _id: 0,
           case_id: "$case_details.case_id",
+          case_current_phase: "$case_details.case_current_phase",
           case_current_status: "$case_details.case_current_status",
           Interaction_Log_ID: "$Interaction_Log_ID",
           Interaction_ID: "$Interaction_ID",
@@ -8042,6 +8043,7 @@ export const ListAllRequestLogFromRecoveryOfficers = async (req, res) => {
           current_arrears_amount: "$case_details.current_arrears_amount",
           Validity_Period: "$validity_period",
           drc_id: "$case_details.ro_requests.drc_id",
+          ro_id: "$case_details.ro_requests.ro_id",
           drc_name: "$drc_details.drc_name",
           User_Interaction_Type: "$User_Interaction_Type",
           CreateDTM: "$CreateDTM",
