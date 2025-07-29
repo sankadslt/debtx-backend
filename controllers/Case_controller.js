@@ -2906,7 +2906,7 @@ export const List_all_transaction_seq_of_batch_id = async (req, res) => {
  * - Returns a success response with the list of mediation cases filtered by the given criteria and owned by the specified DRC.
  */
 export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
-  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } =
+  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date,pages} =
     req.body;
   let fromDateObj = null;
   let toDateObj = null;
@@ -2920,7 +2920,14 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
           description: "DRC ID is required.",
         },
       });
-    }
+    };
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     if (from_date && to_date) {
       fromDateObj = new Date(from_date);
       toDateObj = new Date(to_date);
@@ -3023,6 +3030,12 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
         $sort: {
           "last_drc.created_dtm": -1,
         },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
       },
       {
         $project: {
@@ -6398,11 +6411,11 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
 //    action_type
 //API ID: C-1P72
 export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
-  const { drc_id, ro_id, rtom, action_type, from_date, to_date } = req.body;
+  const { drc_id, ro_id, rtom, action_type, from_date, to_date,pages } = req.body;
   let fromDateObj = null;
   let toDateObj = null;
 
-  try {
+  try { 
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6413,6 +6426,12 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
         },
       });
     }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     if (!rtom && !ro_id && !action_type && !(from_date && to_date)) {
       return res.status(400).json({
@@ -6531,6 +6550,12 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
         $sort: {
           "last_drc.created_dtm": -1,
         },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
       },
       {
         $project: {
