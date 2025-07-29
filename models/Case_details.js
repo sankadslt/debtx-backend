@@ -164,7 +164,7 @@ const mediationBoardSchema = new mongoose.Schema({
 });
 
 const settlementschema = new Schema({
-  settlement_id: {type: Number, required: true, unique: true},
+  settlement_id: {type: Number, required: true },
   settlement_created_dtm: {type: Date, required:true},
   settlment_status: {type: String, maxlength: 30, required:true},
   drc_id: { type: Number, required: true },
@@ -173,7 +173,7 @@ const settlementschema = new Schema({
 });
 
 const moneytransactionsschema = new Schema({
-  money_transaction_id: {type: Number, required: true, unique: true},
+  money_transaction_id: {type: Number, required: true},
   payment_Dtm: {type: Date, required:true},
   payment_Type : {type: String, maxlength: 30, required:true},
   payment : { type: Number, required: true },
@@ -263,7 +263,7 @@ const customer_response_of_LOD_schema = new Schema({
 },{_id: false });
 
 const FTL_LOD_Schema = new Schema({
-  pdf_by: {type: String, maxlength: 30, required: true, unique: true},
+  pdf_by: {type: String, maxlength: 30, required: true},
   pdf_on: {type: Date, required:true},
   expire_date : {type: Date, required:true},
   signed_by : { type: String, maxlength: 30, required: true },
