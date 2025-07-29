@@ -3477,6 +3477,226 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
  * - 500: User interaction creation failure or general internal server error.
  */
 
+//Working Code
+
+// export const Create_New_DRCUser_or_RO = async (req, res) => {
+//   let session = null;
+
+//   try {
+//     const {
+//       drcUser_type,
+//       drc_id,
+//       ro_name,
+//       nic,
+//       login_email,
+//       login_contact_no,
+//       create_by,
+//       rtoms
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!drcUser_type || !drc_id || !ro_name || !nic || !login_contact_no || !create_by) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required fields"
+//       });
+//     }
+
+//     // Validate drcUser_type
+//     if (!['RO', 'drcUser'].includes(drcUser_type)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid drcUser_type. Must be 'RO' or 'drcUser'"
+//       });
+//     }
+
+//     // Validate rtoms array for RO type
+//     if (drcUser_type === 'RO' && rtoms && !Array.isArray(rtoms)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "rtoms must be an array"
+//       });
+//     }
+
+//     // Validate individual rtom objects
+//     if (drcUser_type === 'RO' && rtoms && rtoms.length > 0) {
+//       for (let i = 0; i < rtoms.length; i++) {
+//         const rtom = rtoms[i];
+//         if (!rtom.rtom_id || !rtom.rtom_name || !rtom.billing_center_code) {
+//           return res.status(400).json({
+//             success: false,
+//             message: `Missing required fields in rtom at index ${i}. Required: rtom_id, rtom_name, billing_center_code`
+//           });
+//         }
+//       }
+//     }
+
+//     // Start MongoDB session and transaction
+//     session = await mongoose.startSession();
+//     session.startTransaction();
+
+//     const currentDate = new Date();
+//     let ro_id = null;
+//     let drcUser_id = null;
+
+//     // Get MongoDB connection
+//     const mongoConnection = await db.connectMongoDB();
+
+//     if (drcUser_type === 'RO') {
+//       // Generate ro_id for RO type
+//       const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//         { _id: "ro_id" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true, session }
+//       );
+//       ro_id = counterResult.value?.seq || counterResult.seq;
+//       if (!ro_id) {
+//         throw new Error("Failed to generate ro_id.");
+//       }
+//     } else if (drcUser_type === 'drcUser') {
+//       // Generate drcUser_id for DRCUser type
+//       const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//         { _id: "drcUser_id" },
+//         { $inc: { seq: 1 } },
+//         { returnDocument: "after", upsert: true, session }
+//       );
+//       drcUser_id = counterResult.value?.seq || counterResult.seq;
+//       if (!drcUser_id) {
+//         throw new Error("Failed to generate drcUser_id.");
+//       }
+//     }
+
+//     // Prepare Recovery_officer record
+//     const recoveryOfficerData = {
+//       doc_version: 1,
+//       drc_id: drc_id,
+//       ro_id: ro_id,
+//       drcUser_id: drcUser_id,
+//       ro_name: ro_name,
+//       login_email: login_email || null,
+//       login_contact_no: login_contact_no,
+//       nic: nic,
+//       drcUser_type: drcUser_type,
+//       drcUser_status: "Pending_approval",
+//       create_dtm: currentDate,
+//       create_by: create_by,
+//       end_dtm: null,
+//       end_by: null,
+//       rtom: [],
+//       remark: []
+//     };
+
+//     // Add multiple RTOM data if user type is RO and rtoms array is provided
+//     if (drcUser_type === 'RO' && ro_id && rtoms && rtoms.length > 0) {
+//       recoveryOfficerData.rtom = rtoms.map(rtom => ({
+//         rtom_id: rtom.rtom_id,
+//         rtom_name: rtom.rtom_name,
+//         rtom_status: rtom.rtom_status || "Active",
+//         billing_center_code: rtom.billing_center_code,
+//         rtom_update_dtm: currentDate,
+//         rtom_update_by: create_by,
+//         rtom_end_dtm: null,
+//         handling_type: rtom.handling_type || null
+//       }));
+//     }
+
+//     // Generate user_approver_id as a unique sequence number
+//     const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+//       { _id: "user_approver_id" },
+//       { $inc: { seq: 1 } },
+//       { returnDocument: "after", upsert: true, session }
+//     );
+//     const user_approver_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
+//     if (user_approver_id === undefined || user_approver_id === null) {
+//       throw new Error("Failed to generate user_approver_id.");
+//     }
+
+//     // Get approved_Deligated_by using getUserIdOwnedByDRCId
+//     const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
+
+//     // Prepare User_Approval record (according to updated schema)
+//     const userApprovalData = {
+//       doc_version: 1,
+//       user_approver_id: user_approver_id,
+//       User_Type: ro_id ? 'RO' : 'DRC User',
+//       User_id: ro_id ? ro_id.toString() : drcUser_id ? drcUser_id.toString() : null,
+//       DRC_id: drc_id,
+//       created_by: create_by,
+//       created_on: currentDate,
+//       approve_status: 'Open',
+//       approve_status_on: null,
+//       approver_type: 'DRC_user_registration',
+//       approved_Deligated_by: approved_Deligated_by,
+//       remark: null,
+//       Parameters: {
+//         login_email: login_email || null,
+//         login_contact_no: login_contact_no,
+//         drcUser_status: "Inactive"
+//       },
+//       existing_reference_id: null
+//     };
+
+//     // Create records in both collections
+//     const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
+//     const userApproval = new User_Approval(userApprovalData);
+
+//     // Save both records with session
+//     const savedRecoveryOfficer = await recoveryOfficer.save({ session });
+//     const savedUserApproval = await userApproval.save({ session });
+
+//     // Create User Interaction
+//     const dynamicParams = {
+//       user_type: drcUser_type,
+//       ro_id: ro_id,
+//       drcUser_id: drcUser_id,
+//       user_name: ro_name,
+//       approval_id: user_approver_id,
+//       drc_id: drc_id
+//     };
+
+//     const interactionResult = await createUserInteractionFunction({
+//       Interaction_ID: 19,
+//       User_Interaction_Type: `Pending approval for ${drcUser_type} creation`,
+//       delegate_user_id: approved_Deligated_by,
+//       Created_By: create_by,
+//       User_Interaction_Status: "Open",
+//       User_Interaction_Status_DTM: currentDate,
+//       ...dynamicParams,
+//       session
+//     });
+
+//     // Commit transaction
+//     await session.commitTransaction();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: `${drcUser_type} created successfully and sent for approval`,
+//       data: {
+//         recoveryOfficer: savedRecoveryOfficer,
+//         userApproval: savedUserApproval,
+//         interaction: interactionResult
+//       }
+//     });
+
+//   } catch (error) {
+//     // Abort transaction on error
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     console.error("Error creating user:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   } finally {
+//     // End session properly
+//     if (session) {
+//       await session.endSession();
+//     }
+//   }
+// };
+
 export const Create_New_DRCUser_or_RO = async (req, res) => {
   let session = null;
 
@@ -3489,7 +3709,9 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       login_email,
       login_contact_no,
       create_by,
-      rtoms
+      rtoms,
+      ro_id,
+      drcUser_id
     } = req.body;
 
     // Validate required fields
@@ -3534,35 +3756,9 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     session.startTransaction();
 
     const currentDate = new Date();
-    let ro_id = null;
-    let drcUser_id = null;
 
     // Get MongoDB connection
     const mongoConnection = await db.connectMongoDB();
-
-    if (drcUser_type === 'RO') {
-      // Generate ro_id for RO type
-      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "ro_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true, session }
-      );
-      ro_id = counterResult.value?.seq || counterResult.seq;
-      if (!ro_id) {
-        throw new Error("Failed to generate ro_id.");
-      }
-    } else if (drcUser_type === 'drcUser') {
-      // Generate drcUser_id for DRCUser type
-      const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "drcUser_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true, session }
-      );
-      drcUser_id = counterResult.value?.seq || counterResult.seq;
-      if (!drcUser_id) {
-        throw new Error("Failed to generate drcUser_id.");
-      }
-    }
 
     // Prepare Recovery_officer record
     const recoveryOfficerData = {
@@ -3598,81 +3794,20 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       }));
     }
 
-    // Generate user_approver_id as a unique sequence number
-    const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "user_approver_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true, session }
-    );
-    const user_approver_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
-    if (user_approver_id === undefined || user_approver_id === null) {
-      throw new Error("Failed to generate user_approver_id.");
-    }
-
-    // Get approved_Deligated_by using getUserIdOwnedByDRCId
-    const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-
-    // Prepare User_Approval record (according to updated schema)
-    const userApprovalData = {
-      doc_version: 1,
-      user_approver_id: user_approver_id,
-      User_Type: ro_id ? 'RO' : 'DRC User',
-      User_id: ro_id ? ro_id.toString() : drcUser_id ? drcUser_id.toString() : null,
-      DRC_id: drc_id,
-      created_by: create_by,
-      created_on: currentDate,
-      approve_status: 'Open',
-      approve_status_on: null,
-      approver_type: 'DRC_user_registration',
-      approved_Deligated_by: approved_Deligated_by,
-      remark: null,
-      Parameters: {
-        login_email: login_email || null,
-        login_contact_no: login_contact_no,
-        drcUser_status: "Inactive"
-      },
-      existing_reference_id: null
-    };
-
-    // Create records in both collections
+    // Create record 
     const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
-    const userApproval = new User_Approval(userApprovalData);
 
-    // Save both records with session
+    // Save record with session
     const savedRecoveryOfficer = await recoveryOfficer.save({ session });
-    const savedUserApproval = await userApproval.save({ session });
-
-    // Create User Interaction
-    const dynamicParams = {
-      user_type: drcUser_type,
-      ro_id: ro_id,
-      drcUser_id: drcUser_id,
-      user_name: ro_name,
-      approval_id: user_approver_id,
-      drc_id: drc_id
-    };
-
-    const interactionResult = await createUserInteractionFunction({
-      Interaction_ID: 19,
-      User_Interaction_Type: `Pending approval for ${drcUser_type} creation`,
-      delegate_user_id: approved_Deligated_by,
-      Created_By: create_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
-      ...dynamicParams,
-      session
-    });
 
     // Commit transaction
     await session.commitTransaction();
 
     return res.status(201).json({
       success: true,
-      message: `${drcUser_type} created successfully and sent for approval`,
+      message: `${drcUser_type} created successfully.`,
       data: {
         recoveryOfficer: savedRecoveryOfficer,
-        userApproval: savedUserApproval,
-        interaction: interactionResult
       }
     });
 
