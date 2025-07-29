@@ -21,6 +21,8 @@ import User_Approval from "../models/User_Approval.js";
 import {createUserInteractionFunction} from "../services/UserInteractionService.js"
 import { getUserIdOwnedByDRCId } from "../controllers/DRC_controller.js"
 import { createTaskFunction } from "../services/TaskService.js";
+import axios from 'axios';
+
 
 
 
@@ -4221,8 +4223,25 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
 
 
 
+
+//UPDATED FUNCTION WITH PYTHON APIS
+
+// Helper for Python API error
+function PythonApiError(message, context) {
+  const err = new Error(message);
+  err.context = context;
+  return err;
+}
+
 export const Update_RO_or_DRCuser_Details = async (req, res) => {
   let session = null;
+
+  // To keep track of python calls for potential compensating actions!
+  let pythonCallsSucceeded = {
+    profile: false,
+    contacts: false,
+    status: false
+  };
 
   try {
     const {
@@ -4235,7 +4254,8 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       drcUser_status,
       create_by,
       rtoms,
-      remark
+      remark,
+      nic     // <-- make sure clients send this field when required
     } = req.body;
 
     if (!drc_id || !create_by) {
@@ -4291,28 +4311,132 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     }
 
     let updateData = {};
-    let needsApproval = false;
+    let needsApproval = false; // no approval process now, but keep flag for legacy (optional)
     let parameters = {};
 
-    if (login_email !== undefined && login_email !== existingUser.login_email) {
+    /** ========== 1. PROFILE (EMAIL) API CALL ========== **/
+    let user_id = ro_id || drcUser_id;
+    let updatingEmail = (login_email !== undefined && login_email !== existingUser.login_email);
+
+    if (updatingEmail) {
+      // Call Python API
+      let profile_payload = {
+        username: ro_name || existingUser.ro_name || null,
+        email: login_email || null,
+        user_nic: nic || existingUser.nic || null,
+        user_designation: drcUser_type === 'RO' ? 'recovery_officer' : 'drc_officer'
+      };
+
+      // Remove "null" strings by replacing "null" with null type
+      Object.keys(profile_payload).forEach(k => {
+        if (profile_payload[k] === undefined) profile_payload[k] = null;
+        if (profile_payload[k] === "null") profile_payload[k] = null;
+      });
+
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/profile",
+        {
+          user_id: user_id,
+          profile_payload: profile_payload
+        },
+        { timeout: 7000 }
+      );
+      const pyResp = response.data;
+      if (!pyResp || !(pyResp.status && (pyResp.status.toLowerCase() === 'success' || pyResp.status.toLowerCase() === 'updated'))) {
+          throw PythonApiError("Python Profile API failed", pyResp);
+      }
+
+      pythonCallsSucceeded.profile = true; // Mark for compensation if needed
+
       updateData.login_email = login_email;
       parameters.login_email = login_email;
-      needsApproval = true;
+      needsApproval = true; // Optional - no approval process now
     }
 
-    if (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no) {
+    /** ========== 2. CONTACTS API CALL ========== **/
+    let updatingContact = (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no);
+
+    if (updatingContact) {
+      // call Python API; end the old contact, add the new one
+      let contact_payload = [];
+      if (existingUser.login_contact_no) {
+        contact_payload.push({
+          contact_number: existingUser.login_contact_no,
+          end_dtm: currentDate.toISOString()
+        });
+      }
+      contact_payload.push({
+        contact_number: login_contact_no
+      });
+
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/contacts",
+        {
+          user_id: user_id,
+          contact_payload: contact_payload
+        },
+        { timeout: 7000 }
+      );
+
+      const pyResp = response.data;
+
+      function isContactsSuccess(resp) {
+          return Array.isArray(resp) && resp.every(c =>
+              c.status && (c.status.toLowerCase() === 'updated' || c.status.toLowerCase() === 'added')
+          );
+      }
+
+      if (!(isContactsSuccess(pyResp) || (pyResp.status && ['success', 'updated'].includes(pyResp.status.toLowerCase())))) {
+          throw PythonApiError("Python Contacts API failed", pyResp);
+      }
+
+      pythonCallsSucceeded.contacts = true;
+
       updateData.login_contact_no = login_contact_no;
       parameters.login_contact_no = login_contact_no;
-      needsApproval = true;
+      needsApproval = true; // Optional - no approval process now
     }
 
+    /** ========== 3. STATUS API CALL ========== **/
+    let updatingStatus = (drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status);
+
     let rtomStatusSetToInactive = false;
-    if (drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status) {
+    if (updatingStatus) {
+      // Map status to lowercase
+      let pyStatus = drcUser_status?.toLowerCase() || "inactive";
+      let status_payload = {
+        status: pyStatus,
+        status_on: currentDate.toISOString(),
+        status_by: create_by
+      };
+
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/status",
+        {
+          user_id: user_id,
+          status_payload: status_payload
+        },
+        { timeout: 7000 }
+      );
+
+      const pyResp = response.data;
+      const isStatusOk =
+        (pyResp.status && ["success", "updated"].includes(pyResp.status.toLowerCase()));
+      if (!isStatusOk) {
+        throw PythonApiError("Python Status API failed", pyResp);
+      }
+
+      pythonCallsSucceeded.status = true;
+
       updateData.drcUser_status = drcUser_status;
       parameters.drcUser_status = drcUser_status;
-      needsApproval = true;
+      needsApproval = true; // Optional - no approval process now
 
-      if (drcUser_type === 'RO' && drcUser_status === "Inactive" && Array.isArray(existingUser.rtom)) {
+      if (
+        drcUser_type === 'RO'
+        && drcUser_status === "Inactive"
+        && Array.isArray(existingUser.rtom)
+      ) {
         const updatedRtoms = existingUser.rtom.map(rtom => ({
           ...rtom.toObject ? rtom.toObject() : rtom,
           rtom_status: "Inactive",
@@ -4324,6 +4448,7 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       }
     }
 
+    /** ========== Handle RTOM changes ========== **/
     if (
       drcUser_type === 'RO' &&
       rtoms &&
@@ -4365,6 +4490,7 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       updateData.rtom = updatedRtoms;
     }
 
+    /** ========== Handle Remark logic ========== **/
     if (remark) {
       const newRemark = {
         remark: remark,
@@ -4378,92 +4504,34 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       }
     }
 
+    /** ========== MongoDB update ========== **/
     const updatedUser = await Recovery_officer.findOneAndUpdate(
       findQuery,
       updateData,
       { new: true, session }
     );
 
-    let userApprovalRecord = null;
-    let interactionResult = null;
-
-    if (needsApproval) {
-      const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "user_approver_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true, session }
-      );
-      const user_approver_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
-      if (user_approver_id === undefined || user_approver_id === null) {
-        throw new Error("Failed to generate user_approver_id.");
-      }
-
-      const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-
-      const userApprovalData = {
-        doc_version: 1,
-        user_approver_id: user_approver_id,
-        User_Type: ro_id ? 'RO' : 'DRC User',
-        User_id: ro_id ? ro_id.toString() : drcUser_id?.toString() || null,
-        DRC_id: drc_id,
-        created_by: create_by,
-        created_on: currentDate,
-        approve_status: 'Open',
-        approve_status_on: currentDate,
-        approver_type: 'DRC_user_details_update',
-        approved_Deligated_by: approved_Deligated_by,
-        remark: remark || null,
-        Parameters: parameters,
-        existing_reference_id: null
-      };
-
-      const userApproval = new User_Approval(userApprovalData);
-      userApprovalRecord = await userApproval.save({ session });
-
-      const dynamicParams = {
-        user_type: drcUser_type,
-        ro_id: ro_id || null,
-        drcUser_id: drcUser_id || null,
-        user_name: ro_name || existingUser.ro_name,
-        user_approver_id: user_approver_id,
-        drc_id: drc_id
-      };
-
-      interactionResult = await createUserInteractionFunction({
-        Interaction_ID: 19,
-        User_Interaction_Type: `Pending approval for ${drcUser_type} update`,
-        delegate_user_id: approved_Deligated_by,
-        Created_By: create_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        ...dynamicParams,
-        session
-      });
-    }
-
     await session.commitTransaction();
-
-    const responseData = {
-      updatedUser: updatedUser
-    };
-    if (userApprovalRecord) responseData.userApproval = userApprovalRecord;
-    if (interactionResult) responseData.interaction = interactionResult;
 
     return res.status(200).json({
       success: true,
-      message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
-      data: responseData
+      message: `${drcUser_type} updated successfully`,
+      data: { updatedUser }
     });
 
   } catch (error) {
     if (session) {
       await session.abortTransaction();
     }
+
+    // TODO: implement compensating actions for each succeeded Python step as needed.
+
     console.error("Error updating user:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
+      pythonStatus: pythonCallsSucceeded
     });
   } finally {
     if (session) {
