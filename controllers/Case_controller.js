@@ -7592,7 +7592,17 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
     }
 
     if (RTOM) {
-      pipeline.push({ $match: { rtom: Number(RTOM) } });
+      // pipeline.push({ $match: { rtom: RTOM } });
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $toLower: '$rtom' },
+              RTOM.toLowerCase()
+            ]
+          }
+        }
+      });
     }
 
     const dateFilter = {};
