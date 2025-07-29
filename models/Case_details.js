@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 const recoveryOfficerSchema = new Schema({
   order_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  ro_name: { type: String, required: true },
   assigned_dtm: { type: Date, required: true },
   assigned_by: { type: String, maxlength: 30, required: true },
   removed_dtm: { type: Date, default: null },
@@ -96,15 +97,28 @@ const abnormalSchema = new Schema({
 },{_id: false });
 
 const productDetailsSchema = new Schema({
-  service: { type: String, maxlength: 30, required: true },
-  product_label: { type: String, maxlength: 30, required: true },
-  product_status: { type: String, maxlength: 30, required: true },
-  status_Dtm: { type: Date, required: true },
+  Product_Seq: { type: Number, required: true },
+  Service_Type: { type: String, maxlength: 30, required: true },
+  Product_Label: { type: String, maxlength: 30, required: true },
+  Product_Status: { type: String, maxlength: 30, required: true },
+  Product_Id: { type: Number, required: true },
+  Integration_Id: { type: String, maxlength: 30, required: true },
+  Product_Name: { type: String, maxlength: 255, required: true },
+  Effective_Dtm: { type: Date, required: true },
   rtom: { type: String, maxlength: 30, required: true },
-  product_ownership: { type: String, maxlength: 30, required: true },
-  service_address: { type: String, maxlength: 255, required: true },
-  account_no: { type: String, maxlength: 30, required: true}
-
+  Equipment_Ownership: { type: String, maxlength: 30, required: true },
+  Service_Address: { type: String, maxlength: 255, required: true },
+  account_no: { type: String, maxlength: 30, required: true},
+  Customer_Ref: { type: String, maxlength: 30, required: true },
+  Cat: { type: String, maxlength: 255, required: true },
+  Db_Cpe_Status: { type: String, maxlength: 255, required: true },
+  Received_List_Cpe_Status: { type: String, maxlength: 255, required: true },
+  LEA: { type: String, maxlength: 30, required: true },
+  RTOM: { type: String, maxlength: 30, required: true },
+  City: { type: String, maxlength: 30, required: true },
+  District: { type: String, maxlength: 255, required: true },
+  Region: { type: String, maxlength: 255, required: true },
+  Province: { type: String, maxlength: 255, required: true },
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
@@ -127,10 +141,12 @@ const RoCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  drc: { type: String, maxlength: 255, default:"" },
+  ro_name: { type: String, maxlength: 255, default:"" },
   created_dtm: { type: Date, required: true },
-  field_reason: { type: String, maxlength: 255, default:true },
-  Feild_reason_ID: { type: Number, default:true },
-  negotiation_remark: { type: String, maxlength: 255, default:true },
+  field_reason: { type: String, maxlength: 255, default:"" },
+  Field_reason_ID: { type: Number, default:null },
+  negotiation_remark: { type: String, maxlength: 255, default:"" },
 });
 
 const roRequestsSchema = new mongoose.Schema({
@@ -330,7 +346,7 @@ const caseDetailsSchema = new Schema({
   created_dtm: { type: Date, required: true },
   implemented_dtm: { type: Date, required: true },
   area: { type: String, maxlength: 30, required: true },
-  rtom: { type: Number, maxlength: 30, required: true },
+  rtom: { type: String, maxlength: 30, required: true },
   arrears_band: {type: String, maxlength: 30, required: true},
   bss_arrears_amount: { type: Number, required: true },
   current_arrears_amount: { type: Number, required: true },

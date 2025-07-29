@@ -14,6 +14,8 @@ import { Router } from "express";
 import {
   drcExtendValidityPeriod,
   listHandlingCasesByDRC,
+  List_Handling_Cases_By_DRC_Without_RO,
+  List_Handling_Cases_By_DRC_With_RO,
   Case_Abandant,
   Approve_Case_abandant,
   Open_No_Agent_Cases_F1_Filter,
@@ -50,7 +52,7 @@ import {
   Approve_Batch,
   Create_task_for_batch_approval,
   List_DRC_Assign_Manager_Approval,
-  Approve_DRC_Assign_Manager_Approval,
+  Aprove_DRC_Assign_Manager_Approval,
   Reject_DRC_Assign_Manager_Approval,
   Create_task_for_DRC_Assign_Manager_Approval,
   Assign_DRC_To_Case,
@@ -1175,6 +1177,312 @@ router.patch("/Assign_RO_To_Case", assignROToCase);
  *                       example: Internal server error while retrieving cases.
  */
 router.post("/List_Handling_Cases_By_DRC", listHandlingCasesByDRC);
+
+/**
+ * @swagger
+ * /api/case/List_Handling_Cases_By_DRC_Without_RO:
+ *   post:
+ *     summary: List cases handled by DRC without assigned Recovery Officers (ROs)
+ *     description: |
+ *       Retrieves cases assigned to a specific DRC that do not yet have Recovery Officers assigned. 
+ *       Supports optional filters such as RTOM, arrears band, and date range. Results are paginated.
+ *
+ *       | Version | Date        | Description                         | Changed By |
+ *       |---------|-------------|-------------------------------------|------------|
+ *       | 01      | 2025-Jun-03 | Initial implementation              | T.G.J.K.Kumarasiri  |
+ *
+ *     tags: [Case Distribution]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 example: "7"
+ *                 description: ID of the Debt Recovery Company (DRC)
+ *               rtom:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional RTOM filter (case-insensitive, trimmed match)
+ *               ro_id:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional Recovery Officer ID (not used in current filtering)
+ *               arrears_band:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional arrears band filter
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: ""
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: ""
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination (first page returns 10 records, others return 30)
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved cases.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Cases retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         example: 5001
+ *                       account_no:
+ *                         type: string
+ *                         example: "AC123456"
+ *                       status:
+ *                         type: string
+ *                         example: "RO Negotiation"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-05-02T12:34:56.000Z"
+ *                       current_arreas_amount:
+ *                         type: number
+ *                         example: 1500.75
+ *                       area:
+ *                         type: string
+ *                         example: "Colombo"
+ *                       action_type:
+ *                         type: string
+ *                         example: "Field Visit"
+ *                       remark:
+ *                         type: string
+ *                         example: "Customer not available"
+ *                       expire_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-15T00:00:00.000Z"
+ *                       ro_name:
+ *                         type: string
+ *                         example: null
+ *                       assigned_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: null
+ *       400:
+ *         description: Missing DRC ID or bad input.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve DRC details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "DRC ID is required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving cases."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Detailed error message here"
+ */
+router.post("/List_Handling_Cases_By_DRC_Without_RO", List_Handling_Cases_By_DRC_Without_RO);
+
+/**
+ * @swagger
+ * /api/case/List_Handling_Cases_By_DRC_With_RO:
+ *   post:
+ *     summary: List cases handled by DRC with assigned Recovery Officers (ROs)
+ *     description: |
+ *       Retrieves cases assigned to a given Debt Recovery Company (DRC) that have at least one assigned Recovery Officer (RO). 
+ *       Allows optional filters such as RTOM, RO ID, arrears band, and a date range. Results are paginated.
+ *
+ *       | Version | Date        | Description                         | Changed By |
+ *       |---------|-------------|-------------------------------------|------------|
+ *       | 01      | 2025-Jun-03 | Initial implementation              | T.G.J.K.Kumarasiri  |
+ *
+ *     tags: [Case Distribution]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - drc_id
+ *             properties:
+ *               drc_id:
+ *                 type: string
+ *                 example: "7"
+ *                 description: ID of the Debt Recovery Company (DRC)
+ *               rtom:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional RTOM filter (case-insensitive, trimmed match)
+ *               ro_id:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional Recovery Officer ID to filter cases
+ *               arrears_band:
+ *                 type: string
+ *                 example: ""
+ *                 description: Optional arrears band filter
+ *               from_date:
+ *                 type: string
+ *                 format: date
+ *                 example: ""
+ *               to_date:
+ *                 type: string
+ *                 format: date
+ *                 example: ""
+ *               pages:
+ *                 type: integer
+ *                 example: 1
+ *                 description: Page number for pagination (page 1 returns 10, others return 30)
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved filtered cases with ROs.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "success"
+ *                 message:
+ *                   type: string
+ *                   example: "Cases retrieved successfully."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       case_id:
+ *                         type: integer
+ *                         example: 4501
+ *                       account_no:
+ *                         type: string
+ *                         example: "AC998877"
+ *                       status:
+ *                         type: string
+ *                         example: "RO Negotiation"
+ *                       created_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-05-10T12:00:00.000Z"
+ *                       current_arreas_amount:
+ *                         type: number
+ *                         example: 1800.50
+ *                       area:
+ *                         type: string
+ *                         example: "Kandy"
+ *                       action_type:
+ *                         type: string
+ *                         example: "Field Visit"
+ *                       remark:
+ *                         type: string
+ *                         example: "Follow-up needed"
+ *                       expire_dtm:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-30T23:59:59.000Z"
+ *                       ro_name:
+ *                         type: string
+ *                         example: "John Doe"
+ *                       assigned_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-05-01T08:00:00.000Z"
+ *       400:
+ *         description: DRC ID missing or input validation failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve DRC details."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 400
+ *                     description:
+ *                       type: string
+ *                       example: "DRC ID is required."
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while retrieving cases."
+ *                 errors:
+ *                   type: object
+ *                   properties:
+ *                     code:
+ *                       type: integer
+ *                       example: 500
+ *                     description:
+ *                       type: string
+ *                       example: "Detailed error message here"
+ */
+router.post("/List_Handling_Cases_By_DRC_With_RO", List_Handling_Cases_By_DRC_With_RO);
 
 /**
  * @swagger
@@ -5000,7 +5308,7 @@ router.post(
 
 /**
  * @swagger
- * /api/case/Approve_DRC_Assign_Manager_Approval:
+ * /api/case/Aprove_DRC_Assign_Manager_Approval:
  *   post:
  *     summary: C-2P76 Approve DRC Assign Manager Approval
  *     description: |
@@ -5088,8 +5396,8 @@ router.post(
  *                   example: "Internal server error."
  */
 router.post(
-  "/Approve_DRC_Assign_Manager_Approval",
-  Approve_DRC_Assign_Manager_Approval
+  "/Aprove_DRC_Assign_Manager_Approval",
+  Aprove_DRC_Assign_Manager_Approval
 );
 
 /**

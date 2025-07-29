@@ -120,7 +120,7 @@ export const Create_Incident = async (req, res) => {
       Incident_Log_Id,
       Account_Num,
       Incident_Status: "Incident Open",
-      
+      Incident_Status_Dtm: moment().toDate(),
       Actions: DRC_Action,
       Monitor_Months: monitorMonths,
       Created_By,
@@ -1823,12 +1823,13 @@ export const Task_for_Download_Incidents = async (req, res) => {
   session.startTransaction();
   try {
     const { Actions, Incident_Status, Source_Type, From_Date, To_Date, Created_By } = req.body;
+     
     if (!From_Date || !To_Date || !Created_By ) {
       return res.status(400).json({ error: "Missing required parameters: From Date, To Date, Created By" });
     }
     const taskData = {
-      Template_Task_Id: 20,  
-      task_type: "Create Incident list for download",
+      Template_Task_Id: 21,  
+      task_type: "Create incident  distribution download",
       parameters: {
           Actions,
           Incident_Status,
@@ -1840,6 +1841,17 @@ export const Task_for_Download_Incidents = async (req, res) => {
       Execute_By: "SYS",
       task_status: "open",
       created_dtm: new Date(),
+      Sys_Alert_ID: null,
+      Interaction_ID_Success:null,
+      Interaction_ID_Error: null,
+      Task_Id_Error: null,
+      end_dtm: null,
+  
+  status_changed_dtm: null,
+  status_description: "",
+  created_dtm: new Date()
+
+
     };
     const ResponseData = await createTaskFunction(taskData, session);
     console.log("Task created successfully:", ResponseData);
@@ -1859,5 +1871,151 @@ export const Task_for_Download_Incidents = async (req, res) => {
     });
   }finally {
     session.endSession();
+  }
+};
+
+export const Task_for_Download_Incidents_Full_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const {
+      Actions,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Created_By,
+      Account_Num,
+    } = req.body;
+    if (!From_Date || !To_Date || !Created_By) {
+      return res.status(400).json({
+        error: "Missing required parameters: From Date, To Date, Created By",
+      });
+    }
+    const taskData = {
+      Template_Task_Id: 21, // Placeholder, adjust if needed
+      task_type: "Create incident distribution download",
+      parameters: {
+        Actions,
+        Incident_Status,
+        Source_Type,
+        // Account_Num,
+        From_Date,
+        To_Date,
+      },
+      Created_By,
+      Execute_By: "SYS",
+      task_status: "open",
+      created_dtm: new Date(),
+    };
+    const ResponseData = await createTaskFunction(taskData, session);
+    console.log("Task created successfully:", ResponseData);
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(201).json({
+      message: "Task created successfully",
+      ResponseData,
+    });
+  } catch (error) {
+    console.error("Error creating the task:", error);
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      message: "Error creating the task",
+      error: error.message || "Internal server error.",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const New_List_Incidents = async (req, res) => {
+  try {
+    const {
+      Actions,
+      Incident_Status,
+      Source_Type,
+      From_Date,
+      To_Date,
+      Account_Num,
+      pages,
+    } = req.body;
+
+    let query = {};
+
+    // if (!Actions && !Incident_Status && !Source_Type &&!From_Date  &&!To_Date && !Account_Num && !pages) {
+
+    // const incidents = await Incident.find(query)
+    //   .sort({ Incident_Id: -1 })
+    //   .limit(10);
+    // return res.status(200).json({
+    //   status: "success",
+    //   message: "Incidents retrieved successfully.",
+    //   incidents,
+    // });
+    // }
+    if (From_Date && To_Date) {
+      const startDate = new Date(From_Date);
+      const endDate = new Date(To_Date);
+      endDate.setHours(23, 59, 59, 999); // Set end of day
+      query.Created_Dtm = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    } else if (From_Date || To_Date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both From_Date and To_Date must be provided together.",
+      });
+    }
+
+    // Pagination logic
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    if (Actions) {
+      query.Actions = Actions;
+    }
+    if (Incident_Status) {
+      query.Incident_Status = Incident_Status;
+    }
+    if (Source_Type) {
+      query.Source_Type = Source_Type;
+    }
+
+    if (Account_Num) {
+      // Case-insensitive partial match using regex
+      query.Account_Num = { $regex: new RegExp(Account_Num, "i") };
+      console.log("Account_Num filter applied:", Account_Num);
+    }
+
+    const incidents = await Incident.find(query)
+      .sort({ Incident_Id: -1 })
+      .limit(limit)
+      .skip(skip);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Incidents retrieved successfully.",
+      incidents,
+    });
+
+    // if (incidents.length === 0) {
+    //   return res.status(404).json({
+    //     status: "error",
+    //     message: "No incidents found matching the criteria.",
+    //   });
+    // }
+  } catch (error) {
+    console.error("Error in New_List_Incidents:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
   }
 };
