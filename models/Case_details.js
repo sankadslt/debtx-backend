@@ -97,15 +97,28 @@ const abnormalSchema = new Schema({
 },{_id: false });
 
 const productDetailsSchema = new Schema({
-  service: { type: String, maxlength: 30, required: true },
-  product_label: { type: String, maxlength: 30, required: true },
-  product_status: { type: String, maxlength: 30, required: true },
-  status_Dtm: { type: Date, required: true },
+  Product_Seq: { type: Number, required: true },
+  Service_Type: { type: String, maxlength: 30, required: true },
+  Product_Label: { type: String, maxlength: 30, required: true },
+  Product_Status: { type: String, maxlength: 30, required: true },
+  Product_Id: { type: Number, required: true },
+  Integration_Id: { type: String, maxlength: 30, required: true },
+  Product_Name: { type: String, maxlength: 255, required: true },
+  Effective_Dtm: { type: Date, required: true },
   rtom: { type: String, maxlength: 30, required: true },
-  product_ownership: { type: String, maxlength: 30, required: true },
-  service_address: { type: String, maxlength: 255, required: true },
-  account_no: { type: String, maxlength: 30, required: true}
-
+  Equipment_Ownership: { type: String, maxlength: 30, required: true },
+  Service_Address: { type: String, maxlength: 255, required: true },
+  account_no: { type: String, maxlength: 30, required: true},
+  Customer_Ref: { type: String, maxlength: 30, required: true },
+  Cat: { type: String, maxlength: 255, required: true },
+  Db_Cpe_Status: { type: String, maxlength: 255, required: true },
+  Received_List_Cpe_Status: { type: String, maxlength: 255, required: true },
+  LEA: { type: String, maxlength: 30, required: true },
+  RTOM: { type: String, maxlength: 30, required: true },
+  City: { type: String, maxlength: 30, required: true },
+  District: { type: String, maxlength: 255, required: true },
+  Region: { type: String, maxlength: 255, required: true },
+  Province: { type: String, maxlength: 255, required: true },
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
@@ -165,7 +178,7 @@ const mediationBoardSchema = new mongoose.Schema({
 });
 
 const settlementschema = new Schema({
-  settlement_id: {type: Number, required: true, unique: true},
+  settlement_id: {type: Number, required: true },
   settlement_created_dtm: {type: Date, required:true},
   settlment_status: {type: String, maxlength: 30, required:true},
   drc_id: { type: Number, required: true },
@@ -174,7 +187,7 @@ const settlementschema = new Schema({
 });
 
 const moneytransactionsschema = new Schema({
-  money_transaction_id: {type: Number, required: true, unique: true},
+  money_transaction_id: {type: Number, required: true},
   payment_Dtm: {type: Date, required:true},
   payment_Type : {type: String, maxlength: 30, required:true},
   payment : { type: Number, required: true },
@@ -265,7 +278,7 @@ const customer_response_of_LOD_schema = new Schema({
 },{_id: false });
 
 const FTL_LOD_Schema = new Schema({
-  pdf_by: {type: String, maxlength: 30, required: true, unique: true},
+  pdf_by: {type: String, maxlength: 30, required: true},
   pdf_on: {type: Date, required:true},
   expire_date : {type: Date, required:true},
   signed_by : { type: String, maxlength: 30, required: true },
