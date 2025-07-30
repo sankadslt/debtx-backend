@@ -900,7 +900,7 @@ export const Create_User = async (req, res) => {
       contact_num: formattedContactNumbers,
       login_method,
       role,
-      user_status: "Inactive",
+      user_status: "Pending_approval",
       User_Status_Type: "user_update",
       User_Status_DTM: currentDate,
       User_Status_By: created_by,

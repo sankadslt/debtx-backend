@@ -121,7 +121,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       maxlength: 30,
       required: true,
-      enum: ["Active", "Inactive", "Terminate"],
+      enum: ["Active", "Inactive", "Pending_approval", "Terminate"],
     },
     User_Status_DTM: {
       type: Date,
