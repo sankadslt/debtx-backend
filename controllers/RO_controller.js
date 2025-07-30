@@ -3284,19 +3284,23 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
         if (drcUser_type === 'RO') {
             projection = {
                 ro_id: 1,
+                user_role:1,
                 drcUser_status: 1,
                 nic: 1,
                 ro_name: 1,
                 login_contact_no: 1,
+                login_contact_no_two: 1,
                 rtom: 1 // Need rtom to calculate rtom_area_count
             };
         } else if (drcUser_type === 'drcUser') {
             projection = {
                 drcUser_id: 1,
+                user_role:1,
                 drcUser_status: 1,
                 nic: 1,
                 ro_name: 1,
-                login_contact_no: 1
+                login_contact_no: 1,
+                login_contact_no_two:1
             };
         }
 
@@ -3324,19 +3328,23 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
 
                 return {
                     ro_id: doc.ro_id,
+                    user_role: doc.user_role || null,
                     drcUser_status: doc.drcUser_status,
                     nic: doc.nic,
                     ro_name: doc.ro_name,
                     login_contact_no: doc.login_contact_no,
+                    login_contact_no_two: doc.login_contact_no_two,
                     rtom_area_count: rtom_area_count
                 };
             } else if (drcUser_type === 'drcUser') {
                 return {
                     drcUser_id: doc.drcUser_id,
+                    user_role: doc.user_role || null,
                     drcUser_status: doc.drcUser_status,
                     nic: doc.nic,
                     ro_name: doc.ro_name,
-                    login_contact_no: doc.login_contact_no
+                    login_contact_no: doc.login_contact_no,
+                    login_contact_no_two: doc.login_contact_no_two,
                 };
             }
         });
@@ -3750,17 +3758,19 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
   try {
     const {
       drcUser_type,
+      user_role,
       drc_id,
       ro_name,
       nic,
       login_email,
       login_contact_no,
+      login_contact_no_two,
       create_by,
       rtoms
     } = req.body;
 
     // Validate required fields
-    if (!drcUser_type || !drc_id || !ro_name || !nic || !login_contact_no || !create_by) {
+    if (!drcUser_type || !user_role || !drc_id || !ro_name || !nic || !login_contact_no || !login_contact_no_two  || !create_by) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields"
@@ -3772,6 +3782,14 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid drcUser_type. Must be 'RO' or 'drcUser'"
+      });
+    }
+
+    // Validate user_role
+    if (!['call center', 'user staff'].includes(user_role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user_role. Must be 'call center' or 'user staff'"
       });
     }
 
@@ -3835,13 +3853,13 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     const recoveryOfficerData = {
       doc_version: 1,
       drc_id: drc_id,
-      ro_id: ro_id,
-      drcUser_id: drcUser_id,
       ro_name: ro_name,
       login_email: login_email || null,
       login_contact_no: login_contact_no,
+      login_contact_no_two: login_contact_no_two,
       nic: nic,
       drcUser_type: drcUser_type,
+      user_role: user_role,
       drcUser_status: "Pending_approval",
       create_dtm: currentDate,
       create_by: create_by,
@@ -3851,6 +3869,15 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       remark: []
     };
 
+    // ❗ Only add ro_id if not null
+    if (ro_id !== null && ro_id !== undefined) {
+      recoveryOfficerData.ro_id = ro_id;
+    }
+
+    // ❗ Only add drcUser_id if not null
+    if (drcUser_id !== null && drcUser_id !== undefined) {
+      recoveryOfficerData.drcUser_id = drcUser_id;
+    }
     // Add multiple RTOM data if user type is RO and rtoms array is provided
     if (drcUser_type === 'RO' && ro_id && rtoms && rtoms.length > 0) {
       recoveryOfficerData.rtom = rtoms.map(rtom => ({
@@ -3866,7 +3893,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     }
 
     // Generate user_approver_id as a unique sequence number
-    const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+    /*const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
       { _id: "user_approver_id" },
       { $inc: { seq: 1 } },
       { returnDocument: "after", upsert: true, session }
@@ -3896,21 +3923,22 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       Parameters: {
         login_email: login_email || null,
         login_contact_no: login_contact_no,
+        login_contact_no_two: login_contact_no_two || null,
         drcUser_status: "Inactive"
       },
       existing_reference_id: null
     };
-
+*/
     // Create records in both collections
     const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
-    const userApproval = new User_Approval(userApprovalData);
+    //const userApproval = new User_Approval(userApprovalData);
 
     // Save both records with session
     const savedRecoveryOfficer = await recoveryOfficer.save({ session });
-    const savedUserApproval = await userApproval.save({ session });
+    //const savedUserApproval = await userApproval.save({ session });
 
     // Create User Interaction
-    const dynamicParams = {
+   /* const dynamicParams = {
       user_type: drcUser_type,
       ro_id: ro_id,
       drcUser_id: drcUser_id,
@@ -3928,7 +3956,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       User_Interaction_Status_DTM: currentDate,
       ...dynamicParams,
       session
-    });
+    });*/
 
     // Commit transaction
     await session.commitTransaction();
@@ -3938,8 +3966,8 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       message: `${drcUser_type} created successfully and sent for approval`,
       data: {
         recoveryOfficer: savedRecoveryOfficer,
-        userApproval: savedUserApproval,
-        interaction: interactionResult
+        //userApproval: savedUserApproval,
+        //interaction: interactionResult
       }
     });
 
