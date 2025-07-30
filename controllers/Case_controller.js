@@ -6565,6 +6565,8 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
           current_contact_details:1,
+          customer_name:1,
+          account_no:1,
           area: 1,
           action_type: 1,
           ro_name: {
