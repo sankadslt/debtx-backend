@@ -4229,9 +4229,11 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       ro_id,
       drcUser_id,
       drc_id,
+      user_role,
       ro_name,
       login_email,
       login_contact_no,
+      login_contact_no_two,
       drcUser_status,
       create_by,
       rtoms,
@@ -4262,6 +4264,14 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       });
     }
 
+     const validRoles = ["Call center", "User staff"];
+    if (user_role && !validRoles.includes(user_role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid user_role. Allowed values: ${validRoles.join(", ")}`
+      });
+    }
+
     session = await mongoose.startSession();
     session.startTransaction();
 
@@ -4283,34 +4293,44 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       });
     }
 
-    if (existingUser.drcUser_status === 'Pending_approval') {
+    /*if (existingUser.drcUser_status === 'Pending_approval') {
       return res.status(403).json({
         success: false,
         message: `${drcUser_type} details cannot be edited while status is 'Pending_approval'`
       });
-    }
+    }*/
 
     let updateData = {};
-    let needsApproval = false;
-    let parameters = {};
+   // let needsApproval = false;
+    //let parameters = {};
+    if (user_role !== undefined && user_role !== existingUser.user_role) {
+      updateData.user_role = user_role;
+    }
+
 
     if (login_email !== undefined && login_email !== existingUser.login_email) {
       updateData.login_email = login_email;
-      parameters.login_email = login_email;
-      needsApproval = true;
+     // parameters.login_email = login_email;
+      //needsApproval = true;
     }
 
     if (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no) {
       updateData.login_contact_no = login_contact_no;
-      parameters.login_contact_no = login_contact_no;
-      needsApproval = true;
+     // parameters.login_contact_no = login_contact_no;
+      //needsApproval = true;
     }
+    if (login_contact_no_two !== undefined && login_contact_no_two !== existingUser.login_contact_no_two) {
+    updateData.login_contact_no_two = login_contact_no_two;
+    //parameters.login_contact_no_two = login_contact_no_two;
+    //needsApproval = true;
+  }
+
 
     let rtomStatusSetToInactive = false;
     if (drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status) {
       updateData.drcUser_status = drcUser_status;
-      parameters.drcUser_status = drcUser_status;
-      needsApproval = true;
+      //parameters.drcUser_status = drcUser_status;
+      //needsApproval = true;
 
       if (drcUser_type === 'RO' && drcUser_status === "Inactive" && Array.isArray(existingUser.rtom)) {
         const updatedRtoms = existingUser.rtom.map(rtom => ({
@@ -4384,10 +4404,10 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       { new: true, session }
     );
 
-    let userApprovalRecord = null;
-    let interactionResult = null;
+   // let userApprovalRecord = null;
+    //let interactionResult = null;
 
-    if (needsApproval) {
+   /* if (needsApproval) {
       const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "user_approver_id" },
         { $inc: { seq: 1 } },
@@ -4440,25 +4460,25 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
         session
       });
     }
-
+*/
     await session.commitTransaction();
 
-    const responseData = {
+    /*const responseData = {
       updatedUser: updatedUser
     };
     if (userApprovalRecord) responseData.userApproval = userApprovalRecord;
     if (interactionResult) responseData.interaction = interactionResult;
-
+*/
     return res.status(200).json({
       success: true,
-      message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
-      data: responseData
+      message: `${drcUser_type} updated successfully`, // message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
+      data: updatedUser//responseData
     });
 
   } catch (error) {
-    if (session) {
+    /*if (session) {
       await session.abortTransaction();
-    }
+    }*/
     console.error("Error updating user:", error);
     return res.status(500).json({
       success: false,
