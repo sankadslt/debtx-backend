@@ -7441,12 +7441,25 @@ export const updateDrcCaseDetails = async (req, res) => {
       { Identification_type: 'Passport', contact: passport_ex },
       { Identification_type: 'NIC', contact: nic_ex }
     ];
+    const contact_details = [
+      Edited_Email ? { contact_type: 'Email', contact: Edited_Email } : null,
+      Edited_Mobile ? { contact_type: 'Mobile', contact: Edited_Mobile } : null,
+      Edited_Address ? { contact_type: 'Address', contact: Edited_Address } : null,
+      Edited_geo_location ? { contact_type: 'geo_location', contact: Edited_geo_location,} : null,
+    ].filter(Boolean);
+
+    const customer_identification = [
+      Edited_Driving_License ? { Identification_type: 'Driving License', contact: Edited_Driving_License } : null,
+      Edited_NIC ? { Identification_type: 'Passport', contact: Edited_NIC } : null,
+      Edited_Passport ? { Identification_type: 'NIC', contact: Edited_Passport } : null
+    ].filter(Boolean);
+
     const roeditrecode  = {
       ro_id,
       drc_id,
       edited_dtm: new Date(),
-      contact_details:newContacts,
-      customer_identification:newIdentification,
+      contact_details:contact_details,
+      customer_identification:customer_identification,
       remark,
       edited_by
     };
@@ -11083,7 +11096,7 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
         message:
           "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept are required.",
       });
-    }
+    };
 
     // Decide the new case status based on User_Interaction_Type and Request Accept
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
@@ -11138,16 +11151,13 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
     const newRequest = new Request({
       case_id: case_id,
       Interaction_Log_ID: Interaction_Log_ID,
-      // RO_Request_Id: Interaction_Log_ID,
       Request_Description: User_Interaction_Type,
       created_dtm: new Date(),
       created_by: create_by,
-      // Request_Mode: Request_Mode,
       Intraction_ID: Interaction_ID,
       parameters: {
         Request_Accept: requestAccept,
         Reamrk: Reamrk,
-        No_of_Calendar_Month: No_of_Calendar_Month,
         Letter_Send: Letter_Send,
         Request_CreatedDTM: approvalDoc.CreateDTM,
       },
