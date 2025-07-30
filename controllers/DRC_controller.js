@@ -14,6 +14,7 @@
 */
 
 // import db from "../config/db.js";
+import axios from "axios";
 import db from "../config/db.js";
 import DRC from "../models/Debt_recovery_company.js";
 import RTOM from "../models/Rtom.js";
@@ -1257,7 +1258,7 @@ export const getActiveDRCDetails = async (req, res) => {
       {
         $group: {
           _id: "$_id",
-          latestStatus: { $first: "$status" },
+          latestStatus: { $first: "$status" }, 
           drc_name: { $first: "$drc_name" },
           drc_id: { $first: "$drc_id" },
         },
@@ -1637,6 +1638,15 @@ export const Create_Pre_Negotiation = async (req, res) => {
   try {
     const { case_id, call_inquiry_remark, call_topic, created_by, drc_id } =
       req.body;
+
+      if (!drc_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message:
+          "drc_id not found! Make sure user is logged in as a DRC and has a valid DRC ID.",
+      });
+    }
 
     // Validate required fields
     if (
