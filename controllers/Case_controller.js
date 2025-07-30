@@ -6564,7 +6564,18 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
           case_id: 1,
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          current_contact_details:1,
+          current_contact_details: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$current_contact_details",
+                  as: "item",
+                  cond: { $eq: ["$$item.contact_type", "Mobile"] },
+                },
+              },
+              0,
+            ],
+          },
           customer_name:1,
           account_no:1,
           area: 1,
