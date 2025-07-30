@@ -5972,11 +5972,17 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
  * - Returns a success response with the list of DRC cases matching the provided filters.
  */
 export const listDRCAllCases = async (req, res) => {
-  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } =
+  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date, pages } =
     req.body;
   let fromDateObj = null;
   let toDateObj = null;
   try {
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -6002,23 +6008,23 @@ export const listDRCAllCases = async (req, res) => {
         });
       }
     }
-    if (
-      !rtom &&
-      !status &&
-      !ro_id &&
-      !action_type &&
-      !(toDateObj && fromDateObj)
-    ) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description:
-            "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
-        },
-      });
-    }
+    // if (
+    //   !rtom &&
+    //   !status &&
+    //   !ro_id &&
+    //   !action_type &&
+    //   !(toDateObj && fromDateObj)
+    // ) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
     const allowedStatuses = [
       "RO Negotiation",
       "Negotiation Settle Pending",
@@ -6089,6 +6095,12 @@ export const listDRCAllCases = async (req, res) => {
         },
       },
       {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+      {
         $project: {
           case_id: 1,
           status: "$case_current_status",
@@ -6103,11 +6115,11 @@ export const listDRCAllCases = async (req, res) => {
     ]);
 
     if (!cases || cases.length === 0) {
-      return res.status(404).json({
+      return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
         errors: {
-          code: 404,
+          code: 204,
           description: "No cases satisfy the provided criteria.",
         },
       });
