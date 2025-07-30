@@ -2944,23 +2944,23 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
         });
       }
     }
-    if (
-      !rtom &&
-      !status &&
-      !ro_id &&
-      !action_type &&
-      !(toDateObj && fromDateObj)
-    ) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description:
-            "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
-        },
-      });
-    }
+    // if (
+    //   !rtom &&
+    //   !status &&
+    //   !ro_id &&
+    //   !action_type &&
+    //   !(toDateObj && fromDateObj)
+    // ) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
     const allowedStatuses = [
       "Forward to Mediation Board",
       "MB Negotiation",
@@ -6193,23 +6193,23 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
       }
     }
 
-    if (
-      !rtom &&
-      !case_current_status &&
-      !ro_id &&
-      !action_type &&
-      !(toDateObj && fromDateObj)
-    ) {
-      return res.status(400).json({
-        status: "error",
-        message: "At least one filtering parameter is required.",
-        errors: {
-          code: 400,
-          description:
-            "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
-        },
-      });
-    }
+    // if (
+    //   !rtom &&
+    //   !case_current_status &&
+    //   !ro_id &&
+    //   !action_type &&
+    //   !(toDateObj && fromDateObj)
+    // ) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "At least one filtering parameter is required.",
+    //     errors: {
+    //       code: 400,
+    //       description:
+    //         "Provide at least one of rtom, ro_id, action_type, case_current_status, or both from_date and to_date together.",
+    //     },
+    //   });
+    // }
 
     const allowedStatuses = [
       "Forward to Mediation Board",
