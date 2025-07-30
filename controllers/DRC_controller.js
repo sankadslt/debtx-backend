@@ -1639,6 +1639,15 @@ export const Create_Pre_Negotiation = async (req, res) => {
     const { case_id, call_inquiry_remark, call_topic, created_by, drc_id } =
       req.body;
 
+      if (!drc_id) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message:
+          "drc_id not found! Make sure user is logged in as a DRC and has a valid DRC ID.",
+      });
+    }
+
     // Validate required fields
     if (
       !case_id ||
