@@ -3006,7 +3006,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
       {
         $addFields: {
           last_drc: { $arrayElemAt: ["$drc", -1] },
-          last_contact: { $arrayElemAt: ["$current_contact", -1] },
+          // last_contact: { $arrayElemAt: ["$current_contact", -1] },
           last_recovery_officer: {
             $let: {
               vars: { lastDRC: { $arrayElemAt: ["$drc", -1] } },
@@ -3053,7 +3053,8 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
           },
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          contact_no: "$last_contact.contact_no",
+          // contact_no: "$last_contact.contact_no",
+          current_contact_details:1,
           area: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
@@ -6062,7 +6063,7 @@ export const listDRCAllCases = async (req, res) => {
       {
         $addFields: {
           last_drc: { $arrayElemAt: ["$drc", -1] },
-          last_contact: { $arrayElemAt: ["$current_contact", -1] },
+          // last_contact: { $arrayElemAt: ["$current_contact", -1] },
           last_recovery_officer: {
             $let: {
               vars: { lastDRC: { $arrayElemAt: ["$drc", -1] } },
@@ -6092,7 +6093,8 @@ export const listDRCAllCases = async (req, res) => {
           case_id: 1,
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          contact_no: "$last_contact.contact_no",
+          // contact_no: "$last_contact.contact_no",
+          current_contact_details:1,
           area: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
@@ -6264,13 +6266,13 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
               else: null,
             },
           },
-          last_contact: {
-            $cond: {
-              if: { $isArray: "$current_contact" },
-              then: { $arrayElemAt: ["$current_contact", -1] },
-              else: null,
-            },
-          },
+          // last_contact: {
+          //   $cond: {
+          //     if: { $isArray: "$current_contact" },
+          //     then: { $arrayElemAt: ["$current_contact", -1] },
+          //     else: null,
+          //   },
+          // },
           last_recovery_officer: {
             $cond: {
               if: {
@@ -6346,7 +6348,7 @@ export const List_All_Mediation_Board_Cases_By_DRC_ID_or_RO_ID_Ext_01 = async (
           },
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          contact_no: "$last_contact.contact_no",
+          current_contact_details:1,
           area: 1,
           rtom: 1,
           action_type: 1,
@@ -6497,13 +6499,13 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
               else: null,
             },
           },
-          last_contact: {
-            $cond: {
-              if: { $isArray: "$current_contact" },
-              then: { $arrayElemAt: ["$current_contact", -1] },
-              else: null,
-            },
-          },
+          // last_contact: {
+          //   $cond: {
+          //     if: { $isArray: "$current_contact" },
+          //     then: { $arrayElemAt: ["$current_contact", -1] },
+          //     else: null,
+          //   },
+          // },
           last_recovery_officer: {
             $cond: {
               if: {
@@ -6562,7 +6564,9 @@ export const List_All_DRC_Negotiation_Cases_ext_1 = async (req, res) => {
           case_id: 1,
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          contact_no: "$last_contact.contact_no",
+          current_contact_details:1,
+          customer_name:1,
+          account_no:1,
           area: 1,
           action_type: 1,
           ro_name: {
@@ -6971,7 +6975,9 @@ export const CaseDetailsforDRC = async (req, res) => {
         region: 1,
         account_no: 1,
         current_arrears_amount: 1,
-        current_contact: 1,
+       // current_contact: 1,
+        current_customer_identification:1,
+        current_contact_details:1,
         rtom: 1,
         area:1,
         ref_products: 1,
@@ -7209,7 +7215,7 @@ export const Create_Task_For_Assigned_drc_case_list_download = async (
  * Success Result:
  * - Returns the updated case object with the new contact details added to the database.
  */
-export const updateDrcCaseDetails = async (req, res) => {
+export const updateDrcCaseDetails2 = async (req, res) => {
   // Extract fields from the request body
   const {
     drc_id,
@@ -7349,6 +7355,111 @@ export const updateDrcCaseDetails = async (req, res) => {
 
     // console.log("Updated case", updatedCase);
     return res.status(200).json(updatedCase);
+  } catch (error) {
+    console.error("Error updating case", error);
+    return res.status(500).json({ error: "Failed to update the case" });
+  }
+};
+
+export const updateDrcCaseDetails = async (req, res) => {
+  const {
+    drc_id,
+    ro_id,
+    case_id,
+    Email,
+    Edited_Email,
+    Mobile,
+    Edited_Mobile,
+    Address,
+    Edited_Address,
+    geo_location,
+    Edited_geo_location,
+    Driving_License,
+    Edited_Driving_License,
+    Passport,
+    Edited_Passport,
+    NIC,
+    Edited_NIC,
+    remark,
+    edited_by,
+  } = req.body;
+  try {
+    if (!case_id && !drc_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to retrieve Case details.",
+        errors: {
+          code: 400,
+          description: "Case ID and DRC ID is required.",
+        },
+      });
+    };
+
+    const caseDetails = await Case_details.findOne(
+      {case_id},
+      { current_customer_identification: 1, current_contact_details:1, _id: 0 }
+    );
+
+    if (!caseDetails || caseDetails.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No matching cases found for the given criteria.",
+        errors: {
+          code: 404,
+          description: "No cases satisfy the provided criteria.",
+        },
+      });
+    };
+    
+    let email_ex = Edited_Email != null ? Edited_Email : Email;
+    let mobile_ex = Edited_Mobile != null ? Edited_Mobile : Mobile;
+    let address_ex = Edited_Address != null ? Edited_Address : Address;
+    let geo_location_ex = Edited_geo_location != null ? Edited_geo_location : geo_location;
+    let driving_license_ex = Edited_Driving_License != null ? Edited_Driving_License : Driving_License;
+    let passport_ex = Edited_Passport != null ? Edited_Passport : Passport;
+    let nic_ex = Edited_NIC != null ? Edited_NIC : NIC;
+
+    const newContacts = [
+      { contact_type: 'Email', contact: email_ex },
+      { contact_type: 'Mobile', contact: mobile_ex },
+      { contact_type: 'Address', contact: address_ex },
+      { contact_type: 'geo_location', contact: geo_location_ex }
+    ];
+    const newIdentification  = [
+      { Identification_type: 'Driving License', contact: driving_license_ex },
+      { Identification_type: 'Passport', contact: passport_ex },
+      { Identification_type: 'NIC', contact: nic_ex }
+    ];
+    const roeditrecode  = {
+      ro_id,
+      drc_id,
+      edited_dtm: new Date(),
+      contact_details:newContacts,
+      customer_identification:newIdentification,
+      remark,
+      edited_by
+    };
+    const updatedCase = await Case_details.findOneAndUpdate(
+      { case_id },
+      {
+        $push: { ro_edited_customer_details: roeditrecode },
+        $set: { 
+          current_customer_identification: newIdentification, 
+          current_contact_details: newContacts 
+        }
+      },
+      { new: true }
+    );
+    if (!updatedCase) {
+      return res.status(400).json({
+        status: "error",
+        message: "Failed to update Case details.", 
+      });
+    }
+    return res.status(200).json({
+      status: "success",
+      data:updatedCase,
+    });
   } catch (error) {
     console.error("Error updating case", error);
     return res.status(500).json({ error: "Failed to update the case" });
