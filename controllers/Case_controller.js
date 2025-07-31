@@ -11093,7 +11093,6 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (
 
 export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   const requestMapping = {
     "Negotiation Settlement plan Request": "RO Negotiation",
@@ -11118,6 +11117,7 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
   };
 
   try {
+    session.startTransaction();
     const {
       create_by,
       Interaction_Log_ID,
@@ -11125,7 +11125,7 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
       User_Interaction_Type,
       Interaction_ID,
       requestAccept,
-      Reamrk,
+      Remark,
       Letter_Send,
       calendar_month,
       initial_amount,
@@ -11137,7 +11137,7 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
       !User_Interaction_Type ||
       !case_id ||
       !Interaction_ID ||
-      !requestAccept
+      !requestAccept || !initial_amount || !calendar_month
     ) {
       await session.abortTransaction();
       session.endSession();
@@ -11148,21 +11148,29 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
     };
 
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
-
     const requestedCaseStatus = requestMapping[User_Interaction_Type];
+
+    if (!caseStatus || !requestedCaseStatus) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: `Invalid User_Interaction_Type or Request Accept value provided.`,
+      });
+    };
 
     const payload = {
       case_id,
-      created_by,
+      created_by:create_by,
       settlement_type: "Type A",
       settlement_plan_received: [initial_amount, calendar_month],
-      remark:Reamrk
+      remark:Remark
     };
+    let response;
     try {
-      const response = await axios.post(
-        "https://debtx.slt.lk:6500/api/v1/Create_Settlement_Plan",
-        payload
-      );
+      response = await axios.post(
+      "https://debtx.slt.lk:6500/api/v1/Create_Settlement_Plan",
+      payload
+    );
     }catch (error) {
       await session.abortTransaction();
       return res.status(500).json({
@@ -11171,17 +11179,11 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
         error: error.message,
       });
     }
-    if(response.status === "failed"){
+    if(response.data.status === "failed"){
+      await session.abortTransaction();
       return res.status(400).json({
         status: "error",
-        message: response.status_reason,
-      });
-    };
-    if (!caseStatus || !requestedCaseStatus) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        message: `Invalid User_Interaction_Type or Request Accept value provided.`,
+        message: response.data.status_reason,
       });
     };
 
@@ -11228,20 +11230,20 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
       Intraction_ID: Interaction_ID,
       parameters: {
         Request_Accept: requestAccept,
-        Reamrk: Reamrk,
-        settlement_id:response.settlement_id,
+        Remark: Remark,
+        settlement_id:response.data.settlement_id,
         Letter_Send: Letter_Send,
         Request_CreatedDTM: approvalDoc.CreateDTM,
       },
     });
 
-    const savedRequest = await newRequest.save({ session });
+    await newRequest.save({ session });
 
     // Update the case status and current phase if it has changed
     if (existingCase.case_current_status != caseStatus && existingCase.case_current_status === requestedCaseStatus) {
       const newCaseStatus = {
         case_status: caseStatus,
-        status_reason: Reamrk || null,
+        status_reason: Remark || null,
         created_dtm: new Date(),
         created_by: create_by,
         notified_dtm: null,
@@ -11308,17 +11310,15 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
     );
 
     await session.commitTransaction();
-    session.endSession();
-
     return res.status(200).json({
       message: "Mediation Board Acceptance Request submitted successfully.",
     });
   } catch (error) {
     await session.abortTransaction();
-    session.endSession();
-    // console.error("Error:", error);
     return res
       .status(500)
       .json({ message: "Failed to submit request.", error: error.message });
+  } finally {
+    session.endSession();
   }
 };
