@@ -1657,12 +1657,12 @@ export const List_Pre_Negotiation_By_Case_Id = async (req, res) => {
           case_id: 1,
           last_payment_date: 1,
           expire_dtm: { $arrayElemAt: ['$drc.expire_dtm', -1] },
-          billing_centre: '$rtom',
+          rtom: 1,
           nic: {
             $arrayElemAt: [
               {
                 $filter: {
-                  input: '$current_customer_identification',
+                  input: '$customer_identification',
                   as: 'id',
                   cond: { $eq: ['$$id.Identification_type', 'NIC'] },
                 },
@@ -1678,7 +1678,7 @@ export const List_Pre_Negotiation_By_Case_Id = async (req, res) => {
           case_id: 1,
           last_payment_date: 1,
           expire_dtm: 1,
-          billing_centre: 1,
+          rtom: 1,
           nic: { $ifNull: ['$nic.contact', null] },
           current_arrears_amount: 1,
         },
@@ -1715,7 +1715,7 @@ export const List_Pre_Negotiation_By_Case_Id = async (req, res) => {
         inquiries: caseInquiryResult,
         last_payment_date: caseDetailsResult[0].last_payment_date || null,
         expire_dtm: caseDetailsResult[0].expire_dtm || null,
-        billing_centre: caseDetailsResult[0].rtom || null,
+        rtom: caseDetailsResult[0].rtom || null,
         nic: caseDetailsResult[0].nic || null,
         current_arrears_amount: caseDetailsResult[0].current_arrears_amount || null,
       }];
