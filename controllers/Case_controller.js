@@ -5972,11 +5972,17 @@ export const List_CasesOwened_By_DRC = async (req, res) => {
  * - Returns a success response with the list of DRC cases matching the provided filters.
  */
 export const listDRCAllCases = async (req, res) => {
-  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date } =
+  const { drc_id, status, ro_id, rtom, action_type, from_date, to_date, pages } =
     req.body;
   let fromDateObj = null;
   let toDateObj = null;
   try {
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
     if (!drc_id) {
       return res.status(400).json({
         status: "error",
@@ -5990,6 +5996,7 @@ export const listDRCAllCases = async (req, res) => {
     if (from_date && to_date) {
       fromDateObj = new Date(from_date);
       toDateObj = new Date(to_date);
+      toDateObj.setHours(23, 59, 59, 999); // Set to end of the day
 
       if (isNaN(fromDateObj) || isNaN(toDateObj)) {
         return res.status(400).json({
@@ -6050,7 +6057,11 @@ export const listDRCAllCases = async (req, res) => {
     } else {
       query.case_current_status = { $in: allowedStatuses };
     }
-    if (rtom) query.area = rtom;
+    if (rtom) {
+      query.$expr = {
+        $eq: [{ $toLower: "$rtom" }, rtom.toLowerCase()]
+      };
+    }
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
@@ -6089,11 +6100,17 @@ export const listDRCAllCases = async (req, res) => {
         },
       },
       {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+      {
         $project: {
           case_id: 1,
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          ccurrent_contact_details: {
+          current_contact_details: {
             $arrayElemAt: [
               {
                 $filter: {
@@ -6113,11 +6130,11 @@ export const listDRCAllCases = async (req, res) => {
     ]);
 
     if (!cases || cases.length === 0) {
-      return res.status(404).json({
+      return res.status(204).json({
         status: "error",
         message: "No matching cases found for the given criteria.",
         errors: {
-          code: 404,
+          code: 204,
           description: "No cases satisfy the provided criteria.",
         },
       });
@@ -7737,7 +7754,17 @@ export const List_All_DRCs_Mediation_Board_Cases = async (req, res) => {
     }
 
     if (RTOM) {
-      pipeline.push({ $match: { rtom: Number(RTOM) } });
+      // pipeline.push({ $match: { rtom: RTOM } });
+      pipeline.push({
+        $match: {
+          $expr: {
+            $eq: [
+              { $toLower: '$rtom' },
+              RTOM.toLowerCase()
+            ]
+          }
+        }
+      });
     }
 
     const dateFilter = {};
