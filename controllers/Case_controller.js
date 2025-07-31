@@ -3053,8 +3053,18 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
           },
           status: "$case_current_status",
           created_dtm: "$last_drc.created_dtm",
-          // contact_no: "$last_contact.contact_no",
-          current_contact_details:1,
+          current_contact_details: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$current_contact_details",
+                  as: "item",
+                  cond: { $eq: ["$$item.contact_type", "Mobile"] },
+                },
+              },
+              0,
+            ],
+          },
           area: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
