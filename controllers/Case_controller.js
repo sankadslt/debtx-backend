@@ -11091,7 +11091,7 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (
   }
 };
 
-export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
+export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -11171,10 +11171,10 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
         error: error.message,
       });
     }
-    if(response === "failed"){
+    if(response.status === "failed"){
       return res.status(400).json({
         status: "error",
-        message: "Settlement API call failed",
+        message: response.status_reason,
       });
     };
     if (!caseStatus || !requestedCaseStatus) {
@@ -11229,7 +11229,7 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
       parameters: {
         Request_Accept: requestAccept,
         Reamrk: Reamrk,
-        settlement_id:settlement_id,
+        settlement_id:response.settlement_id,
         Letter_Send: Letter_Send,
         Request_CreatedDTM: approvalDoc.CreateDTM,
       },
