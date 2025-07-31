@@ -120,16 +120,17 @@ export const createTask = async (req, res) => {
         return res.status(500).json({ message: "Failed to generate Task_Id" });
       }
 
-  
+      const hasDynamicParams = Object.keys(dynamicParams).length > 0;
       // Prepare task data
       const taskData = {
+        doc_version: hasDynamicParams ? 2 : 1,
         Task_Id,
         Template_Task_Id,
         task_type,
         parameters:{
           dynamicParams,
-          Actions: dynamicParams?.Actions ?? null,
-          Incident_Status: dynamicParams?.Incident_Status ?? null,
+          // Actions: dynamicParams?.Actions ?? null,
+          // Incident_direction: dynamicParams?.Incident_direction ?? null,
           
 
         } , // Accept dynamic parameters
