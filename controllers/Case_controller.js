@@ -2964,8 +2964,8 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     const allowedStatuses = [
       "Forward to Mediation Board",
       "MB Negotiation",
-      "MB Request Customer-Info",
-      "MB Handover Customer-Info",
+      // "MB Request Customer-Info",
+      "MB Fail with Non-Settlement",
       "MB Settle Pending",
       "MB Settle Open-Pending",
       "MB Settle Active",
@@ -3042,7 +3042,13 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
           case_id: 1,
           customer_name: 1,
           account_no: 1,
-          mediation_board_count: { $size: "$mediation_board" },
+           mediation_board_count: {
+            $cond: {
+              if: { $isArray: "$mediation_board" },
+              then: { $size: "$mediation_board" },
+              else: 0
+            }
+          },
           next_calling_date: {
             $let: {
               vars: {
