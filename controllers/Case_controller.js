@@ -7603,7 +7603,16 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       return res
         .status(400)
         .json({ message: "All required fields must be provided." });
-    }
+    };
+    
+    const approver_type = "Case Withdrawal Approval";
+    const recode = await Check_valid_approval({ approver_reference, approver_type });
+    if (recode !== "success") {
+      return res.status(404).json({
+        status: "error",
+        message: recode,
+      });
+    };
 
     const currentDate = new Date();
     const payload = {case_status};
@@ -7657,7 +7666,7 @@ export const Withdraw_CasesOwened_By_DRC = async (req, res) => {
       approver_id,
       approver_reference,
       created_by,
-      approver_type: "Case Withdrawal Approval",
+      approver_type,
       approve_status: [
         {
           status: "Open",
