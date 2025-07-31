@@ -7024,6 +7024,7 @@ export const CaseDetailsforDRC = async (req, res) => {
         account_no: 1,
         current_arrears_amount: 1,
        // current_contact: 1,
+        current_arrears_amount: 1,
         current_customer_identification:1,
         current_contact_details:1,
         rtom: 1,
@@ -11090,7 +11091,7 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (
   }
 };
 
-export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
+export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -11125,8 +11126,9 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
       Interaction_ID,
       requestAccept,
       Reamrk,
-      No_of_Calendar_Month,
       Letter_Send,
+      calendar_month,
+      initial_amount,
     } = req.body;
 
     if (
@@ -11145,14 +11147,36 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
       });
     };
 
-    // Decide the new case status based on User_Interaction_Type and Request Accept
     const caseStatus = statusMapping[User_Interaction_Type]?.[requestAccept];
 
     const requestedCaseStatus = requestMapping[User_Interaction_Type];
 
-    console.log("Requested Case Status:", requestedCaseStatus);
-    console.log("Case Status:", caseStatus);
-
+    const payload = {
+      case_id,
+      created_by,
+      settlement_type: "Type A",
+      settlement_plan_received: [initial_amount, calendar_month],
+      remark:Reamrk
+    };
+    try {
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/api/v1/Create_Settlement_Plan",
+        payload
+      );
+    }catch (error) {
+      await session.abortTransaction();
+      return res.status(500).json({
+        status: "error",
+        message: "Settlement API call failed",
+        error: error.message,
+      });
+    }
+    if(response.status === "failed"){
+      return res.status(400).json({
+        status: "error",
+        message: response.status_reason,
+      });
+    };
     if (!caseStatus || !requestedCaseStatus) {
       await session.abortTransaction();
       session.endSession();
@@ -11174,13 +11198,13 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
         .json({ message: `Case with case_id ${case_id} not found.` });
     }
 
-    // if (existingCase.case_current_status != requestedCaseStatus) {
-    //   await session.abortTransaction();
-    //   session.endSession();
-    //   return res.status(409).json({
-    //     message: `Cannot submit ${User_Interaction_Type} when case is not in ${requestedCaseStatus} status.`,
-    //   });
-    // };
+    if (existingCase.case_current_status != requestedCaseStatus) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(409).json({
+        message: `Cannot submit ${User_Interaction_Type} when case is not in ${requestedCaseStatus} status.`,
+      });
+    };
 
     const approvalDoc = await User_Interaction_Log.findOne({
       Interaction_Log_ID,
@@ -11205,54 +11229,13 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
       parameters: {
         Request_Accept: requestAccept,
         Reamrk: Reamrk,
+        settlement_id:response.settlement_id,
         Letter_Send: Letter_Send,
         Request_CreatedDTM: approvalDoc.CreateDTM,
       },
     });
 
     const savedRequest = await newRequest.save({ session });
-
-    // Update the DRC expire_dtm if No_of_Calendar_Month is provided
-    if (No_of_Calendar_Month && No_of_Calendar_Month !== "null") {
-      const monthsToAdd = parseInt(No_of_Calendar_Month, 10);
-      if (isNaN(monthsToAdd) || monthsToAdd < 0) {
-        await session.abortTransaction();
-        session.endSession();
-        return res
-          .status(400)
-          .json({ message: "Invalid No_of_Calendar_Month value." });
-      }
-
-      const drcArrayLength = existingCase.drc.length;
-      const lastDrcIndex = drcArrayLength - 1;
-      const lastDrc = existingCase.drc[lastDrcIndex];
-
-      const startDate = new Date(lastDrc.created_dtm);
-      const endDate = new Date(lastDrc.expire_dtm);
-
-      const currentDuration =
-        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth());
-
-      const totalAfterAdd = currentDuration + monthsToAdd;
-
-      if (totalAfterAdd > 5) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(405).json({
-          message: `Cannot extend DRC expire_dtm beyond a total of 5 months.`,
-        });
-      }
-
-      const extendedExpireDate = new Date(lastDrc.expire_dtm);
-      extendedExpireDate.setMonth(extendedExpireDate.getMonth() + monthsToAdd);
-
-      await Case_details.updateOne(
-        { case_id: case_id },
-        { $set: { [`drc.${lastDrcIndex}.expire_dtm`]: extendedExpireDate } },
-        { session }
-      );
-    }
 
     // Update the case status and current phase if it has changed
     if (existingCase.case_current_status != caseStatus && existingCase.case_current_status === requestedCaseStatus) {
@@ -11301,9 +11284,6 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
 
     const deligate_id = approvalDoc.Created_By;
 
-    // --- Create User Interaction Log ---
-    const interaction_id = 19;
-    // const request_type = "Approved Mediation Board forward request";
     const created_by = create_by;
     const dynamicParams = {
       case_id: case_id,
@@ -11313,7 +11293,7 @@ export const Submit_Mediation_Board_Acceptance2 = async (req, res) => {
 
     // Inserte a new request log
     await createUserInteractionFunction({
-      Interaction_ID: interaction_id,
+      Interaction_ID: 19,
       User_Interaction_Type: User_Interaction_Type,
       delegate_user_id: deligate_id, // Now using created_by as delegate ID
       Created_By: created_by,
