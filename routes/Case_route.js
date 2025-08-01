@@ -97,7 +97,8 @@ import {
   List_All_Cases,
   CaseStatus,
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id,
-  Validate_Existing_Batch_Task
+  Validate_Existing_Batch_Task,
+  getCaseSummaryById
 } from "../controllers/Case_controller.js";
 
 const router = Router();
@@ -11545,5 +11546,9 @@ router.post(
   "/List_Rejected_Batch_Summary_Case_Distribution_Batch_Id",
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
 );
+
+
+
+router.post("/Get_Case_Summary_By_Id", getCaseSummaryById);
 
 export default router;

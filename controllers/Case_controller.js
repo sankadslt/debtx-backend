@@ -10880,3 +10880,62 @@ export const List_Rejected_Batch_Summary_Case_Distribution_Batch_Id = async (
     });
   }
 };
+
+
+export const getCaseSummaryById = async (req, res) => {
+  try {
+    const { case_id } = req.body;
+
+    if (!case_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "case_id is required.",
+      });
+    }
+
+    const caseData = await Case_details.findOne({ case_id }, {
+      case_id: 1,
+      account_no: 1,
+      customer_ref: 1,
+      current_arrears_amount: 1,
+      case_current_status: 1,
+      "drc.drc_name": 1,
+      "drc.expire_dtm": 1,
+      created_dtm: 1,
+    }).lean();
+
+    if (!caseData) {
+      return res.status(404).json({
+        status: "error",
+        message: `Case with ID ${case_id} not found.`,
+      });
+    }
+
+    const lastDrc = caseData.drc ? caseData.drc[caseData.drc.length - 1] : null;
+    const summary = {
+      case_id: caseData.case_id,
+      account_no: caseData.account_no,
+      customer_ref: caseData.customer_ref,
+      current_arrears_amount: caseData.current_arrears_amount,
+      case_current_status: caseData.case_current_status,
+      drc_name: lastDrc ? lastDrc.drc_name : null,
+      expire_dtm: lastDrc ? lastDrc.expire_dtm : null,
+      created_dtm: caseData.created_dtm,
+    };
+
+    return res.status(200).json({
+      status: "success",
+      message: "Case summary retrieved successfully.",
+      data: summary,
+    });
+  } catch (error) {
+    console.error("Error retrieving case summary:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve case summary.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
