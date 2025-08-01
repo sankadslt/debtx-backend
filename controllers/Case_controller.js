@@ -10443,9 +10443,10 @@ async function negotiation_condition_function(
             currentCase.lod_final_reminder &&
             currentCase.lod_final_reminder.document_type &&
             currentCase.lod_final_reminder.document_type.length > 0
-          ) {
-            new_seq =
-              currentCase.lod_final_reminder.document_type[-1].document_seq + 1;
+          )
+          {
+            const lastDocType = currentCase.lod_final_reminder.document_type.slice(-1)[0];
+            new_seq = lastDocType ? lastDocType.document_seq + 1 : 1;
           } else {
             new_seq = 1;
           }
