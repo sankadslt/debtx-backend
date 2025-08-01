@@ -3832,6 +3832,228 @@ export const List_All_RO_and_DRCuser_Details_to_SLT = async (req, res) => {
 //   }
 // };
 
+// export const Create_New_DRCUser_or_RO = async (req, res) => {
+//   let session = null;
+
+//   try {
+//     const {
+//       drcUser_type,
+//       drc_id,
+//       ro_name,
+//       nic,
+//       login_email,
+//       login_contact_no,
+//       create_by,
+//       rtoms,
+//       ro_id,         // keep for backward compatibility, will overwrite after python api
+//       drcUser_id     // keep for backward compatibility, will overwrite after python api
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!drcUser_type || !drc_id || !ro_name || !nic || !login_contact_no || !create_by) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required fields"
+//       });
+//     }
+
+//     if (!['RO', 'drcUser'].includes(drcUser_type)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid drcUser_type. Must be 'RO' or 'drcUser'"
+//       });
+//     }
+
+//     if (drcUser_type === 'RO' && rtoms && !Array.isArray(rtoms)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "rtoms must be an array"
+//       });
+//     }
+
+//     if (drcUser_type === 'RO' && rtoms && rtoms.length > 0) {
+//       for (let i = 0; i < rtoms.length; i++) {
+//         const rtom = rtoms[i];
+//         if (!rtom.rtom_id || !rtom.rtom_name || !rtom.billing_center_code) {
+//           return res.status(400).json({
+//             success: false,
+//             message: `Missing required fields in rtom at index ${i}. Required: rtom_id, rtom_name, billing_center_code`
+//           });
+//         }
+//       }
+//     }
+
+//     // ------- 1. Query first python API for previous registration --------
+//     // let previousUserId = null;
+//     // try {
+//     //   const checkNicRes = await axios.post(
+//     //     'https://debtx.slt.lk:6500/users/details/by-nic',
+//     //     { user_nic: nic },
+//     //     { timeout: 5000 }
+//     //   );
+//     //   const respData = checkNicRes.data;
+//     //   if (
+//     //     respData &&
+//     //     respData.request === "Success" &&
+//     //     Array.isArray(respData.user_records) &&
+//     //     respData.user_records.length > 0
+//     //   ) {
+//     //         // Get the last element's user_id
+//     //         const lastRecord = respData.user_records[respData.user_records.length - 1];
+//     //         previousUserId = lastRecord.user_id || null;
+//     //   }
+//     // } catch (err) {
+//     //   // If the python API or network is down, fail the registration
+//     //   return res.status(500).json({
+//     //     success: false,
+//     //     message: "Failed to check previous user registration via Python API",
+//     //     error: err.message
+//     //   });
+//     // }
+
+//     // -------- 2. Call second python API to register user --------
+//     let pythonApiUserId = null;
+//     try {
+//       // Compose Python API request body according to mapping!
+//       const userTypePython = drcUser_type === 'RO' ? 'ro' : 'drc_officer';
+//       const userDesignation = drcUser_type === 'RO' ? 'recovery_officer' : 'drc_officer';
+//       const userRole = [drcUser_type === 'RO' ? 'recovery_officer' : 'drc_officer'];
+
+//       const userProfile = {
+//         username: ro_name,
+//         email: login_email,
+//         user_nic: nic,
+//         user_designation: userDesignation
+//       };
+
+//       const secondApiReqBody = {
+//         user_type: userTypePython,
+//         user_login: [login_email, login_contact_no],          // as per your mapping
+//         // last_user_ref: {
+//         //   User_id: previousUserId ? previousUserId : null
+//         // },
+//         User_profile: userProfile,
+//         user_contact_num: [login_contact_no],
+//         role: userRole,
+//         drc_details: {
+//           drc_id: String(drc_id)
+//         },
+//         Remark: {
+//           remark_description: "Registering the User"
+//         },
+//         create_by: create_by
+//       };
+
+//       const createRes = await axios.post(
+//         'https://debtx.slt.lk:6500/users/create',
+//         secondApiReqBody,
+//         { timeout: 8000 }
+//       );
+//       if (
+//         createRes.data &&
+//         createRes.data.status === "success" &&
+//         createRes.data.user_id
+//       ) {
+//         pythonApiUserId = createRes.data.user_id;
+//       } else {
+//         return res.status(500).json({
+//           success: false,
+//           message: "Failed to create user via second Python API",
+//           secondApiResponse: createRes.data
+//         });
+//       }
+//     } catch (err) {
+//       return res.status(500).json({
+//         success: false,
+//         message: "Failed to create user via Python API",
+//         error: err.message
+//       });
+//     }
+
+//     // ---- 3. Sync the ID fields with what's returned from Python API
+//     let _ro_id = ro_id;
+//     let _drcUser_id = drcUser_id;
+//     if (drcUser_type === 'RO') {
+//       _ro_id = pythonApiUserId;
+//     } else {
+//       _drcUser_id = pythonApiUserId;
+//     }
+
+//     // ---------- 4. MongoDB Transaction as before ----------------
+//     session = await mongoose.startSession();
+//     session.startTransaction();
+
+//     const currentDate = new Date();
+
+//     // Ensure MongoDB connection, adjust if your db setup is different:
+//     const mongoConnection = await db.connectMongoDB();
+
+//     // Prepare Recovery_officer document
+//     const recoveryOfficerData = {
+//       doc_version: 1,
+//       drc_id: drc_id,
+//       ro_id: _ro_id,
+//       drcUser_id: _drcUser_id,
+//       ro_name: ro_name,
+//       login_email: login_email || null,
+//       login_contact_no: login_contact_no,
+//       nic: nic,
+//       drcUser_type: drcUser_type,
+//       drcUser_status: "Pending_approval",
+//       create_dtm: currentDate,
+//       create_by: create_by,
+//       end_dtm: null,
+//       end_by: null,
+//       rtom: [],
+//       remark: []
+//     };
+
+//     // Handle RTOM array for RO
+//     if (drcUser_type === 'RO' && _ro_id && rtoms && rtoms.length > 0) {
+//       recoveryOfficerData.rtom = rtoms.map(rtom => ({
+//         rtom_id: rtom.rtom_id,
+//         rtom_name: rtom.rtom_name,
+//         rtom_status: rtom.rtom_status || "Active",
+//         billing_center_code: rtom.billing_center_code,
+//         rtom_update_dtm: currentDate,
+//         rtom_update_by: create_by,
+//         rtom_end_dtm: null,
+//         handling_type: rtom.handling_type || null
+//       }));
+//     }
+
+//     // Mongo insert
+//     const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
+//     const savedRecoveryOfficer = await recoveryOfficer.save({ session });
+
+//     await session.commitTransaction();
+
+//     // ---- Respond Success ----
+//     return res.status(201).json({
+//       success: true,
+//       message: `${drcUser_type} created successfully.`,
+//       data: {
+//         recoveryOfficer: savedRecoveryOfficer,
+//       }
+//     });
+
+//   } catch (error) {
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     console.error("Error creating user:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   } finally {
+//     if (session) {
+//       await session.endSession();
+//     }
+//   }
+// };
+
 export const Create_New_DRCUser_or_RO = async (req, res) => {
   let session = null;
 
@@ -3883,35 +4105,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       }
     }
 
-    // ------- 1. Query first python API for previous registration --------
-    let previousUserId = null;
-    try {
-      const checkNicRes = await axios.post(
-        'https://debtx.slt.lk:6500/users/details/by-nic',
-        { user_nic: nic },
-        { timeout: 5000 }
-      );
-      const respData = checkNicRes.data;
-      if (
-        respData &&
-        respData.request === "Success" &&
-        Array.isArray(respData.user_records) &&
-        respData.user_records.length > 0
-      ) {
-            // Get the last element's user_id
-            const lastRecord = respData.user_records[respData.user_records.length - 1];
-            previousUserId = lastRecord.user_id || null;
-      }
-    } catch (err) {
-      // If the python API or network is down, fail the registration
-      return res.status(500).json({
-        success: false,
-        message: "Failed to check previous user registration via Python API",
-        error: err.message
-      });
-    }
-
-    // -------- 2. Call second python API to register user --------
+    // -------- 1. Call second python API to register user --------
     let pythonApiUserId = null;
     try {
       // Compose Python API request body according to mapping!
@@ -3929,9 +4123,6 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       const secondApiReqBody = {
         user_type: userTypePython,
         user_login: [login_email, login_contact_no],          // as per your mapping
-        last_user_ref: {
-          User_id: previousUserId ? previousUserId : null
-        },
         User_profile: userProfile,
         user_contact_num: [login_contact_no],
         role: userRole,
@@ -3970,7 +4161,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       });
     }
 
-    // ---- 3. Sync the ID fields with what's returned from Python API
+    // ---- 2. Sync the ID fields with what's returned from Python API
     let _ro_id = ro_id;
     let _drcUser_id = drcUser_id;
     if (drcUser_type === 'RO') {
@@ -3979,7 +4170,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       _drcUser_id = pythonApiUserId;
     }
 
-    // ---------- 4. MongoDB Transaction as before ----------------
+    // ---------- 3. MongoDB Transaction as before ----------------
     session = await mongoose.startSession();
     session.startTransaction();
 
