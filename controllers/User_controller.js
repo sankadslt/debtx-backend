@@ -223,10 +223,15 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   }
 
   try {
+    const queryConditions = {
+      $or: [
+        { user_id: user_id }, 
+        { user_id: `${user_id}@intranet.slt.com.lk` } 
+      ]
+    };
+
     const user = await User.aggregate([
-      { $match: { 
-        user_id: user_id + "@intranet.slt.com.lk",
-      } },
+      { $match: queryConditions },
       {
         $project: {
           _id: 0,
@@ -900,7 +905,7 @@ export const Create_User = async (req, res) => {
       contact_num: formattedContactNumbers,
       login_method,
       role,
-      user_status: "Pending_approval",
+      user_status: "Inactive",
       User_Status_Type: "user_update",
       User_Status_DTM: currentDate,
       User_Status_By: created_by,
