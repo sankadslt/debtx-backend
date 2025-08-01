@@ -25,7 +25,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
-  updateLastRoDetails,
+  Settelment_plan_request_acceptence_type_A,  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -11574,4 +11574,8 @@ router.post(
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
 );
 
+router.post(
+  "/Settelment_plan_request_acceptence_type_A",
+  Settelment_plan_request_acceptence_type_A
+);
 export default router;
