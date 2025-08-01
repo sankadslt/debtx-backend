@@ -11158,7 +11158,7 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
       session.endSession();
       return res.status(400).json({
         message:
-          "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept are required.",
+          "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept, initial_amount, calendar_month are required.",
       });
     };
 
