@@ -25,7 +25,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
-  updateLastRoDetails,
+  Settelment_plan_request_acceptence_type_A,  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -93,7 +93,7 @@ import {
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
   listdownCaseDetailsByCaseId,
-  
+  //  Create_Task_For_Downloard_Case_Details,
   List_All_Cases,
   CaseStatus,
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id,
@@ -8076,12 +8076,14 @@ router.post("/Mediation_Board", Mediation_Board);
  *     summary: Update case details for a specific DRC or Recovery Officer.
  *     description: |
  *       This endpoint updates case details related to a specific DRC or Recovery Officer.
- *       It handles updating customer contact details, address, email, and remark.
- *       The endpoint also checks for duplicate data to avoid conflicts.
+ *       It handles updating customer contact details, address, email, identification, and remark.
+ *       The endpoint also logs edits with recovery officer and DRC info, edit timestamp, and edited by info.
+ *       It checks for duplicate data to avoid conflicts.
  *
  *       | Version | Date       | Description                         | Changed By         |
- *       |---------|------------|-------------------------------------|--------------------|
- *       | 01      | 2025-Mar-16| Update DRC case details              | Sasindu Srinayaka  |
+ *       |---------|------------|-----------------------------------|--------------------|
+ *       | 01      | 2025-Mar-16| Update DRC case details            | Sasindu Srinayaka  |
+ *
  *     tags:
  *       - Case Management
  *     requestBody:
@@ -8103,105 +8105,141 @@ router.post("/Mediation_Board", Mediation_Board);
  *                 type: integer
  *                 description: Unique identifier of the case.
  *                 example: 11
- *               customer_identification:
+ *               Email:
  *                 type: string
- *                 description: Customer identification number (e.g., NIC).
- *                 example: "987654321V"
- *               customer_identification_type:
- *                 type: string
- *                 description: Type of customer identification.
- *                 example: "NIC"
- *               contact_no:
- *                 type: string
- *                 description: Contact number of the customer.
- *                 example: "0712345678"
- *               contact_type:
- *                 type: string
- *                 description: Type of contact (e.g., Mobile, Landline).
- *                 example: "Mobile"
- *               email:
- *                 type: string
- *                 description: Email address of the customer.
+ *                 description: Original email address of the customer.
  *                 example: "john.doe@example.com"
- *               address:
+ *               Edited_Email:
  *                 type: string
- *                 description: Address of the customer.
+ *                 description: Edited email address of the customer.
+ *                 example: "john.edited@example.com"
+ *               Mobile:
+ *                 type: string
+ *                 description: Original contact number of the customer.
+ *                 example: "0712345678"
+ *               Edited_Mobile:
+ *                 type: string
+ *                 description: Edited contact number of the customer.
+ *                 example: "0712345679"
+ *               Address:
+ *                 type: string
+ *                 description: Original address of the customer.
  *                 example: "123 Main St, Matara"
+ *               Edited_Address:
+ *                 type: string
+ *                 description: Edited address of the customer.
+ *                 example: "456 Elm St, Matara"
+ *               geo_location:
+ *                 type: string
+ *                 description: Original geo-location of the customer.
+ *                 example: "40.7128,-74.0060"
+ *               Edited_geo_location:
+ *                 type: string
+ *                 description: Edited geo-location of the customer.
+ *                 example: "34.0522,-118.2437"
+ *               Driving_License:
+ *                 type: string
+ *                 description: Original Driving License number.
+ *                 example: "DL123456789"
+ *               Edited_Driving_License:
+ *                 type: string
+ *                 description: Edited Driving License number.
+ *                 example: "DL987654321"
+ *               Passport:
+ *                 type: string
+ *                 description: Original Passport number.
+ *                 example: "P12345678"
+ *               Edited_Passport:
+ *                 type: string
+ *                 description: Edited Passport number.
+ *                 example: "P87654321"
+ *               NIC:
+ *                 type: string
+ *                 description: Original NIC number.
+ *                 example: "987654321V"
+ *               Edited_NIC:
+ *                 type: string
+ *                 description: Edited NIC number.
+ *                 example: "987654322V"
  *               remark:
  *                 type: string
  *                 description: Remark related to the case.
  *                 example: "Address updated with new contact number."
+ *               edited_by:
+ *                 type: string
+ *                 description: Name or ID of the person making the edit.
+ *                 example: "admin_user"
  *     parameters:
- *      - in: query
- *        name: drc_id
- *        required: true
- *        schema:
- *          type: integer
- *          example: 7
- *        description: Unique identifier of the DRC.
- *      - in: query
- *        name: ro_id
- *        required: true
- *        schema:
- *          type: integer
- *          example: 2
- *        description: Recovery Officer ID responsible for the case.
- *      - in: query
- *        name: case_id
- *        required: true
- *        schema:
- *          type: integer
- *          example: 11
- *        description: Unique identifier of the case.
- *      - in: query
- *        name: customer_identification
- *        required: false
- *        schema:
- *          type: string
- *          example: "987654321V"
- *        description: Customer identification number (e.g., NIC).
- *      - in: query
- *        name: customer_identification_type
- *        required: false
- *        schema:
- *          type: string
- *          example: "NIC"
- *        description: Type of customer identification.
- *      - in: query
- *        name: contact_no
- *        required: false
- *        schema:
- *          type: integer
- *          example: +94712345678
- *        description: Contact number of the customer.
- *      - in: query
- *        name: contact_type
- *        required: false
- *        schema:
- *          type: string
- *          example: "Mobile"
- *        description: Type of contact (e.g., Mobile, Landline).
- *      - in: query
- *        name: email
- *        required: false
- *        schema:
- *          type: string
- *          example: "john.doe@example.com"
- *        description: Email address of the customer.
- *      - in: query
- *        name: address
- *        required: false
- *        schema:
- *          type: string
- *          example: "123 Main St, Matara"
- *        description: Address of the customer.
- *      - in: query
- *        name: remark
- *        required: false
- *        schema:
- *          type: string
- *          example: "Address updated with new contact number."
- *        description: Remark related to the case.
+ *       - in: query
+ *         name: drc_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 7
+ *         description: Unique identifier of the DRC.
+ *       - in: query
+ *         name: ro_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 2
+ *         description: Recovery Officer ID responsible for the case.
+ *       - in: query
+ *         name: case_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 11
+ *         description: Unique identifier of the case.
+ *       - in: query
+ *         name: customer_identification
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "987654321V"
+ *         description: Customer identification number (e.g., NIC).
+ *       - in: query
+ *         name: customer_identification_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "NIC"
+ *         description: Type of customer identification.
+ *       - in: query
+ *         name: contact_no
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "0712345678"
+ *         description: Contact number of the customer.
+ *       - in: query
+ *         name: contact_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Mobile"
+ *         description: Type of contact (e.g., Mobile, Landline).
+ *       - in: query
+ *         name: email
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "john.doe@example.com"
+ *         description: Email address of the customer.
+ *       - in: query
+ *         name: address
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "123 Main St, Matara"
+ *         description: Address of the customer.
+ *       - in: query
+ *         name: remark
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: "Address updated with new contact number."
+ *         description: Remark related to the case.
  *     responses:
  *       200:
  *         description: Case details updated successfully.
@@ -8213,22 +8251,9 @@ router.post("/Mediation_Board", Mediation_Board);
  *                 status:
  *                   type: string
  *                   example: success
- *                 message:
- *                   type: string
- *                   example: Case details updated successfully.
  *                 data:
  *                   type: object
- *                   properties:
- *                     case_id:
- *                       type: integer
- *                       description: Updated case ID.
- *                       example: 101
- *                     updated_fields:
- *                       type: array
- *                       items:
- *                         type: string
- *                       description: List of updated fields.
- *                       example: ["contact_no", "email", "address"]
+ *                   description: The updated case document.
  *       400:
  *         description: Validation error - Missing required fields or duplicate data.
  *         content:
@@ -8241,7 +8266,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: Failed to update case details.
+ *                   example: Failed to update Case details.
  *                 errors:
  *                   type: object
  *                   properties:
@@ -8250,7 +8275,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *                       example: 400
  *                     description:
  *                       type: string
- *                       example: Case ID is required.
+ *                       example: Case ID and DRC ID is required.
  *       404:
  *         description: No matching cases found for the given criteria.
  *         content:
@@ -8296,6 +8321,7 @@ router.post("/Mediation_Board", Mediation_Board);
  *                       type: string
  *                       example: Internal server error while updating the case.
  */
+
 // POST route to update customer contacts or remarks for a specific case.
 router.patch("/Update_Customer_Contacts", updateDrcCaseDetails);
 
@@ -11185,6 +11211,8 @@ router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settl
  */
 
 router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
+// router.post('/Create_Task_For_Download_Case_Details',Create_Task_For_Downloard_Case_Details);
+
 
  /**
  * @swagger
@@ -11551,4 +11579,8 @@ router.post(
 
 router.post("/Get_Case_Summary_By_Id", getCaseSummaryById);
 
+router.post(
+  "/Settelment_plan_request_acceptence_type_A",
+  Settelment_plan_request_acceptence_type_A
+);
 export default router;
