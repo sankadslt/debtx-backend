@@ -1242,6 +1242,7 @@ export const Forward_F1_filtered_incident = async (req, res) => {
           Incident_Status_Dtm: new Date(),
           Incident_Forwarded_By,
           Incident_Forwarded_On: new Date(),
+          Incident_Status:"Forward"
         },
       },
       { session }
