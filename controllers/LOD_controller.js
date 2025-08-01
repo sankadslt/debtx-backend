@@ -170,7 +170,7 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -178,7 +178,7 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     await session.abortTransaction();
