@@ -959,13 +959,13 @@ export const CreateActiveRTOM = async (req, res) => {
   } = req.body;
 
   try {
-    if (!billing_center_code || !rtom_name || !area_code) {
+    if (!billing_center_code || !rtom_name) {
       return res.status(400).json({
         status: "error",
         message: "Failed to register RTOM due to missing fields.",
         errors: {
           field_name:
-            "billing_center_code, rtom_name, and area_code are required",
+            "billing_center_code and rtom_name required",
         },
       });
     }
