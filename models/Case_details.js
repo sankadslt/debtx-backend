@@ -337,6 +337,49 @@ const lod_final_reminder_Schema = new Schema({
   }],
 });
 
+const disputePostalAddressSchema = new Schema({
+  Address1: { type: String, maxlength: 255, required: true },
+  Address2: { type: String, maxlength: 255, required: true },
+  Address3: { type: String, maxlength: 255, required: true },
+  Address4: { type: String, maxlength: 255, required: true },
+  Address5: { type: String, maxlength: 255, required: true },
+  
+}, { _id: false });
+
+const disputeHandedOverModeSchema = new Schema({
+  HandOver_channel: {
+    type: String,
+    maxlength: 30,
+    enum: ["RTOM", "OPMC", "CRC"],
+    required: true,
+  },
+  channel_name: { type: String, maxlength: 30, required: true },
+  channel_email: { type: String, maxlength: 30, required: true },
+  channel_email_cc: { type: String, maxlength: 30, required: true },
+  remark: { type: String, maxlength: 100, default: null }, 
+}, { _id: false });
+
+const disputeLetterDetailsSchema = new Schema({
+  created_on: { type: Date, required: true },
+  created_by:{type: String, maxlength: 30, required:true},
+  tele_no: { type: Number, required: true },
+  customer_name: { type: String, maxlength: 30, required: true },
+  dispute_mode: {
+    type: String,
+    maxlength: 30,
+    enum: ["Settlement", "Handed over"],
+    required: true,
+  },
+  postal_address:[disputePostalAddressSchema],
+  handed_over_mode:[disputeHandedOverModeSchema],
+}, { _id: false });
+
+const disputeSchema = new Schema({
+  disputed_on: { type: Date, required: true },
+  dispute_letter_details: [disputeLetterDetailsSchema],
+  dispute_expire_date: {type:Date, required: true},
+}, { _id: false });
+
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
   doc_version : {type:Number, required: true, default: 3},
@@ -387,6 +430,7 @@ const caseDetailsSchema = new Schema({
   litigation: [litigationSchema],
   ftl_lod: [FTL_LOD_Schema],
   lod_final_reminder: {type: lod_final_reminder_Schema, default: null},
+  dispute: [disputeSchema],
 },
 {
   collection: 'Case_details', 
