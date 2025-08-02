@@ -1887,65 +1887,84 @@ export const Task_for_Download_Incidents = async (req, res) => {
 };
 
 export const Task_for_Download_Incidents_Full_List = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const {
-      Actions,
-      Incident_Status,
-      Incident_Direction,
-      Service_Type,
-      Source_Type,
-      From_Date,
-      To_Date,
-      Created_By,
-      Account_Num,
-    } = req.body;
-    console.log("incident direction", Incident_Direction);
-    if (!From_Date || !To_Date || !Created_By) {
-      return res.status(400).json({
-        error: "Missing required parameters: From Date, To Date, Created By",
-      });
-    }
     
-    const taskData = {
+       const session = await mongoose.startSession();
+       session.startTransaction();
+   
+       try {
+         const { Template_Task_Id, task_type, Created_By, task_status = 'open', ...dynamicParams } = req.body; // Provide a default value for task_status
+       
      
-      Template_Task_Id: 21, // Placeholder, adjust if needed
-      task_type: "Create incident distribution download",
-      parameters: {
-        Actions,
-        Incident_Status,
-        Incident_Direction,
-        Source_Type,
-        Service_Type,
-        // Account_Num,
-        From_Date,
-        To_Date,
-      },
-      Created_By,
-      Execute_By: "SYS",
-      task_status: "open",
-      created_dtm: new Date(),
-    };
-    const ResponseData = await createTaskFunction(taskData, session);
-    console.log("Task created successfully:", ResponseData);
-    await session.commitTransaction();
-    session.endSession();
-    return res.status(201).json({
-      message: "Task created successfully",
-      ResponseData,
-    });
-  } catch (error) {
-    console.error("Error creating the task:", error);
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(500).json({
-      message: "Error creating the task",
-      error: error.message || "Internal server error.",
-    });
-  } finally {
-    session.endSession();
-  }
+         if (!Template_Task_Id || !Created_By) {
+           return res.status(400).json({ message: "Template_Task_Id and created_by are required." });
+         }
+     
+         // Connect to MongoDB
+         const mongoConnection = await db.connectMongoDB();
+         if (!mongoConnection) {
+           throw new Error("MongoDB connection failed");
+         }
+     
+         // Generate a unique Task_Id
+         const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
+           { _id: "task_id" },
+           { $inc: { seq: 1 } },
+           { returnDocument: "after", upsert: true, session }
+         );
+     
+         const Task_Id = counterResult.seq;
+         if (!Task_Id) {
+           return res.status(500).json({ message: "Failed to generate Task_Id" });
+         }
+   
+         const hasDynamicParams = Object.keys(dynamicParams).length > 0;
+         // Prepare task data
+         const taskData = {
+           doc_version: hasDynamicParams ? 2 : 1,
+           Task_Id,
+           Template_Task_Id,
+           task_type,
+           parameters:{
+             dynamicParams,
+             // Actions: dynamicParams?.Actions ?? null,
+             // Incident_direction: dynamicParams?.Incident_direction ?? null,
+             
+   
+           } , // Accept dynamic parameters
+           Created_By,
+           Execute_By: "SYS",
+           task_status,  // Use task_status directly here
+         };
+     
+         // Insert into System_task collection
+         const newTask = new Task(taskData);
+         await newTask.save({ session });
+     
+         // Insert into System_task_Inprogress collection
+         const newTaskInProgress = new Task_Inprogress(taskData);
+         await newTaskInProgress.save({ session });
+   
+         await session.commitTransaction(); // Commit the transaction
+         session.endSession();
+         
+         return res.status(201).json({ 
+           message: "Task created successfully", 
+           Task_Id, 
+           Template_Task_Id,
+           task_type,
+           dynamicParams, 
+           Created_By 
+         });
+          
+       } catch (error) {
+         await session.abortTransaction(); // Rollback on error
+         session.endSession();
+        
+         console.error("Error creating task:", error);
+         return res.status(500).json({ message: "Internal Server Error", error: error.message });
+        
+       }
+     
 };
 
 export const New_List_Incidents = async (req, res) => {
@@ -2008,8 +2027,12 @@ export const New_List_Incidents = async (req, res) => {
     }
      
     if (Service_Type) {
-      query.drc_commision_rule = Service_Type;
+      query.drc_commision_rule = {
+        $regex: Service_Type.replace(/\s+/g, ''), // remove spaces in input
+        $options: 'i', // case-insensitive
+      };
     }
+    
     if (Source_Type) {
       query.Source_Type = Source_Type;
     }
