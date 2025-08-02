@@ -1842,13 +1842,13 @@ export const Task_for_Download_Incidents = async (req, res) => {
     const taskData = {
       Template_Task_Id: 21,  
       task_type: "Create incident  distribution download",
-      parameters: {
+      
           Actions,
           Incident_Status,
           Source_Type,
           From_Date,
           To_Date,
-      },
+      
       Created_By,
       Execute_By: "SYS",
       task_status: "open",
