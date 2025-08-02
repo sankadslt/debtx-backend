@@ -4684,13 +4684,13 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     let rtomStatusSetToInactive = false;
     if (updatingStatus) {
       // Map status to lowercase
-      let pyStatus = drcUser_status?.toLowerCase() || "inactive";
+      let pyStatus = drcUser_status || "Inactive";
       let status_payload = {
         status: pyStatus,
         status_on: currentDate.toISOString(),
         status_by: create_by
       };
-
+      
       const response = await axios.post(
         "https://debtx.slt.lk:6500/users/update/status",
         {
