@@ -1553,80 +1553,184 @@ export const getUserIdOwnedByDRCId = async (drc_id) => {
   }
 };
 
+// export const List_Pre_Negotiation_By_Case_Id = async (req, res) => {
+//   try {
+//     const { case_id, pages } = req.body;
+
+//     const pipeline = [];
+
+//     // if (case_id) {
+//     //   pipeline.push({
+//     //     $match: { "lod_final_reminder.current_document_type": String(case_id) },
+//     //   });
+//     // }
+
+//     // const dateFilter = {};
+//     // if (from_date) dateFilter.$gte = new Date(from_date);
+//     // if (to_date) {
+//     //   const endOfDay = new Date(to_date);
+//     //   endOfDay.setHours(23, 59, 59, 999);
+//     //   dateFilter.$lte = endOfDay;
+//     // }
+
+//     // pipeline.push({
+//     //   $addFields: {
+//     //     last_status: { $arrayElemAt: ["$case_status", -1] },
+//     //   },
+//     // });
+
+//     // if (Object.keys(dateFilter).length > 0) {
+//     //   pipeline.push({
+//     //     $match: { "last_status.created_dtm": dateFilter },
+//     //   });
+//     // }
+
+//     // Direct filter for case_current_status = "LD Hold"
+//     if (case_id) {
+//       pipeline.push({
+//         $match: { case_id: case_id },
+//       });
+//     }
+
+//     let page = Number(pages);
+//     if (isNaN(page) || page < 1) page = 1;
+//     const limit = page === 1 ? 10 : 30;
+//     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+//     // Pagination
+//     pipeline.push({ $sort: { Call_Inquiry_seq: -1 } });
+//     pipeline.push({ $skip: skip });
+//     pipeline.push({ $limit: limit });
+
+//     const filtered_cases = await case_inquiry.aggregate(pipeline);
+
+//     const responseData = filtered_cases.map((ResponseData) => {
+//       return {
+//         case_id: ResponseData.case_id,
+//         seq: ResponseData.Call_Inquiry_seq,
+//         call_topic: ResponseData.Call_Topic,
+//         phase: ResponseData.Case_Phase,
+//         created_by: ResponseData.created_by,
+//         created_date: ResponseData.created_dtm,
+//         call_inquiry_remark: ResponseData.Call_Inquiry_Remark,
+//         drc_id: ResponseData.DRC_ID,
+//       };
+//     });
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Cases retrieved successfully.",
+//       data: responseData,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching Pre Negotoation:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "There is an error ",
+//     });
+//   }
+// };
+
 export const List_Pre_Negotiation_By_Case_Id = async (req, res) => {
   try {
     const { case_id, pages } = req.body;
 
-    const pipeline = [];
-
-    // if (case_id) {
-    //   pipeline.push({
-    //     $match: { "lod_final_reminder.current_document_type": String(case_id) },
-    //   });
-    // }
-
-    // const dateFilter = {};
-    // if (from_date) dateFilter.$gte = new Date(from_date);
-    // if (to_date) {
-    //   const endOfDay = new Date(to_date);
-    //   endOfDay.setHours(23, 59, 59, 999);
-    //   dateFilter.$lte = endOfDay;
-    // }
-
-    // pipeline.push({
-    //   $addFields: {
-    //     last_status: { $arrayElemAt: ["$case_status", -1] },
-    //   },
-    // });
-
-    // if (Object.keys(dateFilter).length > 0) {
-    //   pipeline.push({
-    //     $match: { "last_status.created_dtm": dateFilter },
-    //   });
-    // }
-
-    // Direct filter for case_current_status = "LD Hold"
-    if (case_id) {
-      pipeline.push({
-        $match: { case_id: case_id },
+    // Validate case_id
+    if (!case_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'case_id is required',
       });
     }
 
+    // Calculate pagination parameters
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
     const limit = page === 1 ? 10 : 30;
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    // Pagination
-    pipeline.push({ $sort: { Call_Inquiry_seq: -1 } });
-    pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limit });
+    // Query Case_details collection
+    const caseDetailsPipeline = [
+      { $match: { case_id: case_id } },
+      {
+        $project: {
+          case_id: 1,
+          last_payment_date: 1,
+          expire_dtm: { $arrayElemAt: ['$drc.expire_dtm', -1] },
+          rtom: 1,
+          nic: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$customer_identification',
+                  as: 'id',
+                  cond: { $eq: ['$$id.Identification_type', 'NIC'] },
+                },
+              },
+              0,
+            ],
+          },
+          current_arrears_amount: 1,
+        },
+      },
+      {
+        $project: {
+          case_id: 1,
+          last_payment_date: 1,
+          expire_dtm: 1,
+          rtom: 1,
+          nic: { $ifNull: ['$nic.contact', null] },
+          current_arrears_amount: 1,
+        },
+      },
+    ];
 
-    const filtered_cases = await case_inquiry.aggregate(pipeline);
+    const caseDetailsResult = await CaseDetails.aggregate(caseDetailsPipeline);
 
-    const responseData = filtered_cases.map((ResponseData) => {
-      return {
-        case_id: ResponseData.case_id,
-        seq: ResponseData.Call_Inquiry_seq,
-        call_topic: ResponseData.Call_Topic,
-        phase: ResponseData.Case_Phase,
-        created_by: ResponseData.created_by,
-        created_date: ResponseData.created_dtm,
-        call_inquiry_remark: ResponseData.Call_Inquiry_Remark,
-        drc_id: ResponseData.DRC_ID,
-      };
-    });
+    // Query Case_Inquiry collection
+    const caseInquiryPipeline = [
+      { $match: { case_id: case_id } },
+      { $sort: { Call_Inquiry_seq: -1 } },
+     
+      {
+        $project: {
+          seq: '$Call_Inquiry_seq',
+          call_topic: '$Call_Topic',
+          phase: '$Case_Phase',
+          created_by: 1,
+          created_date: '$created_dtm',
+          call_inquiry_remark: '$Call_Inquiry_Remark',
+          drc_id: '$DRC_ID',
+        },
+      },
+    ];
+
+    const caseInquiryResult = await case_inquiry.aggregate(caseInquiryPipeline).skip(skip).limit(limit);
+
+    // Combine results
+    let responseData = [];
+    if (caseDetailsResult.length > 0) {
+      responseData = [{
+        case_id: caseDetailsResult[0].case_id,
+        inquiries: caseInquiryResult,
+        last_payment_date: caseDetailsResult[0].last_payment_date || null,
+        expire_dtm: caseDetailsResult[0].expire_dtm || null,
+        rtom: caseDetailsResult[0].rtom || null,
+        nic: caseDetailsResult[0].nic || null,
+        current_arrears_amount: caseDetailsResult[0].current_arrears_amount || null,
+      }];
+    }
 
     return res.status(200).json({
-      status: "success",
-      message: "Cases retrieved successfully.",
+      status: 'success',
+      message: 'Cases retrieved successfully.',
       data: responseData,
     });
   } catch (error) {
-    console.error("Error fetching Pre Negotoation:", error.message);
+    console.error('Error fetching Pre Negotiation:', error.message);
     return res.status(500).json({
-      status: "error",
-      message: "There is an error ",
+      status: 'error',
+      message: 'There is an error',
     });
   }
 };
