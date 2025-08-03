@@ -10887,7 +10887,7 @@ export const List_All_Cases = async (req, res) => {
       account_no,
       pages,
     } = req.body;
- console.log("rtom",RTOM)
+  
     // if (
     //   !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
     // )
@@ -10905,8 +10905,13 @@ export const List_All_Cases = async (req, res) => {
     }
 
     if (RTOM) {
-      pipeline.push({ $match: { area: RTOM } });
+      pipeline.push({
+        $match: {
+          rtom: { $regex: `^${RTOM.trim()}$`, $options: "i" }
+        }
+      });
     }
+    
     
     if (arrears_band) {
       pipeline.push({ $match: { arrears_band } });
