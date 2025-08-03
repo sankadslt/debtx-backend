@@ -318,7 +318,7 @@ export const Create_DRC_With_Services_and_SLT_Coordinator = async (
       drc_terminate_dtm: null,
       drc_terminate_by: null,
       slt_coordinator: slt_coordinator.map((coord) => ({
-        service_no: coord.service_no,
+        service_no: coord.service_no +"@intranet.slt.com.lk",
         slt_coordinator_name: coord.slt_coordinator_name,
         slt_coordinator_email: coord.slt_coordinator_email,
         coordinator_create_dtm: new Date(),
@@ -787,6 +787,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
     if (Array.isArray(coordinator)) {
       const newCoordinator = coordinator[0];
       const lastCoordIndex = company.slt_coordinator.length - 1;
+
       if (lastCoordIndex >= 0) {
         company.slt_coordinator[lastCoordIndex].coordinator_end_by = updated_by;
         company.slt_coordinator[lastCoordIndex].coordinator_end_dtm =
@@ -794,7 +795,7 @@ export const Update_DRC_With_Services_and_SLT_Cordinator = async (req, res) => {
       }
 
       company.slt_coordinator.push({
-        service_no: newCoordinator.service_no,
+        service_no: newCoordinator.service_no.includes("@intranet.slt.com.lk") ? newCoordinator.service_no : newCoordinator.service_no + "@intranet.slt.com.lk",
         slt_coordinator_name: newCoordinator.slt_coordinator_name,
         slt_coordinator_email: newCoordinator.slt_coordinator_email,
         coordinator_create_dtm: new Date(),
