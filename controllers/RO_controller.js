@@ -972,7 +972,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
     const activeRecoveryOfficers = await Recovery_officer.find({
       drc_id: drc_id,
-      ro_status: "Active"
+      drcUser_status: "Active"
     });
 
 
@@ -988,23 +988,23 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
     const formattedResults = activeRecoveryOfficers?.map((ro) => ({
       ro_id: ro.ro_id,
       ro_name: ro.ro_name,
-      ro_contact_no: ro.ro_contact_no,
+      ro_contact_no: ro.login_contact_no,
       // drc_name: ro.drc_name,
-      ro_status: ro.ro_status,
+      ro_status: ro.drcUser_status,
       // ro_status_date: ro.last_status.ro_status_date,
       // ro_status_edit_by: ro.last_status.ro_status_edit_by,
-      login_type: ro.login_type,
-      login_user_id: ro.login_user_id,
+      // login_type: ro.login_type,
+      login_user_id: ro.drcUser_id,
       remark: ro.remark,
-      ro_nic: ro.ro_nic,
-      ro_end_date: ro.ro_end_dtm || null,
+      ro_nic: ro.nic,
+      ro_end_date: ro.end_dtm || null,
       rtoms_for_ro: ro.rtom.map((rtom) => ({
         name: rtom.rtom_name,
         status: rtom.rtom_status
       })),
-      created_by: ro.ro_create_by,
-      createdAt: ro.createdAt,
-      updatedAt: ro.updatedAt,
+      created_by: ro.create_by,
+      // createdAt: ro.createdAt,
+      // updatedAt: ro.updatedAt,
     }));
 
     // Return the formatted data
