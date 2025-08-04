@@ -3583,6 +3583,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         "parameters.case_distribution_batch_id": case_distribution_batch_id,
         "parameters.drc_commision_rule": drc_commision_rule,
         "parameters.current_arrears_band": current_arrears_band,
+        task_status: "open",
       },
       { session }
     );
