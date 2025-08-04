@@ -6139,7 +6139,7 @@ export const listDRCAllCases = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
