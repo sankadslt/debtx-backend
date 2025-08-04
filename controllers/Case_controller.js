@@ -2931,6 +2931,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     if (from_date && to_date) {
       fromDateObj = new Date(from_date);
       toDateObj = new Date(to_date);
+      toDateObj.setHours(23, 59, 59, 999); // Set to end of the day
       console.log(fromDateObj, "and this is the to date ", toDateObj);
 
       if (isNaN(fromDateObj) || isNaN(toDateObj)) {
@@ -2993,7 +2994,14 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     } else {
       query.case_current_status = { $in: allowedStatuses };
     }
-    if (rtom) query.area = rtom;
+        if (rtom) {
+  query.$expr = {
+    $eq: [
+      { $trim: { input: { $toLower: "$rtom" } } },
+      rtom.toLowerCase().trim()
+    ]
+};
+}
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
@@ -3071,7 +3079,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
