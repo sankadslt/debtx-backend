@@ -363,7 +363,9 @@ const caseDetailsSchema = new Schema({
   ro_cpe_collect : [RoCpeCollectSchema],
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
-  money_transactions	: [moneytransactionsschema],
+  money_transactions: [{
+    money_transaction_id: { type: Number, required: true }
+  }],
   litigation: [litigationSchema],
   ftl_lod: [FTL_LOD_Schema],
   lod_final_reminder: {type: lod_final_reminder_Schema, default: null},

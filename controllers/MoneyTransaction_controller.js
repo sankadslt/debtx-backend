@@ -31,12 +31,12 @@ import { createTaskFunction } from "../services/TaskService.js";
 */
 export const getAllPaymentCases = async (req, res) => {
   try {
-    const { case_id, account_num, settlement_phase, from_date, to_date, pages } = req.body;
+    const { case_id, account_num, case_phase, from_date, to_date, pages } = req.body;
 
-    // if (!case_id && !settlement_phase && !from_date && !to_date && !account_num) {
+    // if (!case_id && !case_phase && !from_date && !to_date && !account_num) {
     //   return res.status(400).json({
     //     status: "error",
-    //     message: "At least one of case_id, settlement_phase, account_num, from_date or to_date is required."
+    //     message: "At least one of case_id, case_phase, account_num, from_date or to_date is required."
     //   });
     // }
 
@@ -49,7 +49,7 @@ export const getAllPaymentCases = async (req, res) => {
 
     if (account_num) query.account_num = account_num;
     if (case_id) query.case_id = case_id;
-    if (settlement_phase) query.settlement_phase = settlement_phase;
+    if (case_phase) query.case_phase = case_phase;
 
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
@@ -59,7 +59,7 @@ export const getAllPaymentCases = async (req, res) => {
       dateFilter.$lte = endofDay;
     }
     if (Object.keys(dateFilter).length > 0) {
-      query.money_transaction_date = dateFilter;
+      query['money_details.money_transaction_date'] = dateFilter;
     }
 
     const filtered_cases = await MoneyTransaction.find(query)
@@ -72,13 +72,13 @@ export const getAllPaymentCases = async (req, res) => {
         Money_Transaction_ID: caseData.money_transaction_id,
         Case_ID: caseData.case_id,
         Account_No: caseData.account_num || null,
-        Settlement_ID: caseData.settlement_id || null,
-        Installment_Seq: caseData.installment_seq || null,
+        settlement_id: caseData.settlement_details?.settlement_id || null,
+        Installment_Seq: caseData.settlement_details?.installment_seq || null,
         Transaction_Type: caseData.transaction_type || null,
-        Money_Transaction_Amount: caseData.money_transaction_amount || null,
-        Money_Transaction_Date: caseData.money_transaction_date || null,
-        Settlement_Phase: caseData.settlement_phase || null,
-        Cummulative_Settled_Balance: caseData.cummulative_settled_balance || null,
+        Money_Transaction_Amount: caseData.money_details?.money_transaction_amount || null,
+        Money_Transaction_Date: caseData.money_details?.money_transaction_date || null,
+        case_phase: caseData.case_phase || null,
+        cumulative_settled_balance: caseData.settlement_details?.cumulative_settled_balance || null,
       };
     })
 
@@ -180,7 +180,7 @@ export const Case_Details_Payment_By_Case_ID = async (req, res) => {
       return res.status(404).json({ message: "Case not found" });
     }
 
-    const selectedMoneyTransaction = await MoneyTransaction.findOne({ money_transaction_id });
+    const selectedMoneyTransaction = await MoneyTransaction.findOne({ money_transaction_id: money_transaction_id });
     if (!selectedMoneyTransaction) {
       return res.status(404).json({ message: "Money transaction not found" });
     }
@@ -194,11 +194,13 @@ export const Case_Details_Payment_By_Case_ID = async (req, res) => {
       const MoneyTransactionDoc = MoneyTransactionRecords.find(p => p.money_transaction_id === txn.money_transaction_id);
       return {
         money_transaction_id: txn.money_transaction_id,
-        money_transaction_ref: MoneyTransactionDoc?.money_transaction_ref,
-        money_transaction_reference_type: MoneyTransactionDoc?.money_transaction_Reference_type,
-        money_transaction_amount: MoneyTransactionDoc?.money_transaction_amount,
-        money_transaction_date: MoneyTransactionDoc?.money_transaction_date,
-        money_transaction_type: MoneyTransactionDoc?.transaction_type,
+        money_transaction_ref: MoneyTransactionDoc?.money_details?.money_transaction_ref,
+        money_transaction_status: MoneyTransactionDoc?.money_details?.money_transaction_status,
+        bill_payment_status: MoneyTransactionDoc?.money_details?.bill_payment_status,
+        money_transaction_amount: MoneyTransactionDoc?.money_details?.money_transaction_amount,
+        money_transaction_date: MoneyTransactionDoc?.money_details?.money_transaction_date,
+        transaction_type: MoneyTransactionDoc?.transaction_type,
+        settlement_details: MoneyTransactionDoc?.settlement_details
       };
     });
 
@@ -207,18 +209,20 @@ export const Case_Details_Payment_By_Case_ID = async (req, res) => {
       account_no: selectedMoneyTransaction.account_num,
       money_transaction_id: selectedMoneyTransaction.money_transaction_id,
       created_dtm: selectedMoneyTransaction.created_dtm,
-      cummulative_settled_balance: selectedMoneyTransaction.cummulative_settled_balance,
-      settlement_id: selectedMoneyTransaction.settlement_id,
-      installment_seq: selectedMoneyTransaction.installment_seq,
-      settlement_phase: selectedMoneyTransaction.settlement_phase,
-      settle_Effected_Amount: selectedMoneyTransaction.settle_Effected_Amount,
+      cumulative_settled_balance: selectedMoneyTransaction.settlement_details?.cumulative_settled_balance,
+      settlement_id: selectedMoneyTransaction.settlement_details?.settlement_id,
+      installment_seq: selectedMoneyTransaction.settlement_details?.installment_seq,
+      case_phase: selectedMoneyTransaction.case_phase,
+      settle_Effected_Amount: selectedMoneyTransaction.settlement_details?.commissionable_amount,
       commission_type: selectedMoneyTransaction.commission_type,
-      commission_amount: selectedMoneyTransaction.commissioned_amount,
+      commissionable_amount: selectedMoneyTransaction.settlement_details?.commissionable_amount,
       drc_id: selectedMoneyTransaction.drc_id,
       ro_id: selectedMoneyTransaction.ro_id,
       commision_issued_by: selectedMoneyTransaction.commission_issued_by,
-      commision_issued_dtm: selectedMoneyTransaction.commission_issued_by,
-      payment_details: MoneyTransactionDetails
+      commision_issued_dtm: selectedMoneyTransaction.commission_issued_dtm,
+      payment_details: MoneyTransactionDetails,
+      settlement_details: selectedMoneyTransaction.settlement_details,
+      money_details: selectedMoneyTransaction.money_details
     };
 
     return res.status(200).json({
