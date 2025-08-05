@@ -5758,12 +5758,13 @@ export const Customer_Negotiations = async (req, res) => {
       const statusMap = {
         "Mediation board forward request letter": "RO Negotiation FMB Pending",
         "Negotiation Settlement plan Request": "RO Negotiation",
-        "Negotiation period extend Request": "RO Negotiation Extension Pending",
+        "Negotiation period extend Request": "RO Negotiation",
         "Negotiation customer further information Request": "RO Negotiation",
         "Negotiation Customer request service": "RO Negotiation",
       };
       case_status_with_request = statusMap[request_type] || "MB Negotiation";
-      const updatedCase = await Case_details.findOneAndUpdate(
+      if(Field_reason_ID){
+        const updatedCase = await Case_details.findOneAndUpdate(
         { case_id },
         {
           $push: {
@@ -5798,7 +5799,45 @@ export const Customer_Negotiations = async (req, res) => {
           status: "error",
           message: "Case not found this case id",
         });
+      };
       }
+      else{
+        const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id },
+        {
+          $push: {
+            ro_requests: {
+              drc_id,
+              ro_id,
+              created_dtm: new Date(),
+              ro_request_id: request_id,
+              ro_request: request_type,
+              request_remark: request_comment,
+              intraction_id: intraction_id,
+              intraction_log_id,
+            },
+            case_status: {
+              case_status: case_status_with_request,
+              created_dtm: new Date(),
+              created_by: created_by,
+              case_phase: "Negotiation",
+            },
+          },
+          $set: {
+            case_current_status: case_status_with_request,
+            case_current_phase: "Negotiation",
+          },
+        },
+        { new: true, session }
+        );
+        if (!updatedCase) {
+          await session.abortTransaction();
+          return res.status(404).json({
+            status: "error",
+            message: "Case not found this case id",
+          });
+        };
+      };
     } else {
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
         { case_id: case_id, "drc.drc_id": drc_id },
