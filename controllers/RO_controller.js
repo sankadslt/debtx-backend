@@ -2270,50 +2270,45 @@ export const listROAllCases = async (req, res) => {
 
 // Get RO list of RO
 export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
-  const {ro_id} = req.body;
-  if (!ro_id) {
-      return res.status(400).json({ 
-        status: 'error',
-        message: 'ro_id is required.' });
-  }
+    const { ro_id } = req.body;
 
-  try {
+    if (typeof ro_id !== 'number') {
+        return res.status(400).json({ message: 'ro_id must be a number' });
+    }
 
-      const rtom_names_with_status = await Recovery_officer.aggregate([
-        { $match: { ro_id: ro_id } },
-        { $unwind: "$rtoms_for_ro" },
-        {
-          $lookup: {
-            from: "Rtom",
-            localField: "rtoms_for_ro.name",
-            foreignField: "rtom_abbreviation", 
-            as: "rtom_details", 
-          },
-        },
-        { $unwind: "$rtom_details" },
-        {
-          $project: {
-            name: "$rtoms_for_ro.name",
-            status: "$rtoms_for_ro.status",
-            rtom_id: "$rtom_details.rtom_id",
-          },
-        },
-      ]);
-      console.log(rtom_names_with_status);
+    try {
+        const rtom_names_with_status = await Recovery_officer.aggregate([
+            { $match: { ro_id: ro_id } },
+            { $unwind: "$rtoms_for_ro" },
+            {
+                $lookup: {
+                    from: "Rtom",
+                    localField: "rtoms_for_ro.name",
+                    foreignField: "rtom_abbreviation",
+                    as: "rtom_details",
+                },
+            },
+            { $unwind: "$rtom_details" },
+            {
+                $project: {
+                    name: "$rtoms_for_ro.name",
+                    status: "$rtoms_for_ro.status",
+                    rtom_id: "$rtom_details.rtom_id",
+                },
+            },
+        ]);
 
-      return res.status(200).json({
-        status: 'success',
-        message: 'RTOM areas retrieved successfully.',
-        data: rtom_names_with_status,
-      });
-   
-  }catch (error){ 
-    console.error('Error retrieving RTOM areas:', error);
-    return res.status(500).json({ 
-      status: 'error',
-      message: 'Internal server error.', error: error.message });
-  }
-}
+        if (!rtom_names_with_status || rtom_names_with_status.length === 0) {
+            return res.status(404).json({ message: 'No RTOM areas found for this RO ID' });
+        }
+
+        return res.status(200).json({ data: rtom_names_with_status });
+    } catch (error) {
+        console.error('Error retrieving RTOM areas:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 
 /**
  * Fetches detailed Recovery Officer or DRC User information, including DRC and RTOM data, 
@@ -2376,7 +2371,9 @@ export const listROInfoByROId = async (req, res) => {
                     recovery_officer_name: "$ro_name",
                     nic: "$nic",
                     contact_no: "$login_contact_no",
+                    contact_no_two: "$login_contact_no_two",
                     email: "$login_email",
+                    user_role: "$user_role",
                     drcUser_status: { $eq: ["$drcUser_status", "Active"] },
                     drc_id: "$drc_id",
                     drc_name: { 
@@ -2417,7 +2414,9 @@ export const listROInfoByROId = async (req, res) => {
                     drcUser_name: "$ro_name",
                     nic: "$nic",
                     contact_no: "$login_contact_no",
+                    contact_no_two: "$login_contact_no_two",
                     email: "$login_email",
+                    user_role: "$user_role",
                     drcUser_status: { $eq: ["$drcUser_status", "Active"] },
                     drc_id: "$drc_id",
                     drc_name: { 
@@ -3236,7 +3235,7 @@ export const Terminate_RO = async (req, res) => {
 export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
     try {
         // Extract parameters from request body
-        const { drc_id, drcUser_type, drcUser_status, pages } = req.body;
+        const { drc_id, drcUser_type, drcUser_status, user_role, pages } = req.body;
 
         // Validate required fields
         if (!drc_id || !drcUser_type) {
@@ -3254,15 +3253,14 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
             });
         }
 
-        // Build filter object
+        // Build base filter
         const filter = {
-            drc_id: drc_id,
-            drcUser_type: drcUser_type
+            drc_id,
+            drcUser_type
         };
 
-        // Add drcUser_status to filter if provided
+        // Optional: Add drcUser_status to filter if provided
         if (drcUser_status) {
-            // Validate drcUser_status enum if provided
             if (!['Active', 'Inactive', 'Terminate', 'Pending_approval'].includes(drcUser_status)) {
                 return res.status(400).json({
                     status: "error",
@@ -3272,46 +3270,51 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
             filter.drcUser_status = drcUser_status;
         }
 
+        // ✅ Add user_role filter only if drcUser_type === 'drcUser'
+        if (drcUser_type === 'drcUser' && user_role) {
+            filter.user_role = user_role;
+        }
+
         // Pagination logic
         let page = Number(pages);
         if (isNaN(page) || page < 1) page = 1;
 
-        const limit = page === 1 ? 10 : 10;
-        const skip = page === 1 ? 0 : 10 + (page - 2) * 10;
+        const limit = 10;
+        const skip = (page - 1) * limit;
 
-        // Define projection fields based on drcUser_type
+        // Projection based on drcUser_type
         let projection = {};
         if (drcUser_type === 'RO') {
             projection = {
                 ro_id: 1,
-                user_role:1,
+                user_role: 1,
                 drcUser_status: 1,
                 nic: 1,
                 ro_name: 1,
                 login_contact_no: 1,
                 login_contact_no_two: 1,
-                rtom: 1 // Need rtom to calculate rtom_area_count
+                rtom: 1
             };
         } else if (drcUser_type === 'drcUser') {
             projection = {
                 drcUser_id: 1,
-                user_role:1,
+                user_role: 1,
                 drcUser_status: 1,
                 nic: 1,
                 ro_name: 1,
                 login_contact_no: 1,
-                login_contact_no_two:1
+                login_contact_no_two: 1
             };
         }
 
-        // Fetch the total count of documents that match the filter criteria (without pagination)
+        // Total count for pagination
         const totalCount = await Recovery_officer.countDocuments(filter);
 
-        // Find documents based on filter with pagination and projection
+        // Fetch records with pagination
         const documents = await Recovery_officer.find(filter, projection)
             .skip(skip)
             .limit(limit)
-            .sort({ ro_id: -1, drcUser_id: -1 }); // Sort by ro_id and drcUser_id in descending order
+            .sort({ ro_id: -1, drcUser_id: -1 });
 
         if (!documents || documents.length === 0) {
             return res.status(404).json({
@@ -3320,11 +3323,12 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
             });
         }
 
-        // Process documents based on drcUser_type
+        // Process data
         const processedData = documents.map(doc => {
             if (drcUser_type === 'RO') {
-                // Calculate rtom_area_count (count of rtom objects with status "Active")
-                const rtom_area_count = doc.rtom ? doc.rtom.filter(rtom => rtom.rtom_status === 'Active').length : 0;
+                const rtom_area_count = doc.rtom
+                    ? doc.rtom.filter(r => r.rtom_status === 'Active').length
+                    : 0;
 
                 return {
                     ro_id: doc.ro_id,
@@ -3334,7 +3338,7 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
                     ro_name: doc.ro_name,
                     login_contact_no: doc.login_contact_no,
                     login_contact_no_two: doc.login_contact_no_two,
-                    rtom_area_count: rtom_area_count
+                    rtom_area_count
                 };
             } else if (drcUser_type === 'drcUser') {
                 return {
@@ -3344,12 +3348,12 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
                     nic: doc.nic,
                     ro_name: doc.ro_name,
                     login_contact_no: doc.login_contact_no,
-                    login_contact_no_two: doc.login_contact_no_two,
+                    login_contact_no_two: doc.login_contact_no_two
                 };
             }
         });
 
-        // Return successful response
+        // Final response
         return res.status(200).json({
             status: "success",
             message: 'Data retrieved successfully',
@@ -3367,6 +3371,7 @@ export const List_All_RO_and_DRCuser_Details_to_DRC = async (req, res) => {
         });
     }
 };
+
 
 /**
  * Retrieves a paginated list of Recovery Officers (RO) for SLT with associated DRC company names.
@@ -3769,8 +3774,8 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       rtoms
     } = req.body;
 
-    // Validate required fields
-    if (!drcUser_type || !user_role || !drc_id || !ro_name || !nic || !login_contact_no || !login_contact_no_two  || !create_by) {
+    // Validate required fields (exclude user_role here)
+    if (!drcUser_type || !drc_id || !ro_name || !nic || !login_contact_no || !create_by) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields"
@@ -3785,11 +3790,11 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       });
     }
 
-    // Validate user_role
-    if (!['call center', 'user staff'].includes(user_role)) {
+    // Validate user_role only for drcUser
+    if (drcUser_type === 'drcUser' && !['DRC Coordinator', 'call center', 'user staff'].includes(user_role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user_role. Must be 'call center' or 'user staff'"
+        message: "Invalid or missing user_role for DRC user."
       });
     }
 
@@ -3826,7 +3831,6 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
     const mongoConnection = await db.connectMongoDB();
 
     if (drcUser_type === 'RO') {
-      // Generate ro_id for RO type
       const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "ro_id" },
         { $inc: { seq: 1 } },
@@ -3837,7 +3841,6 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
         throw new Error("Failed to generate ro_id.");
       }
     } else if (drcUser_type === 'drcUser') {
-      // Generate drcUser_id for DRCUser type
       const counterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "drcUser_id" },
         { $inc: { seq: 1 } },
@@ -3859,7 +3862,7 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       login_contact_no_two: login_contact_no_two,
       nic: nic,
       drcUser_type: drcUser_type,
-      user_role: user_role,
+      user_role: drcUser_type === 'RO' ? null : user_role, // 🛠️ Set to null for RO
       drcUser_status: "Pending_approval",
       create_dtm: currentDate,
       create_by: create_by,
@@ -3869,16 +3872,15 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       remark: []
     };
 
-    // ❗ Only add ro_id if not null
     if (ro_id !== null && ro_id !== undefined) {
       recoveryOfficerData.ro_id = ro_id;
     }
 
-    // ❗ Only add drcUser_id if not null
     if (drcUser_id !== null && drcUser_id !== undefined) {
       recoveryOfficerData.drcUser_id = drcUser_id;
     }
-    // Add multiple RTOM data if user type is RO and rtoms array is provided
+
+    // Add RTOMs if RO
     if (drcUser_type === 'RO' && ro_id && rtoms && rtoms.length > 0) {
       recoveryOfficerData.rtom = rtoms.map(rtom => ({
         rtom_id: rtom.rtom_id,
@@ -3892,87 +3894,20 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       }));
     }
 
-    // Generate user_approver_id as a unique sequence number
-    /*const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-      { _id: "user_approver_id" },
-      { $inc: { seq: 1 } },
-      { returnDocument: "after", upsert: true, session }
-    );
-    const user_approver_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
-    if (user_approver_id === undefined || user_approver_id === null) {
-      throw new Error("Failed to generate user_approver_id.");
-    }
-
-    // Get approved_Deligated_by using getUserIdOwnedByDRCId
-    const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-
-    // Prepare User_Approval record (according to updated schema)
-    const userApprovalData = {
-      doc_version: 1,
-      user_approver_id: user_approver_id,
-      User_Type: ro_id ? 'RO' : 'DRC User',
-      User_id: ro_id ? ro_id.toString() : drcUser_id ? drcUser_id.toString() : null,
-      DRC_id: drc_id,
-      created_by: create_by,
-      created_on: currentDate,
-      approve_status: 'Open',
-      approve_status_on: null,
-      approver_type: 'DRC_user_registration',
-      approved_Deligated_by: approved_Deligated_by,
-      remark: null,
-      Parameters: {
-        login_email: login_email || null,
-        login_contact_no: login_contact_no,
-        login_contact_no_two: login_contact_no_two || null,
-        drcUser_status: "Inactive"
-      },
-      existing_reference_id: null
-    };
-*/
-    // Create records in both collections
     const recoveryOfficer = new Recovery_officer(recoveryOfficerData);
-    //const userApproval = new User_Approval(userApprovalData);
-
-    // Save both records with session
     const savedRecoveryOfficer = await recoveryOfficer.save({ session });
-    //const savedUserApproval = await userApproval.save({ session });
 
-    // Create User Interaction
-   /* const dynamicParams = {
-      user_type: drcUser_type,
-      ro_id: ro_id,
-      drcUser_id: drcUser_id,
-      user_name: ro_name,
-      approval_id: user_approver_id,
-      drc_id: drc_id
-    };
-
-    const interactionResult = await createUserInteractionFunction({
-      Interaction_ID: 19,
-      User_Interaction_Type: `Pending approval for ${drcUser_type} creation`,
-      delegate_user_id: approved_Deligated_by,
-      Created_By: create_by,
-      User_Interaction_Status: "Open",
-      User_Interaction_Status_DTM: currentDate,
-      ...dynamicParams,
-      session
-    });*/
-
-    // Commit transaction
     await session.commitTransaction();
 
     return res.status(201).json({
       success: true,
       message: `${drcUser_type} created successfully and sent for approval`,
       data: {
-        recoveryOfficer: savedRecoveryOfficer,
-        //userApproval: savedUserApproval,
-        //interaction: interactionResult
+        recoveryOfficer: savedRecoveryOfficer
       }
     });
 
   } catch (error) {
-    // Abort transaction on error
     if (session) {
       await session.abortTransaction();
     }
@@ -3983,12 +3918,14 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       error: error.message
     });
   } finally {
-    // End session properly
     if (session) {
       await session.endSession();
     }
   }
 };
+
+
+
 
 // export const Update_RO_or_DRCuser_Details = async (req, res) => {
 //   let session = null;
@@ -4257,9 +4194,11 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       ro_id,
       drcUser_id,
       drc_id,
+      user_role,
       ro_name,
       login_email,
       login_contact_no,
+      login_contact_no_two,
       drcUser_status,
       create_by,
       rtoms,
@@ -4290,6 +4229,14 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       });
     }
 
+     const validRoles = ["Call center", "User staff"];
+    if (user_role && !validRoles.includes(user_role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid user_role. Allowed values: ${validRoles.join(", ")}`
+      });
+    }
+
     session = await mongoose.startSession();
     session.startTransaction();
 
@@ -4311,34 +4258,44 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       });
     }
 
-    if (existingUser.drcUser_status === 'Pending_approval') {
+    /*if (existingUser.drcUser_status === 'Pending_approval') {
       return res.status(403).json({
         success: false,
         message: `${drcUser_type} details cannot be edited while status is 'Pending_approval'`
       });
-    }
+    }*/
 
     let updateData = {};
-    let needsApproval = false;
-    let parameters = {};
+   // let needsApproval = false;
+    //let parameters = {};
+    if (user_role !== undefined && user_role !== existingUser.user_role) {
+      updateData.user_role = user_role;
+    }
+
 
     if (login_email !== undefined && login_email !== existingUser.login_email) {
       updateData.login_email = login_email;
-      parameters.login_email = login_email;
-      needsApproval = true;
+     // parameters.login_email = login_email;
+      //needsApproval = true;
     }
 
     if (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no) {
       updateData.login_contact_no = login_contact_no;
-      parameters.login_contact_no = login_contact_no;
-      needsApproval = true;
+     // parameters.login_contact_no = login_contact_no;
+      //needsApproval = true;
     }
+    if (login_contact_no_two !== undefined && login_contact_no_two !== existingUser.login_contact_no_two) {
+    updateData.login_contact_no_two = login_contact_no_two;
+    //parameters.login_contact_no_two = login_contact_no_two;
+    //needsApproval = true;
+  }
+
 
     let rtomStatusSetToInactive = false;
     if (drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status) {
       updateData.drcUser_status = drcUser_status;
-      parameters.drcUser_status = drcUser_status;
-      needsApproval = true;
+      //parameters.drcUser_status = drcUser_status;
+      //needsApproval = true;
 
       if (drcUser_type === 'RO' && drcUser_status === "Inactive" && Array.isArray(existingUser.rtom)) {
         const updatedRtoms = existingUser.rtom.map(rtom => ({
@@ -4412,10 +4369,10 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
       { new: true, session }
     );
 
-    let userApprovalRecord = null;
-    let interactionResult = null;
+   // let userApprovalRecord = null;
+    //let interactionResult = null;
 
-    if (needsApproval) {
+   /* if (needsApproval) {
       const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
         { _id: "user_approver_id" },
         { $inc: { seq: 1 } },
@@ -4468,25 +4425,25 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
         session
       });
     }
-
+*/
     await session.commitTransaction();
 
-    const responseData = {
+    /*const responseData = {
       updatedUser: updatedUser
     };
     if (userApprovalRecord) responseData.userApproval = userApprovalRecord;
     if (interactionResult) responseData.interaction = interactionResult;
-
+*/
     return res.status(200).json({
       success: true,
-      message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
-      data: responseData
+      message: `${drcUser_type} updated successfully`, // message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
+      data: updatedUser//responseData
     });
 
   } catch (error) {
-    if (session) {
+    /*if (session) {
       await session.abortTransaction();
-    }
+    }*/
     console.error("Error updating user:", error);
     return res.status(500).json({
       success: false,
@@ -4499,11 +4456,4 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     }
   }
 };
-
-
-
-
-
-
-
 

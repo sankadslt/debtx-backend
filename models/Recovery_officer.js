@@ -94,7 +94,7 @@ const roSchema = new Schema({
         login_contact_no_two: {
             type: String,
             maxlength: 30,
-            required: true,
+            default: null,
         },
         nic: {
             type: String,
@@ -109,8 +109,8 @@ const roSchema = new Schema({
         },
         user_role: {
             type: String,
-            enum: ['call center', 'user staff'],  
-            required: true,  
+            enum: ['DRC Coordinator', 'call center', 'user staff'],  
+            default: null,
             maxlength: 30
         },
     

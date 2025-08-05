@@ -103,7 +103,7 @@ const router = Router();
  *                         items:
  *                           type: string
  *                           example: "Changed login type"
- *                       ro_nic:
+ *                       ro_:
  *                         type: string
  *                         example: 20047788441
  *                       ro_end_date:
@@ -1661,7 +1661,7 @@ router.post("/List_RO_Details_Owen_By_DRC_ID", List_RO_Details_Owen_By_DRC_ID);
  *                     drcUser_name:
  *                       type: string
  *                       example: John Doe
- *                     nic:
+ *                     :
  *                       type: string
  *                       example: 123456789V
  *                     contact_no:
@@ -2251,5 +2251,7 @@ router.post('/List_All_RO_and_DRCuser_Details_to_SLT', List_All_RO_and_DRCuser_D
 router.post('/Create_New_DRCUser_or_RO', Create_New_DRCUser_or_RO);
 
 router.patch('/Update_RO_or_DRCuser_Details', Update_RO_or_DRCuser_Details);
+
+
 
 export default router;
