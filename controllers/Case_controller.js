@@ -2931,6 +2931,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     if (from_date && to_date) {
       fromDateObj = new Date(from_date);
       toDateObj = new Date(to_date);
+      toDateObj.setHours(23, 59, 59, 999); // Set to end of the day
       console.log(fromDateObj, "and this is the to date ", toDateObj);
 
       if (isNaN(fromDateObj) || isNaN(toDateObj)) {
@@ -2993,7 +2994,14 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     } else {
       query.case_current_status = { $in: allowedStatuses };
     }
-    if (rtom) query.area = rtom;
+        if (rtom) {
+  query.$expr = {
+    $eq: [
+      { $trim: { input: { $toLower: "$rtom" } } },
+      rtom.toLowerCase().trim()
+    ]
+};
+}
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
@@ -3071,7 +3079,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
@@ -3583,6 +3591,7 @@ export const Exchange_DRC_RTOM_Cases = async (req, res) => {
         "parameters.case_distribution_batch_id": case_distribution_batch_id,
         "parameters.drc_commision_rule": drc_commision_rule,
         "parameters.current_arrears_band": current_arrears_band,
+        task_status: "open",
       },
       { session }
     );
@@ -6177,7 +6186,7 @@ export const listDRCAllCases = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
@@ -10661,7 +10670,6 @@ async function negotiation_condition_function(
     reason,
   };
 }
-
 export const listdownCaseDetailsByCaseId = async (req, res) => {
   try {
     const caseId = parseInt(req.params.caseId);
@@ -10673,9 +10681,7 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
       });
     }
 
-    const caseDetails = await CaseDetails.findOne({ case_id: caseId })
-      .lean()
-      .exec();
+    const caseDetails = await CaseDetails.findOne({ case_id: caseId }).lean().exec();
 
     if (!caseDetails) {
       return res.status(404).json({
@@ -10690,12 +10696,9 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
 
     const addNavigationMetadata = (dataArray) => {
       if (!Array.isArray(dataArray) || dataArray.length === 0) return dataArray;
-
       return dataArray.map((item) => {
         const { _id, __v, ...cleanedItem } = item;
-        return {
-          ...cleanedItem,
-        };
+        return { ...cleanedItem };
       });
     };
 
@@ -10703,90 +10706,103 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
       caseInfo: {
         caseId: cleanedCaseDetails.case_id,
         createdDtm: cleanedCaseDetails.created_dtm,
+        currentArrearsBand: cleanedCaseDetails.current_arrears_band,
+        proceedDtm: cleanedCaseDetails.proceed_dtm,
+        proceedBy: cleanedCaseDetails.Proceed_By,
+        currentStatus: cleanedCaseDetails.case_current_status,
+        caseCurrentPhase: cleanedCaseDetails.case_current_phase,
         daysCount: Math.floor(
-          (new Date() - new Date(cleanedCaseDetails.created_dtm)) /
-            (1000 * 60 * 60 * 24)
+          (new Date() - new Date(cleanedCaseDetails.created_dtm)) / (1000 * 60 * 60 * 24)
         ),
       },
       basicInfo: {
         accountNo: cleanedCaseDetails.account_no,
         customerName: cleanedCaseDetails.customer_name,
         customerRef: cleanedCaseDetails.customer_ref,
+        customerType: cleanedCaseDetails.customer_type_name,
+        implementedDtm: cleanedCaseDetails.implemented_dtm,
+        accountManagerCode: cleanedCaseDetails.account_manager_code,
         area: cleanedCaseDetails.area,
         rtom: cleanedCaseDetails.rtom,
+        region: cleanedCaseDetails.region,
+        arrearsBand: cleanedCaseDetails.arrears_band,
+        bssArrearsAmount: cleanedCaseDetails.bss_arrears_amount,
         arrearsAmount: cleanedCaseDetails.current_arrears_amount,
+        incidentId: cleanedCaseDetails.incident_id,
         actionType: cleanedCaseDetails.action_type,
-        currentStatus: cleanedCaseDetails.case_current_status,
+        drcCommissionRule: cleanedCaseDetails.drc_commision_rule,
         lastPaymentDate: cleanedCaseDetails.last_payment_date,
         lastBssReadingDate: cleanedCaseDetails.last_bss_reading_date,
+        monitorMonths: cleanedCaseDetails.monitor_months,
+        commission: cleanedCaseDetails.commission,
+        caseDistributionBatchId: cleanedCaseDetails.case_distribution_batch_id,
+        filteredReason: cleanedCaseDetails.filtered_reason,
         remark: cleanedCaseDetails.remark?.[0]?.remark || null,
       },
     };
 
     if (hasData(cleanedCaseDetails.drc)) {
-      response.drcInfo = cleanedCaseDetails.drc.map((drc) => {
+      const drcReversed = [...cleanedCaseDetails.drc].reverse();
+      response.drcInfo = drcReversed.map((drc) => {
         const { recovery_officers, ...restDrc } = drc;
         return {
           ...restDrc,
-          recoveryOfficers: Array.isArray(recovery_officers)
-            ? recovery_officers
-            : [],
+          recoveryOfficers: Array.isArray(recovery_officers) ? recovery_officers : [],
         };
       });
     }
 
     if (hasData(cleanedCaseDetails.ro_edited_customer_details)) {
-      response.roCustomerUpdates = addNavigationMetadata(
-        cleanedCaseDetails.ro_edited_customer_details
-      );
+      response.roCustomerUpdates = addNavigationMetadata([...cleanedCaseDetails.ro_edited_customer_details].reverse());
     }
 
     if (hasData(cleanedCaseDetails.remark)) {
-      response.remark = addNavigationMetadata(cleanedCaseDetails.remark);
+      response.remark = addNavigationMetadata([...cleanedCaseDetails.remark].reverse());
     }
 
     if (hasData(cleanedCaseDetails.approve)) {
-      response.approve = addNavigationMetadata(cleanedCaseDetails.approve);
+      response.approve = addNavigationMetadata([...cleanedCaseDetails.approve].reverse());
     }
 
     if (hasData(cleanedCaseDetails.case_status)) {
-      response.caseStatus = addNavigationMetadata(cleanedCaseDetails.case_status);
+      response.caseStatus = addNavigationMetadata([...cleanedCaseDetails.case_status].reverse());
     }
 
     if (hasData(cleanedCaseDetails.abnormal_stop)) {
-      response.abnormal_stop = addNavigationMetadata(cleanedCaseDetails.abnormal_stop);
+      response.abnormal_stop = addNavigationMetadata([...cleanedCaseDetails.abnormal_stop].reverse());
     }
 
     if (hasData(cleanedCaseDetails.ref_products)) {
-      response.refProducts = addNavigationMetadata(cleanedCaseDetails.ref_products);
+      response.refProducts = addNavigationMetadata([...cleanedCaseDetails.ref_products].reverse());
     }
 
     if (hasData(cleanedCaseDetails.ro_negotiation)) {
-      response.roNegotiations = addNavigationMetadata(cleanedCaseDetails.ro_negotiation);
+      response.roNegotiations = addNavigationMetadata([...cleanedCaseDetails.ro_negotiation].reverse());
     }
 
     if (hasData(cleanedCaseDetails.ro_requests)) {
-      response.roRequests = addNavigationMetadata(cleanedCaseDetails.ro_requests);
+      response.roRequests = addNavigationMetadata([...cleanedCaseDetails.ro_requests].reverse());
     }
 
     if (hasData(cleanedCaseDetails.ro_cpe_collect)) {
-      response.roCpeCollections = addNavigationMetadata(cleanedCaseDetails.ro_cpe_collect);
+      response.roCpeCollections = addNavigationMetadata([...cleanedCaseDetails.ro_cpe_collect].reverse());
     }
 
     if (hasData(cleanedCaseDetails.mediation_board)) {
-      response.mediationBoard = addNavigationMetadata(cleanedCaseDetails.mediation_board);
+      response.mediationBoard = addNavigationMetadata([...cleanedCaseDetails.mediation_board].reverse());
     }
 
     if (hasData(cleanedCaseDetails.settlement)) {
-      response.settlements = addNavigationMetadata(cleanedCaseDetails.settlement);
+      response.settlements = addNavigationMetadata([...cleanedCaseDetails.settlement].reverse());
     }
 
     if (hasData(cleanedCaseDetails.money_transactions)) {
-      response.payments = addNavigationMetadata(cleanedCaseDetails.money_transactions);
+      response.payments = addNavigationMetadata([...cleanedCaseDetails.money_transactions].reverse());
     }
 
     if (hasData(cleanedCaseDetails.litigation)) {
-      response.litigationInfo = cleanedCaseDetails.litigation.map((litigation) => {
+      const litigationReversed = [...cleanedCaseDetails.litigation].reverse();
+      response.litigationInfo = litigationReversed.map((litigation) => {
         const {
           support_documents,
           hs_files_information,
@@ -10797,57 +10813,44 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
 
         return {
           ...restLit,
-          supportDocuments: Array.isArray(support_documents)
-            ? support_documents
-            : [],
-          hsFilesInformation: Array.isArray(hs_files_information)
-            ? hs_files_information
-            : [],
-          legalSubmission: Array.isArray(legal_submission)
-            ? legal_submission
-            : [],
-          legalDetails: Array.isArray(legal_details)
-            ? legal_details
-            : [],
+          supportDocuments: Array.isArray(support_documents) ? support_documents : [],
+          hsFilesInformation: Array.isArray(hs_files_information) ? hs_files_information : [],
+          legalSubmission: Array.isArray(legal_submission) ? legal_submission : [],
+          legalDetails: Array.isArray(legal_details) ? legal_details : [],
         };
       });
     }
 
     if (hasData(cleanedCaseDetails.ftl_lod)) {
-      response.ftlLodLetterDetails = cleanedCaseDetails.ftl_lod.map((ftl_lod) => {
+      const ftlReversed = [...cleanedCaseDetails.ftl_lod].reverse();
+      response.ftlLodLetterDetails = ftlReversed.map((ftl_lod) => {
         const { ftl_lod_letter_details, customer_response, ...restLod } = ftl_lod;
 
         return {
           ...restLod,
-          ftlLodLetterDetails: Array.isArray(ftl_lod_letter_details)
-            ? ftl_lod_letter_details
-            : [],
-          relatedDocuments: Array.isArray(customer_response)
-            ? customer_response
-            : [],
+          ftlLodLetterDetails: Array.isArray(ftl_lod_letter_details) ? ftl_lod_letter_details : [],
+          relatedDocuments: Array.isArray(customer_response) ? customer_response : [],
         };
       });
     }
-   
 
     if (hasData(cleanedCaseDetails.lod_final_reminder)) {
-      response.lodFinalReminder = cleanedCaseDetails.lod_final_reminder.map(
-        (lod_final_reminder) => {
-          const {
-            document_type,
-            lod_submission,
-            lod_response,
-            ...restlodFinalReminder
-          } = lod_final_reminder;
+      const lodFinalReversed = [...cleanedCaseDetails.lod_final_reminder].reverse();
+      response.lodFinalReminder = lodFinalReversed.map((lod_final_reminder) => {
+        const {
+          document_type,
+          lod_submission,
+          lod_response,
+          ...restlodFinalReminder
+        } = lod_final_reminder;
 
-          return {
-            ...restlodFinalReminder,
-            document_type: Array.isArray(document_type) ? document_type : [],
-            lod_submission: Array.isArray(lod_submission) ? lod_submission : [],
-            lod_response: Array.isArray(lod_response) ? lod_response : [],
-          };
-        }
-      );
+        return {
+          ...restlodFinalReminder,
+          document_type: Array.isArray(document_type) ? document_type : [],
+          lod_submission: Array.isArray(lod_submission) ? lod_submission : [],
+          lod_response: Array.isArray(lod_response) ? lod_response : [],
+        };
+      });
     }
 
     res.status(200).json({
@@ -10864,6 +10867,61 @@ export const listdownCaseDetailsByCaseId = async (req, res) => {
   }
 };
 
+
+// export const Create_Task_For_Downloard_Case_Details = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { Created_By } = req.body;
+
+//     if (!Created_By) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({
+//         status: "error",
+//         message: "created by is a required parameter.",
+//       });
+//     }
+
+//     // Flatten the parameters structure
+//     const parameters = {  
+//       created_by: Created_By,
+//     };
+
+//     // Pass parameters directly (without nesting it inside another object)
+//     const taskData = {
+//        Template_Task_Id:2, // add correct Template_Task_Id here
+//       task_type: "Create task for Download Case Details",
+//       ...parameters,
+//       Created_By,
+//       task_status: "open",
+//     };
+
+//     // Call createTaskFunction
+//     await createTaskFunction(taskData, session);
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Task created successfully.",
+//       data: taskData,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message || "Internal server error.",
+//       errors: {
+//         exception: error.message,
+//       },
+//     });
+//   }
+// };
+
 export const List_All_Cases = async (req, res) => {
   try {
     const {
@@ -10874,9 +10932,10 @@ export const List_All_Cases = async (req, res) => {
       DRC,
       arrears_band,
       service_type,
+      account_no,
       pages,
     } = req.body;
-    
+  
     // if (
     //   !case_current_status && !RTOM && !DRC && !arrears_band && !service_type && !From_DAT && !TO_DAT
     // )
@@ -10894,15 +10953,25 @@ export const List_All_Cases = async (req, res) => {
     }
 
     if (RTOM) {
-      pipeline.push({ $match: { area: RTOM } });
+      pipeline.push({
+        $match: {
+          rtom: { $regex: `^${RTOM.trim()}$`, $options: "i" }
+        }
+      });
     }
-
+    
+    
     if (arrears_band) {
       pipeline.push({ $match: { arrears_band } });
     }
 
     if (service_type) {
       pipeline.push({ $match: { drc_commision_rule:service_type } });
+    }
+
+    
+    if (account_no) {
+      pipeline.push({ $match: { account_no:account_no } });
     }
 
     // const dateFilter = {};
@@ -10996,7 +11065,7 @@ export const List_All_Cases = async (req, res) => {
         last_payment_date: caseData.last_payment_date || null,
       };
     });
- 
+ console.log("responseData",responseData)
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
@@ -11197,7 +11266,7 @@ export const Settelment_plan_request_acceptence_type_A = async (req, res) => {
       session.endSession();
       return res.status(400).json({
         message:
-          "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept are required.",
+          "create_by, Interaction_Log_ID, User_Interaction_Type, case_id, Interaction_ID, requestAccept, initial_amount, calendar_month are required.",
       });
     };
 
