@@ -14,6 +14,7 @@ import db from "../config/db.js";
 import moment from "moment";
 import MoneyTransaction from "../models/Money_transactions.js";
 import Case_details from "../models/Case_details.js";
+import MoneyCommission from "../models/Money_commission.js"
 // import CasePayment from "../models/Case_payments.js";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
@@ -165,33 +166,44 @@ export const Create_task_for_Download_Payment_Case_List = async (req, res) => {
 */
 export const Case_Details_Payment_By_Case_ID = async (req, res) => {
   try {
-    const { case_id, money_transaction_id } = req.body;
+    const case_id = Number(req.body.case_id);
+    const money_transaction_id = Number(req.body.money_transaction_id);
 
+    // Input validation
     if (!case_id) {
-      return res.status(400).json({ message: "case_id is required" });
+      return res.status(400).json({ message: "case_id is required and must be a number" });
     }
 
     if (!money_transaction_id) {
-      return res.status(400).json({ message: "money_transaction_id is required" });
+      return res.status(400).json({ message: "money_transaction_id is required and must be a number" });
     }
 
+    // Fetch case details
     const caseDetails = await Case_details.findOne({ case_id });
     if (!caseDetails) {
       return res.status(404).json({ message: "Case not found" });
     }
 
-    const selectedMoneyTransaction = await MoneyTransaction.findOne({ money_transaction_id: money_transaction_id });
+    // Fetch selected money transaction
+    const selectedMoneyTransaction = await MoneyTransaction.findOne({ money_transaction_id });
     if (!selectedMoneyTransaction) {
       return res.status(404).json({ message: "Money transaction not found" });
     }
 
+    // Fetch related money transactions from the case
     const moneyTransactions = caseDetails.money_transactions || [];
     const transactionIds = moneyTransactions.map(txn => txn.money_transaction_id);
 
-    const MoneyTransactionRecords = await MoneyTransaction.find({ money_transaction_id: { $in: transactionIds } });
+    const MoneyTransactionRecords = await MoneyTransaction.find({
+      money_transaction_id: { $in: transactionIds }
+    });
 
+    // Build detailed list of money transactions
     const MoneyTransactionDetails = moneyTransactions.map(txn => {
-      const MoneyTransactionDoc = MoneyTransactionRecords.find(p => p.money_transaction_id === txn.money_transaction_id);
+      const MoneyTransactionDoc = MoneyTransactionRecords.find(
+        p => p.money_transaction_id === txn.money_transaction_id
+      );
+
       return {
         money_transaction_id: txn.money_transaction_id,
         money_transaction_ref: MoneyTransactionDoc?.money_details?.money_transaction_ref,
@@ -204,6 +216,14 @@ export const Case_Details_Payment_By_Case_ID = async (req, res) => {
       };
     });
 
+    // Fetch commission record
+    const commissionRecord = await MoneyCommission.findOne({ money_transaction_id });
+
+    if (!commissionRecord) {
+      console.log(`No commission record found for money_transaction_id: ${money_transaction_id}`);
+    }
+
+    // Prepare response object
     const response = {
       case_id: caseDetails.case_id,
       account_no: selectedMoneyTransaction.account_num,
@@ -213,25 +233,48 @@ export const Case_Details_Payment_By_Case_ID = async (req, res) => {
       settlement_id: selectedMoneyTransaction.settlement_details?.settlement_id,
       installment_seq: selectedMoneyTransaction.settlement_details?.installment_seq,
       case_phase: selectedMoneyTransaction.case_phase,
-      settle_Effected_Amount: selectedMoneyTransaction.settlement_details?.commissionable_amount,
-      commission_type: selectedMoneyTransaction.commission_type,
-      commissionable_amount: selectedMoneyTransaction.settlement_details?.commissionable_amount,
+      settle_Effected_Amount: selectedMoneyTransaction.settlement_details?.commissioning_amount,
+      //commission_type: selectedMoneyTransaction.commission_type,
+      //commissionable_amount: selectedMoneyTransaction.settlement_details?.commissioning_amount,
       drc_id: selectedMoneyTransaction.drc_id,
+      transaction_type: selectedMoneyTransaction.transaction_type,
       ro_id: selectedMoneyTransaction.ro_id,
-      commision_issued_by: selectedMoneyTransaction.commission_issued_by,
-      commision_issued_dtm: selectedMoneyTransaction.commission_issued_dtm,
+      commission_issued_by: selectedMoneyTransaction.commission_issued_by,
+      commission_issued_dtm: selectedMoneyTransaction.commission_issued_dtm,
       payment_details: MoneyTransactionDetails,
       settlement_details: selectedMoneyTransaction.settlement_details,
-      money_details: selectedMoneyTransaction.money_details
+      money_details: selectedMoneyTransaction.money_details,
+      commission_details: commissionRecord
+  ? {
+      commission_id: commissionRecord.commission_id,
+      commission_type: commissionRecord.commission_type,
+      commission_status: commissionRecord.Status_Details?.[0]?.commi_status,
+      commission_amount: commissionRecord.commissioning_amount,
+      billing_centre: commissionRecord.billing_centre,
+      payment_thresold: commissionRecord.payment_thresold,
+      created_dtm: commissionRecord.created_dtm,
+      drc: {
+        drc_id: commissionRecord.drc?.drc_id,
+        ro_id: commissionRecord.drc?.ro_id,
+        drc_expire_dtm: commissionRecord.drc?.drc_expire_dtm,
+        drc_commission_rule: commissionRecord.drc?.drc_commission_rule,
+        additional_infor: commissionRecord.drc?.additional_infor
+      },
+      bonus: commissionRecord.Bonus_Details
+    }
+  : null
+
     };
 
+    // Return success response
     return res.status(200).json({
       message: "Case details retrieved successfully",
       status: "success",
-      data: response,
+      data: response
     });
   } catch (error) {
     console.error("Error fetching case details:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
