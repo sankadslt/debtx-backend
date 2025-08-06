@@ -972,7 +972,7 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
 
     const activeRecoveryOfficers = await Recovery_officer.find({
       drc_id: drc_id,
-      ro_status: "Active"
+      drcUser_status: "Active"
     });
 
 
@@ -988,23 +988,23 @@ export const getActiveRODetailsByDrcID = async (req, res) => {
     const formattedResults = activeRecoveryOfficers?.map((ro) => ({
       ro_id: ro.ro_id,
       ro_name: ro.ro_name,
-      ro_contact_no: ro.ro_contact_no,
+      ro_contact_no: ro.login_contact_no,
       // drc_name: ro.drc_name,
-      ro_status: ro.ro_status,
+      ro_status: ro.drcUser_status,
       // ro_status_date: ro.last_status.ro_status_date,
       // ro_status_edit_by: ro.last_status.ro_status_edit_by,
-      login_type: ro.login_type,
-      login_user_id: ro.login_user_id,
+      // login_type: ro.login_type,
+      login_user_id: ro.drcUser_id,
       remark: ro.remark,
-      ro_nic: ro.ro_nic,
-      ro_end_date: ro.ro_end_dtm || null,
+      ro_nic: ro.nic,
+      ro_end_date: ro.end_dtm || null,
       rtoms_for_ro: ro.rtom.map((rtom) => ({
         name: rtom.rtom_name,
         status: rtom.rtom_status
       })),
-      created_by: ro.ro_create_by,
-      createdAt: ro.createdAt,
-      updatedAt: ro.updatedAt,
+      created_by: ro.create_by,
+      // createdAt: ro.createdAt,
+      // updatedAt: ro.updatedAt,
     }));
 
     // Return the formatted data
@@ -2822,6 +2822,122 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 //   }
 // };
 
+//Working code
+
+// export const Terminate_RO = async (req, res) => {
+//   const session = await mongoose.startSession();
+
+//   try {
+//     const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
+
+//     if (!ro_id && !drcUser_id) {
+//       return res.status(400).json({ status: "error", message: 'Either ro_id or drcUser_id is required in the request body' });
+//     }
+//     if (ro_id && drcUser_id) {
+//       return res.status(400).json({ status: "error", message: 'Please provide either ro_id or drcUser_id, not both' });
+//     }
+//     if (!end_by || !remark || !end_dtm) {
+//       return res.status(400).json({ status: "error", message: 'end_by, remark, and end_dtm are required' });
+//     }
+
+//     const endDate = new Date(end_dtm);
+//     const today = new Date();
+
+//     const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+//     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+//     if (endDateOnly > todayOnly) {
+//       const taskData = {
+//         Template_Task_Id: 38,
+//         task_type: "RO Inactivate for the date",
+//         User_id: ro_id ? `${ro_id}` : `${drcUser_id}`,
+//         end_date: endDate.toISOString(),
+//         Created_By: end_by,
+//         task_status: "open"
+//       };
+
+//       await session.withTransaction(async () => {
+//         await createTaskFunction(taskData, session);
+//       });
+
+//       return res.status(202).json({
+//         status: "success",
+//         message: "Future-dated termination converted into task creation.",
+//         task: taskData
+//       });
+//     }
+
+//     let updatedRO;
+//     let newRemark;
+//     let queryCondition = {};
+//     let drcUser_type = '';
+
+//     if (ro_id) {
+//       queryCondition = { ro_id: Number(ro_id) };
+//       drcUser_type = 'RO';
+//     } else {
+//       queryCondition = { drcUser_id: Number(drcUser_id) };
+//       drcUser_type = 'drcUser';
+//     }
+
+//     await session.withTransaction(async () => {
+//       const user = await Recovery_officer.findOne(queryCondition).session(session);
+
+//       if (!user) throw Object.assign(new Error(`${drcUser_type} not found`), { statusCode: 404 });
+//       if (user.drcUser_status === 'Terminate') throw Object.assign(new Error(`${drcUser_type} is already terminated`), { statusCode: 400 });
+
+//       newRemark = { remark, remark_by: end_by, remark_dtm: end_dtm };
+
+//       const updateFields = {
+//         drcUser_status: 'Terminate',
+//         end_dtm,
+//         end_by
+//       };
+
+//       if (drcUser_type === 'RO' && Array.isArray(user.rtom)) {
+//         updateFields.rtom = user.rtom.map(rtom => ({
+//           ...rtom.toObject ? rtom.toObject() : rtom,
+//           rtom_status: "Inactive",
+//           rtom_update_dtm: end_dtm,
+//           rtom_update_by: end_by
+//         }));
+//       }
+
+//       updatedRO = await Recovery_officer.findOneAndUpdate(
+//         queryCondition,
+//         { $set: updateFields, $push: { remark: newRemark } },
+//         { new: true, runValidators: true, session }
+//       );
+
+//       if (!updatedRO) throw Object.assign(new Error(`Failed to terminate ${drcUser_type}`), { statusCode: 500 });
+//     });
+
+//     const responseData = {
+//       ...(ro_id ? { ro_id: updatedRO.ro_id } : { drcUser_id: updatedRO.drcUser_id }),
+//       ro_name: updatedRO.ro_name,
+//       drcUser_status: updatedRO.drcUser_status,
+//       end_dtm: updatedRO.end_dtm,
+//       end_by: updatedRO.end_by,
+//       termination_remark: newRemark
+//     };
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: `${drcUser_type} terminated successfully`,
+//       data: responseData
+//     });
+//   } catch (error) {
+//     console.error('Error terminating user:', error);
+//     const statusCode = error.statusCode || 500;
+//     const message = error.message || 'Internal server error';
+//     return res.status(statusCode).json({ status: "error", message, ...(statusCode === 500 && { error: error.toString() }) });
+//   } finally {
+//     await session.endSession();
+//   }
+// };
+
+
+
 export const Terminate_RO = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -2908,6 +3024,42 @@ export const Terminate_RO = async (req, res) => {
       );
 
       if (!updatedRO) throw Object.assign(new Error(`Failed to terminate ${drcUser_type}`), { statusCode: 500 });
+
+      // --- PYTHON API INTEGRATION ---
+      // Build python API request data
+      const pythonBody = {
+        user_id: ro_id ? Number(ro_id) : Number(drcUser_id),
+        created_by: end_by,
+        status_reason: "terminated"
+      };
+
+      try {
+        const pythonApiResp = await axios.post(
+          'https://debtx.slt.lk:6500/users/terminate',
+          pythonBody,
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        // You may log or sync the message from python API if needed, e.g.:
+        if (
+          pythonApiResp.data &&
+          (pythonApiResp.data.status === "success" || pythonApiResp.data.status === "already_terminated")
+        ) {
+          // Optionally, append response to termination_remark, or just include in response below
+        } else {
+          // Python API returned an error or unknown response
+          // Optionally, throw or log the error here
+        }
+      } catch (pythonApiError) {
+        // Handle any error from the Python API call; optionally roll back Mongo update or just warn
+        // If you want, you can return a 502 status to indicate a downstream integration failure:
+        throw Object.assign(
+          new Error('Python API termination failed: ' + (pythonApiError.response?.data?.message || pythonApiError.message)),
+          { statusCode: 502 }
+        );
+      }
+      // --- END PYTHON API INTEGRATION ---
+
     });
 
     const responseData = {
@@ -2933,6 +3085,7 @@ export const Terminate_RO = async (req, res) => {
     await session.endSession();
   }
 };
+
 
 
 
@@ -4684,13 +4837,13 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     let rtomStatusSetToInactive = false;
     if (updatingStatus) {
       // Map status to lowercase
-      let pyStatus = drcUser_status?.toLowerCase() || "inactive";
+      let pyStatus = drcUser_status || "Inactive";
       let status_payload = {
         status: pyStatus,
         status_on: currentDate.toISOString(),
         status_by: create_by
       };
-
+      
       const response = await axios.post(
         "https://debtx.slt.lk:6500/users/update/status",
         {
