@@ -46,13 +46,11 @@ const TemplateNegotiationSchema = new mongoose.Schema(
     }, // End date/time
     todo_id: {
         type: Number,
-        required: true,
-        unique: true
+        required: true
     },
     task_id: {
         type: Number,
-        required: true,
-        unique: true
+        required: true
     },
   },
   {

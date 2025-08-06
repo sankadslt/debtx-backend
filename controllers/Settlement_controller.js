@@ -175,7 +175,11 @@ export const Case_Details_Settlement_LOD_FTL_LOD = async (req, res) => {
 
     const settlementPlans = settlements.map(s => ({
       settlement_id: s.settlement_id,
-      settlement_plan: s.settlement_plan,
+      settlement_status: s.settlement_status,
+      settlement_amount: s.settlement_amount,
+      created_dtm: s.created_on,
+      // settlement_plan: s.settlement_plan,
+      expire_date: s.expire_date,
       last_monitoring_dtm: s.last_monitoring_dtm || null
     }));
 
