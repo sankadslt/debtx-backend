@@ -591,7 +591,7 @@ router.post("/Case_Details_Settlement_LOD_FTL_LOD", Case_Details_Settlement_LOD_
 
 
 router.post("/Create_Task_For_Downloard_Settlement_List", Create_Task_For_Downloard_Settlement_List);
-
+ 
 /**
  * @swagger
  * /api/settlement/Settlement_Details_By_Settlement_ID_Case_ID:
