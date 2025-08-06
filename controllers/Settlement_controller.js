@@ -55,12 +55,12 @@ import mongoose from "mongoose";
 */
 export const ListAllSettlementCases = async (req, res) => {
   try {
-    const { account_no, case_id, case_phase, settlement_status, from_date, to_date, pages } = req.body;
+    const { account_no, case_id, settlement_phase, settlement_status, from_date, to_date, pages } = req.body;
 
-    // if (!case_id && !case_phase && !settlement_status && !from_date && !to_date && !account_no) {
+    // if (!case_id && !settlement_phase && !settlement_status && !from_date && !to_date && !account_no) {
     //   return res.status(400).json({
     //     status: "error",
-    //     message: "At least one of case_id, case_phase, settlement_status, account_no, from_date or to_date is required."
+    //     message: "At least one of case_id, settlement_phase, settlement_status, account_no, from_date or to_date is required."
     //   });
     // }
     console.log("Request body:", req.body);
@@ -410,10 +410,6 @@ export const Settlement_Details_By_Settlement_ID_Case_ID = async (req, res) => {
       ro_id: SettlementDetails.ro_id,
       settlement_plans: SettlementDetails.settlement_plan,
       settlement_plan_received: SettlementDetails.settlement_plan_received,
-      cumulative_Settle_Amount:SettlementDetails.cumulative_Settle_Amount,
-      installment_seq: SettlementDetails.installment_seq,
-      Installment_Settle_Amount:SettlementDetails.Installment_Settle_Amount,
-      Plan_Date: SettlementDetails.Plan_Date,
     };
 
     return res.status(200).json({
