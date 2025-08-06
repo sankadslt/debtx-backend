@@ -88,7 +88,12 @@ const incidentSchema = new Schema(
         Arrears: { type: Number, required: true },
         Created_By: { type: String, maxlength: 30, required: true },
         Created_Dtm: { type: Date, required: true },
-        Incident_Status: { type: String, maxlength: 30, enum: ['Direct LOD', 'Incident Reject','Reject Pending', 'Open No Agent','Open CPE Collect'], required: true },
+        Incident_Status: { type: String, maxlength: 30, enum: ['Open','Reject','Done','Forward'], required: true },
+        Incident_direction:{
+            type:String,
+            maxlength: 30,
+            enum: ['Direct LOD', 'Incident Reject','Reject Pending', 'Open No Agent','Open CPE Collect'],
+        },
         Source_Type: {
             type: String,
             maxlength: 30,

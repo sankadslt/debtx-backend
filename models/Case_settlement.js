@@ -21,7 +21,7 @@ const casesettlementSchema = new Schema({
   account_num: { type: String, maxlength: 30, required: true },
   case_id: { type: Number, required: true },
   created_by: { type: String, maxlength: 30, required: true },
-  settlement_status_dtm: { type: Date, default: Date.now },
+  created_on: { type: Date, default: Date.now },
   case_phase: {
     type: String,
     maxlength: 30,
@@ -30,9 +30,10 @@ const casesettlementSchema = new Schema({
   settlement_status: {
     type: String,
     maxlength: 30,
-    enum: ["Open", "Open_Pending", "Active", "WithDraw", "Completed"]
+    enum: ["Open", "Open_Pending", "Active", "WithDraw", "Completed", "Abandant"]
   },
-  status_dtm: { type: Date, default: Date.now },
+  settlement_status_done_by: { type: String, maxlength: 255 },
+  settlement_status_dtm: { type: Date, default: Date.now },
   settlement_status_reason: { type: String, maxlength: 255 },
   settlement_type: {
     type: String,
@@ -43,7 +44,7 @@ const casesettlementSchema = new Schema({
   drc_id: { type: Number },
   ro_id: { type: Number },
   last_monitoring_dtm: { type: Date },
-  settlement_plan_received: [planReceivedSchema],
+  settlement_plan_received: { type: [Number], default: [] },
   settlement_plan: [settlementPlanSchema],
   settlement_occured: { type: Date },
   expire_date: { type: Date },

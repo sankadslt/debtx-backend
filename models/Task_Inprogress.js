@@ -138,6 +138,10 @@ const task_inprogress_Schema = new mongoose.Schema({
     maxlength: 255,
     default: '', // Optional field for additional status details
   },
+  executed_on: {
+    type: Date,
+    default: null, // Date when the task was executed
+  }
 }, {
   collection: 'System_tasks_Inprogress', // Specify the collection name
 });
