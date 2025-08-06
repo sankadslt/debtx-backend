@@ -25,7 +25,7 @@ import {
   Open_No_Agent_Cases_Direct_LD,
   assignROToCase,
   listBehaviorsOfCaseDuringDRC,
-  updateLastRoDetails,
+  Settelment_plan_request_acceptence_type_A,  updateLastRoDetails,
   // listAllActiveRosByDRCID,
   Case_Status,
   Case_List,
@@ -93,7 +93,7 @@ import {
   List_Request_Response_log,
   Create_Task_For_Request_Responce_Log_Download,
   listdownCaseDetailsByCaseId,
-  
+  //  Create_Task_For_Downloard_Case_Details,
   List_All_Cases,
   CaseStatus,
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id,
@@ -11210,6 +11210,8 @@ router.post("/List_Settlement_Details_Owen_By_SettlementID_and_DRCID",List_Settl
  */
 
 router.get('/listdownCaseDetailsByCaseId/:caseId',listdownCaseDetailsByCaseId);
+// router.post('/Create_Task_For_Download_Case_Details',Create_Task_For_Downloard_Case_Details);
+
 
  /**
  * @swagger
@@ -11572,4 +11574,8 @@ router.post(
   List_Rejected_Batch_Summary_Case_Distribution_Batch_Id
 );
 
+router.post(
+  "/Settelment_plan_request_acceptence_type_A",
+  Settelment_plan_request_acceptence_type_A
+);
 export default router;
