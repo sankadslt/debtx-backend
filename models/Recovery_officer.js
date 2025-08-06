@@ -71,12 +71,12 @@ const roSchema = new Schema({
             unique: true,
             sparse: true,
         },
-        drcUser_id: {
+        drc_officer_id: {
             type: Number,
             unique: true,
             sparse: true,
         },
-        ro_name:{
+        name:{
             type: String,
             maxlength: 30,
             required: true,
@@ -99,7 +99,7 @@ const roSchema = new Schema({
         drcUser_type: {
             type: String,
             maxlength: 30,
-            enum: ['RO', 'drcUser'],
+            enum: ['ro', 'drc_officer'],
             required: true,
         },
         drcUser_status: {
