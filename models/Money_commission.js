@@ -1,63 +1,57 @@
-/* 
-    Purpose: This template is used for the DRC Controllers.
-    Created Date: 2024-11-21
-    Created By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)
-    Last Modified Date: 2024-11-24
-    Modified By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)            
-    Version: Node.js v20.11.1
-    Dependencies: mysql2
-    Related Files: DRC_route.js
-    Notes:  
+/*
+  Purpose: This template is used for the DRC Controllers.
+  Created Date: 2024-11-21
+  Created By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)
+  Last Modified Date: 2024-11-24
+  Modified By: Lasandi Randini (randini-im20057@stu.kln.ac.lk)            
+  Version: Node.js v20.11.1
+  Dependencies: mysql2
+  Related Files: DRC_route.js
+  Notes:  
 */
 
 import { Schema, model } from "mongoose";
 
 const moneyCommissionSchema = new Schema({
-  doc_version : {type:Number, required: true, default: 1},
-  commission_id: { type: Number, required: true, unique: true },
+  doc_version: { type: Number, required: true, default: 1 },
+  commission_id: { type: Number, required: true },
+  created_dtm: { type: Date, default: Date.now },
+  money_transaction_id: { type: Number },
   case_id: { type: Number, required: true },
   account_num: { type: String, maxlength: 30, required: true },
-  created_on: { type: Date, default: Date.now },
-  commission_action: {
-    type: String,
-    maxlength: 30,
-    enum: ["Payment", "CPE"]
+  billing_centre: { type: String, maxlength: 50 },
+  commission_type: { type: String, enum: ["arrears", "Commissioned", "Unresolved Commission", "Pending Commission"], required: true },
+  catalog_id: { type: Number },
+  payment_thresold: { type: String, enum: ["Eligible", "Not Eligible"] },
+  commissioning_amount: { type: Number, required: true },
+  
+  drc: {
+    drc_id: { type: Number },
+    ro_id: { type: Number, default: null },
+    drc_expire_dtm: { type: Date },
+    drc_commission_rule: { type: String, maxlength: 50 },
+    additional_infor: {
+      eligible_field_reason_ids: [{ type: Number }]
+    }
   },
-  caterlog_id: { type: Number, required: true },
-  commission_pay_rate_id: { type: Number, required: true },
-  commission_ref: {
-    type: String,
-    maxlength: 30,
-    enum: ["DRC Commission Rule", "CPE_Model"]
+
+  Status_Details: [{
+    commi_status: { type: String, enum: ["Open", "Closed", "Pending", "Rejected"] },
+    commi_dtm: { type: Date, default: Date.now },
+    commi_status_by: { type: String, maxlength: 50 },
+    commi_remark: { type: String }
+  }],
+
+  Bonus_Details: {
+    success_rate_consider: { type: String, enum: ["YES", "NO"], default: "NO" },
+    completion_rate_consider: { type: String, enum: ["YES", "NO"], default: "NO" }
   },
-  transaction_ref: {
-    type: String,
-    maxlength: 30,
-    enum: ["money_transaction_id", "rcmp_transaction_id"]
-  },
-  drc_id: { type: Number },
-  ro_id: { type: Number },
-  commission_amount: { type: Number, required: true },
-  commission_type: {
-    type: String,
-    maxlength: 30,
-    enum: ["Commissioned", "Unresolved Commission", "Pending Commission"]
-  },
-  commission_status: {
-    type: String,
-    maxlength: 30,
-    required: true,
-  },
-  commission_status_on: { type: Date, default: Date.now },
-  commission_status_reason: { type: String },
-  check_by: { type: String, maxlength: 30 },
-  check_on: { type: Date, default: Date.now },
-  approved_by: { type: String, maxlength: 30 },
-  approved_on: { type: Date, default: Date.now },
-},{
-    collection: 'Money_commission',
-  }
-);
+
+  release_batch_id: { type: Schema.Types.Mixed, default: null }  // could be null or an ObjectId/Number
+
+}, {
+  collection: 'Money_commission'
+});
 
 const MoneyCommission = model("MoneyCommission", moneyCommissionSchema);
 
