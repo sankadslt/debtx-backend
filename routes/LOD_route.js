@@ -26,6 +26,7 @@ import {
   case_details_for_lod_final_reminder,
   List_All_LOD_Holdlist,
   Proceed_LD_Hold_List,
+  Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases_Not_LIT_Priscribed
 } from "../controllers/LOD_controller.js";
 
 router.post("/Retrive_logic", Retrive_logic);
@@ -1022,5 +1023,10 @@ router.post(
 router.post("/List_All_LOD_Holdlist", List_All_LOD_Holdlist);
 
 router.post("/Proceed_LD_Hold_List", Proceed_LD_Hold_List);
+
+router.post(
+  "/Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases_Not_LIT_Priscribed",
+  Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases_Not_LIT_Priscribed
+);
 
 export default router;
