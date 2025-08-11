@@ -1734,7 +1734,7 @@ export const List_Abundant_Incident = async (req, res) => {
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     
-    let query = { Incident_direction: "Incident Abundant" };
+    let query = { Incident_Status: "Abundent" };
 
     
     const dateFilter = {};
