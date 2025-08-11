@@ -120,16 +120,17 @@ export const createTask = async (req, res) => {
         return res.status(500).json({ message: "Failed to generate Task_Id" });
       }
 
-  
+      const hasDynamicParams = Object.keys(dynamicParams).length > 0;
       // Prepare task data
       const taskData = {
+        doc_version: hasDynamicParams ? 2 : 1,
         Task_Id,
         Template_Task_Id,
         task_type,
         parameters:{
           dynamicParams,
-          Actions: dynamicParams?.Actions ?? null,
-          Incident_Status: dynamicParams?.Incident_Status ?? null,
+          // Actions: dynamicParams?.Actions ?? null,
+          // Incident_direction: dynamicParams?.Incident_direction ?? null,
           
 
         } , // Accept dynamic parameters
@@ -148,7 +149,7 @@ export const createTask = async (req, res) => {
 
       await session.commitTransaction(); // Commit the transaction
       session.endSession();
-  
+      
       return res.status(201).json({ 
         message: "Task created successfully", 
         Task_Id, 
@@ -157,10 +158,11 @@ export const createTask = async (req, res) => {
         dynamicParams, 
         Created_By 
       });
+       
     } catch (error) {
       await session.abortTransaction(); // Rollback on error
       session.endSession();
-      
+     
       console.error("Error creating task:", error);
       return res.status(500).json({ message: "Internal Server Error", error: error.message });
      
@@ -474,6 +476,9 @@ export const List_All_Open_Requests_For_To_Do_List = async (req, res) => {
         }
       },
 
+      {
+        $sort: { "CreateDTM": -1 }
+      },
       
       // Final projection
       {
