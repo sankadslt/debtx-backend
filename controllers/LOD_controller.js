@@ -170,7 +170,7 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     };
 
     // Call createTaskFunction
-    await createTaskFunction(taskData, session);
+    const response = await createTaskFunction(taskData, session);
 
     await session.commitTransaction();
     session.endSession();
@@ -178,7 +178,7 @@ export const Create_Task_For_Downloard_All_Digital_Signature_LOD_Cases = async (
     return res.status(200).json({
       status: "success",
       message: "Task created successfully.",
-      data: taskData,
+      data: response,
     });
   } catch (error) {
     await session.abortTransaction();
@@ -737,3 +737,63 @@ export const Proceed_LD_Hold_List = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases_Not_LIT_Priscribed =
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const { Created_By, current_document_type, from_date, to_date, date_type, status } = req.body;
+
+      if (!Created_By || !current_document_type) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          status: "error",
+          message:
+            "created by and current document type are required parameters.",
+        });
+      }
+
+      // Flatten the parameters structure
+      const parameters = {
+        case_current_status: status,
+        current_document_type,
+        from_date,
+        to_date,
+        date_type,
+      };
+
+      // Pass parameters directly (without nesting it inside another object)
+      const taskData = {
+        Template_Task_Id: 40,
+        task_type: "Create Task For Downloard Each LOD OR Final Reminder Cases",
+        ...parameters,
+        Created_By,
+        task_status: "open",
+      };
+
+      // Call createTaskFunction
+      const response = await createTaskFunction(taskData, session);
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+        status: "success",
+        message: "Task created successfully.",
+        data: response,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        status: "error",
+        message: error.message || "Internal server error.",
+        errors: {
+          exception: error.message,
+        },
+      });
+    }
+  };
