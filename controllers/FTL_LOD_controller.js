@@ -347,60 +347,64 @@ export const List_FTL_LOD_Cases = async (req, res) => {
 */
 
 
+export const FLT_LOD_Case_Details = async (req, res) => {
+  try {
+    const { case_id } = req.body;
 
-  export const FLT_LOD_Case_Details = async (req, res) => {
-    try {
-          // Step 1: Extract case_id from request body
-      const { case_id } = req.body;
-      if (!case_id) {
-        return res.status(400).json({ error: 'Missing case_id in request body' });
-      }
-  
-          // Step 2: Find the case document using case_id
-      const caseDoc = await Case_details.findOne({ case_id }).lean();
-      if (!caseDoc) {
-        return res.status(404).json({ error: 'Case not found' });
-      }
-  
-          // Step 3: Destructure relevant fields from caseDoc
-      const { account_no, current_arrears_band, rtom, area, incident_id, ref_products } = caseDoc;
-  
-          // Step 4: Find related incident document using incident_id
-      const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
-      if (!incidentDoc) {
-        return res.status(404).json({ error: 'Related incident not found' });
-      }
-  
-          // Step 5: Extract customer details from incident document
-      const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
-  
-    // Step 6: Filter ref_products by matching account_no to extract relevant services
-      const matchingServices = (ref_products || [])
-        .filter(product => product.account_no === account_no)
-        .map(product => product.service);
-  
-            // Step 7: Construct result object to return
-      const result = {
-        account_no,
-        current_arrears_band,
-        rtom,
-        area,
-        incident_id,
-        customer_name: Customer_Name,
-        full_address: Full_Address,
-        customer_type_name: Customer_Type_Name,
-        event_source: matchingServices
-      };
-  
-          // Step 8: Send successful response with constructed result
-      return res.status(200).json(result);
-  
-    } catch (err) {
-          // Step 9: Handle any unexpected errors
-      console.error('Error fetching FLT LOD case details:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+    // Step 1: Validate input
+    if (!case_id) {
+      return res.status(400).json({ status: "error", message: "Missing case_id in request body" });
     }
-  };
+
+    // Step 2: Check if case exists
+    const caseDoc = await Case_details.findOne({ case_id }).lean();
+    if (!caseDoc) {
+      return res.status(404).json({ status: "error", message: "Case not found for the given case_id" });
+    }
+
+    const { account_no, current_arrears_band, rtom, area, incident_id, ref_products } = caseDoc;
+
+    // Step 3: Check if related incident exists
+    const incidentDoc = await Incident.findOne({ Incident_Id: incident_id }).lean();
+    if (!incidentDoc) {
+      return res.status(404).json({ status: "error", message: "Related incident not found for the case" });
+    }
+
+    // Step 4: Extract customer details
+    const { Customer_Name, Full_Address, Customer_Type_Name } = incidentDoc.Customer_Details;
+
+    // Step 5: Filter relevant services
+    const matchingServices = (ref_products || [])
+      .filter(product => product.account_no === account_no)
+      .map(product => product.service);
+
+      // Check if any other cases are related to this incident_id
+    const relatedCases = await Case_details.find({
+      incident_id: incident_id,
+      case_id: { $ne: case_id }  // exclude the current case
+    }).lean();
+
+
+    // Step 6: Build response
+    const result = {
+      account_no,
+      current_arrears_band,
+      rtom,
+      area,
+      incident_id,
+      customer_name: Customer_Name,
+      full_address: Full_Address,
+      customer_type_name: Customer_Type_Name,
+      event_source: matchingServices
+    };
+
+    return res.status(200).json({ status: "success", data: result });
+
+  } catch (err) {
+    console.error("Error in FLT_LOD_Case_Details:", err);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+};
 
 /*
   Function: Create_FLT_LOD (FLT-1P02)
@@ -446,12 +450,18 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       if (!case_id || !pdf_by || !signed_by || !customer_name || !created_by || !postal_address || !event_source) {
         return res.status(400).json({ error: 'Missing required fields in request body' });
       }
-  
-          // Step 3: Generate timestamps for record creation
+
+      // Step 3: Find the case document using case_id
+      const caseDetails = await Case_details.findOne({ case_id });
+      if (!caseDetails) {
+        return res.status(404).json({ error: 'Case not found for the provided case_id' });
+      }
+
+      // Step 4: Generate timestamps for record creation
       const now = new Date();
       const expire_date = null;
-  
-          // Step 4: Construct FTL LOD entry to be pushed into the case
+
+      // Step 5: Construct FTL LOD entry to be pushed into the case
       const ftlEntry = {
         pdf_by,
         pdf_on: now,
@@ -469,7 +479,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
         customer_response: []
       };
   
-          // Step 5: Prepare the case status update to reflect FTL LOD creation
+          // Step 6: Prepare the case status update to reflect FTL LOD creation
       const caseStatusEntry = {
         case_status: 'Initial FTL LOD',
         created_dtm: now,
@@ -481,7 +491,7 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       };
   
       
-    // Step 6: Update the case document - push FTL entry & status, set current status
+    // Step 7: Update the case document - push FTL entry & status, set current status
       const updateResult = await Case_details.updateOne(
         { case_id },
         {
@@ -497,9 +507,9 @@ export const List_FTL_LOD_Cases = async (req, res) => {
       );
   
           // Step 7: Handle case not found
-      if (updateResult.matchedCount === 0) {
-        return res.status(404).json({ error: 'Case not found' });
-      }
+      // if (updateResult.matchedCount === 0) {
+      //   return res.status(404).json({ error: 'Case not found' });
+      // }
   
           // Step 8: Return success response
       return res.status(200).json({ message: 'FTL LOD entry and case status updated successfully' });
