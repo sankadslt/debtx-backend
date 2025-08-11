@@ -704,3 +704,131 @@ export const Create_Abondoned_case = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+
+export const List_All_Case_Closed_Log = async (req, res) => {
+  try {
+    const { account_no, phase,RTOM, from_date, to_date, pages } = req.body;
+
+  
+    console.log("Request body:", req.body);
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const query = {};
+
+    if (account_no) query.account_num = account_no;
+     
+    if (phase) query.case_phase = phase;
+    if (status) query.status = status;
+
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999); 
+      dateFilter.$lte = endOfDay;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      query.created_on = dateFilter;
+    }
+
+    const filtered_cases = await CaseDetails.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ settlement_id: -1 });
+
+    const responseData = filtered_cases.map((caseData) => {
+      return {
+       
+        account_no: caseData.account_num,
+        status: caseData.status,
+        created_dtm: caseData.created_on,
+        phase: caseData.phase,
+        
+      };
+    })
+
+    if (responseData.length === 0) {
+      return res.status(204).json({
+        status: "error",
+        message: "No matching  Case Closed Log found."
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Cases retrieved successfully.",
+      data: responseData,
+    });
+
+  } catch (error) {
+    console.error("Error fetching  Case Closed Log:", error.message);
+    return res.status(500).json({
+      status: "error",
+      message: "There is an error "
+    });
+  }
+};
+
+export const Create_Task_For_Downloard_Case_Closed_List = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { Created_By, Phase, Case_Status, from_date, to_date, Case_ID, Account_Number } = req.body;
+
+    if (!Created_By) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        status: "error",
+        message: "created by is a required parameter.",
+      });
+    }
+
+    
+    const parameters = {  
+      Account_No: Account_Number,
+      case_ID: Case_ID,
+      Phase: Phase,
+      Case_Status: Case_Status,
+      from_date: from_date,
+      to_date: to_date,
+    };
+
+     
+    const taskData = {
+      Template_Task_Id: 42,
+      task_type: "Create task for Download Case Closed Log",
+      ...parameters,
+      Created_By,
+      task_status: "open",
+    };
+
+     
+    const response = await createTaskFunction(taskData, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task created successfully.",
+      data: response,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};

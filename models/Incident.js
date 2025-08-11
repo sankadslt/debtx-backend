@@ -132,7 +132,7 @@ const incidentSchema = new Schema(
         Last_Actions: { type: lastActionsSchema, required: true },
         Marketing_Details: { type: markertingDetailsSchema, required: true },
         current_arrears_band: { type: String, maxlength: 30, required:true,default: "Default Band"},
-        drc_commision_rule: { type: String, maxlength: 30, required: true, default: "PEO TV" },
+        drc_commision_rule: { type: String, maxlength: 30, required: true },
       
         
     },
