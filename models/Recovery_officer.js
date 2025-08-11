@@ -71,12 +71,12 @@ const roSchema = new Schema({
             unique: true,
             sparse: true,
         },
-        drcUser_id: {
+        drc_officer_id: {
             type: Number,
             unique: true,
             sparse: true,
         },
-        ro_name:{
+        name:{
             type: String,
             maxlength: 30,
             required: true,
@@ -91,6 +91,11 @@ const roSchema = new Schema({
             maxlength: 30,
             required: true,
         },
+        login_contact_no_two: {
+            type: String,
+            maxlength: 30,
+            default: null,
+        },
         nic: {
             type: String,
             maxlength: 30,
@@ -99,9 +104,16 @@ const roSchema = new Schema({
         drcUser_type: {
             type: String,
             maxlength: 30,
-            enum: ['RO', 'drcUser'],
+            enum: ['ro', 'drc_officer'],
             required: true,
         },
+         user_role: {
+            type: String,
+            enum: ['DRC Coordinator', 'call center', 'DRC staff'],  
+            default: null,
+            maxlength: 30
+        },
+    
         drcUser_status: {
             type: String,
             maxlength: 30,
