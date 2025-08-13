@@ -55,20 +55,6 @@ const contactsSchema = new Schema({
   geo_location: {type: String, maxlength: 30, default:null},
 },{ _id: false });
 
-const editedcontactsSchema = new Schema({
-  ro_id: { type: Number },
-  drc_id: { type: Number, required: true },
-  edited_dtm: { type: Date, required: true },
-  contact_type: { type: String, maxlength: 30, enum: ['Mobile', 'Landline'],default:null },
-  contact_no: { type: Number, default:null},
-  customer_identification_type: { type: String, maxlength: 30, enum: ['NIC', 'Passport', "Driving License"],default:null },
-  customer_identification: { type: String, maxlength: 30, default:null },
-  email: { type: String, maxlength: 30, default:null},
-  address: { type: String, maxlength: 255, default:null },
-  geo_location: {type: String, maxlength: 30, default:null},
-  remark:{type: String, maxlength: 255, default:null},
-},{ _id: false });
-
 // Define the schema for DRC
 const drcSchema = new Schema({
   order_id: { type: Number, required: true },
@@ -97,15 +83,28 @@ const abnormalSchema = new Schema({
 },{_id: false });
 
 const productDetailsSchema = new Schema({
-  service: { type: String, maxlength: 30, required: true },
-  product_label: { type: String, maxlength: 30, required: true },
-  product_status: { type: String, maxlength: 30, required: true },
-  status_Dtm: { type: Date, required: true },
+  Product_Seq: { type: Number, required: true },
+  Service_Type: { type: String, maxlength: 30, required: true },
+  Product_Label: { type: String, maxlength: 30, required: true },
+  Product_Status: { type: String, maxlength: 30, required: true },
+  Product_Id: { type: Number, required: true },
+  Integration_Id: { type: String, maxlength: 30, required: true },
+  Product_Name: { type: String, maxlength: 255, required: true },
+  Effective_Dtm: { type: Date, required: true },
   rtom: { type: String, maxlength: 30, required: true },
-  product_ownership: { type: String, maxlength: 30, required: true },
-  service_address: { type: String, maxlength: 255, required: true },
-  account_no: { type: String, maxlength: 30, required: true}
-
+  Equipment_Ownership: { type: String, maxlength: 30, required: true },
+  Service_Address: { type: String, maxlength: 255, required: true },
+  account_no: { type: String, maxlength: 30, required: true},
+  Customer_Ref: { type: String, maxlength: 30, required: true },
+  Cat: { type: String, maxlength: 255, required: true },
+  Db_Cpe_Status: { type: String, maxlength: 255, required: true },
+  Received_List_Cpe_Status: { type: String, maxlength: 255, required: true },
+  LEA: { type: String, maxlength: 30, required: true },
+  RTOM: { type: String, maxlength: 30, required: true },
+  City: { type: String, maxlength: 30, required: true },
+  District: { type: String, maxlength: 255, required: true },
+  Region: { type: String, maxlength: 255, required: true },
+  Province: { type: String, maxlength: 255, required: true },
 });
 
 const RoCpeCollectSchema = new mongoose.Schema({
@@ -128,10 +127,12 @@ const RoCpeCollectSchema = new mongoose.Schema({
 const roNegotiationSchema = new mongoose.Schema({
   drc_id: { type: Number, required: true },
   ro_id: { type: Number, required: true },
+  drc: { type: String, maxlength: 255, default:"" },
+  ro_name: { type: String, maxlength: 255, default:"" },
   created_dtm: { type: Date, required: true },
-  field_reason: { type: String, maxlength: 255, default:true },
-  Feild_reason_ID: { type: Number, default:true },
-  negotiation_remark: { type: String, maxlength: 255, default:true },
+  field_reason: { type: String, maxlength: 255, default:"" },
+  Field_reason_ID: { type: Number, default:null },
+  negotiation_remark: { type: String, maxlength: 255, default:"" },
 });
 
 const roRequestsSchema = new mongoose.Schema({
@@ -163,7 +164,7 @@ const mediationBoardSchema = new mongoose.Schema({
 });
 
 const settlementschema = new Schema({
-  settlement_id: {type: Number, required: true, unique: true},
+  settlement_id: {type: Number, required: true },
   settlement_created_dtm: {type: Date, required:true},
   settlment_status: {type: String, maxlength: 30, required:true},
   drc_id: { type: Number, required: true },
@@ -172,14 +173,13 @@ const settlementschema = new Schema({
 });
 
 const moneytransactionsschema = new Schema({
-  money_transaction_id: {type: Number, required: true, unique: true},
+  money_transaction_id: {type: Number, required: true},
   payment_Dtm: {type: Date, required:true},
   payment_Type : {type: String, maxlength: 30, required:true},
   payment : { type: Number, required: true },
   case_phase : {type: String, maxlength: 30, required:true},
   settle_balanced : { type: Number, required: true },
 });
-
 
 // Define the schema and sub-schemas for litigation schema
 const rtomCustomerFileSchema = new Schema({
@@ -263,7 +263,7 @@ const customer_response_of_LOD_schema = new Schema({
 },{_id: false });
 
 const FTL_LOD_Schema = new Schema({
-  pdf_by: {type: String, maxlength: 30, required: true, unique: true},
+  pdf_by: {type: String, maxlength: 30, required: true},
   pdf_on: {type: Date, required:true},
   expire_date : {type: Date, required:true},
   signed_by : { type: String, maxlength: 30, required: true },
@@ -293,6 +293,26 @@ const lod_response_schema = new Schema({
   created_on: {type:Date, required:true},
 },{_id: false });
 
+const current_contact_details_schema = new Schema({
+  contact_type: { type: String, maxlength: 30, required: true, enum: ['Email', 'Mobile', 'Address', 'geo_location'] },
+  contact:{ type: String, maxlength: 40, required: true },
+},{_id: false });
+
+const current_customer_identification_schema = new Schema({
+  Identification_type: { type: String, maxlength: 30, required: true, enum: ['Driving License', 'Passport', 'NIC'] },
+  contact:{ type: String, maxlength: 40, required: true },
+},{_id: false });
+
+const editedcontactsSchema = new Schema({
+  ro_id: { type: Number },
+  drc_id: { type: Number, required: true },
+  edited_dtm: { type: Date, required: true },
+  contact_details:[current_contact_details_schema],
+  customer_identification:[current_customer_identification_schema],
+  remark:{type: String, maxlength: 255, default:null},
+  edited_by:{type: String, maxlength: 255, required:true},
+},{ _id: false });
+
 const lod_final_reminder_Schema = new Schema({
   source_type: {
     type: String,
@@ -316,6 +336,49 @@ const lod_final_reminder_Schema = new Schema({
     notification_on :{ type: Date, default:null }
   }],
 });
+
+const disputePostalAddressSchema = new Schema({
+  Address1: { type: String, maxlength: 255, required: true },
+  Address2: { type: String, maxlength: 255, required: true },
+  Address3: { type: String, maxlength: 255, required: true },
+  Address4: { type: String, maxlength: 255, required: true },
+  Address5: { type: String, maxlength: 255, required: true },
+  
+}, { _id: false });
+
+const disputeHandedOverModeSchema = new Schema({
+  HandOver_channel: {
+    type: String,
+    maxlength: 30,
+    enum: ["RTOM", "OPMC", "CRC"],
+    required: true,
+  },
+  channel_name: { type: String, maxlength: 30, required: true },
+  channel_email: { type: String, maxlength: 30, required: true },
+  channel_email_cc: { type: String, maxlength: 30, required: true },
+  remark: { type: String, maxlength: 100, default: null }, 
+}, { _id: false });
+
+const disputeLetterDetailsSchema = new Schema({
+  created_on: { type: Date, required: true },
+  created_by:{type: String, maxlength: 30, required:true},
+  tele_no: { type: Number, required: true },
+  customer_name: { type: String, maxlength: 30, required: true },
+  dispute_mode: {
+    type: String,
+    maxlength: 30,
+    enum: ["Settlement", "Handed over"],
+    required: true,
+  },
+  postal_address:[disputePostalAddressSchema],
+  handed_over_mode:[disputeHandedOverModeSchema],
+}, { _id: false });
+
+const disputeSchema = new Schema({
+  disputed_on: { type: Date, required: true },
+  dispute_letter_details: [disputeLetterDetailsSchema],
+  dispute_expire_date: {type:Date, required: true},
+}, { _id: false });
 
 // Define the main case details schema
 const caseDetailsSchema = new Schema({ 
@@ -348,7 +411,9 @@ const caseDetailsSchema = new Schema({
   Proceed_By: { type: String, maxlength: 30, required: null },
   region:{ type: String, maxlength: 30, required: null},
   ro_edited_customer_details: [editedcontactsSchema],
-  current_contact: [contactsSchema],
+  current_contact: [contactsSchema], //should be remove
+  current_contact_details: [current_contact_details_schema], //new one
+  current_customer_identification: [current_customer_identification_schema], // new one
   remark: [remarkSchema],
   approve: [approvalSchema],
   case_status: [caseStatusSchema],
@@ -361,10 +426,13 @@ const caseDetailsSchema = new Schema({
   ro_cpe_collect : [RoCpeCollectSchema],
   mediation_board: [mediationBoardSchema],
   settlement : [settlementschema],
-  money_transactions	: [moneytransactionsschema],
+  money_transactions: [{
+    money_transaction_id: { type: Number, required: true }
+  }],
   litigation: [litigationSchema],
   ftl_lod: [FTL_LOD_Schema],
   lod_final_reminder: {type: lod_final_reminder_Schema, default: null},
+  dispute: [disputeSchema],
 },
 {
   collection: 'Case_details', 

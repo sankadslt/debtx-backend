@@ -38,12 +38,12 @@ const TemplateMediationBoardSchema = new mongoose.Schema(
     todo_id: {
         type: Number,
         required: true,
-        unique: true
+        // unique: true
     },
     task_id: {
         type: Number,
         required: true,
-        unique: true
+        // unique: true
     },
   },
   {
