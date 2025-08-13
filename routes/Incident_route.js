@@ -327,6 +327,7 @@ router.patch("/Reject_Case", Reject_Case);
  */
 router.post("/List_Incidents", List_Incidents);
 router.post("/New_List_Incidents", New_List_Incidents);
+router.get('/listdownIncidentDetailsByIncidentId/:incidentId', listdownIncidentDetailsByIncidentId);
 
 /**
  * @swagger
