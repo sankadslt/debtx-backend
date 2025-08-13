@@ -84,7 +84,8 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
         Deligate_By: log.deligate_by,
         Created_On: log.created_on,
         File_Remove_On: log.file_remove_on,
-        File_Name: log.file_name,
+        File_Name: log.file_name
+        
       };
     });
 
@@ -92,8 +93,9 @@ export const List_Download_Files_from_Download_Log = async (req, res) => {
       status: "success",
       message: "File download logs retrieved successfully.",
       data: responseData,
-     
+      
     });
+    console.log("responseData",responseData)
   } catch (error) {
     console.error("Error fetching File download logs:", error);
     return res.status(500).json({

@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import db from '../config/db.js';
 import User_Approval from '../models/User_Approval.js';
+import RecoveryOfficer from "../models/Recovery_officer.js";
 
 // Function to Get user details by user roles
 export const getUserDetailsByRole = async (req, res) => {
@@ -165,7 +166,7 @@ export const List_All_User_Details = async (req, res) => {
       },
     });
   }
-};
+}; 
 
 /*
     Function: 
@@ -212,6 +213,8 @@ export const List_All_User_Details = async (req, res) => {
 export const List_All_User_Details_By_ID = async (req, res) => {
   const { user_id } = req.body;
 
+  console.log("User ID:", user_id);
+  
   if (!user_id) {
     return res.status(400).json({
       status: "error",
@@ -222,9 +225,7 @@ export const List_All_User_Details_By_ID = async (req, res) => {
   try {
     const user = await User.aggregate([
       { $match: { 
-        user_id: user_id, 
-        user_type: "Slt", 
-        user_status: "Active" 
+        user_id: user_id + "@intranet.slt.com.lk",
       } },
       {
         $project: {
@@ -462,9 +463,10 @@ export const End_User = async (req, res) => {
 */
 export const Update_User_Details = async (req, res) => {
   const session = await mongoose.startSession();
-
+  
   try {
     const { user_id, updated_by, role, user_status, remark } = req.body;
+    console.log("Request Body", req.body);
     
     // Validate User ID
     if (!user_id) {
@@ -571,33 +573,9 @@ export const Update_User_Details = async (req, res) => {
 
 //     const mongoConnection = await db.connectMongoDB();
 
-//     const existingUser = await User.findOne({ user_id });
-
-//     if (existingUser) {
-//       const existingNumbers = existingUser.contact_num.map(
-//         (c) => c.contact_number.toString()
-//       );
-
-//       if (!existingNumbers.includes(contact_no.toString())) {
-//         existingUser.contact_num.push({ contact_number: Number(contact_no) });
-
-//         await existingUser.save();
-
-//         return res.status(200).json({
-//           status: "success",
-//           message: "Contact number added to existing user.",
-//           data: {
-//             user_id,
-//             updated_contact_numbers: existingUser.contact_num,
-//           },
-//         });
-//       } else {
-//         return res.status(200).json({
-//           status: "info",
-//           message: "Contact number already exists for this user.",
-//         });
-//       }
-//     }
+//     const formattedContactNumbers = Array.isArray(contact_no)
+//       ? contact_no.map((num) => ({ contact_number: Number(num) }))
+//       : [{ contact_number: Number(contact_no) }];
 
 //     // Generate sequence
 //     const counterResult = await mongoConnection
@@ -619,7 +597,7 @@ export const Update_User_Details = async (req, res) => {
 //       user_type,
 //       username,
 //       email,
-//       contact_num: [{ contact_number: Number(contact_no) }],
+//       contact_num: formattedContactNumbers,
 //       login_method,
 //       role,
 //       drc_id,
@@ -642,7 +620,6 @@ export const Update_User_Details = async (req, res) => {
 //           remark_by: created_by,
 //         },
 //       ],
-//       password: "default", // TODO: remove or hash
 //     });
 
 //     await newUser.save();
@@ -666,67 +643,145 @@ export const Update_User_Details = async (req, res) => {
 //   }
 // };
 
+// export const List_User_Approval_Details = async (req, res) => {
+//   try {
+//     const { user_type, from_date, to_date, page } = req.body;
+
+//     console.log("Payload:" ,req.body);
+    
+//     // Pagination logic
+//     let currentPage = Number(page);
+//     if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+//     const limit = currentPage === 1 ? 10 : 30;
+//     const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+
+//     const query = {};
+
+//     if (user_type) {
+//       query.user_type = user_type;
+//     }
+
+//     if (from_date || to_date) {
+//       const dateFilter = {};
+//       if (from_date) dateFilter.$gte = new Date(from_date);
+//       if (to_date) {
+//         const endOfDay = new Date(to_date);
+//         endOfDay.setHours(23, 59, 59, 999);
+//         dateFilter.$lte = endOfDay;
+//       }
+//       query.created_dtm = dateFilter;
+//     }
+
+//     const result = await User_Approval.aggregate([
+//       { $match: query },
+//       { $sort: { created_dtm: -1 } },
+//       { $skip: skip },
+//       { $limit: limit },
+//       {
+//         $project: {
+//           _id: 0,
+//           approval_id: 1,
+//           user_name: 1,
+//           user_type: 1,
+//           login_email: 1,
+//           login_method: "$parameters.login_method",
+//           created_dtm: 1
+//         }
+//       }
+//     ]);
+
+//     return res.status(200).json({
+//       status: "success",
+//       message: "User approval details retrieved successfully.",
+//       data: result
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching User Approval Details:", error.message);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "There was an error retrieving user approval details."
+//     });
+//   }
+// };
+
+
 export const List_User_Approval_Details = async (req, res) => {
   try {
-    const { user_type, from_date, to_date, page } = req.body;
+    let { userType, dateFrom, dateTo, pages } = req.body;
 
-    console.log("Payload:" ,req.body);
-    
-    // Pagination logic
-    let currentPage = Number(page);
-    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
-    const limit = currentPage === 1 ? 10 : 30;
-    const skip = currentPage === 1 ? 0 : 10 + (currentPage - 2) * 30;
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
 
-    const query = {};
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
-    if (user_type) {
-      query.user_type = user_type;
+    // Build query filter
+    let filter = {};
+    if (userType) {
+      // Your backend stores as 'RO' or 'DRC User'
+      filter.User_Type = userType;
+    }
+    if (dateFrom || dateTo) {
+      filter.created_on = {};
+      if (dateFrom) filter.created_on.$gte = new Date(dateFrom);
+      if (dateTo) filter.created_on.$lte = new Date(dateTo);
     }
 
-    if (from_date || to_date) {
-      const dateFilter = {};
-      if (from_date) dateFilter.$gte = new Date(from_date);
-      if (to_date) {
-        const endOfDay = new Date(to_date);
-        endOfDay.setHours(23, 59, 59, 999);
-        dateFilter.$lte = endOfDay;
-      }
-      query.created_dtm = dateFilter;
-    }
+    // Get total count without pagination
+    const totalCount = await User_Approval.countDocuments(filter);
 
-    const result = await User_Approval.aggregate([
-      { $match: query },
-      { $sort: { created_dtm: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 0,
-          approval_id: 1,
-          user_name: 1,
-          user_type: 1,
-          login_email: 1,
-          login_method: "$parameters.login_method",
-          created_dtm: 1
-        }
+    // Query and paginate from User_Approval
+    const approvals = await User_Approval.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ created_on: -1 });
+
+    // Enrich each approval with user info from Recovery_officer
+    const approvalData = await Promise.all(approvals.map(async (approval) => {
+      // Find the relevant officer (RO or DRC User)
+      let officerQuery = {};
+      if (approval.User_Type === "RO") {
+        officerQuery.ro_id = Number(approval.User_id);
+      } else if (approval.User_Type === "DRC User") {
+        officerQuery.drcUser_id = Number(approval.User_id);
       }
-    ]);
+      let officer = await RecoveryOfficer.findOne(officerQuery);
+
+      // Flatten parameters if any
+      const params = approval.Parameters || {};
+
+      return {
+        User_Type: approval.User_Type,
+        User_id: approval.User_id,
+        approve_status: approval.approve_status,
+        approver_type: approval.approver_type,
+        username: officer ? officer.ro_name : '',
+        user_mail: officer ? officer.login_email : '',
+        created_date: approval.created_on,
+        parameters: params,
+        phone: params.login_contact_no || (officer ? officer.login_contact_no : ""),
+        drcUser_status: params.drcUser_status || (officer ? officer.drcUser_status : ""),
+        DRC_id: approval.DRC_id
+      };
+    }));
 
     return res.status(200).json({
-      status: "success",
-      message: "User approval details retrieved successfully.",
-      data: result
+      status: true,
+      message: "User approvals retrieved successfully.",
+      data: approvalData,
+      total_approvals: totalCount
     });
 
   } catch (error) {
-    console.error("Error fetching User Approval Details:", error.message);
+    console.error(error);
     return res.status(500).json({
-      status: "error",
-      message: "There was an error retrieving user approval details."
+      status: false,
+      message: error.message || "Server error"
     });
   }
 };
+
 
 export const List_User_Details_By_Service = async (req, res) => {
   const { user_id } = req.body;
@@ -776,6 +831,268 @@ export const List_User_Details_By_Service = async (req, res) => {
     });
   }
 };
+
+export const Create_User = async (req, res) => {
+  const {
+    user_id,
+    user_type,
+    username,
+    email,
+    contact_no,
+    login_method,
+    role,
+    drc_id,
+    nic,
+    created_by,
+  } = req.body;
+
+  let session = null;
+
+  try {
+    if (!user_type || !username || !email || !contact_no || !login_method || !role) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields.",
+      });
+    }
+
+    if (user_type === "Drcuser") {
+      if (!drc_id) {
+        return res.status(400).json({
+          status: "error",
+          message: "DRC is required for DRC users.",
+        });
+      }
+      if (!nic) {
+        return res.status(400).json({
+          status: "error",
+          message: "NIC is required for DRC users.",
+        });
+      }
+    }
+
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const mongoConnection = await db.connectMongoDB();
+    const currentDate = new Date();
+
+    const formattedContactNumbers = Array.isArray(contact_no)
+      ? contact_no.map((num) => ({ contact_number: Number(num) }))
+      : [{ contact_number: Number(contact_no) }];
+
+    const counterResult = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "user_sequence" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+ 
+    const User_Sequence = counterResult.value?.seq || counterResult.seq;
+    if (!User_Sequence) throw new Error("Failed to generate User_Sequence.");
+
+    const newUser = new User({
+      User_Sequence,
+      user_type,
+      username,
+      email,
+      contact_num: formattedContactNumbers,
+      login_method,
+      role,
+      user_status: "Inactive",
+      User_Status_Type: "user_update",
+      User_Status_DTM: currentDate,
+      User_Status_By: created_by,
+      User_End_DTM: null,
+      User_End_By: null,
+      Created_BY: created_by,
+      Created_DTM: currentDate,
+      Approved_By: null,
+      Approved_DTM: null,
+      Remark: [{
+        remark: "User Created",
+        remark_dtm: currentDate,
+        remark_by: created_by,
+      }],
+    });
+
+    if (user_type === "Slt") {
+      newUser.user_id = user_id;
+    }
+
+    if (user_type === "Drcuser") {
+      const DRCUserCounterResult = await mongoConnection
+        .collection("collection_sequence")
+        .findOneAndUpdate(
+          { _id: "drcUser_id" },
+          { $inc: { seq: 1 } },
+          { returnDocument: "after", upsert: true, session }
+        );
+
+      const DRCUser_Sequence = DRCUserCounterResult.value?.seq || DRCUserCounterResult.seq;
+      if (!DRCUser_Sequence) throw new Error("Failed to generate DRCUser_Sequence.");
+
+      newUser.drc_id = drc_id;
+      newUser.user_nic = nic;
+      newUser.user_id = user_id;
+      newUser.drcUser_id = DRCUser_Sequence;
+    }
+
+    // === Check if user already exists ===
+    let conflictConditions = [{ email }];
+    if (user_type === "Slt") {
+      conflictConditions.push({ user_id: user_id });
+    }
+    if (user_type === "Drcuser") {
+      conflictConditions.push({ nic, user_id: user_id });
+    }
+
+    const existingUser = await User.findOne({ $or: conflictConditions }).session(session);
+
+    if (existingUser) {
+      await session.abortTransaction();
+      return res.status(409).json({
+        status: "error",
+        message: "A user with the same email or ID already exists.",
+      });
+    }
+
+    await newUser.save({ session });
+
+    // === User Approval Logic ===
+    const approvalCounter = await mongoConnection
+      .collection("collection_sequence")
+      .findOneAndUpdate(
+        { _id: "user_approver_id" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after", upsert: true, session }
+      );
+
+    const user_approver_id = approvalCounter.value?.seq || approvalCounter.seq;
+    if (!user_approver_id) throw new Error("Failed to generate user_approver_id.");
+
+    // const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
+    const formattedUserType = user_type === "Drcuser" ? "DRC User" : "Slt";
+
+    const userApproval = new User_Approval({
+      doc_version: 1,
+      user_approver_id,
+      User_Type: formattedUserType,
+      User_id: user_id,
+      DRC_id: drc_id,
+      created_by,
+      created_on: currentDate,
+      approve_status: "Open",
+      approve_status_on: currentDate,
+      approver_type: user_type === "Slt" ? "SLT_user_registration" : "DRC_user_registration",
+      approved_Deligated_by: created_by,
+      remark: "User created and pending approval.",
+      Parameters: {
+        username,
+        email,
+        contact_no,
+        login_method,
+        role,
+        user_id: User_Sequence,
+        ...(user_type === "Drcuser" && {
+          drc_id,
+          nic,
+        }),
+      },
+      existing_reference_id: null,
+    });
+
+    const userApprovalRecord = await userApproval.save({ session });
+
+    await session.commitTransaction();
+
+    return res.status(201).json({
+      status: "success",
+      message: "User registered successfully and sent for approval.",
+      data: {
+        user: newUser,
+        userApproval: userApprovalRecord,
+      }
+    });
+
+  } catch (error) {
+    if (session) await session.abortTransaction();
+    console.error("Error in Create_User:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to register user.",
+      errors: { exception: error.message },
+    });
+  } finally {
+    if (session) await session.endSession();
+  }
+};
+
+export const List_All_User_Details_By_ID_for_DRC = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({
+      status: "error",
+      message: "User ID is required.",
+    });
+  }
+
+  try {
+    const user = await User.aggregate([
+      { $match: { 
+        user_id: user_id, 
+        user_type: "Slt", 
+        user_status: "Active" 
+      } },
+      {
+        $project: {
+          _id: 0,
+          username: 1,
+          user_type: 1,
+          email: 1,
+          contact_num: 1,
+          login_method: 1,
+          role: 1,
+          user_status: 1,
+          Created_DTM: 1,
+          Created_BY: 1,
+          Approved_DTM: 1,
+          Approved_By: 1,
+          User_End_DTM: 1,
+          Remark: 1,
+        },
+      },
+    ]);
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No user found with the given user ID.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User details retrieved successfully.",
+      data: user[0],
+    });
+
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      errors: {
+        code: 500,
+        description: error.message,
+      },
+    });
+  }
+};
+
 
 
 
