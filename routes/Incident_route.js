@@ -38,6 +38,7 @@ List_Transaction_Logs_Upload_Files,
 getOpenTaskCountforCPECollect,
 List_Reject_Incident,
 Task_for_Download_Incidents,
+ listdownIncidentDetailsByIncidentId,
 Task_for_Download_Incidents_Full_List
 
 } from "../controllers/Incident_controller.js";
