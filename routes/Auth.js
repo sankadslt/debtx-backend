@@ -37,7 +37,7 @@
 
 import express from "express";
 import passport from "passport";
-import { registerUser, loginUser, refreshToken, getUserData, handleAzureLogin, getUserFromAzure } from "../controllers/authController.js";
+import { registerUser, loginUser, refreshToken, getUserData, handleAzureLogin, getUserFromAzure, sendOtpToUser, verifyOtp} from "../controllers/authController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -93,5 +93,9 @@ router.post("/azure", handleAzureLogin);
 
 //get slt user data from AZURE
 router.get("/azure-user/:userId", getUserFromAzure);
+
+// Mobile OTP Login Routes
+router.post("/mobile/send-otp", sendOtpToUser);
+router.post("/mobile/verify-otp", verifyOtp);
 
 export default router;
