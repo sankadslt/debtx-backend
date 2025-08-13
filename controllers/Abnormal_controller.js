@@ -7,7 +7,9 @@ import { createTaskFunction } from "../services/TaskService.js";
 import TmpForwardedApprover from "../models/Template_forwarded_approver.js";
 import { getApprovalUserIdService } from "../services/ApprovalService.js";
 import { createUserInteractionFunction } from "../services/UserInteractionService.js";
-
+import CaseDetails from "../models/Case_details.js";
+import { Rtom_detais_of_the_DRC } from "./DRC_Service_controller.js";
+ 
 export const List_All_Withdrawal_Case_Logs = async (req, res) => {
   try {
     const { status, accountNumber, fromDate, toDate, page = 1 } = req.body;
@@ -708,23 +710,26 @@ export const Create_Abondoned_case = async (req, res) => {
 
 export const List_All_Case_Closed_Log = async (req, res) => {
   try {
-    const { account_no, phase,RTOM, from_date, to_date, pages } = req.body;
+    const { account_no, phase,rtom, from_date, to_date, pages } = req.body;
 
   
-    console.log("Request body:", req.body);
-
-    let page = Number(pages);
-    if (isNaN(page) || page < 1) page = 1;
-    const limit = page === 1 ? 10 : 30;
-    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
-
-    const query = {};
-
-    if (account_no) query.account_num = account_no;
-     
-    if (phase) query.case_phase = phase;
-    if (status) query.status = status;
-
+    
+    const pipeline = [];
+    
+    if (phase) {
+      pipeline.push({ $match: { phase } });
+    }
+    if (account_no) {
+      pipeline.push({ $match: { account_no } });
+    }
+    
+    if (rtom) {
+      pipeline.push({
+        $match: {
+          rtom: { $regex: `^${rtom.trim()}$`, $options: "i" }
+        }
+      });
+    }
     const dateFilter = {};
     if (from_date) dateFilter.$gte = new Date(from_date);
     if (to_date) {
@@ -733,25 +738,34 @@ export const List_All_Case_Closed_Log = async (req, res) => {
       dateFilter.$lte = endOfDay;
     }
     if (Object.keys(dateFilter).length > 0) {
-      query.created_on = dateFilter;
+      pipeline.push({ $match: { created_dtm: dateFilter } });
     }
 
-    const filtered_cases = await CaseDetails.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ settlement_id: -1 });
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+    pipeline.push({ $sort: { case_id: -1 } });
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+      
+
+    const filtered_cases = await Case_details.aggregate(pipeline)
+ 
 
     const responseData = filtered_cases.map((caseData) => {
       return {
-       
-        account_no: caseData.account_num,
-        status: caseData.status,
+        case_id: caseData.case_id,
+        account_no: caseData.account_no,
+        status: caseData.case_current_status,
+        rtom:caseData.rtom,
         created_dtm: caseData.created_on,
         phase: caseData.phase,
         
       };
     })
-
+ console.log("Response Data:", responseData);
     if (responseData.length === 0) {
       return res.status(204).json({
         status: "error",
@@ -779,7 +793,7 @@ export const Create_Task_For_Downloard_Case_Closed_List = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { Created_By, Phase, Case_Status, from_date, to_date, Case_ID, Account_Number } = req.body;
+    const { Created_By, Phase, Case_Status, from_date, to_date, Case_ID } = req.body;
 
     if (!Created_By) {
       await session.abortTransaction();
@@ -792,7 +806,7 @@ export const Create_Task_For_Downloard_Case_Closed_List = async (req, res) => {
 
     
     const parameters = {  
-      Account_No: Account_Number,
+     
       case_ID: Case_ID,
       Phase: Phase,
       Case_Status: Case_Status,
