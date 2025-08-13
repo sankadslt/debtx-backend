@@ -39,6 +39,7 @@ getOpenTaskCountforCPECollect,
 List_Reject_Incident,
 List_Abundant_Incident,
 Task_for_Download_Incidents,
+ listdownIncidentDetailsByIncidentId,
 Task_for_Download_Incidents_Full_List
 
 } from "../controllers/Incident_controller.js";
@@ -328,6 +329,7 @@ router.patch("/Reject_Case", Reject_Case);
  */
 router.post("/List_Incidents", List_Incidents);
 router.post("/New_List_Incidents", New_List_Incidents);
+router.get('/listdownIncidentDetailsByIncidentId/:incidentId', listdownIncidentDetailsByIncidentId);
 
 /**
  * @swagger
