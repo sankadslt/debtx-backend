@@ -311,18 +311,79 @@ export const sendOtpToUser = async (req, res) => {
 };
 
 
+// export const verifyOtp = async (req, res) => {
+//   const { phone_number, otp_input } = req.body;
+
+//   try {
+
+//     // Call new OTP verification API
+//     const response = await axios.post(
+//       "https://debtx.slt.lk:6500/api/v1/check_drs_user_otp",
+//       { phone_number, otp_input }
+//     );
+
+//     // Check if request_status is valid
+//     if (response.data?.request_status !== "valid") {
+//       return res.status(401).json({
+//         message: "Invalid OTP",
+//         apiResponse: response.data
+//       });
+//     }
+
+//     // Extract user info from response
+//     const userIn = response.data.user_in;
+
+//     // Build token payload directly from API data
+//     const payload = {
+//       user_id: userIn.user_id,
+//       username: userIn.username,
+//       role: userIn.role?.[0] || null,
+//       drc_id: userIn.drc_details?.drc_id || null,
+//       ro_id: userIn.drc_details?.ro_id || null
+//     };
+
+//     // Generate tokens
+//     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+//       expiresIn: "15m"
+//     });
+//     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+//       expiresIn: "1d"
+//     });
+
+//     // Set refresh token cookie
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "Strict",
+//       maxAge: 24 * 60 * 60 * 1000
+//     });
+
+//     // Send success response
+//     return res.status(200).json({
+//       message: "OTP verified successfully",
+//       accessToken,
+//       user: payload
+//     });
+
+//   } catch (error) {
+//     console.error("OTP verify error:", error?.response?.data || error.message);
+//     return res.status(500).json({
+//       message: "Server error during OTP verification",
+//       error: error?.response?.data || error.message
+//     });
+//   }
+// };
+
 export const verifyOtp = async (req, res) => {
   const { phone_number, otp_input } = req.body;
 
   try {
-
-    // Call new OTP verification API
+    // Call OTP verification API
     const response = await axios.post(
       "https://debtx.slt.lk:6500/api/v1/check_drs_user_otp",
       { phone_number, otp_input }
     );
 
-    // Check if request_status is valid
     if (response.data?.request_status !== "valid") {
       return res.status(401).json({
         message: "Invalid OTP",
@@ -333,8 +394,8 @@ export const verifyOtp = async (req, res) => {
     // Extract user info from response
     const userIn = response.data.user_in;
 
-    // Build token payload directly from API data
-    const payload = {
+    // Prepare user object in same format used by generateTokens
+    const userObj = {
       user_id: userIn.user_id,
       username: userIn.username,
       role: userIn.role?.[0] || null,
@@ -342,13 +403,8 @@ export const verifyOtp = async (req, res) => {
       ro_id: userIn.drc_details?.ro_id || null
     };
 
-    // Generate tokens
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "15m"
-    });
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: "1d"
-    });
+    // Use your helper
+    const { accessToken, refreshToken } = generateTokens(userObj);
 
     // Set refresh token cookie
     res.cookie("refreshToken", refreshToken, {
@@ -358,11 +414,11 @@ export const verifyOtp = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000
     });
 
-    // Send success response
+    // Send response
     return res.status(200).json({
       message: "OTP verified successfully",
       accessToken,
-      user: payload
+      user: userObj
     });
 
   } catch (error) {
