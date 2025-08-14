@@ -13,7 +13,8 @@ import db from "../config/db.js";
 import mongoose from 'mongoose';
 import DebtRecoveryCompany from '../models/Debt_recovery_company.js';
 import Rtom  from '../models/Rtom.js'; 
-import moment from "moment";
+// import moment from "moment";
+import moment from "moment-timezone";
 import Recovery_officer from "../models/Recovery_officer.js";
 import CaseDetails from "../models/CaseMode.js";
 import User from "../models/User.js";
@@ -2688,7 +2689,7 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
  */
 
 
-//working function
+//Working code
 
 // export const Terminate_RO = async (req, res) => {
 //   const session = await mongoose.startSession();
@@ -2716,7 +2717,7 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 //       const taskData = {
 //         Template_Task_Id: 38,
 //         task_type: "RO Inactivate for the date",
-//         User_id: ro_id ? `ro_id:${ro_id}` : `drcUser_id:${drcUser_id}`,
+//         User_id: ro_id ? `${ro_id}` : `${drcUser_id}`,
 //         end_date: endDate.toISOString(),
 //         Created_By: end_by,
 //         task_status: "open"
@@ -2777,25 +2778,41 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 
 //       if (!updatedRO) throw Object.assign(new Error(`Failed to terminate ${drcUser_type}`), { statusCode: 500 });
 
-//       const userQuery = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+//       // --- PYTHON API INTEGRATION ---
+//       // Build python API request data
+//       const pythonBody = {
+//         user_id: ro_id ? Number(ro_id) : Number(drcUser_id),
+//         created_by: end_by,
+//         status_reason: "terminated"
+//       };
 
-//       const updatedUser = await User.findOneAndUpdate(
-//         userQuery,
-//         {
-//           $set: {
-//             User_Status_Type: 'RO_update',
-//             user_status: 'Terminate',
-//             User_Status_DTM: end_dtm,
-//             User_Status_By: end_by,
-//             User_End_DTM: end_dtm,
-//             User_End_By: end_by
-//           },
-//           $push: { Remark: newRemark }
-//         },
-//         { new: true, runValidators: true, session }
-//       );
+//       try {
+//         const pythonApiResp = await axios.post(
+//           'https://debtx.slt.lk:6500/users/terminate',
+//           pythonBody,
+//           { headers: { 'Content-Type': 'application/json' } }
+//         );
 
-//       if (!updatedUser) throw Object.assign(new Error('Failed to update User document'), { statusCode: 500 });
+//         // You may log or sync the message from python API if needed, e.g.:
+//         if (
+//           pythonApiResp.data &&
+//           (pythonApiResp.data.status === "success" || pythonApiResp.data.status === "already_terminated")
+//         ) {
+//           // Optionally, append response to termination_remark, or just include in response below
+//         } else {
+//           // Python API returned an error or unknown response
+//           // Optionally, throw or log the error here
+//         }
+//       } catch (pythonApiError) {
+//         // Handle any error from the Python API call; optionally roll back Mongo update or just warn
+//         // If you want, you can return a 502 status to indicate a downstream integration failure:
+//         throw Object.assign(
+//           new Error('Python API termination failed: ' + (pythonApiError.response?.data?.message || pythonApiError.message)),
+//           { statusCode: 502 }
+//         );
+//       }
+//       // --- END PYTHON API INTEGRATION ---
+
 //     });
 
 //     const responseData = {
@@ -2822,81 +2839,67 @@ export const List_RO_Details_Owen_By_DRC_ID = async (req, res) => {
 //   }
 // };
 
+
 export const Terminate_RO = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
-    const { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
+    let { ro_id, drcUser_id, end_by, end_dtm, remark } = req.body;
 
+    // Validation
     if (!ro_id && !drcUser_id) {
-      return res.status(400).json({ status: "error", message: 'Either ro_id or drcUser_id is required in the request body' });
+      return res.status(400).json({ status: "error", message: 'Either ro_id or drcUser_id is required' });
     }
     if (ro_id && drcUser_id) {
-      return res.status(400).json({ status: "error", message: 'Please provide either ro_id or drcUser_id, not both' });
+      return res.status(400).json({ status: "error", message: 'Provide either ro_id or drcUser_id, not both' });
     }
     if (!end_by || !remark || !end_dtm) {
       return res.status(400).json({ status: "error", message: 'end_by, remark, and end_dtm are required' });
     }
 
-    const endDate = new Date(end_dtm);
-    const today = new Date();
-
-    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-    if (endDateOnly > todayOnly) {
-      const taskData = {
-        Template_Task_Id: 38,
-        task_type: "RO Inactivate for the date",
-        User_id: ro_id ? `${ro_id}` : `${drcUser_id}`,
-        end_date: endDate.toISOString(),
-        Created_By: end_by,
-        task_status: "open"
-      };
-
-      await session.withTransaction(async () => {
-        await createTaskFunction(taskData, session);
-      });
-
-      return res.status(202).json({
-        status: "success",
-        message: "Future-dated termination converted into task creation.",
-        task: taskData
-      });
+    // Create local (Asia/Colombo) time
+    let localEndMoment = moment.tz(end_dtm, "Asia/Colombo");
+    if (!localEndMoment.isValid()) {
+      return res.status(400).json({ status: "error", message: 'Invalid date format for end_dtm' });
     }
+
+    // If only date given, append current local time
+    if (/^\d{4}-\d{2}-\d{2}$/.test(end_dtm)) {
+      const now = moment().tz("Asia/Colombo");
+      localEndMoment.set({ hour: now.hour(), minute: now.minute(), second: now.second() });
+    }
+
+    // Ensure Python API gets a future time (at least +1 min)
+    if (localEndMoment.isBefore(moment().tz("Asia/Colombo"))) {
+      localEndMoment = moment().tz("Asia/Colombo").add(1, "minute");
+    }
+
+    const formattedEndDtmLocal = localEndMoment.format("YYYY-MM-DD HH:mm:ss"); // for DB
+    const formattedEndDtmUTC = localEndMoment.clone().tz("UTC").format("YYYY-MM-DD HH:mm:ss"); // for Python API
 
     let updatedRO;
-    let newRemark;
-    let queryCondition = {};
-    let drcUser_type = '';
-
-    if (ro_id) {
-      queryCondition = { ro_id: Number(ro_id) };
-      drcUser_type = 'RO';
-    } else {
-      queryCondition = { drcUser_id: Number(drcUser_id) };
-      drcUser_type = 'drcUser';
-    }
+    const queryCondition = ro_id ? { ro_id: Number(ro_id) } : { drcUser_id: Number(drcUser_id) };
+    const drcUser_type = ro_id ? "RO" : "drcUser";
 
     await session.withTransaction(async () => {
       const user = await Recovery_officer.findOne(queryCondition).session(session);
 
       if (!user) throw Object.assign(new Error(`${drcUser_type} not found`), { statusCode: 404 });
-      if (user.drcUser_status === 'Terminate') throw Object.assign(new Error(`${drcUser_type} is already terminated`), { statusCode: 400 });
+      if (user.drcUser_status === "Terminate") throw Object.assign(new Error(`${drcUser_type} is already terminated`), { statusCode: 400 });
 
-      newRemark = { remark, remark_by: end_by, remark_dtm: end_dtm };
+      const newRemark = { remark, remark_by: end_by, remark_dtm: formattedEndDtmLocal };
 
       const updateFields = {
-        drcUser_status: 'Terminate',
-        end_dtm,
+        drcUser_status: "Terminate",
+        end_dtm: formattedEndDtmLocal, // local time
         end_by
       };
 
-      if (drcUser_type === 'RO' && Array.isArray(user.rtom)) {
+      if (drcUser_type === "RO" && Array.isArray(user.rtom)) {
         updateFields.rtom = user.rtom.map(rtom => ({
           ...rtom.toObject ? rtom.toObject() : rtom,
           rtom_status: "Inactive",
-          rtom_update_dtm: end_dtm,
+          rtom_update_dtm: formattedEndDtmLocal,
           rtom_update_by: end_by
         }));
       }
@@ -2908,27 +2911,54 @@ export const Terminate_RO = async (req, res) => {
       );
 
       if (!updatedRO) throw Object.assign(new Error(`Failed to terminate ${drcUser_type}`), { statusCode: 500 });
-    });
 
-    const responseData = {
-      ...(ro_id ? { ro_id: updatedRO.ro_id } : { drcUser_id: updatedRO.drcUser_id }),
-      ro_name: updatedRO.ro_name,
-      drcUser_status: updatedRO.drcUser_status,
-      end_dtm: updatedRO.end_dtm,
-      end_by: updatedRO.end_by,
-      termination_remark: newRemark
-    };
+      const pythonBody = {
+        user_id: ro_id ? Number(ro_id) : Number(drcUser_id),
+        created_by: end_by,
+        end_dtm: formattedEndDtmUTC, // UTC time
+        status_reason: remark
+      };
+
+      console.log("Python API Payload:", pythonBody);
+
+      try {
+        const pythonApiResp = await axios.post(
+          "https://debtx.slt.lk:6500/users/terminate",
+          pythonBody,
+          { headers: { "Content-Type": "application/json" } }
+        );
+
+        if (!pythonApiResp.data?.status || 
+            !["success", "already_terminated"].includes(pythonApiResp.data.status)) {
+          console.warn("Unexpected Python API response:", pythonApiResp.data);
+        }
+      } catch (pythonApiError) {
+        console.error("Python API error response:", pythonApiError.response?.data);
+        throw Object.assign(
+          new Error("Python API termination failed: " + (pythonApiError.response?.data?.message || pythonApiError.message)),
+          { statusCode: 502 }
+        );
+      }
+    });
 
     return res.status(200).json({
       status: "success",
       message: `${drcUser_type} terminated successfully`,
-      data: responseData
+      data: {
+        ...(ro_id ? { ro_id: updatedRO.ro_id } : { drcUser_id: updatedRO.drcUser_id }),
+        ro_name: updatedRO.ro_name,
+        drcUser_status: updatedRO.drcUser_status,
+        end_dtm: updatedRO.end_dtm,
+        end_by: updatedRO.end_by
+      }
     });
+
   } catch (error) {
-    console.error('Error terminating user:', error);
-    const statusCode = error.statusCode || 500;
-    const message = error.message || 'Internal server error';
-    return res.status(statusCode).json({ status: "error", message, ...(statusCode === 500 && { error: error.toString() }) });
+    console.error("Error terminating user:", error);
+    return res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Internal server error"
+    });
   } finally {
     await session.endSession();
   }

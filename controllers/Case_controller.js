@@ -2931,6 +2931,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     if (from_date && to_date) {
       fromDateObj = new Date(from_date);
       toDateObj = new Date(to_date);
+      toDateObj.setHours(23, 59, 59, 999); // Set to end of the day
       console.log(fromDateObj, "and this is the to date ", toDateObj);
 
       if (isNaN(fromDateObj) || isNaN(toDateObj)) {
@@ -2993,7 +2994,14 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
     } else {
       query.case_current_status = { $in: allowedStatuses };
     }
-    if (rtom) query.area = rtom;
+        if (rtom) {
+  query.$expr = {
+    $eq: [
+      { $trim: { input: { $toLower: "$rtom" } } },
+      rtom.toLowerCase().trim()
+    ]
+};
+}
     if (ro_id) query["last_recovery_officer.ro_id"] = ro_id;
     if (action_type) query.action_type = action_type;
     if (fromDateObj && toDateObj) {
@@ -3071,7 +3079,7 @@ export const ListALLMediationCasesownnedbyDRCRO = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
@@ -5759,12 +5767,13 @@ export const Customer_Negotiations = async (req, res) => {
       const statusMap = {
         "Mediation board forward request letter": "RO Negotiation FMB Pending",
         "Negotiation Settlement plan Request": "RO Negotiation",
-        "Negotiation period extend Request": "RO Negotiation Extension Pending",
+        "Negotiation period extend Request": "RO Negotiation",
         "Negotiation customer further information Request": "RO Negotiation",
         "Negotiation Customer request service": "RO Negotiation",
       };
       case_status_with_request = statusMap[request_type] || "MB Negotiation";
-      const updatedCase = await Case_details.findOneAndUpdate(
+      if(Field_reason_ID){
+        const updatedCase = await Case_details.findOneAndUpdate(
         { case_id },
         {
           $push: {
@@ -5799,7 +5808,45 @@ export const Customer_Negotiations = async (req, res) => {
           status: "error",
           message: "Case not found this case id",
         });
+      };
       }
+      else{
+        const updatedCase = await Case_details.findOneAndUpdate(
+        { case_id },
+        {
+          $push: {
+            ro_requests: {
+              drc_id,
+              ro_id,
+              created_dtm: new Date(),
+              ro_request_id: request_id,
+              ro_request: request_type,
+              request_remark: request_comment,
+              intraction_id: intraction_id,
+              intraction_log_id,
+            },
+            case_status: {
+              case_status: case_status_with_request,
+              created_dtm: new Date(),
+              created_by: created_by,
+              case_phase: "Negotiation",
+            },
+          },
+          $set: {
+            case_current_status: case_status_with_request,
+            case_current_phase: "Negotiation",
+          },
+        },
+        { new: true, session }
+        );
+        if (!updatedCase) {
+          await session.abortTransaction();
+          return res.status(404).json({
+            status: "error",
+            message: "Case not found this case id",
+          });
+        };
+      };
     } else {
       const updatedMediationBoardCase = await Case_details.findOneAndUpdate(
         { case_id: case_id, "drc.drc_id": drc_id },
@@ -6139,7 +6186,7 @@ export const listDRCAllCases = async (req, res) => {
               0,
             ],
           },
-          area: 1,
+          rtom: 1,
           action_type: 1,
           ro_name: { $arrayElemAt: ["$ro_info.ro_name", 0] },
         },
@@ -10234,6 +10281,239 @@ export const List_Request_Response_log = async (req, res) => {
     );
 
     // Execute the aggregation pipeline
+    const results = await Request.aggregate(pipeline);
+
+    if (!results || results.length === 0) {
+      return res.status(204).json({
+        message: "No matching data found for the specified criteria.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: results,
+    });
+  } catch (error) {
+    console.error("Error fetching request response log:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const List_Deligated_Request_Response = async (req, res) => {
+  try {
+    const { case_current_status, date_from, date_to, pages, userID } = req.body;
+    console.log("Request body:", req.body);
+
+    // Validate userID
+    if (!userID) {
+      return res.status(400).json({
+        message: "Missing required field: userID is required.",
+      });
+    }
+
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    const pipeline = [];
+
+    // Filter by userID
+    pipeline.push({
+      $match: {
+        created_by: userID,
+      },
+    });
+
+    if (date_from && date_to) {
+      const startDate = new Date(date_from);
+      const endDate = new Date(date_to);
+      endDate.setHours(23, 59, 59, 999);
+
+      pipeline.push({
+        $match: {
+          created_dtm: { $gte: startDate, $lte: endDate },
+        },
+      });
+    }
+
+    pipeline.push(
+      {
+        $lookup: {
+          from: "Case_details",
+          localField: "case_id",
+          foreignField: "case_id",
+          as: "case_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$case_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      }
+    );
+
+    if (case_current_status) {
+      pipeline.push({
+        $match: {
+          Request_Description: case_current_status,
+        },
+      });
+    }
+
+    pipeline.push(
+      {
+        $unwind: {
+          path: "$case_details.ro_requests",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: {
+          $expr: {
+            $eq: [
+              "$Interaction_Log_ID",
+              "$case_details.ro_requests.intraction_log_id",
+            ],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "User_Interaction_Log",
+          localField: "Interaction_Log_ID",
+          foreignField: "Interaction_Log_ID",
+          as: "user_interaction_log",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user_interaction_log",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "Debt_recovery_company",
+          localField: "case_details.ro_requests.drc_id",
+          foreignField: "drc_id",
+          as: "drc_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$drc_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          validity_period: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$case_details.created_dtm", null] },
+                  { $ne: ["$case_details.monitor_months", null] },
+                ],
+              },
+              then: {
+                $concat: [
+                  {
+                    $dateToString: {
+                      date: { $toDate: "$case_details.created_dtm" },
+                      format: "%Y-%m-%d",
+                    },
+                  },
+                  " - ",
+                  {
+                    $dateToString: {
+                      date: {
+                        $dateAdd: {
+                          startDate: { $toDate: "$case_details.created_dtm" },
+                          unit: "month",
+                          amount: "$case_details.monitor_months",
+                        },
+                      },
+                      format: "%Y-%m-%d",
+                    },
+                  },
+                ],
+              },
+              else: {
+                $dateToString: {
+                  date: { $toDate: "$case_details.created_dtm" },
+                  format: "%Y-%m-%d",
+                },
+              },
+            },
+          },
+          last_user_interaction_status: {
+            $cond: {
+              if: {
+                $and: [
+                  { $isArray: "$user_interaction_log.User_Interaction_Status" },
+                  { $gt: [{ $size: "$user_interaction_log.User_Interaction_Status" }, 0] },
+                ],
+              },
+              then: {
+                $arrayElemAt: [
+                  "$user_interaction_log.User_Interaction_Status.User_Interaction_Status",
+                  -1,
+                ],
+              },
+              else: null,
+            },
+          },
+          letter_issued_on: {
+            $cond: {
+              if: { $eq: ["$parameters.Letter_Send", true] },
+              then: "$created_dtm",
+              else: null,
+            },
+          },
+          remark: {
+            $ifNull: ["$parameters.Reamrk", null], // Note: "Reamrk" might be a typo, should be "Remark"
+          },
+          acceptance: {
+            $ifNull: ["$parameters.Request_Accept", null],
+          },
+          request_created_dtm: {
+            $ifNull: ["$parameters.Request_CreatedDTM", null],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          case_id: "$case_id",
+          case_current_status: "$case_details.case_current_status",
+          User_Interaction_Status: "$acceptance",
+          Validity_Period: "$validity_period",
+          drc_id: "$case_details.ro_requests.drc_id",
+          drc_name: "$drc_details.drc_name",
+          Request_Description: "$Request_Description",
+          Letter_Issued_on: "$letter_issued_on",
+          created_dtm: "$created_dtm",
+          created_by: "$created_by",
+          Remark: "$remark",
+          request_created_dtm: "$request_created_dtm",
+        },
+      },
+      {
+        $sort: { created_dtm: -1 },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      }
+    );
+
     const results = await Request.aggregate(pipeline);
 
     if (!results || results.length === 0) {

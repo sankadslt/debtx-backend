@@ -14,20 +14,75 @@ import db from "../config/db.js";
 import Case_details from "../models/Case_details.js";
 import mongoose from "mongoose";
 import { createTaskFunction } from "../services/TaskService.js";
+import logger from "../utils/logger.js";
 
 /*  This is the function with the data retriving logic. first time load the 10 rows and second time load next 30 rows
     The variable named 'pages' should be maintain in the frontend and pass to the backend
     Every click of the next button should increment this variable by one and call this function
 */
+// export const Retrive_logic = async (req, res) => {
+//   try {
+//     const { status, pages } = req.body;
+//     if (!status) {
+//       return res.status(400).json({
+//         status: "error",
+//         message: "All fields are required.",
+//       });
+//     }
+//     let page = Number(pages);
+//     if (isNaN(page) || page < 1) page = 1;
+
+//     const limit = page === 1 ? 10 : 30;
+//     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+//     const query = status ? { case_current_status: status } : {};
+//     // Fetch the total count of cases that match the filter criteria (without pagination)
+//     const totalCount = await Case_details.countDocuments(query);
+//     const distributions = await Case_details.find(query)
+//       .skip(skip)
+//       .limit(limit)
+//       .sort({ case_id: -1 });
+//     return res.status(200).json({
+//       status: "success",
+//       message: "Cases retrieved successfully.",
+//       data: distributions,
+//       total_cases: totalCount,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       status: "error",
+//       message: error.message,
+//     });
+//   }
+// };
+
 export const Retrive_logic = async (req, res) => {
+  const startTime = Date.now();
+  const correlationId = `RETRIVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
+    // Log the incoming request
+    logger.info({
+      message: "Starting Retrive_logic request",
+      correlationId,
+      requestBody: req.body,
+      timestamp: new Date().toISOString()
+    });
+
     const { status, pages } = req.body;
     if (!status) {
+      logger.error({
+        message: "Validation failed - status missing",
+        correlationId,
+        requestBody: req.body,
+        error: "status field is required"
+      });
       return res.status(400).json({
         status: "error",
         message: "All fields are required.",
       });
     }
+    
     let page = Number(pages);
     if (isNaN(page) || page < 1) page = 1;
 
@@ -35,12 +90,38 @@ export const Retrive_logic = async (req, res) => {
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     const query = status ? { case_current_status: status } : {};
+    
+    // Log the constructed query for debugging
+    logger.info({
+      message: "Database query constructed",
+      correlationId,
+      query,
+      pagination: { page, limit, skip }
+    });
+
+    // Log database query start
+    const dbStartTime = Date.now();
+    
     // Fetch the total count of cases that match the filter criteria (without pagination)
     const totalCount = await Case_details.countDocuments(query);
     const distributions = await Case_details.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ case_id: -1 });
+
+    const dbExecutionTime = Date.now() - dbStartTime;
+    const totalExecutionTime = Date.now() - startTime;
+    
+    logger.info({
+      message: "Retrive_logic completed successfully",
+      correlationId,
+      resultCount: distributions.length,
+      totalCount,
+      executionTimeMs: totalExecutionTime,
+      dbExecutionTimeMs: dbExecutionTime,
+      pagination: { page, limit, skip }
+    });
+
     return res.status(200).json({
       status: "success",
       message: "Cases retrieved successfully.",
@@ -48,6 +129,27 @@ export const Retrive_logic = async (req, res) => {
       total_cases: totalCount,
     });
   } catch (error) {
+    const executionTime = Date.now() - startTime;
+    
+    // Comprehensive error logging
+    logger.error({
+      message: "Error in Retrive_logic",
+      correlationId,
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.code
+      },
+      requestBody: req.body,
+      executionTimeMs: executionTime,
+      timestamp: new Date().toISOString(),
+      userAgent: req.get('User-Agent'),
+      ip: req.ip || req.connection?.remoteAddress,
+      url: req.originalUrl,
+      method: req.method
+    });
+
     return res.status(500).json({
       status: "error",
       message: error.message,
@@ -737,3 +839,63 @@ export const Proceed_LD_Hold_List = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+export const Create_Task_For_Downloard_Each_Digital_Signature_LOD_Cases_Not_LIT_Priscribed =
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const { Created_By, current_document_type, from_date, to_date, date_type, status } = req.body;
+
+      if (!Created_By || !current_document_type) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          status: "error",
+          message:
+            "created by and current document type are required parameters.",
+        });
+      }
+
+      // Flatten the parameters structure
+      const parameters = {
+        case_current_status: status,
+        current_document_type,
+        from_date,
+        to_date,
+        date_type,
+      };
+
+      // Pass parameters directly (without nesting it inside another object)
+      const taskData = {
+        Template_Task_Id: 40,
+        task_type: "Create Task For Downloard Each LOD OR Final Reminder Cases",
+        ...parameters,
+        Created_By,
+        task_status: "open",
+      };
+
+      // Call createTaskFunction
+      const response = await createTaskFunction(taskData, session);
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+        status: "success",
+        message: "Task created successfully.",
+        data: response,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        status: "error",
+        message: error.message || "Internal server error.",
+        errors: {
+          exception: error.message,
+        },
+      });
+    }
+  };
