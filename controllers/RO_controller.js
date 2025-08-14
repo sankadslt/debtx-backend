@@ -2320,31 +2320,39 @@ export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
 }
 
 /**
- * Fetches detailed Recovery Officer or DRC User information, including DRC and RTOM data, 
- * based on a unique identifier (`ro_id` or `drcUser_id`).
+ * Controller: listROInfoByROId
+ * 
+ * Fetches detailed information about a Recovery Officer (RO) or DRC Officer 
+ * based on either `ro_id` or `drc_officer_id`.
  *
  * Request Body:
- * - ro_id: number (optional) – The ID of the Recovery Officer. Cannot be sent with `drcUser_id`.
- * - drcUser_id: number (optional) – The ID of the DRC User. Cannot be sent with `ro_id`.
+ * - ro_id: number (optional) – ID of the Recovery Officer. Cannot be used with `drc_officer_id`.
+ * - drc_officer_id: number (optional) – ID of the DRC Officer. Cannot be used with `ro_id`.
  *
- * Logic:
- * 1. Validates the presence of either `ro_id` or `drcUser_id`, but not both. Returns 400 if validation fails.
- * 2. Constructs a MongoDB aggregation pipeline:
- *    - $match: Filters documents based on the provided ID.
- *    - $lookup: Joins with `Debt_recovery_company` collection using `drc_id` to get DRC information.
- *    - $project: Selects and formats relevant fields, including:
- *        - Basic contact info (name, NIC, phone, email)
- *        - Active status of the user
- *        - Associated DRC name
- *        - RTOM area info with status (only for Recovery Officer)
- *        - Change log history with remarks
- * 3. If no matching document is found, responds with 404.
- * 4. If successful, responds with 200 and the formatted data.
+ * Validation:
+ * - At least one of `ro_id` or `drc_officer_id` must be provided.
+ * - Both cannot be provided at the same time.
+ *
+ * Aggregation Pipeline:
+ * 1. `$match`:
+ *    - Filters by the provided `ro_id` or `drc_officer_id`.
+ * 2. `$lookup`:
+ *    - Joins with the `Debt_recovery_company` collection on `drc_id` 
+ *      to retrieve DRC details.
+ * 3. `$project`:
+ *    - Formats and returns key fields:
+ *        • added_date (formatted create_dtm)
+ *        • name (role-specific: `recovery_officer_name` for RO, `drcUser_name` for DRC Officer)
+ *        • nic, contact numbers, email, user role
+ *        • drcUser_status (boolean: active or not)
+ *        • drc_id and drc_name
+ *        • RTOM areas with status (only for RO queries)
+ *        • log_history with edit date, action, and editor
  *
  * Responses:
- * - 200: Recovery Officer or DRC User data retrieved successfully.
- * - 400: Validation error – either no ID or both IDs provided.
- * - 404: No matching Recovery Officer or DRC User found.
+ * - 200: Success – returns the formatted officer data.
+ * - 400: Validation error – missing or conflicting IDs.
+ * - 404: No matching record found.
  * - 500: Internal server error during aggregation.
  */
 
@@ -2482,6 +2490,7 @@ export const listROInfoByROId = async (req, res) => {
     });
   }
 };
+
 
 
 // Create Recovery Officer
