@@ -2356,140 +2356,146 @@ export const List_RO_Info_Own_By_RO_Id = async (req, res) => {
  * - 500: Internal server error during aggregation.
  */
 
-export const listROInfoByROId = async (req, res) => {
-  try {
-    const { ro_id, drcUser_id } = req.body;
+export const listROInfoByROId = async (req, res) => { 
+    try {
+        const { ro_id, drc_officer_id } = req.body;
 
-    // Validate that at least one ID is provided
-    if (!ro_id && !drcUser_id) {
-      return res.status(400).json({
-        status: "error",
-        message: 'Either ro_id or drcUser_id is required in the request body'
-      });
-    }
-
-    // Validate that both IDs are not provided at the same time
-    if (ro_id && drcUser_id) {
-      return res.status(400).json({
-        status: "error",
-        message: 'Please provide either ro_id or drcUser_id, not both'
-      });
-    }
-
-    // Build match condition based on provided ID
-    let matchCondition = {};
-    let projectStage = {};
-
-    if (ro_id) {
-      matchCondition = { ro_id: Number(ro_id) };
-      projectStage = {
-        $project: {
-          added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
-          recovery_officer_name: "$ro_name",
-          nic: "$nic",
-          contact_no: "$login_contact_no",
-          email: "$login_email",
-          drcUser_status: { $eq: ["$drcUser_status", "Active"] },
-          drc_id: "$drc_id",
-          drc_name: {
-            $ifNull: [
-              { $arrayElemAt: ["$drc_info.drc_name", 0] },
-              null
-            ]
-          },
-          rtom_areas: {
-            $map: {
-              input: "$rtom",
-              as: "rtom",
-              in: {
-                rtom_id: "$$rtom.rtom_id",
-                name: "$$rtom.rtom_name",
-                status: { $eq: ["$$rtom.rtom_status", "Active"] }
-              }
-            }
-          },
-          log_history: {
-            $map: {
-              input: "$remark",
-              as: "rem",
-              in: {
-                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
-                action: "$$rem.remark",
-                edited_by: "$$rem.remark_by"
-              }
-            }
-          }
+        // Validate that at least one ID is provided
+        if (!ro_id && !drc_officer_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Either ro_id or drc_officer_id is required in the request body' 
+            });
         }
-      };
-    } else if (drcUser_id) {
-      matchCondition = { drcUser_id: Number(drcUser_id) };
-      projectStage = {
-        $project: {
-          added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
-          drcUser_name: "$ro_name",
-          nic: "$nic",
-          contact_no: "$login_contact_no",
-          email: "$login_email",
-          drcUser_status: { $eq: ["$drcUser_status", "Active"] },
-          drc_id: "$drc_id",
-          drc_name: {
-            $ifNull: [
-              { $arrayElemAt: ["$drc_info.drc_name", 0] },
-              null
-            ]
-          },
-          log_history: {
-            $map: {
-              input: "$remark",
-              as: "rem",
-              in: {
-                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
-                action: "$$rem.remark",
-                edited_by: "$$rem.remark_by"
-              }
-            }
-          }
+
+        // Validate that both IDs are not provided at the same time
+        if (ro_id && drc_officer_id) {
+            return res.status(400).json({ 
+                status: "error",
+                message: 'Please provide either ro_id or drc_officer_id, not both' 
+            });
         }
-      };
-    }
 
-    const pipeline = [
-      { $match: matchCondition },
-      {
-        $lookup: {
-          from: "Debt_recovery_company", // Adjust collection name if needed
-          localField: "drc_id",
-          foreignField: "drc_id",
-          as: "drc_info"
+        let matchCondition = {};
+        let projectStage = {};
+
+        if (ro_id) {
+            matchCondition = { ro_id: Number(ro_id) };
+            projectStage = {
+                $project: {
+                    added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
+                    recovery_officer_name: "$name", // fixed field name
+                    nic: "$nic",
+                    contact_no: "$login_contact_no",
+                    contact_no_two: "$login_contact_no_two", // added
+                    email: "$login_email",
+                    user_role: "$user_role", // added
+                    drcUser_status: { $eq: ["$drcUser_status", "Active"] },
+                    drc_id: "$drc_id",
+                    drc_name: { 
+                        $ifNull: [
+                            { $arrayElemAt: ["$drc_info.drc_name", 0] }, 
+                            null
+                        ] 
+                    },
+                    rtom_areas: {
+                        $map: {
+                            input: "$rtom",
+                            as: "rtom",
+                            in: {
+                                rtom_id: "$$rtom.rtom_id",
+                                name: "$$rtom.rtom_name",
+                                status: { $eq: ["$$rtom.rtom_status", "Active"] }
+                            }
+                        }
+                    },
+                    log_history: {
+                        $map: {
+                            input: "$remark",
+                            as: "rem",
+                            in: {
+                                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
+                                action: "$$rem.remark",
+                                edited_by: "$$rem.remark_by"
+                            }
+                        }
+                    }
+                }
+            };
+        } else if (drc_officer_id) {
+            matchCondition = { drc_officer_id: Number(drc_officer_id) };
+            projectStage = {
+                $project: {
+                    added_date: { $dateToString: { format: "%m-%d-%Y", date: "$create_dtm" } },
+                    drcUser_name: "$name", // fixed field name
+                    nic: "$nic",
+                    contact_no: "$login_contact_no",
+                    contact_no_two: "$login_contact_no_two", // added
+                    email: "$login_email",
+                    user_role: "$user_role", // added
+                    drcUser_status: { $eq: ["$drcUser_status", "Active"] },
+                    drc_id: "$drc_id",
+                    drc_name: { 
+                        $ifNull: [
+                            { $arrayElemAt: ["$drc_info.drc_name", 0] }, 
+                            null
+                        ] 
+                    },
+                    log_history: {
+                        $map: {
+                            input: "$remark",
+                            as: "rem",
+                            in: {
+                                edited_on: { $dateToString: { format: "%m-%d-%Y", date: "$$rem.remark_dtm" } },
+                                action: "$$rem.remark",
+                                edited_by: "$$rem.remark_by"
+                            }
+                        }
+                    }
+                }
+            };
         }
-      },
-      projectStage
-    ];
 
-    const result = await Recovery_officer.aggregate(pipeline);
+        const pipeline = [
+            { $match: matchCondition },
+            {
+                $lookup: {
+                    from: "Debt_recovery_company", 
+                    localField: "drc_id",
+                    foreignField: "drc_id",
+                    as: "drc_info"
+                }
+            },
+            projectStage
+        ];
 
-    if (!result || result.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: ro_id ? 'Recovery Officer not found' : 'DRC User not found'
-      });
+        const result = await Recovery_officer.aggregate(pipeline); // fixed model name
+
+        if (!result || result.length === 0) {
+            return res.status(404).json({ 
+                status: "error",
+                message: ro_id ? 'Recovery Officer not found' : 'DRC Officer not found' 
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Data retrieved successfully",
+            data: result[0]
+        });
+
+    } catch (error) {
+        console.error('Error fetching recovery officer/drcUser info:', error);
+        return res.status(500).json({ 
+            status: "error",
+            message: 'Internal server error',
+            error: error.message || error.toString()
+        });
     }
-
-    return res.status(200).json({
-      status: "success",
-      message: "Data retrieved successfully",
-      data: result[0]
-    });
-
-  } catch (error) {
-    console.error('Error fetching recovery officer/drcUser info:', error);
-    return res.status(500).json({
-      status: "error",
-      message: 'Internal server error',
-      error: error.message || error.toString()
-    });
-  }
 };
+
+
+
 
 
 
@@ -4507,26 +4513,20 @@ export const Create_New_DRCUser_or_RO = async (req, res) => {
       user_designation: userDesignation,
     };
 
-// Prepare contact_numbers array
-const contactNumbers = [login_contact_no];
-if (login_contact_no_two) {
-  contactNumbers.push(login_contact_no_two);
-}
-
-const secondApiReqBody = {
-  user_type: userTypePython,
-  user_login: [login_email, login_contact_no], // keep as is if needed
-  User_profile: userProfile,
-  user_contact_num: contactNumbers,           // <-- rename to user_contact_num
-  role: userRole,
-  drc_details: {
-    drc_id: String(drc_id),
-  },
-  Remark: {
-    remark_description: "Registering the User",
-  },
-  create_by: create_by,
-};
+    const secondApiReqBody = {
+      user_type: userTypePython,
+      user_login: [login_email, login_contact_no],
+      User_profile: userProfile,
+      user_contact_num: [login_contact_no],
+      role: userRole,
+      drc_details: {
+        drc_id: String(drc_id),
+      },
+      Remark: {
+        remark_description: "Registering the User",
+      },
+      create_by: create_by,
+    };
 
     console.log("Sending to Python API:", JSON.stringify(secondApiReqBody, null, 2));
 
@@ -4916,253 +4916,6 @@ const secondApiReqBody = {
 //UPDATED FUNCTION WITH PYTHON APIS
 
 // Helper for Python API error
-// function PythonApiError(message, context) {
-//   const err = new Error(message);
-//   err.context = context;
-//   return err;
-// }
-
-// export const Update_RO_or_DRCuser_Details = async (req, res) => {
-//   let session = null;
-
-//   let pythonCallsSucceeded = {
-//     profile: false,
-//     contacts: false,
-//     status: false
-//   };
-
-//   try {
-//     const {
-//       ro_id,
-//       drc_officer_id,
-//       drc_id,
-//       ro_name,
-//       login_email,
-//       login_contact_no,
-//       login_contact_no_two,
-//       drcUser_status,
-//       create_by,
-//       rtoms,
-//       remark,
-//       nic
-//     } = req.body;
-
-//     if (!drc_id || !create_by) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Missing required fields: drc_id, create_by"
-//       });
-//     }
-
-//     let drcUser_type;
-//     if (ro_id && !drc_officer_id) drcUser_type = 'ro';
-//     else if (drc_officer_id && !ro_id) drcUser_type = 'drc_officer';
-//     else if (ro_id && drc_officer_id)
-//       return res.status(400).json({ success: false, message: "Provide either ro_id or drc_officer_id, not both" });
-//     else
-//       return res.status(400).json({ success: false, message: "Either ro_id or drc_officer_id is required" });
-
-//     session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     const currentDate = new Date();
-//     await db.connectMongoDB();
-
-//     let findQuery = { drc_id };
-//     if (drcUser_type === 'ro') findQuery.ro_id = ro_id;
-//     else findQuery.drc_officer_id = drc_officer_id;
-
-//     const existingUser = await Recovery_officer.findOne(findQuery).session(session);
-//     if (!existingUser)
-//       return res.status(404).json({ success: false, message: `${drcUser_type} not found` });
-
-//     if (existingUser.drcUser_status === 'Pending_approval')
-//       return res.status(403).json({
-//         success: false,
-//         message: `${drcUser_type} details cannot be edited while status is 'Pending_approval'`
-//       });
-
-//     let updateData = {};
-//     let needsApproval = false;
-//     let parameters = {};
-
-//     /** ====== PROFILE (EMAIL) ====== **/
-//     let user_id = ro_id || drc_officer_id;
-//     let updatingEmail = login_email !== undefined && login_email !== existingUser.login_email;
-
-//     if (updatingEmail) {
-//       let profile_payload = {
-//         username: ro_name || existingUser.ro_name || null,
-//         email: login_email || null,
-//         user_nic: nic || existingUser.nic || null,
-//         user_designation: drcUser_type === 'ro' ? 'recovery_officer' : 'drc_officer'
-//       };
-
-//       Object.keys(profile_payload).forEach(k => {
-//         if (profile_payload[k] === undefined) profile_payload[k] = null;
-//         if (profile_payload[k] === "null") profile_payload[k] = null;
-//       });
-
-//       const response = await axios.post(
-//         "https://debtx.slt.lk:6500/users/update/profile",
-//         { user_id, profile_payload },
-//         { timeout: 7000 }
-//       );
-
-//       if (!response.data || !(response.data.status && ['success', 'updated'].includes(response.data.status.toLowerCase()))) {
-//         throw new Error("Python Profile API failed");
-//       }
-
-//       pythonCallsSucceeded.profile = true;
-//       updateData.login_email = login_email;
-//       parameters.login_email = login_email;
-//       needsApproval = true;
-//     }
-
-//     /** ====== CONTACTS (both numbers) ====== **/
-//     let updatingContact1 = login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no;
-//     let updatingContact2 = login_contact_no_two !== undefined && login_contact_no_two !== existingUser.login_contact_no_two;
-
-//     if (updatingContact1 || updatingContact2) {
-//       let contact_payload = [];
-
-//       if (updatingContact1 && existingUser.login_contact_no) {
-//         contact_payload.push({ contact_number: existingUser.login_contact_no, end_dtm: currentDate.toISOString() });
-//       }
-//       if (updatingContact1) contact_payload.push({ contact_number: login_contact_no });
-
-//       if (updatingContact2 && existingUser.login_contact_no_two) {
-//         contact_payload.push({ contact_number: existingUser.login_contact_no_two, end_dtm: currentDate.toISOString() });
-//       }
-//       if (updatingContact2) contact_payload.push({ contact_number: login_contact_no_two });
-
-//       const response = await axios.post(
-//         "https://debtx.slt.lk:6500/users/update/contacts",
-//         { user_id, contact_payload },
-//         { timeout: 7000 }
-//       );
-
-//       const pyResp = response.data;
-//       function isContactsSuccess(resp) {
-//         return Array.isArray(resp) && resp.every(c => c.status && ['updated', 'added'].includes(c.status.toLowerCase()));
-//       }
-
-//       if (!(isContactsSuccess(pyResp) || (pyResp.status && ['success', 'updated'].includes(pyResp.status.toLowerCase())))) {
-//         throw new Error("Python Contacts API failed");
-//       }
-
-//       pythonCallsSucceeded.contacts = true;
-//       if (updatingContact1) updateData.login_contact_no = login_contact_no;
-//       if (updatingContact2) updateData.login_contact_no_two = login_contact_no_two;
-//       needsApproval = true;
-//     }
-
-//     /** ====== STATUS API ====== **/
-//     let updatingStatus = drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status;
-//     let rtomStatusSetToInactive = false;
-
-//     if (updatingStatus) {
-//       let pyStatus = drcUser_status || "Inactive";
-//       const status_payload = { status: pyStatus, status_on: currentDate.toISOString(), status_by: create_by };
-
-//       const response = await axios.post(
-//         "https://debtx.slt.lk:6500/users/update/status",
-//         { user_id, status_payload },
-//         { timeout: 7000 }
-//       );
-
-//       if (!(response.data.status && ['success', 'updated'].includes(response.data.status.toLowerCase()))) {
-//         throw new Error("Python Status API failed");
-//       }
-
-//       pythonCallsSucceeded.status = true;
-//       updateData.drcUser_status = drcUser_status;
-//       parameters.drcUser_status = drcUser_status;
-//       needsApproval = true;
-
-//       if (drcUser_type === 'ro' && drcUser_status === "Inactive" && Array.isArray(existingUser.rtom)) {
-//         updateData.rtom = existingUser.rtom.map(rtom => ({
-//           ...rtom.toObject ? rtom.toObject() : rtom,
-//           rtom_status: "Inactive",
-//           rtom_update_dtm: currentDate,
-//           rtom_update_by: create_by
-//         }));
-//         rtomStatusSetToInactive = true;
-//       }
-//     }
-
-//     /** ====== RTOM Updates ====== **/
-//     if (drcUser_type === 'ro' && rtoms && Array.isArray(rtoms) && !rtomStatusSetToInactive) {
-//       let updatedRtoms = JSON.parse(JSON.stringify(existingUser.rtom));
-//       rtoms.forEach(newRtom => {
-//         const existingRtomIndex = updatedRtoms.findIndex(r => r.rtom_id === newRtom.rtom_id);
-//         if (existingRtomIndex !== -1) {
-//           const existingRtom = updatedRtoms[existingRtomIndex];
-//           updatedRtoms[existingRtomIndex] = {
-//             ...existingRtom,
-//             rtom_status: newRtom.rtom_status ?? existingRtom.rtom_status,
-//             rtom_update_dtm: currentDate,
-//             rtom_update_by: create_by,
-//             rtom_name: newRtom.rtom_name ?? existingRtom.rtom_name,
-//             billing_center_code: newRtom.billing_center_code ?? existingRtom.billing_center_code,
-//             handling_type: newRtom.handling_type ?? existingRtom.handling_type
-//           };
-//         } else {
-//           if (!newRtom.rtom_id || !newRtom.rtom_name || !newRtom.billing_center_code) {
-//             throw new Error(`Missing required fields in new RTOM. Required: rtom_id, rtom_name, billing_center_code`);
-//           }
-//           updatedRtoms.push({
-//             rtom_id: newRtom.rtom_id,
-//             rtom_name: newRtom.rtom_name,
-//             rtom_status: newRtom.rtom_status ?? "Active",
-//             billing_center_code: newRtom.billing_center_code,
-//             rtom_update_dtm: currentDate,
-//             rtom_update_by: create_by,
-//             rtom_end_dtm: null,
-//             handling_type: newRtom.handling_type ?? null
-//           });
-//         }
-//       });
-//       updateData.rtom = updatedRtoms;
-//     }
-
-//     /** ====== Remarks ====== **/
-//     if (remark) {
-//       const newRemark = { remark, remark_by: create_by, remark_dtm: currentDate };
-//       updateData.remark = [...existingUser.remark, newRemark];
-//     }
-
-//     /** ====== Update MongoDB ====== **/
-//     const updatedUser = await Recovery_officer.findOneAndUpdate(findQuery, updateData, { new: true, session });
-//     await session.commitTransaction();
-
-//     return res.status(200).json({
-//       success: true,
-//       message: `${drcUser_type} updated successfully`,
-//       data: {
-//         updatedUser,
-//         user_role: updatedUser.user_role || null
-//       }
-//     });
-
-//   } catch (error) {
-//     if (session) await session.abortTransaction();
-//     console.error("Error updating user:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//       error: error.message,
-//       pythonStatus: pythonCallsSucceeded
-//     });
-//   } finally {
-//     if (session) session.endSession();
-//     await db.disconnectMongoDB();
-//   }
-// };
-
-
-// Helper for Python API error
 function PythonApiError(message, context) {
   const err = new Error(message);
   err.context = context;
@@ -5172,6 +4925,7 @@ function PythonApiError(message, context) {
 export const Update_RO_or_DRCuser_Details = async (req, res) => {
   let session = null;
 
+  // To keep track of python calls for potential compensating actions!
   let pythonCallsSucceeded = {
     profile: false,
     contacts: false,
@@ -5181,22 +4935,17 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
   try {
     const {
       ro_id,
-      drc_officer_id,
+      drcUser_id,
       drc_id,
-      name,
       ro_name,
       login_email,
       login_contact_no,
-      login_contact_no_two,
       drcUser_status,
       create_by,
       rtoms,
       remark,
-      nic,
-      user_role
+      nic     // <-- make sure clients send this field when required
     } = req.body;
-
-    const userName = name || ro_name;
 
     if (!drc_id || !create_by) {
       return res.status(400).json({
@@ -5206,237 +4955,210 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
     }
 
     let drcUser_type;
-    if (ro_id && !drc_officer_id) drcUser_type = 'ro';
-    else if (drc_officer_id && !ro_id) drcUser_type = 'drc_officer';
-    else if (ro_id && drc_officer_id)
-      return res.status(400).json({ success: false, message: "Provide either ro_id or drc_officer_id, not both" });
-    else
-      return res.status(400).json({ success: false, message: "Either ro_id or drc_officer_id is required" });
+    if (ro_id && !drcUser_id) {
+      drcUser_type = 'RO';
+    } else if (drcUser_id && !ro_id) {
+      drcUser_type = 'drcUser';
+    } else if (ro_id && drcUser_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide either ro_id or drcUser_id, not both"
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Either ro_id or drcUser_id is required"
+      });
+    }
 
     session = await mongoose.startSession();
     session.startTransaction();
 
     const currentDate = new Date();
-    await db.connectMongoDB();
+    const mongoConnection = await db.connectMongoDB();
 
-    let findQuery = { drc_id };
-    if (drcUser_type === 'ro') findQuery.ro_id = ro_id;
-    else findQuery.drc_officer_id = drc_officer_id;
+    let findQuery = { drc_id: drc_id };
+    if (drcUser_type === 'RO') {
+      findQuery.ro_id = ro_id;
+    } else {
+      findQuery.drcUser_id = drcUser_id;
+    }
 
     const existingUser = await Recovery_officer.findOne(findQuery).session(session);
-    if (!existingUser)
-      return res.status(404).json({ success: false, message: `${drcUser_type} not found` });
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: `${drcUser_type} not found`
+      });
+    }
 
-    if (existingUser.drcUser_status === 'Pending_approval')
+    if (existingUser.drcUser_status === 'Pending_approval') {
       return res.status(403).json({
         success: false,
         message: `${drcUser_type} details cannot be edited while status is 'Pending_approval'`
       });
-
-    // ====== 24-HOUR RESTRICTION CHECK FOR NIC AND NAME USING createdAt ======
-    const isNicUpdating = nic !== undefined && nic !== existingUser.nic;
-    const isNameUpdating = userName !== undefined && userName !== existingUser.name;
-
-    if (isNicUpdating || isNameUpdating) {
-      if (!existingUser.createdAt) {
-        return res.status(500).json({
-          success: false,
-          message: "User creation date not found. Cannot validate 24-hour restriction."
-        });
-      }
-
-      const creationDate = new Date(existingUser.createdAt);
-      const hoursSinceCreation = (currentDate.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
-
-      if (hoursSinceCreation > 24) {
-        const restrictedFields = [];
-        if (isNicUpdating) restrictedFields.push('NIC');
-        if (isNameUpdating) restrictedFields.push('Name');
-
-        return res.status(403).json({
-          success: false,
-          message: `${restrictedFields.join(' and ')} can only be updated within 24 hours of user creation. User was created on ${creationDate.toLocaleString()}.`,
-          restrictedFields: restrictedFields,
-          createdOn: creationDate,
-          currentTime: currentDate
-        });
-      }
     }
 
     let updateData = {};
     let needsApproval = false; // no approval process now, but keep flag for legacy (optional)
     let parameters = {};
 
-      /** ========== 1. PROFILE (EMAIL) API CALL ========== **/
-    let user_id = ro_id || drc_officer_id;
-    let updatingEmail = login_email !== undefined && login_email !== existingUser.login_email;
-    let updatingProfile = updatingEmail || isNicUpdating || isNameUpdating;
+    /** ========== 1. PROFILE (EMAIL) API CALL ========== **/
+    let user_id = ro_id || drcUser_id;
+    let updatingEmail = (login_email !== undefined && login_email !== existingUser.login_email);
 
-    if (updatingProfile) {
+    if (updatingEmail) {
+      // Call Python API
       let profile_payload = {
-        username: userName !== undefined ? userName : (existingUser.name || null),
-        email: login_email !== undefined ? login_email : (existingUser.login_email || null),
-        user_nic: nic !== undefined ? nic : (existingUser.nic || null),
-        user_designation: drcUser_type === 'ro' ? 'recovery_officer' : 'drc_officer'
+        username: ro_name || existingUser.ro_name || null,
+        email: login_email || null,
+        user_nic: nic || existingUser.nic || null,
+        user_designation: drcUser_type === 'RO' ? 'recovery_officer' : 'drc_officer'
       };
 
+      // Remove "null" strings by replacing "null" with null type
       Object.keys(profile_payload).forEach(k => {
         if (profile_payload[k] === undefined) profile_payload[k] = null;
         if (profile_payload[k] === "null") profile_payload[k] = null;
       });
 
-      try {
-        const response = await axios.post(
-          "https://debtx.slt.lk:6500/users/update/profile",
-          { user_id, profile_payload },
-          { timeout: 7000 }
-        );
-
-        if (!response.data || !(response.data.status && ['success', 'updated'].includes(response.data.status.toLowerCase()))) {
-          throw new Error(`Python Profile API failed. Response: ${JSON.stringify(response.data)}`);
-        }
-
-        pythonCallsSucceeded.profile = true;
-      } catch (apiError) {
-        throw new Error(`Python Profile API failed: ${apiError.message}. Response: ${JSON.stringify(apiError.response?.data)}`);
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/profile",
+        {
+          user_id: user_id,
+          profile_payload: profile_payload
+        },
+        { timeout: 7000 }
+      );
+      const pyResp = response.data;
+      if (!pyResp || !(pyResp.status && (pyResp.status.toLowerCase() === 'success' || pyResp.status.toLowerCase() === 'updated'))) {
+        throw PythonApiError("Python Profile API failed", pyResp);
       }
 
-      if (updatingEmail) {
-        updateData.login_email = login_email;
-        parameters.login_email = login_email;
-        needsApproval = true;
-      }
-      if (isNicUpdating) {
-        updateData.nic = nic;
-        parameters.nic = nic;
-        needsApproval = true;
-      }
-      if (isNameUpdating) {
-        updateData.name = userName;
-        parameters.name = userName;
-        needsApproval = true;
-      }
+      pythonCallsSucceeded.profile = true; // Mark for compensation if needed
+
+      updateData.login_email = login_email;
+      parameters.login_email = login_email;
+      needsApproval = true; // Optional - no approval process now
     }
 
-    /** ====== CONTACTS ====== **/
-    let updatingContact1 = login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no;
-    let updatingContact2 = login_contact_no_two !== undefined && login_contact_no_two !== existingUser.login_contact_no_two;
+    /** ========== 2. CONTACTS API CALL ========== **/
+    let updatingContact = (login_contact_no !== undefined && login_contact_no !== existingUser.login_contact_no);
 
-    if (updatingContact1 || updatingContact2) {
+    if (updatingContact) {
+      // call Python API; end the old contact, add the new one
       let contact_payload = [];
-
-      if (updatingContact1 && existingUser.login_contact_no) {
-        contact_payload.push({ contact_number: existingUser.login_contact_no, end_dtm: currentDate.toISOString() });
+      if (existingUser.login_contact_no) {
+        contact_payload.push({
+          contact_number: existingUser.login_contact_no,
+          end_dtm: currentDate.toISOString()
+        });
       }
-      if (updatingContact2 && existingUser.login_contact_no_two) {
-        contact_payload.push({ contact_number: existingUser.login_contact_no_two, end_dtm: currentDate.toISOString() });
-      }
-      if (updatingContact1 && login_contact_no?.trim() !== '') {
-        contact_payload.push({ contact_number: login_contact_no.trim() });
-      }
-      if (updatingContact2 && login_contact_no_two?.trim() !== '') {
-        contact_payload.push({ contact_number: login_contact_no_two.trim() });
-      }
+      contact_payload.push({
+        contact_number: login_contact_no
+      });
 
-      if (contact_payload.length > 0) {
-        try {
-          const response = await axios.post(
-            "https://debtx.slt.lk:6500/users/update/contacts",
-            { user_id, contact_payload },
-            { timeout: 7000 }
-          );
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/contacts",
+        {
+          user_id: user_id,
+          contact_payload: contact_payload
+        },
+        { timeout: 7000 }
+      );
 
-          const pyResp = response.data;
-          function isContactsSuccess(resp) {
-            if (!resp) return false;
-            if (Array.isArray(resp)) {
-              return resp.every(c => c.status && ['updated', 'added', 'success'].includes(c.status.toLowerCase()));
-            }
-            if (resp.status && ['success', 'updated'].includes(resp.status.toLowerCase())) return true;
-            if (resp.results && Array.isArray(resp.results)) {
-              return resp.results.every(c => c.status && ['updated', 'added', 'success'].includes(c.status.toLowerCase()));
-            }
-            return false;
-          }
+      const pyResp = response.data;
 
-          if (!isContactsSuccess(pyResp)) {
-            throw new Error(`Python Contacts API failed. Response: ${JSON.stringify(pyResp)}`);
-          }
-
-          pythonCallsSucceeded.contacts = true;
-        } catch (apiError) {
-          throw new Error(`Python Contacts API failed: ${apiError.message}. Response: ${JSON.stringify(apiError.response?.data)}`);
-        }
-      } else {
-        pythonCallsSucceeded.contacts = true;
+      function isContactsSuccess(resp) {
+        return Array.isArray(resp) && resp.every(c =>
+          c.status && (c.status.toLowerCase() === 'updated' || c.status.toLowerCase() === 'added')
+        );
       }
 
-      if (updatingContact1) {
-        updateData.login_contact_no = login_contact_no;
-        parameters.login_contact_no = login_contact_no;
-        needsApproval = true;
+      if (!(isContactsSuccess(pyResp) || (pyResp.status && ['success', 'updated'].includes(pyResp.status.toLowerCase())))) {
+        throw PythonApiError("Python Contacts API failed", pyResp);
       }
-      if (updatingContact2) {
-        updateData.login_contact_no_two = login_contact_no_two;
-        parameters.login_contact_no_two = login_contact_no_two;
-        needsApproval = true;
-      }
+
+      pythonCallsSucceeded.contacts = true;
+
+      updateData.login_contact_no = login_contact_no;
+      parameters.login_contact_no = login_contact_no;
+      needsApproval = true; // Optional - no approval process now
     }
 
-    /** ====== STATUS ====== **/
-    let updatingStatus = drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status;
+    /** ========== 3. STATUS API CALL ========== **/
+    let updatingStatus = (drcUser_status !== undefined && drcUser_status !== existingUser.drcUser_status);
+
     let rtomStatusSetToInactive = false;
-
     if (updatingStatus) {
+      // Map status to lowercase
       let pyStatus = drcUser_status || "Inactive";
-      const status_payload = { status: pyStatus, status_on: currentDate.toISOString(), status_by: create_by };
+      let status_payload = {
+        status: pyStatus,
+        status_on: currentDate.toISOString(),
+        status_by: create_by
+      };
 
-      try {
-        const response = await axios.post(
-          "https://debtx.slt.lk:6500/users/update/status",
-          { user_id, status_payload },
-          { timeout: 7000 }
-        );
+      const response = await axios.post(
+        "https://debtx.slt.lk:6500/users/update/status",
+        {
+          user_id: user_id,
+          status_payload: status_payload
+        },
+        { timeout: 7000 }
+      );
 
-        if (!(response.data.status && ['success', 'updated'].includes(response.data.status.toLowerCase()))) {
-          throw new Error(`Python Status API failed. Response: ${JSON.stringify(response.data)}`);
-        }
-
-        pythonCallsSucceeded.status = true;
-      } catch (apiError) {
-        throw new Error(`Python Status API failed: ${apiError.message}. Response: ${JSON.stringify(apiError.response?.data)}`);
+      const pyResp = response.data;
+      const isStatusOk =
+        (pyResp.status && ["success", "updated"].includes(pyResp.status.toLowerCase()));
+      if (!isStatusOk) {
+        throw PythonApiError("Python Status API failed", pyResp);
       }
+
+      pythonCallsSucceeded.status = true;
 
       updateData.drcUser_status = drcUser_status;
       parameters.drcUser_status = drcUser_status;
-      needsApproval = true;
+      needsApproval = true; // Optional - no approval process now
 
-      if (drcUser_type === 'ro' && drcUser_status === "Inactive" && Array.isArray(existingUser.rtom)) {
-        updateData.rtom = existingUser.rtom.map(rtom => ({
+      if (
+        drcUser_type === 'RO'
+        && drcUser_status === "Inactive"
+        && Array.isArray(existingUser.rtom)
+      ) {
+        const updatedRtoms = existingUser.rtom.map(rtom => ({
           ...rtom.toObject ? rtom.toObject() : rtom,
           rtom_status: "Inactive",
           rtom_update_dtm: currentDate,
           rtom_update_by: create_by
         }));
+        updateData.rtom = updatedRtoms;
         rtomStatusSetToInactive = true;
       }
     }
 
-    /** ====== RTOM Updates ====== **/
-    if (drcUser_type === 'ro' && rtoms && Array.isArray(rtoms) && !rtomStatusSetToInactive) {
+    /** ========== Handle RTOM changes ========== **/
+    if (
+      drcUser_type === 'RO' &&
+      rtoms &&
+      Array.isArray(rtoms) &&
+      !rtomStatusSetToInactive
+    ) {
       let updatedRtoms = JSON.parse(JSON.stringify(existingUser.rtom));
       rtoms.forEach(newRtom => {
-        const existingRtomIndex = updatedRtoms.findIndex(r => r.rtom_id === newRtom.rtom_id);
+        const existingRtomIndex = updatedRtoms.findIndex(
+          rtom => rtom.rtom_id === newRtom.rtom_id
+        );
         if (existingRtomIndex !== -1) {
           const existingRtom = updatedRtoms[existingRtomIndex];
           updatedRtoms[existingRtomIndex] = {
             ...existingRtom,
-            rtom_status: newRtom.rtom_status ?? existingRtom.rtom_status,
+            rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : existingRtom.rtom_status,
             rtom_update_dtm: currentDate,
             rtom_update_by: create_by,
-            rtom_name: newRtom.rtom_name ?? existingRtom.rtom_name,
-            billing_center_code: newRtom.billing_center_code ?? existingRtom.billing_center_code,
-            handling_type: newRtom.handling_type ?? existingRtom.handling_type
+            rtom_name: newRtom.rtom_name !== undefined ? newRtom.rtom_name : existingRtom.rtom_name,
+            billing_center_code: newRtom.billing_center_code !== undefined ? newRtom.billing_center_code : existingRtom.billing_center_code,
+            handling_type: newRtom.handling_type !== undefined ? newRtom.handling_type : existingRtom.handling_type
           };
         } else {
           if (!newRtom.rtom_id || !newRtom.rtom_name || !newRtom.billing_center_code) {
@@ -5445,132 +5167,72 @@ export const Update_RO_or_DRCuser_Details = async (req, res) => {
           updatedRtoms.push({
             rtom_id: newRtom.rtom_id,
             rtom_name: newRtom.rtom_name,
-            rtom_status: newRtom.rtom_status ?? "Active",
+            rtom_status: newRtom.rtom_status !== undefined ? newRtom.rtom_status : "Active",
             billing_center_code: newRtom.billing_center_code,
             rtom_update_dtm: currentDate,
             rtom_update_by: create_by,
             rtom_end_dtm: null,
-            handling_type: newRtom.handling_type ?? null
+            handling_type: newRtom.handling_type || null
           });
         }
       });
       updateData.rtom = updatedRtoms;
     }
 
-    /** ====== Remarks ====== **/
+    /** ========== Handle Remark logic ========== **/
     if (remark) {
-      const newRemark = { remark, remark_by: create_by, remark_dtm: currentDate };
-      updateData.remark = [...existingUser.remark, newRemark];
-    }
-
-    /** ====== User Role ====== **/
-    if (user_role !== undefined && user_role !== existingUser.user_role) {
-      updateData.user_role = user_role;
-    }
-
-    /** ====== Approval Logic ====== **/
-    let userApprovalRecord = null;
-    let interactionResult = null;
-
-    if (needsApproval) {
-      const mongoConnection = await db.connectMongoDB();
-      const approvalCounterResult = await mongoConnection.collection("collection_sequence").findOneAndUpdate(
-        { _id: "user_approver_id" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after", upsert: true, session }
-      );
-      const user_approver_id = approvalCounterResult.value?.seq || approvalCounterResult.seq;
-      if (user_approver_id === undefined || user_approver_id === null) {
-        throw new Error("Failed to generate user_approver_id.");
+      const newRemark = {
+        remark: remark,
+        remark_by: create_by,
+        remark_dtm: currentDate
+      };
+      if (updateData.rtom) {
+        updateData.remark = [...existingUser.remark, newRemark];
+      } else {
+        updateData.$push = { remark: newRemark };
       }
-
-      const approved_Deligated_by = await getUserIdOwnedByDRCId(drc_id);
-
-      const userApprovalData = {
-        doc_version: 1,
-        user_approver_id: user_approver_id,
-        User_Type: ro_id ? 'RO' : 'DRC User',
-        User_id: ro_id ? ro_id.toString() : drc_officer_id ? drc_officer_id.toString() : null,
-        DRC_id: drc_id,
-        created_by: create_by,
-        created_on: currentDate,
-        approve_status: 'Open',
-        approve_status_on: currentDate,
-        approver_type: 'DRC_user_details_update',
-        approved_Deligated_by: approved_Deligated_by,
-        remark: remark || null,
-        Parameters: parameters,
-        existing_reference_id: null
-      };
-
-      const userApproval = new User_Approval(userApprovalData);
-      userApprovalRecord = await userApproval.save({ session });
-
-      const dynamicParams = {
-        user_type: drcUser_type,
-        ro_id: ro_id || null,
-        drc_officer_id: drc_officer_id || null,
-        user_name: userName || existingUser.name,
-        user_approver_id: user_approver_id,
-        drc_id: drc_id
-      };
-
-      interactionResult = await createUserInteractionFunction({
-        Interaction_ID: 19,
-        User_Interaction_Type: `Pending approval for ${drcUser_type} update`,
-        delegate_user_id: approved_Deligated_by,
-        Created_By: create_by,
-        User_Interaction_Status: "Open",
-        User_Interaction_Status_DTM: currentDate,
-        ...dynamicParams,
-        session
-      });
     }
 
-    const updatedUser = await Recovery_officer.findOneAndUpdate(findQuery, updateData, { new: true, session });
-    await session.commitTransaction();
+    /** ========== MongoDB update ========== **/
+    const updatedUser = await Recovery_officer.findOneAndUpdate(
+      findQuery,
+      updateData,
+      { new: true, session }
+    );
 
-    const responseData = {
-      updatedUser,
-      user_role: updatedUser.user_role || null
-    };
-    if (userApprovalRecord) responseData.userApproval = userApprovalRecord;
-    if (interactionResult) responseData.interaction = interactionResult;
+    await session.commitTransaction();
 
     return res.status(200).json({
       success: true,
-      message: `${drcUser_type} updated successfully${needsApproval ? ' and sent for approval' : ''}`,
-      data: responseData
+      message: `${drcUser_type} updated successfully`,
+      data: { updatedUser }
     });
 
   } catch (error) {
-    if (session) await session.abortTransaction();
-    let errorMessage = "Internal server error";
-    let statusCode = 500;
-
-    if (error.message.includes("Python Profile API failed")) {
-      errorMessage = "Failed to update user profile. Please try again.";
-      statusCode = 502;
-    } else if (error.message.includes("Python Contacts API failed")) {
-      errorMessage = "Failed to update contact information. Please check contact numbers and try again.";
-      statusCode = 502;
-    } else if (error.message.includes("Python Status API failed")) {
-      errorMessage = "Failed to update user status. Please try again.";
-      statusCode = 502;
-    } else if (error.message.includes("24 hours")) {
-      errorMessage = error.message;
-      statusCode = 403;
+    if (session) {
+      await session.abortTransaction();
     }
 
-    return res.status(statusCode).json({
+    // TODO: implement compensating actions for each succeeded Python step as needed.
+
+    console.error("Error updating user:", error);
+    return res.status(500).json({
       success: false,
-      message: errorMessage,
+      message: "Internal server error",
       error: error.message,
-      pythonStatus: pythonCallsSucceeded,
-      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      pythonStatus: pythonCallsSucceeded
     });
   } finally {
-    if (session) session.endSession();
-    await db.connectMongoDB();
+    if (session) {
+      await session.endSession();
+    }
   }
 };
+
+
+
+
+
+
+
+
