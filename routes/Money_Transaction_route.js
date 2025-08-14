@@ -299,6 +299,6 @@ router.post("/Create_task_for_Download_Payment_Case_List", Create_task_for_Downl
  *                   example: Internal server error
  */
 
-router.post("/Case_Details_Payment_By_Case_ID", Case_Details_Payment_By_Case_ID);
+router.post('/Case_Details_Payment_By_Case_ID', Case_Details_Payment_By_Case_ID);
 
 export default router;

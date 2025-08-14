@@ -91,6 +91,7 @@ import {
   //   getAllPaymentCases,
   RO_CPE_Collection,
   List_Request_Response_log,
+  List_Deligated_Request_Response,
   Create_Task_For_Request_Responce_Log_Download,
   listdownCaseDetailsByCaseId,
   //  Create_Task_For_Downloard_Case_Details,
@@ -11578,4 +11579,5 @@ router.post(
   "/Settelment_plan_request_acceptence_type_A",
   Settelment_plan_request_acceptence_type_A
 );
+router.post("/List_Deligated_Request_Response", List_Deligated_Request_Response);
 export default router;

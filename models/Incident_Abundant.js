@@ -132,16 +132,16 @@ const incidentSchema = new Schema(
         Last_Actions: { type: lastActionsSchema, required: true },
         Marketing_Details: { type: markertingDetailsSchema, required: true },
         current_arrears_band: { type: String, maxlength: 30, required:true,default: "Default Band"},
-        drc_commision_rule: { type: String, maxlength: 30, required: true },
+        drc_commision_rule: { type: String, maxlength: 30, required: true, default: "PEO TV" },
       
         
     },
     {
-        collection: 'Incident', 
+        collection: 'Incident_Abundant', 
         timestamps: true,
     }
 );
 
-const Incident = model('Incident', incidentSchema);
+const Incident_Abundant = model('Incident_Abundant', incidentSchema);
 
-export default Incident;
+export default Incident_Abundant;
