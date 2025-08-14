@@ -4470,7 +4470,7 @@ export const Aprove_DRC_Assign_Manager_Approval = async (req, res) => {
       let case_phase = "";
       try {
         const response = await axios.post(
-          "http://124.43.177.52:6000/app2/get_case_phase",
+          "https://debtx.slt.lk:6500/get_case_phase",
           payload
         );
 
