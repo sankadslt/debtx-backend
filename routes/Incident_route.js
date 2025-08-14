@@ -37,7 +37,9 @@ List_Transaction_Logs_Upload_Files,
 
 getOpenTaskCountforCPECollect,
 List_Reject_Incident,
+List_Abundant_Incident,
 Task_for_Download_Incidents,
+ listdownIncidentDetailsByIncidentId,
 Task_for_Download_Incidents_Full_List
 
 } from "../controllers/Incident_controller.js";
@@ -327,6 +329,7 @@ router.patch("/Reject_Case", Reject_Case);
  */
 router.post("/List_Incidents", List_Incidents);
 router.post("/New_List_Incidents", New_List_Incidents);
+router.get('/listdownIncidentDetailsByIncidentId/:incidentId', listdownIncidentDetailsByIncidentId);
 
 /**
  * @swagger
@@ -1829,6 +1832,9 @@ router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
  *                   example: "An unexpected error occurred."
  */
 router.post("/List_Reject_Incident", List_Reject_Incident);
+
+
+router.post("/List_Abundant_Incident", List_Abundant_Incident);
 
 router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
 
