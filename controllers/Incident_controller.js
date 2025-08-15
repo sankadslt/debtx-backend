@@ -15,7 +15,7 @@ import Incident from "../models/Incident.js";
 import Case_details from "../models/Case_details.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import Incident_Abundant from "../models/Incident_Abundant.js";
+import Incident_Abandoned from "../models/Incident_Abandoned.js";
 // import { startOfDay, endOfDay } from "date-fns";
 // import logger from "../utils/logger.js";
 
@@ -1718,7 +1718,7 @@ export const Forward_CPE_Collect = async (req, res) => {
   }
 };
 
-export const List_Abundant_Incident = async (req, res) => {
+export const List_Abandoned_Incident = async (req, res) => {
   try {
     const {
       Actions,
@@ -1734,7 +1734,7 @@ export const List_Abundant_Incident = async (req, res) => {
     const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
 
     
-    let query = { Incident_Status: "Abundent" };
+    let query = { Incident_Status: "Abandoned" };
 
     
     const dateFilter = {};
@@ -1752,33 +1752,33 @@ export const List_Abundant_Incident = async (req, res) => {
     if (Actions) query.Actions = Actions;
 
  
-    const incidents = await Incident_Abundant.find(query)
+    const incidents = await Incident_Abandoned.find(query)
       .sort({ Created_Dtm: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
   
-    const responseData = incidents.map((incident_Abundant) => ({
-      incidentID: incident_Abundant.Incident_Id,
-      status: incident_Abundant.Incident_Status,
-      accountNo: incident_Abundant.Account_Num,
-      drc_commision_rule:incident_Abundant.drc_commision_rule,
-      filtered_reason:incident_Abundant.Filtered_Reason,
-      Proceed_Dtm:incident_Abundant.Proceed_Dtm,
-      Arrears:incident_Abundant.Arrears,
-      action: incident_Abundant.Actions,
-      sourceType: incident_Abundant.Source_Type,
-      created_dtm: incident_Abundant.Created_Dtm
+    const responseData = incidents.map((incident_Abandoned) => ({
+      incidentID: incident_Abandoned.Incident_Id,
+      status: incident_Abandoned.Incident_Status,
+      accountNo: incident_Abandoned.Account_Num,
+      drc_commision_rule:incident_Abandoned.drc_commision_rule,
+      filtered_reason:incident_Abandoned.Filtered_Reason,
+      Proceed_Dtm:incident_Abandoned.Proceed_Dtm,
+      Arrears:incident_Abandoned.Arrears,
+      action: incident_Abandoned.Actions,
+      sourceType: incident_Abandoned.Source_Type,
+      created_dtm: incident_Abandoned.Created_Dtm
     }));
  
     return res.status(200).json({
       status: "success",
-      message: "Abundant incidents retrieved successfully.",
+      message: "Abandoned incidents retrieved successfully.",
       data: responseData,
     });
   } catch (error) {
-    console.error("Error in List_Abundant_Incident:", error);
+    console.error("Error in List Abandoned Incident:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",

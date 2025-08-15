@@ -4,6 +4,7 @@ import TmpForwardedApprover from "../models/Template_forwarded_approver.js";
 
 export const getApprovalUserIdService = async ({ case_phase, approval_type, billing_center = null }) => {
   try {
+    console.log("qeury",case_phase,approval_type,billing_center)
     const query = {
       ...(case_phase && { case_phase }),
       ...(billing_center && { billing_center }),

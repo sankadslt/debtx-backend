@@ -137,11 +137,11 @@ const incidentSchema = new Schema(
         
     },
     {
-        collection: 'Incident_Abundant', 
+        collection: 'Incident_Abandoned', 
         timestamps: true,
     }
 );
 
-const Incident_Abundant = model('Incident_Abundant', incidentSchema);
+const Incident_Abandoned = model('Incident_Abandoned', incidentSchema);
 
-export default Incident_Abundant;
+export default Incident_Abandoned;

@@ -9,7 +9,8 @@ import { getApprovalUserIdService } from "../services/ApprovalService.js";
 import { createUserInteractionFunction } from "../services/UserInteractionService.js";
 import CaseDetails from "../models/Case_details.js";
 import { Rtom_detais_of_the_DRC } from "./DRC_Service_controller.js";
- 
+import {Check_valid_approval} from "../services/ApprovalService.js"
+
 export const List_All_Withdrawal_Case_Logs = async (req, res) => {
   try {
     const { status, accountNumber, fromDate, toDate, page = 1 } = req.body;
@@ -291,6 +292,16 @@ export const Create_Withdraw_case = async (req, res) => {
       case_status,
     } = req.body;
 
+     const approver_type = "Case Withdrawal Approval";
+       
+        const recode = await Check_valid_approval({ approver_reference, approver_type });
+        if (recode !== "success") {
+          return res.status(404).json({
+            status: "error",
+            message: recode,
+          });
+        };
+
     if (!approver_reference || !remark || !remark_edit_by || !created_by) {
       await session.abortTransaction();
       session.endSession();
@@ -316,7 +327,7 @@ export const Create_Withdraw_case = async (req, res) => {
         });
       }
       case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
+      
     } catch (error) {
       console.error("Error during axios call:", error.message);
       if (error.response) {
@@ -333,7 +344,7 @@ export const Create_Withdraw_case = async (req, res) => {
 
     const delegate_id = await getApprovalUserIdService({
       case_phase,
-      approval_type: "DRC Assign Approval",
+      approval_type: "Case Withdrawal Approval",
     });
 
     const mongoConnection = await db.connectMongoDB();
@@ -427,7 +438,7 @@ export const Create_Withdraw_case = async (req, res) => {
   }
 };
 
-export const List_All_Abondoned_Case_Logs = async (req, res) => {
+export const List_All_Abandoned_Case_Logs = async (req, res) => {
   try {
     const { status, accountNumber, fromDate, toDate, page = 1 } = req.body;
 
@@ -456,7 +467,7 @@ export const List_All_Abondoned_Case_Logs = async (req, res) => {
     if (status) {
       query.case_current_status = status;
     } else {
-      query.case_current_status = { $in: ["Abondoned", "Pending  Abondoned"] };
+      query.case_current_status = { $in: ["Abandoned", "Pending  Abandoned"] };
     }
 
     // Account number filter
@@ -485,15 +496,15 @@ export const List_All_Abondoned_Case_Logs = async (req, res) => {
 
         amount: caseItem.current_arrears_amount,
         remark: lastAbnormal?.remark || "",
-        abondonedBy: lastAbnormal?.done_by || "",
-        abondonedOn: lastAbnormal?.done_on || "",
+        abandonedBy: lastAbnormal?.done_by || "",
+        abandonedOn: lastAbnormal?.done_on || "",
         approvedOn: lastAbnormal?.approved_on || "",
       };
     });
     console.log("Response Data:", responseData);
     return res.status(200).json({
       status: "success",
-      message: "Abondoned cases retrieved successfully.",
+      message: "Abandoned cases retrieved successfully.",
       data: responseData,
       pagination: {
         total,
@@ -503,7 +514,7 @@ export const List_All_Abondoned_Case_Logs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in List_All_Abondoned_Case_Logs:", error);
+    console.error("Error in List_All_Abandoned_Case_Logs:", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",
@@ -514,7 +525,7 @@ export const List_All_Abondoned_Case_Logs = async (req, res) => {
   }
 };
 
-export const Task_for_Download_Abondoned = async (req, res) => {
+export const Task_for_Download_Abandoned = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -532,7 +543,7 @@ export const Task_for_Download_Abondoned = async (req, res) => {
 
     const taskParams = {
       Template_Task_Id: 101,
-      task_type: "Download Abondoned case list",
+      task_type: "Download Abandoned case list",
       Created_By: Created_by,
       task_status: "open",
       status,
@@ -550,7 +561,7 @@ export const Task_for_Download_Abondoned = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error("Error in Task_for_Download_Abondoned:", error);
+    console.error("Error in Task_for_Download_Abandoned:", error);
     return res.status(500).json({
       status: "error",
       message: error.message || "Internal server error",
@@ -558,7 +569,7 @@ export const Task_for_Download_Abondoned = async (req, res) => {
   }
 };
 
-export const Create_Abondoned_case = async (req, res) => {
+export const Create_Abandoned_case = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -570,6 +581,16 @@ export const Create_Abondoned_case = async (req, res) => {
       created_by,
       case_status,
     } = req.body;
+
+        const approver_type = "Case Abandoned Approval";
+       
+        const recode = await Check_valid_approval({ approver_reference, approver_type });
+        if (recode !== "success") {
+          return res.status(404).json({
+            status: "error",
+            message: recode,
+          });
+        };
 
     if (!approver_reference || !remark || !remark_edit_by || !created_by) {
       await session.abortTransaction();
@@ -596,7 +617,7 @@ export const Create_Abondoned_case = async (req, res) => {
         });
       }
       case_phase = response.data.case_phase;
-      console.log("case_phase:", case_phase);
+     
     } catch (error) {
       console.error("Error during axios call:", error.message);
       if (error.response) {
@@ -613,7 +634,7 @@ export const Create_Abondoned_case = async (req, res) => {
 
     const delegate_id = await getApprovalUserIdService({
       case_phase,
-      approval_type: "DRC Assign Approval",
+      approval_type: "Case Abandoned Approval",
     });
 
     const mongoConnection = await db.connectMongoDB();
@@ -636,7 +657,7 @@ export const Create_Abondoned_case = async (req, res) => {
       approver_id,
       approver_reference,
       created_by,
-      approver_type: "Case Withdrawal Approval",
+      approver_type: "Case Abandoned Approval",
       approve_status: [
         {
           status: "Open",
@@ -661,15 +682,15 @@ export const Create_Abondoned_case = async (req, res) => {
       {
         $push: {
           case_status: {
-            case_status: "Pending Case Withdrawal",
-            status_reason: "Case send for Withdrawal Approval",
+            case_status: "Pending Case Abandoned ",
+            status_reason: "Case send for  Abandoned  Approval",
             created_dtm: currentDate,
             created_by: created_by,
             case_phase,
           },
         },
         $set: {
-          case_current_status: "Pending Case Withdrawal",
+          case_current_status: "Pending Case  Abandoned ",
           case_current_phase: case_phase,
         },
       },
@@ -682,7 +703,7 @@ export const Create_Abondoned_case = async (req, res) => {
     // --- Interaction Log ---
     const interactionResult = await createUserInteractionFunction({
       Interaction_ID: 18,
-      User_Interaction_Type: "Pending approval for Case Withdraw",
+      User_Interaction_Type: "Pending approval for Case  Abandoned",
       delegate_user_id: delegate_id,
       Created_By: created_by,
       User_Interaction_Status: "Open",
@@ -696,7 +717,7 @@ export const Create_Abondoned_case = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Case withdrawal request added successfully",
+      message: "Case Abandoned request added successfully",
       data: newDocument,
     });
   } catch (error) {
