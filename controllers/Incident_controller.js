@@ -2039,8 +2039,6 @@ export const Task_for_Download_Incidents_Full_List = async (req, res) => {
        }
      
 };
-
- 
 export const listdownIncidentDetailsByIncidentId = async (req, res) => {
   try {
     const incidentId = parseInt(req.params.incidentId);
@@ -2061,7 +2059,6 @@ export const listdownIncidentDetailsByIncidentId = async (req, res) => {
       });
     }
 
-    // Remove MongoDB internal fields
     const { _id, __v, ...cleanedIncidentDetails } = incidentDetails;
 
     const hasData = (arr) => Array.isArray(arr) && arr.length > 0;
@@ -2074,123 +2071,47 @@ export const listdownIncidentDetailsByIncidentId = async (req, res) => {
       });
     };
 
-    // Use the provided formatting function here
     const formattedIncident = formatIncidentDetails(cleanedIncidentDetails);
 
-    // Prepare response with your formatted data + all the other nested arrays reversed and cleaned as before
     const response = {
-      ...formattedIncident, // contains incidentInfo, basicInfo, productDetails, contactDetails, accountDetails, customerDetails, lastActions, marketingDetails
+      ...formattedIncident,
 
-      // Add/keep other array fields reversed and cleaned (if present)
-      remark: hasData(cleanedIncidentDetails.remark) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.remark].reverse()) 
+      // Top-level fields
+      incidentLogId: cleanedIncidentDetails.Incident_Log_Id || null,
+      incidentStatusDtm: cleanedIncidentDetails.Incident_Status_Dtm || null,
+      updatedAt: cleanedIncidentDetails.updatedAt || null, 
+      rejectedBy: cleanedIncidentDetails.Rejected_By || null, 
+      rejectedDtm: cleanedIncidentDetails.Rejected_Dtm || null, 
+      fileNameDump: cleanedIncidentDetails.File_Name_Dump || null, 
+      fileNameRejected: cleanedIncidentDetails.File_Name_Rejected || null, 
+      caseId: cleanedIncidentDetails.Case_Id || null,
+      docVersion: cleanedIncidentDetails.Doc_Version || null,
+      validityPeriod: cleanedIncidentDetails.Validity_period || null,
+      drcCommissionRule: cleanedIncidentDetails.Drc_Commision_Rule || cleanedIncidentDetails.drc_commision_rule || null,
+      batchId: cleanedIncidentDetails.Batch_Id || null,
+      batchIdTagDtm: cleanedIncidentDetails.Batch_Id_Tag_Dtm || null,
+      externalDataUpdateOn: cleanedIncidentDetails.External_Data_Update_On || null,
+      exportOn: cleanedIncidentDetails.Export_On || null,
+      rejectedReason: cleanedIncidentDetails.Rejected_Reason || null,
+      incidentForwardedBy: cleanedIncidentDetails.Incident_Forwarded_By || null,
+      incidentForwardedOn: cleanedIncidentDetails.Incident_Forwarded_On || null,
+      remark: cleanedIncidentDetails.Remark || null,
+
+      // Arrays
+      contactDetails: hasData(cleanedIncidentDetails.Contact_Details)
+        ? addNavigationMetadata([...cleanedIncidentDetails.Contact_Details].reverse())
         : undefined,
 
-      drcInfo: hasData(cleanedIncidentDetails.drc) 
-        ? [...cleanedIncidentDetails.drc].reverse().map(drc => {
-            const { recovery_officers, ...restDrc } = drc;
-            return {
-              ...restDrc,
-              recoveryOfficers: Array.isArray(recovery_officers) ? recovery_officers : [],
-            };
-          }) 
+      productDetails: hasData(cleanedIncidentDetails.Product_Details)
+        ? addNavigationMetadata([...cleanedIncidentDetails.Product_Details].reverse())
         : undefined,
 
-      roCustomerUpdates: hasData(cleanedIncidentDetails.ro_edited_customer_details) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.ro_edited_customer_details].reverse()) 
+      lastActions: hasData(cleanedIncidentDetails.Last_Actions)
+        ? addNavigationMetadata([...cleanedIncidentDetails.Last_Actions].reverse())
         : undefined,
 
-      approvals: hasData(cleanedIncidentDetails.approval_flow) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.approval_flow].reverse()) 
-        : undefined,
-
-      statusHistory: hasData(cleanedIncidentDetails.status_history) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.status_history].reverse()) 
-        : undefined,
-
-      actionsTaken: hasData(cleanedIncidentDetails.actions_taken) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.actions_taken].reverse()) 
-        : undefined,
-
-      documents: hasData(cleanedIncidentDetails.documents) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.documents].reverse()) 
-        : undefined,
-
-      refProducts: hasData(cleanedIncidentDetails.ref_products) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.ref_products].reverse()) 
-        : undefined,
-
-      roNegotiations: hasData(cleanedIncidentDetails.ro_negotiation) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.ro_negotiation].reverse()) 
-        : undefined,
-
-      roRequests: hasData(cleanedIncidentDetails.ro_requests) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.ro_requests].reverse()) 
-        : undefined,
-
-      roCpeCollections: hasData(cleanedIncidentDetails.ro_cpe_collect) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.ro_cpe_collect].reverse()) 
-        : undefined,
-
-      mediationBoard: hasData(cleanedIncidentDetails.mediation_board) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.mediation_board].reverse()) 
-        : undefined,
-
-      settlements: hasData(cleanedIncidentDetails.settlement) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.settlement].reverse()) 
-        : undefined,
-
-      payments: hasData(cleanedIncidentDetails.money_transactions) 
-        ? addNavigationMetadata([...cleanedIncidentDetails.money_transactions].reverse()) 
-        : undefined,
-
-      litigationInfo: hasData(cleanedIncidentDetails.litigation) 
-        ? [...cleanedIncidentDetails.litigation].reverse().map((litigation) => {
-            const {
-              support_documents,
-              hs_files_information,
-              legal_submission,
-              legal_details,
-              ...restLit
-            } = litigation;
-
-            return {
-              ...restLit,
-              supportDocuments: Array.isArray(support_documents) ? support_documents : [],
-              hsFilesInformation: Array.isArray(hs_files_information) ? hs_files_information : [],
-              legalSubmission: Array.isArray(legal_submission) ? legal_submission : [],
-              legalDetails: Array.isArray(legal_details) ? legal_details : [],
-            };
-          })
-        : undefined,
-
-      ftlLodLetterDetails: hasData(cleanedIncidentDetails.ftl_lod)
-        ? [...cleanedIncidentDetails.ftl_lod].reverse().map((ftl_lod) => {
-            const { ftl_lod_letter_details, customer_response, ...restLod } = ftl_lod;
-            return {
-              ...restLod,
-              ftlLodLetterDetails: Array.isArray(ftl_lod_letter_details) ? ftl_lod_letter_details : [],
-              relatedDocuments: Array.isArray(customer_response) ? customer_response : [],
-            };
-          })
-        : undefined,
-
-      lodFinalReminder: hasData(cleanedIncidentDetails.lod_final_reminder)
-        ? [...cleanedIncidentDetails.lod_final_reminder].reverse().map((lod_final_reminder) => {
-            const {
-              document_type,
-              lod_submission,
-              lod_response,
-              ...restlodFinalReminder
-            } = lod_final_reminder;
-
-            return {
-              ...restlodFinalReminder,
-              document_type: Array.isArray(document_type) ? document_type : [],
-              lod_submission: Array.isArray(lod_submission) ? lod_submission : [],
-              lod_response: Array.isArray(lod_response) ? lod_response : [],
-            };
-          })
+      marketingDetails: hasData(cleanedIncidentDetails.Marketing_Details)
+        ? addNavigationMetadata([...cleanedIncidentDetails.Marketing_Details].reverse())
         : undefined,
     };
 
@@ -2209,17 +2130,18 @@ export const listdownIncidentDetailsByIncidentId = async (req, res) => {
   }
 };
 
-// Your formatting function as provided
+// Formatting function
 const formatIncidentDetails = (incidentDetails) => {
   return {
     incidentInfo: {
       incidentId: incidentDetails.Incident_Id,
       createdDtm: incidentDetails.Created_Dtm,
       incidentStatus: incidentDetails.Incident_Status,
+      incidentStatusDtm: incidentDetails.Incident_Status_Dtm || null,
       incidentDirection: incidentDetails.Incident_direction,
       action: incidentDetails.Actions,
       sourceType: incidentDetails.Source_Type,
-      drcCommissionRule: incidentDetails.Drc_Commision_Rule,
+      drcCommissionRule: incidentDetails.Drc_Commision_Rule || incidentDetails.drc_commision_rule,
       daysCount: Math.floor(
         (new Date() - new Date(incidentDetails.Created_Dtm)) / (1000 * 60 * 60 * 24)
       ),
@@ -2227,6 +2149,11 @@ const formatIncidentDetails = (incidentDetails) => {
       createdBy: incidentDetails.Created_By,
       proceedBy: incidentDetails.Proceed_By,
       proceedDtm: incidentDetails.Proceed_Dtm,
+      updatedAt: incidentDetails.updatedAt || null, 
+      rejectedBy: incidentDetails.Rejected_By || null, 
+      rejectedDtm: incidentDetails.Rejected_Dtm || null, 
+      fileNameDump: incidentDetails.File_Name_Dump || null, 
+      fileNameRejected: incidentDetails.File_Name_Rejected || null, 
     },
 
     basicInfo: {
@@ -2271,46 +2198,15 @@ const formatIncidentDetails = (incidentDetails) => {
       createDtm: contact.Create_Dtm,
     })) || [],
 
-    accountDetails: {
-      accountStatus: incidentDetails.Account_Details?.Account_Status,
-      accEffectiveDtm: incidentDetails.Account_Details?.Acc_Effective_Dtm,
-      accActivateDate: incidentDetails.Account_Details?.Acc_Activate_Date,
-      billingCentre: incidentDetails.Account_Details?.Billing_Centre,
-      billingCentreCode: incidentDetails.Account_Details?.Billing_Centre_Code,
-      customerSegment: incidentDetails.Account_Details?.Customer_Segment,
-      creditClassName: incidentDetails.Account_Details?.Credit_Class_Name,
-      mobileContactTel: incidentDetails.Account_Details?.Mobile_Contact_Tel,
-      emailAddress: incidentDetails.Account_Details?.Email_Address,
-      lastRatedDtm: incidentDetails.Account_Details?.Last_Rated_Dtm,
-      lastBilledDtm: incidentDetails.Account_Details?.Last_Billed_Dtm,
-    },
+    accountDetails: incidentDetails.Account_Details || {},
 
-    customerDetails: {
-      name: incidentDetails.Customer_Details?.Customer_Name,
-      customerType: incidentDetails.Customer_Details?.Customer_Type,
-      fullAddress: incidentDetails.Customer_Details?.Full_Address,
-      zipCode: incidentDetails.Customer_Details?.Zip_Code,
-      nic: incidentDetails.Customer_Details?.Nic,
-    },
+    customerDetails: incidentDetails.Customer_Details || {},
 
-    lastActions: incidentDetails.Last_Actions?.map(action => ({
-      billedSeq: action.Billed_Seq,
-      billedCreated: action.Billed_Created,
-      billedAmount: action.Billed_Amount,
-      paymentSeq: action.Payment_Seq,
-      paymentCreated: action.Payment_Created,
-      paymentMoney: action.Payment_Money,
-    })) || [],
+    lastActions: incidentDetails.Last_Actions || [],
 
-    marketingDetails: incidentDetails.Marketing_Details?.map(marketing => ({
-      accountManager: marketing.Account_Manager,
-      consumerMarket: marketing.Consumer_Market,
-      informedTo: marketing.Informed_To,
-      informedOn: marketing.Informed_On,
-    })) || [],
+    marketingDetails: incidentDetails.Marketing_Details || [],
   };
 };
-
 
 
 
