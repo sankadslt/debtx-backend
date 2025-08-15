@@ -37,7 +37,7 @@ List_Transaction_Logs_Upload_Files,
 
 getOpenTaskCountforCPECollect,
 List_Reject_Incident,
-List_Abundant_Incident,
+List_Abandoned_Incident,
 Task_for_Download_Incidents,
  listdownIncidentDetailsByIncidentId,
 Task_for_Download_Incidents_Full_List
@@ -1834,7 +1834,7 @@ router.post("/Forward_CPE_Collect",Forward_CPE_Collect);
 router.post("/List_Reject_Incident", List_Reject_Incident);
 
 
-router.post("/List_Abundant_Incident", List_Abundant_Incident);
+router.post("/List_Abandoned_Incident", List_Abandoned_Incident);
 
 router.get("/Open_Task_Count_for_CPE_Collect",getOpenTaskCountforCPECollect)
 

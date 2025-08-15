@@ -6,9 +6,9 @@ import {
   List_All_Case_Closed_Log,
   Create_Task_For_Downloard_Case_Closed_List,
 } from "../controllers/Abnormal_controller.js";
-import { Create_Abondoned_case } from "../controllers/Abnormal_controller.js";
-import { Task_for_Download_Abondoned } from "../controllers/Abnormal_controller.js";
-import { List_All_Abondoned_Case_Logs } from "../controllers/Abnormal_controller.js";
+import { Create_Abandoned_case } from "../controllers/Abnormal_controller.js";
+import { Task_for_Download_Abandoned } from "../controllers/Abnormal_controller.js";
+import { List_All_Abandoned_Case_Logs } from "../controllers/Abnormal_controller.js";
 import { createLetter, 
         
 } from '../controllers/Customer_Dispute_Controller.js';
@@ -469,11 +469,11 @@ router.post("/Task_for_Download_Withdrawals", Task_for_Download_Withdrawals);
 
 router.post("/Create_Withdraw_case", Create_Withdraw_case);
 
-router.post("/List_All_Abondoned_Case_Logs", List_All_Abondoned_Case_Logs);
+router.post("/List_All_Abandoned_Case_Logs", List_All_Abandoned_Case_Logs);
 
-router.post("/Task_for_Download_Abondoned", Task_for_Download_Abondoned);
+router.post("/Task_for_Download_Abandoned", Task_for_Download_Abandoned);
 
-router.post("/Create_Abondoned_case", Create_Abondoned_case);
+router.post("/Create_Abandoned_case", Create_Abandoned_case);
 
 router.post("/List_All_Case_Closed_Log", List_All_Case_Closed_Log);
 
