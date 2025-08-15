@@ -15,6 +15,7 @@ import Incident from "../models/Incident.js";
 import Case_details from "../models/Case_details.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import Incident_Abundant from "../models/Incident_Abundant.js";
 // import { startOfDay, endOfDay } from "date-fns";
 // import logger from "../utils/logger.js";
 
@@ -1331,7 +1332,7 @@ export const Create_Case_for_incident = async (req, res) => {
         bss_arrears_amount: incidentData.Arrears || 0,
         current_arrears_amount: incidentData.Arrears || 0,
         action_type: "New Case",
-        drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+        drc_commision_rule: incidentData.drc_commision_rule ,
         last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
         monitor_months: 6,
         last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
@@ -1450,7 +1451,7 @@ export const Forward_Direct_LOD = async (req, res) => {
       current_arrears_amount: incidentData.Arrears || 0,
       current_arrears_band: incidentData.current_arrears_band || "Default Band",
       action_type: "Forward to CPE Collect",
-      drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+      drc_commision_rule: incidentData.drc_commision_rule ,
       last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
       monitor_months: 6,
       last_bss_reading_date: incidentData.Last_Actions?.Billed_Created || new Date(),
@@ -1573,7 +1574,7 @@ export const Forward_CPE_Collect = async (req, res) => {
       current_arrears_amount: incidentData.Arrears || 0,
       current_arrears_band: incidentData.current_arrears_band || "Default Band",
       action_type: "Forward to CPE Collect",
-      drc_commision_rule: incidentData.drc_commision_rule || "PEO TV",
+      drc_commision_rule: incidentData.drc_commision_rule ,
       last_payment_date: incidentData.Last_Actions?.Payment_Created || new Date(),
       monitor_months: 6,
       Proceed_By: incidentData.Proceed_By || "user",
@@ -1716,6 +1717,78 @@ export const Forward_CPE_Collect = async (req, res) => {
     });
   }
 };
+
+export const List_Abundant_Incident = async (req, res) => {
+  try {
+    const {
+      Actions,
+      from_date,
+      to_date,
+      pages
+    } = req.body;
+
+   
+    let page = Number(pages);
+    if (isNaN(page) || page < 1) page = 1;
+    const limit = page === 1 ? 10 : 30;
+    const skip = page === 1 ? 0 : 10 + (page - 2) * 30;
+
+    
+    let query = { Incident_Status: "Abundent" };
+
+    
+    const dateFilter = {};
+    if (from_date) dateFilter.$gte = new Date(from_date);
+    if (to_date) {
+      const endOfDay = new Date(to_date);
+      endOfDay.setHours(23, 59, 59, 999);
+      dateFilter.$lte = endOfDay;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      query.Created_Dtm = dateFilter;
+    }
+
+     
+    if (Actions) query.Actions = Actions;
+
+ 
+    const incidents = await Incident_Abundant.find(query)
+      .sort({ Created_Dtm: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+  
+    const responseData = incidents.map((incident_Abundant) => ({
+      incidentID: incident_Abundant.Incident_Id,
+      status: incident_Abundant.Incident_Status,
+      accountNo: incident_Abundant.Account_Num,
+      drc_commision_rule:incident_Abundant.drc_commision_rule,
+      filtered_reason:incident_Abundant.Filtered_Reason,
+      Proceed_Dtm:incident_Abundant.Proceed_Dtm,
+      Arrears:incident_Abundant.Arrears,
+      action: incident_Abundant.Actions,
+      sourceType: incident_Abundant.Source_Type,
+      created_dtm: incident_Abundant.Created_Dtm
+    }));
+ 
+    return res.status(200).json({
+      status: "success",
+      message: "Abundant incidents retrieved successfully.",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error in List_Abundant_Incident:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      errors: {
+        exception: error.message,
+      },
+    });
+  }
+};
+
 
 export const getOpenTaskCountforCPECollect = async (req, res) => {
 

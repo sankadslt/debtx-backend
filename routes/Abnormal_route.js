@@ -3,10 +3,16 @@ import {
   List_All_Withdrawal_Case_Logs,
   Task_for_Download_Withdrawals,
   Create_Withdraw_case,
+  List_All_Case_Closed_Log,
+  Create_Task_For_Downloard_Case_Closed_List,
 } from "../controllers/Abnormal_controller.js";
 import { Create_Abondoned_case } from "../controllers/Abnormal_controller.js";
 import { Task_for_Download_Abondoned } from "../controllers/Abnormal_controller.js";
 import { List_All_Abondoned_Case_Logs } from "../controllers/Abnormal_controller.js";
+import { createLetter, 
+        
+} from '../controllers/Customer_Dispute_Controller.js';
+
 
 const router = Router();
 
@@ -468,4 +474,20 @@ router.post("/List_All_Abondoned_Case_Logs", List_All_Abondoned_Case_Logs);
 router.post("/Task_for_Download_Abondoned", Task_for_Download_Abondoned);
 
 router.post("/Create_Abondoned_case", Create_Abondoned_case);
+
+router.post("/List_All_Case_Closed_Log", List_All_Case_Closed_Log);
+
+router.post("/Create_Task_For_Downloard_Case_Closed_List",Create_Task_For_Downloard_Case_Closed_List);  
+
+
+ 
+ 
+
+router.post('/', createLetter);
+ 
+
+ 
+
+
+
 export default router;

@@ -129,3 +129,84 @@ Elapsed: 207ms
 Elapsed: 487ms
 2025-01-17T05:54:13.019Z [INFO]: Time for generating Incident_Id: 2025-01-17T05:54:12.894Z - 2025-01-17T05:54:13.012Z
 Elapsed: 118ms
+2025-08-13T08:10:56.382Z [INFO]: Starting Retrive_logic request
+{
+  "correlationId": "RETRIVE-1755072656382-mg3ylttnu",
+  "requestBody": {
+    "status": "Final Reminder",
+    "pages": 1
+  }
+}
+2025-08-13T08:10:56.388Z [INFO]: Database query constructed
+{
+  "correlationId": "RETRIVE-1755072656382-mg3ylttnu",
+  "query": {
+    "case_current_status": "Final Reminder"
+  },
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "skip": 0
+  }
+}
+2025-08-13T08:10:56.944Z [INFO]: Retrive_logic completed successfully
+{
+  "correlationId": "RETRIVE-1755072656382-mg3ylttnu",
+  "resultCount": 1,
+  "totalCount": 1,
+  "executionTimeMs": 562,
+  "dbExecutionTimeMs": 555,
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "skip": 0
+  }
+}
+2025-08-13T08:13:35.481Z [INFO]: Starting Retrive_logic request
+{
+  "correlationId": "RETRIVE-1755072815481-cir82klyf",
+  "requestBody": {
+    "pages": 1
+  }
+}
+2025-08-13T08:13:35.483Z [ERROR]: Validation failed - status missing
+{
+  "correlationId": "RETRIVE-1755072815481-cir82klyf",
+  "requestBody": {
+    "pages": 1
+  },
+  "error": "status field is required"
+}
+2025-08-13T08:14:09.002Z [INFO]: Starting Retrive_logic request
+{
+  "correlationId": "RETRIVE-1755072849002-yaq2vfxyy",
+  "requestBody": {
+    "status": "Final Reminder",
+    "pages": 2
+  }
+}
+2025-08-13T08:14:09.004Z [INFO]: Database query constructed
+{
+  "correlationId": "RETRIVE-1755072849002-yaq2vfxyy",
+  "query": {
+    "case_current_status": "Final Reminder"
+  },
+  "pagination": {
+    "page": 2,
+    "limit": 30,
+    "skip": 10
+  }
+}
+2025-08-13T08:14:09.312Z [INFO]: Retrive_logic completed successfully
+{
+  "correlationId": "RETRIVE-1755072849002-yaq2vfxyy",
+  "resultCount": 0,
+  "totalCount": 1,
+  "executionTimeMs": 310,
+  "dbExecutionTimeMs": 307,
+  "pagination": {
+    "page": 2,
+    "limit": 30,
+    "skip": 10
+  }
+}
